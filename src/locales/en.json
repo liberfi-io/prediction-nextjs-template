@@ -37,7 +37,21 @@
       "signInPrompt": "Sign in to view your portfolio",
       "noPositions": "No open positions",
       "noOrders": "No open orders",
-      "noTrades": "No trade history"
+      "noTrades": "No trade history",
+      "loadMore": "Load more",
+      "cancel": "Cancel",
+      "side": "Side",
+      "outcome": "Outcome",
+      "type": "Type",
+      "price": "Price",
+      "filled": "Filled",
+      "status": "Status",
+      "size": "Size",
+      "pnl": "PnL",
+      "payout": "Payout",
+      "qty": "Qty",
+      "total": "Total",
+      "time": "Time"
     }
   },
   "common": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, useCallback } from "react";
+import { useCallback } from "react";
 import {
   LocaleCode,
   useTranslation,
@@ -179,7 +179,7 @@ export function PredictAccountButton() {
               label={
                 <>
                   <PolymarketIcon width={16} height={16} className="shrink-0" />
-                  Polymarket
+                  {"Polymarket"}
                 </>
               }
               chainIcon={<PolygonIcon size={12} />}

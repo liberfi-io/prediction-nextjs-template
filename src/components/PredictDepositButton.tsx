@@ -40,7 +40,6 @@ function QRCodeImage({
     <div className="relative shrink-0" style={{ width: 152, height: 152 }}>
       <div
         className="rounded-lg overflow-hidden border border-border bg-white p-2 w-full h-full"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: svgString }}
         aria-hidden="true"
       />
@@ -197,7 +196,7 @@ export function PredictDepositButton() {
               title={
                 <span className="flex items-center gap-1.5">
                   <PolymarketIcon width={14} height={14} />
-                  Polymarket
+                  {"Polymarket"}
                 </span>
               }
             >

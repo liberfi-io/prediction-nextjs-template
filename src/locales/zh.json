@@ -37,7 +37,21 @@
       "signInPrompt": "登入以查看您的持倉",
       "noPositions": "暫無持倉",
       "noOrders": "暫無掛單",
-      "noTrades": "暫無交易記錄"
+      "noTrades": "暫無交易記錄",
+      "loadMore": "載入更多",
+      "cancel": "取消",
+      "side": "方向",
+      "outcome": "結果",
+      "type": "類型",
+      "price": "價格",
+      "filled": "已成交",
+      "status": "狀態",
+      "size": "數量",
+      "pnl": "盈虧",
+      "payout": "回報",
+      "qty": "數量",
+      "total": "金額",
+      "time": "時間"
     }
   },
   "common": {

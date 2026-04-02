@@ -29,7 +29,6 @@ import { Button } from "@heroui/react";
 type PortfolioTab = "positions" | "orders" | "trades";
 
 export function PredictPortfolioPage() {
-  const { t } = useTranslation();
   const { status: authStatus, signIn } = useAuth();
   const isAuthenticated = authStatus === "authenticated";
 
@@ -216,7 +215,6 @@ function PositionsPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: 
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Desktop table header */}
       <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
         <div className="flex-[3] min-w-0 pr-2">{t("predict.positions.event")}</div>
         <div className="flex-1 pr-2 text-right">{t("predict.positions.totalSize")}</div>
@@ -234,6 +232,7 @@ function PositionsPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: 
 }
 
 function PositionRow({ position }: { position: PredictPosition }) {
+  const { t } = useTranslation();
   const pnl = position.pnl ?? 0;
   const pnlPercent = position.pnl_percent ?? 0;
   const avgPrice = position.avg_price ?? 0;
@@ -278,21 +277,21 @@ function PositionRow({ position }: { position: PredictPosition }) {
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex flex-col">
-            <span className="text-neutral">Size</span>
+            <span className="text-neutral">{t("extend.portfolio.size")}</span>
             <span className="font-mono text-foreground">{position.size}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">Price</span>
+            <span className="text-neutral">{t("extend.portfolio.price")}</span>
             <span className="font-mono text-foreground">{formatPrice(currentPrice)}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">PnL</span>
+            <span className="text-neutral">{t("extend.portfolio.pnl")}</span>
             <span className={cn("font-mono", pnlColor)}>
               {pnlSign}${Math.abs(pnl).toFixed(2)} ({pnlSign}{pnlPercent.toFixed(1)}%)
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">Payout</span>
+            <span className="text-neutral">{t("extend.portfolio.payout")}</span>
             <span className="font-mono text-foreground">${payoutIfRight.toFixed(2)}</span>
           </div>
         </div>
@@ -345,14 +344,13 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Desktop table header */}
       <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
-        <div className="w-16 shrink-0 pr-2">Side</div>
-        <div className="flex-1 pr-2">Outcome</div>
-        <div className="flex-1 pr-2">Type</div>
-        <div className="flex-1 pr-2 text-right">Price</div>
-        <div className="flex-1 pr-2 text-right">Filled</div>
-        <div className="w-20 shrink-0 pr-2">Status</div>
+        <div className="w-16 shrink-0 pr-2">{t("extend.portfolio.side")}</div>
+        <div className="flex-1 pr-2">{t("extend.portfolio.outcome")}</div>
+        <div className="flex-1 pr-2">{t("extend.portfolio.type")}</div>
+        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.price")}</div>
+        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.filled")}</div>
+        <div className="w-20 shrink-0 pr-2">{t("extend.portfolio.status")}</div>
         <div className="w-16 shrink-0" />
       </div>
 
@@ -371,7 +369,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
           onClick={handleLoadMore}
           className="text-sm text-primary hover:text-primary/80 py-2 cursor-pointer"
         >
-          Load more
+          {t("extend.portfolio.loadMore")}
         </button>
       )}
     </div>
@@ -387,6 +385,7 @@ function OrderRow({
   onCancel: (order: PredictOrder) => void;
   isCancelling: boolean;
 }) {
+  const { t } = useTranslation();
   const isBuy = order.side === "BUY";
 
   return (
@@ -418,7 +417,7 @@ function OrderRow({
             disabled={isCancelling}
             className="text-[10px] text-danger hover:text-danger/80 cursor-pointer disabled:opacity-50 transition-colors"
           >
-            Cancel
+            {t("extend.portfolio.cancel")}
           </button>
         </div>
       </div>
@@ -438,11 +437,11 @@ function OrderRow({
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex flex-col">
-            <span className="text-neutral">Price</span>
+            <span className="text-neutral">{t("extend.portfolio.price")}</span>
             <span className="font-mono text-foreground">{order.price ? formatPrice(parseFloat(order.price)) : "—"}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">Filled</span>
+            <span className="text-neutral">{t("extend.portfolio.filled")}</span>
             <span className="font-mono text-foreground">{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
           </div>
           <div className="flex-1" />
@@ -452,7 +451,7 @@ function OrderRow({
             disabled={isCancelling}
             className="text-xs text-danger hover:text-danger/80 cursor-pointer disabled:opacity-50 border border-border rounded px-2 py-1"
           >
-            Cancel
+            {t("extend.portfolio.cancel")}
           </button>
         </div>
       </div>
@@ -513,14 +512,13 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Desktop table header */}
       <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
-        <div className="w-16 shrink-0 pr-2">Side</div>
-        <div className="flex-1 pr-2">Outcome</div>
-        <div className="flex-1 pr-2 text-right">Price</div>
-        <div className="flex-1 pr-2 text-right">Qty</div>
-        <div className="flex-1 pr-2 text-right">Total</div>
-        <div className="flex-[1.5] pr-2 text-right">Time</div>
+        <div className="w-16 shrink-0 pr-2">{t("extend.portfolio.side")}</div>
+        <div className="flex-1 pr-2">{t("extend.portfolio.outcome")}</div>
+        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.price")}</div>
+        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.qty")}</div>
+        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.total")}</div>
+        <div className="flex-[1.5] pr-2 text-right">{t("extend.portfolio.time")}</div>
       </div>
 
       {trades.map((trade, i) => (
@@ -533,7 +531,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
           onClick={handleLoadMore}
           className="text-sm text-primary hover:text-primary/80 py-2 cursor-pointer"
         >
-          Load more
+          {t("extend.portfolio.loadMore")}
         </button>
       )}
     </div>
@@ -541,6 +539,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
 }
 
 function TradeRow({ trade }: { trade: PredictTrade }) {
+  const { t } = useTranslation();
   const isBuy = trade.side?.toUpperCase() === "BUY";
   const timeStr = formatTimestamp(trade.timestamp);
   const price = trade.price ?? 0;
@@ -579,15 +578,15 @@ function TradeRow({ trade }: { trade: PredictTrade }) {
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="flex flex-col">
-            <span className="text-neutral">Price</span>
+            <span className="text-neutral">{t("extend.portfolio.price")}</span>
             <span className="font-mono text-foreground">{formatPrice(price)}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">Qty</span>
+            <span className="text-neutral">{t("extend.portfolio.qty")}</span>
             <span className="font-mono text-foreground">{trade.size}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-neutral">Total</span>
+            <span className="text-neutral">{t("extend.portfolio.total")}</span>
             <span className="font-mono text-foreground">${usdSize.toFixed(2)}</span>
           </div>
         </div>
