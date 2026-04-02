@@ -3,12 +3,12 @@ import type { ProviderSource } from "@liberfi.io/react-predict";
 export type DisplaySource = "kalshi" | "polymarket";
 
 const DISPLAY_TO_API: Record<DisplaySource, ProviderSource> = {
-  kalshi: "dflow",
+  kalshi: "kalshi",
   polymarket: "polymarket",
 };
 
 const API_TO_DISPLAY: Record<ProviderSource, DisplaySource> = {
-  dflow: "kalshi",
+  kalshi: "kalshi",
   polymarket: "polymarket",
 };
 

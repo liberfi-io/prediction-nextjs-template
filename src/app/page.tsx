@@ -13,7 +13,7 @@ export default async function Page() {
   const client = getServerPredictClient();
 
   const params = resolveEventsParams({
-    source: "dflow",
+    source: "kalshi",
     sort_by: "volume_24h",
     sort_asc: false,
   });

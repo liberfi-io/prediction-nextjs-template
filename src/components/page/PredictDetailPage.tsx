@@ -17,7 +17,7 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   const evmWallet = useConnectedWallet(Chain.POLYGON);
 
   const walletAddress =
-    source === "dflow"
+    source === "kalshi"
       ? (solanaWallet?.address ?? "")
       : (evmWallet?.address ?? "");
 
