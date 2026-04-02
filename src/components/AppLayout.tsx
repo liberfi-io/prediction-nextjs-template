@@ -40,6 +40,7 @@ import {
   PREDICT_SEARCH_MODAL_ID,
   PredictWalletProvider,
 } from "@liberfi.io/ui-predict";
+import { useAuth } from "@liberfi.io/wallet-connector";
 import {
   StyledToaster,
   CoinsIcon,
@@ -162,6 +163,9 @@ function PageShell({ children }: PropsWithChildren) {
     [router],
   );
 
+  const { status: authStatus } = useAuth();
+  const isAuthenticated = authStatus === "authenticated";
+
   const { onClose: closePredictSearch } = useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
   const handlePredictHover = useCallback(
@@ -197,7 +201,7 @@ function PageShell({ children }: PropsWithChildren) {
                   }}
                 />
 
-                <PredictDepositButton />
+                {isAuthenticated && <PredictDepositButton />}
 
                 <LanguageButton />
 
