@@ -8,10 +8,13 @@
     },
     "header": {
       "predict": "預測",
-      "language": "切換語言"
+      "language": "切換語言",
+      "searchPlaceholder": "搜尋市場..."
     },
     "nav": {
-      "predict": "預測"
+      "predict": "預測",
+      "markets": "市場",
+      "portfolio": "持倉"
     },
     "predict": {
       "account": {
@@ -24,6 +27,17 @@
         "polymarketNote": "向此地址發送 Polygon 網絡上的 USDC。",
         "kalshiNote": "向此地址發送 Solana 網絡上的 USDC。"
       }
+    },
+    "portfolio": {
+      "title": "持倉",
+      "totalBalance": "總餘額",
+      "positions": "倉位",
+      "openOrders": "掛單",
+      "tradeHistory": "交易記錄",
+      "signInPrompt": "登入以查看您的持倉",
+      "noPositions": "暫無持倉",
+      "noOrders": "暫無掛單",
+      "noTrades": "暫無交易記錄"
     }
   },
   "common": {

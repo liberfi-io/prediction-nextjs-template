@@ -13,7 +13,6 @@
  */
 
 import {
-  Key,
   PropsWithChildren,
   useCallback,
   useEffect,
@@ -26,9 +25,6 @@ import {
   LocaleCode,
   LocaleProvider,
   useTranslation,
-  useLocale,
-  useChangeLocale,
-  useLocaleContext,
   i18n,
   defaultNS,
 } from "@liberfi.io/i18n";
@@ -43,10 +39,10 @@ import {
 import { useAuth } from "@liberfi.io/wallet-connector";
 import {
   StyledToaster,
-  CoinsIcon,
+  ChartLineIcon,
+  WalletIcon,
   LogoIcon,
   MiniLogoIcon,
-  TranslateIcon,
   cn,
 } from "@liberfi.io/ui";
 import type { LinkComponentType } from "@liberfi.io/ui";
@@ -58,12 +54,12 @@ import {
   type NavItem,
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import { predictEventHref } from "./page/predict-source";
 import { queryClient } from "../libs/queryClient";
 import { AuthProviders } from "./AuthProviders";
-import { PredictDepositButton } from "./PredictDepositButton";
 import { PredictAccountButton } from "./PredictAccountButton";
+import { PredictDepositButton } from "./PredictDepositButton";
+import { LanguageButton } from "./LanguageButton";
 import en from "../locales/en.json";
 import zh from "../locales/zh.json";
 import en2 from "@liberfi.io/i18n/locales/en.json";
@@ -80,7 +76,8 @@ const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
-  { key: "predict", href: "/", icon: <CoinsIcon width={20} height={20} /> },
+  { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
+  { key: "portfolio", href: "/portfolio", icon: <WalletIcon width={20} height={20} /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -175,6 +172,23 @@ function PageShell({ children }: PropsWithChildren) {
     [router],
   );
 
+  const searchModalParams = useMemo(
+    () => ({
+      getEventHref: (event: PredictEvent) => predictEventHref(event),
+      LinkComponent: NoPrefetchLink,
+      onHover: handlePredictHover,
+    }),
+    [handlePredictHover],
+  );
+
+  const handleSelectEvent = useCallback(
+    (event: PredictEvent) => {
+      router.push(predictEventHref(event));
+      closePredictSearch();
+    },
+    [router, closePredictSearch],
+  );
+
   return (
     <PredictWalletProvider enabled>
       <PredictWsConnector />
@@ -184,37 +198,87 @@ function PageShell({ children }: PropsWithChildren) {
         headerVisible={["desktop", "tablet", "mobile"]}
         footerVisible={["mobile"]}
         header={
-          <ScaffoldHeader
-            left={<Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />}
-            navItems={navItems}
-            right={
-              <>
+          <ScaffoldHeader>
+            <div className="w-full h-full px-6 max-lg:px-4 max-sm:px-3 flex items-center gap-6 max-lg:gap-4 max-sm:gap-2">
+              {/* Left: Logo + desktop nav tabs */}
+              <div className="shrink-0 flex items-center gap-1">
+                <Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />
+                <div className="hidden sm:flex items-center gap-1 ml-2">
+                  {navItems.map((item) => (
+                    <NavTab
+                      key={item.key}
+                      item={item}
+                      active={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
+                      onNavigate={onNavigate}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Center: Search bar */}
+              <div className="flex-1 min-w-0">
                 <SearchEventsButton
-                  onSelectEvent={(event) => {
-                    router.push(predictEventHref(event));
-                    closePredictSearch();
-                  }}
-                  modalParams={{
-                    getEventHref: (event) => predictEventHref(event),
-                    LinkComponent: NoPrefetchLink,
-                    onHover: handlePredictHover,
-                  }}
+                  onSelectEvent={handleSelectEvent}
+                  modalParams={searchModalParams}
+                  className="w-full !min-w-0"
                 />
+              </div>
 
-                {isAuthenticated && <PredictDepositButton />}
-
-                <LanguageButton />
-
+              {/* Right: actions (desktop shows all, mobile shows only Account) */}
+              <div className="shrink-0 flex items-center gap-3 max-sm:gap-2">
+                {isAuthenticated && (
+                  <div className="hidden sm:block">
+                    <PredictDepositButton />
+                  </div>
+                )}
+                <div className="hidden sm:block">
+                  <LanguageButton />
+                </div>
                 <PredictAccountButton />
-              </>
-            }
-          />
+              </div>
+            </div>
+          </ScaffoldHeader>
         }
         footer={<ScaffoldFooter navItems={navItems} />}
       >
         {children}
       </Scaffold>
     </PredictWalletProvider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NavTab — inline header nav tab (used inside custom ScaffoldHeader children)
+// ---------------------------------------------------------------------------
+
+function NavTab({
+  item,
+  active,
+  onNavigate,
+}: {
+  item: NavItem;
+  active: boolean;
+  onNavigate: (href: string) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onNavigate(item.href);
+  }, [onNavigate, item.href]);
+
+  return (
+    <button
+      type="button"
+      data-active={active}
+      className={cn(
+        "h-8 text-sm font-medium px-2 xl:px-3 rounded-sm cursor-pointer whitespace-nowrap",
+        "text-foreground hover:text-primary hover:bg-primary-50",
+        "data-[active=true]:text-primary",
+      )}
+      onClick={handlePress}
+      aria-label={item.label}
+      aria-current={active ? "page" : undefined}
+    >
+      {item.label}
+    </button>
   );
 }
 
@@ -234,62 +298,4 @@ function PredictWsConnector() {
   }, [wsClient]);
 
   return null;
-}
-
-// ---------------------------------------------------------------------------
-// Header action buttons
-// ---------------------------------------------------------------------------
-
-function LanguageButton() {
-  const { t } = useTranslation();
-  const locale = useLocale();
-  const changeLocale = useChangeLocale();
-  const { languages } = useLocaleContext();
-
-  const handleChangeLanguage = useCallback(
-    (key: Key) => changeLocale(key as LocaleCode),
-    [changeLocale],
-  );
-
-  return (
-    <Dropdown
-      placement="bottom-end"
-      size="sm"
-      classNames={{ content: "bg-content1 border border-border" }}
-    >
-      <DropdownTrigger>
-        <Button
-          isIconOnly
-          className="bg-content2 w-8 min-w-0 h-8 min-h-0 rounded-full"
-          disableRipple
-          aria-label={t("extend.header.language")}
-        >
-          <TranslateIcon width={16} height={16} />
-        </Button>
-      </DropdownTrigger>
-      <DropdownMenu
-        aria-label={t("extend.header.language")}
-        selectionMode="single"
-        selectedKeys={[locale]}
-        onAction={handleChangeLanguage}
-        classNames={{ list: "gap-1" }}
-        itemClasses={{
-          base: cn("rounded-md px-3 h-8"),
-        }}
-      >
-        {languages.map((lang) => (
-          <DropdownItem
-            key={lang.localCode}
-            className={cn(
-              lang.localCode === locale ? "bg-content2 text-foreground" : "text-neutral",
-              "data-[hover=true]:bg-content2 data-[hover=true]:text-foreground",
-              "data-[selectable=true]:focus:bg-content2 data-[selectable=true]:focus:text-foreground",
-            )}
-          >
-            {lang.displayName}
-          </DropdownItem>
-        ))}
-      </DropdownMenu>
-    </Dropdown>
-  );
 }

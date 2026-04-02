@@ -8,10 +8,13 @@
     },
     "header": {
       "predict": "Predict",
-      "language": "Switch Language"
+      "language": "Switch Language",
+      "searchPlaceholder": "Search markets..."
     },
     "nav": {
-      "predict": "Predict"
+      "predict": "Predict",
+      "markets": "Markets",
+      "portfolio": "Portfolio"
     },
     "predict": {
       "account": {
@@ -24,6 +27,17 @@
         "polymarketNote": "Send USDC on Polygon network to this address.",
         "kalshiNote": "Send USDC on Solana network to this address."
       }
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "totalBalance": "Total Balance",
+      "positions": "Positions",
+      "openOrders": "Open Orders",
+      "tradeHistory": "Trade History",
+      "signInPrompt": "Sign in to view your portfolio",
+      "noPositions": "No open positions",
+      "noOrders": "No open orders",
+      "noTrades": "No trade history"
     }
   },
   "common": {

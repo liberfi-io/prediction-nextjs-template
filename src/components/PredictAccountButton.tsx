@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
-import { useTranslation } from "@liberfi.io/i18n";
+import { Key, useCallback } from "react";
+import {
+  LocaleCode,
+  useTranslation,
+  useLocale,
+  useChangeLocale,
+  useLocaleContext,
+} from "@liberfi.io/i18n";
 import { useAuth } from "@liberfi.io/wallet-connector";
 import { usePredictWallet } from "@liberfi.io/ui-predict";
 import {
@@ -17,9 +23,11 @@ import {
   SolanaIcon,
   UsdcIcon,
   ChevronDownIcon,
+  TranslateIcon,
   useDisclosure,
   cn,
 } from "@liberfi.io/ui";
+import { PredictDepositButton } from "./PredictDepositButton";
 
 function formatUsdc(amount: number): string {
   return amount.toLocaleString("en-US", {
@@ -154,7 +162,8 @@ export function PredictAccountButton() {
       </PopoverTrigger>
 
       <PopoverContent>
-        <div className="w-[240px] py-2">
+        <div className="w-[260px] py-2">
+          {/* Balance overview */}
           <div className="flex items-center gap-2 px-4 pb-2 border-b border-border">
             <UsdcIcon width={18} height={18} className="shrink-0" />
             <span className="flex-1 text-sm font-semibold text-foreground">
@@ -185,6 +194,17 @@ export function PredictAccountButton() {
             />
           </div>
 
+          {/* Mobile-only: Deposit */}
+          <div className="sm:hidden mt-1 pt-1 border-t border-border px-2">
+            <PredictDepositButton />
+          </div>
+
+          {/* Mobile-only: Language switcher */}
+          <div className="sm:hidden mt-1 pt-1 border-t border-border px-4">
+            <MobileLanguageSwitcher />
+          </div>
+
+          {/* Sign out */}
           <div className="mt-1 pt-1 border-t border-border px-4 pb-1">
             <button
               type="button"
@@ -198,5 +218,45 @@ export function PredictAccountButton() {
         </div>
       </PopoverContent>
     </StyledPopover>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mobile-only language switcher inside account dropdown
+// ---------------------------------------------------------------------------
+
+function MobileLanguageSwitcher() {
+  const { t } = useTranslation();
+  const locale = useLocale();
+  const changeLocale = useChangeLocale();
+  const { languages } = useLocaleContext();
+
+  const handleChange = useCallback(
+    (code: LocaleCode) => changeLocale(code),
+    [changeLocale],
+  );
+
+  return (
+    <div className="flex items-center gap-2 py-2">
+      <TranslateIcon width={15} height={15} className="text-neutral shrink-0" />
+      <span className="text-sm text-foreground flex-1">{t("extend.header.language")}</span>
+      <div className="flex gap-1">
+        {languages.map((lang) => (
+          <button
+            key={lang.localCode}
+            type="button"
+            onClick={() => handleChange(lang.localCode as LocaleCode)}
+            className={cn(
+              "text-xs px-2 py-1 rounded-md cursor-pointer transition-colors",
+              lang.localCode === locale
+                ? "bg-content2 text-foreground font-medium"
+                : "text-neutral hover:text-foreground",
+            )}
+          >
+            {lang.localCode.toUpperCase()}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
