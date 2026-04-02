@@ -1,0 +1,33 @@
+{
+  "extend": {
+    "title": "{{name}} | Prediction Market",
+    "description": "Trade on prediction markets powered by Liberfi. Browse events, place bets, and track your positions.",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "Predict",
+      "language": "Switch Language"
+    },
+    "nav": {
+      "predict": "Predict"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "Total USDC"
+      },
+      "deposit": {
+        "title": "Deposit",
+        "copy": "Copy address",
+        "walletNotConnected": "Wallet not connected",
+        "polymarketNote": "Send USDC on Polygon network to this address.",
+        "kalshiNote": "Send USDC on Solana network to this address."
+      }
+    }
+  },
+  "common": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out"
+  }
+}

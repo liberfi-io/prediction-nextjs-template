@@ -1,0 +1,33 @@
+{
+  "extend": {
+    "title": "{{name}} | 預測市場",
+    "description": "在 Liberfi 預測市場上交易。瀏覽事件、下注並追蹤您的倉位。",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "預測",
+      "language": "切換語言"
+    },
+    "nav": {
+      "predict": "預測"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "USDC 總餘額"
+      },
+      "deposit": {
+        "title": "充值",
+        "copy": "複製地址",
+        "walletNotConnected": "錢包未連接",
+        "polymarketNote": "向此地址發送 Polygon 網絡上的 USDC。",
+        "kalshiNote": "向此地址發送 Solana 網絡上的 USDC。"
+      }
+    }
+  },
+  "common": {
+    "signIn": "登入",
+    "signOut": "登出"
+  }
+}
