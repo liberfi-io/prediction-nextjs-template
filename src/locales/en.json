@@ -14,7 +14,9 @@
     "nav": {
       "predict": "Predict",
       "markets": "Markets",
-      "portfolio": "Portfolio"
+      "matches": "Matches",
+      "portfolio": "Portfolio",
+      "profile": "Profile"
     },
     "predict": {
       "account": {

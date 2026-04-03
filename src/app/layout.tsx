@@ -1,6 +1,6 @@
 import "../styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, DM_Sans } from "next/font/google";
 import { defaultNS } from "@liberfi.io/i18n/server";
 import { CONFIG } from "../config";
 import { GoogleAnalytics } from "../components/GoogleAnalytics";
@@ -46,6 +46,12 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+});
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await detectLanguage();
   await initServerI18n(locale);
@@ -57,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       style={{ colorScheme: "dark" }}
       suppressHydrationWarning
     >
-      <body className={inter.className}>
+        <body className={`${inter.className} ${dmSans.variable}`}>
         <AppLayout locale={locale}>{children}</AppLayout>
         {process.env.NODE_ENV === "production" && (
           <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />

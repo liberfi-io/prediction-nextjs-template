@@ -14,7 +14,9 @@
     "nav": {
       "predict": "預測",
       "markets": "市場",
-      "portfolio": "持倉"
+      "matches": "跨平台匹配",
+      "portfolio": "持倉",
+      "profile": "個人中心"
     },
     "predict": {
       "account": {

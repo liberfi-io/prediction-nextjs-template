@@ -15,6 +15,7 @@ import {
   type PredictTrade,
   type OrderStatus,
 } from "@liberfi.io/react-predict";
+import { PortfolioStats } from "./portfolio-stats.ui";
 import {
   cn,
   Skeleton,
@@ -65,15 +66,71 @@ function PortfolioContent() {
   const solanaAddr = solanaWallet?.address ?? "";
   const evmAddr = evmWallet?.address ?? "";
 
+  const { data: kalshiPositions, isLoading: kalshiPosLoading } = usePositions({
+    source: "kalshi",
+    user: solanaAddr,
+  });
+  const { data: polyPositions, isLoading: polyPosLoading } = usePositions({
+    source: "polymarket",
+    user: evmAddr,
+  });
+
+  const allPositions = useMemo(() => {
+    const all: PredictPosition[] = [];
+    if (kalshiPositions?.positions) all.push(...kalshiPositions.positions);
+    if (polyPositions?.positions) all.push(...polyPositions.positions);
+    return all;
+  }, [kalshiPositions, polyPositions]);
+
+  const positionsLoading = kalshiPosLoading || polyPosLoading;
+
+  const { data: kalshiTrades, isLoading: kalshiTradesLoading } = useInfiniteTrades({
+    source: "kalshi",
+    wallet: solanaAddr,
+    limit: 100,
+  });
+  const { data: polyTrades, isLoading: polyTradesLoading } = useInfiniteTrades({
+    source: "polymarket",
+    wallet: evmAddr,
+    limit: 100,
+  });
+
+  const allTrades = useMemo(() => {
+    const all = [
+      ...(kalshiTrades?.pages?.flatMap((p) => p.items) ?? []),
+      ...(polyTrades?.pages?.flatMap((p) => p.items) ?? []),
+    ];
+    return all;
+  }, [kalshiTrades, polyTrades]);
+
+  const statsLoading = positionsLoading || kalshiTradesLoading || polyTradesLoading;
+  const positionsCount = allPositions.length;
+  const positionsTabLabel =
+    positionsCount > 0
+      ? `${t("extend.portfolio.positions")} (${positionsCount})`
+      : t("extend.portfolio.positions");
+
   const tabs: { key: PortfolioTab; label: string }[] = [
-    { key: "positions", label: t("extend.portfolio.positions") },
+    { key: "positions", label: positionsTabLabel },
     { key: "orders", label: t("extend.portfolio.openOrders") },
     { key: "trades", label: t("extend.portfolio.tradeHistory") },
   ];
 
   return (
-    <div className="flex flex-col gap-4 px-4 max-sm:px-2 py-4 max-w-[1200px] mx-auto w-full">
-      <BalanceOverview />
+    <div className="flex flex-col max-w-[1280px] mx-auto w-full px-4 max-sm:px-2 py-4">
+      <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
+        {t("extend.portfolio.title")}
+      </h1>
+
+      <PortfolioStats
+        positions={allPositions}
+        trades={allTrades}
+        isLoading={statsLoading}
+      />
+
+      <div className="mt-4 mb-2">
+        <BalanceOverview />
+      </div>
 
       <div className="flex items-center gap-1 border-b border-border">
         {tabs.map((tab) => (
@@ -82,9 +139,9 @@ function PortfolioContent() {
             type="button"
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap",
+              "px-3 py-3 text-base font-normal transition-colors cursor-pointer whitespace-nowrap",
               activeTab === tab.key
-                ? "text-foreground border-b-2 border-primary"
+                ? "text-foreground border-b-2 border-foreground"
                 : "text-neutral hover:text-foreground",
             )}
           >
@@ -93,9 +150,9 @@ function PortfolioContent() {
         ))}
       </div>
 
-      <div className="min-h-[400px]">
+      <div className="min-h-[400px] py-2">
         {activeTab === "positions" && (
-          <PositionsPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />
+          <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
         )}
         {activeTab === "orders" && (
           <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />
@@ -190,25 +247,14 @@ function BalanceChip({
 // Positions panel
 // ---------------------------------------------------------------------------
 
-function PositionsPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: string }) {
+function PositionsPanel({
+  positions,
+  isLoading,
+}: {
+  positions: PredictPosition[];
+  isLoading: boolean;
+}) {
   const { t } = useTranslation();
-
-  const { data: kalshiData, isLoading: kalshiLoading } = usePositions({
-    source: "kalshi",
-    user: solanaAddr,
-  });
-  const { data: polyData, isLoading: polyLoading } = usePositions({
-    source: "polymarket",
-    user: evmAddr,
-  });
-
-  const isLoading = kalshiLoading || polyLoading;
-  const positions = useMemo(() => {
-    const all: PredictPosition[] = [];
-    if (kalshiData?.positions) all.push(...kalshiData.positions);
-    if (polyData?.positions) all.push(...polyData.positions);
-    return all;
-  }, [kalshiData, polyData]);
 
   if (isLoading) return <PanelSkeleton />;
   if (positions.length === 0) return <EmptyState message={t("extend.portfolio.noPositions")} />;

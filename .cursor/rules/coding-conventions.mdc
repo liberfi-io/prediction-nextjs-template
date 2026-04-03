@@ -1,0 +1,47 @@
+# Coding Conventions
+
+## Package Manager
+
+- Use **pnpm 9.5.0** exclusively
+- Run `pnpm install` before development
+
+## Code Style
+
+- All code comments MUST be written in **English**
+- Use JSDoc for public API functions and components
+
+## Naming Conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Component | PascalCase | `PredictMatchesPage` |
+| Hook | `useXxx` | `usePredictClient` |
+| Page file | `page.tsx` | Next.js App Router convention |
+| Layout file | `layout.tsx` | Next.js App Router convention |
+| Server util | descriptive | `getServerPredictClient` |
+
+## SDK Dependencies
+
+This project consumes `@liberfi.io/*` packages from the react-sdk monorepo. The source code is at `../react-sdk`.
+
+### Version Check Priority
+1. **Local source**: Read `../react-sdk/packages/*/package.json` version field
+2. **npm fallback**: `npm view @liberfi.io/<name> version`
+
+### Upgrading @liberfi.io/* Packages
+1. Update versions in `package.json`
+2. **Stop and tell the user** to run:
+   ```bash
+   nrm use npm
+   pnpm install --no-frozen-lockfile
+   pnpm build
+   nrm use taobao
+   ```
+3. Do NOT run `pnpm install` or `pnpm build` automatically
+
+## Environment Variables
+
+- Client-side: prefix with `NEXT_PUBLIC_`
+- Server-side: `PREDICT_URL`, `PRIVY_APP_SECRET`, etc.
+- Reference `.env.example` for available variables
+- Never commit `.env.local`

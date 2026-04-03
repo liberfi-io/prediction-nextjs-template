@@ -17,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -41,6 +42,8 @@ import {
   StyledToaster,
   ChartLineIcon,
   WalletIcon,
+  ZapFastIcon,
+  UserIcon,
   LogoIcon,
   MiniLogoIcon,
   cn,
@@ -77,7 +80,8 @@ const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
   { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
-  { key: "portfolio", href: "/portfolio", icon: <WalletIcon width={20} height={20} /> },
+  { key: "matches", href: "/matches", icon: <ZapFastIcon width={20} height={20} /> },
+  { key: "portfolio", href: "/portfolio", icon: <UserIcon width={20} height={20} /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -85,6 +89,14 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
 // ---------------------------------------------------------------------------
 
 export function AppLayout({ children, locale }: PropsWithChildren<{ locale: LocaleCode }>) {
+  const localeApplied = useRef(false);
+  if (!localeApplied.current) {
+    if (i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+    }
+    localeApplied.current = true;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProviders>
@@ -195,11 +207,20 @@ function PageShell({ children }: PropsWithChildren) {
       <Scaffold
         pathname={pathname}
         onNavigate={onNavigate}
+        headerHeight={48}
         headerVisible={["desktop", "tablet", "mobile"]}
         footerVisible={["mobile"]}
         header={
-          <ScaffoldHeader>
-            <div className="w-full h-full px-6 max-lg:px-4 max-sm:px-3 flex items-center gap-6 max-lg:gap-4 max-sm:gap-2">
+          <ScaffoldHeader style={{ background: "transparent", border: "none" }}>
+            <div
+              className="w-full h-full px-6 max-lg:px-4 max-sm:px-3 flex items-center gap-6 max-lg:gap-4 max-sm:gap-2"
+              style={{
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                borderBottom: "1px solid rgba(39,39,42,0.6)",
+                background: "rgba(10,10,11,0.8)",
+              }}
+            >
               {/* Left: Logo + desktop nav tabs */}
               <div className="shrink-0 flex items-center gap-1">
                 <Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />
@@ -215,8 +236,16 @@ function PageShell({ children }: PropsWithChildren) {
                 </div>
               </div>
 
-              {/* Center: Search bar */}
-              <div className="flex-1 min-w-0">
+              {/* Center: Search bar — centered like matchr.xyz */}
+              <div className="hidden sm:flex flex-1 min-w-0 justify-center">
+                <SearchEventsButton
+                  onSelectEvent={handleSelectEvent}
+                  modalParams={searchModalParams}
+                  className="w-full !min-w-0 !max-w-md"
+                />
+              </div>
+              {/* Mobile search: full width */}
+              <div className="sm:hidden flex-1 min-w-0">
                 <SearchEventsButton
                   onSelectEvent={handleSelectEvent}
                   modalParams={searchModalParams}
@@ -269,9 +298,10 @@ function NavTab({
       type="button"
       data-active={active}
       className={cn(
-        "h-8 text-sm font-medium px-2 xl:px-3 rounded-sm cursor-pointer whitespace-nowrap",
-        "text-foreground hover:text-primary hover:bg-primary-50",
-        "data-[active=true]:text-primary",
+        "h-7 text-xs font-medium px-2.5 py-1 rounded-sm cursor-pointer whitespace-nowrap",
+        active
+          ? "text-white"
+          : "text-zinc-500 hover:text-zinc-300",
       )}
       onClick={handlePress}
       aria-label={item.label}
