@@ -41,7 +41,6 @@ import { useAuth } from "@liberfi.io/wallet-connector";
 import {
   StyledToaster,
   ChartLineIcon,
-  WalletIcon,
   ZapFastIcon,
   UserIcon,
   LogoIcon,
