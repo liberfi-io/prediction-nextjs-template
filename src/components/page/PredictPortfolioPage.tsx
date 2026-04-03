@@ -172,7 +172,7 @@ function PortfolioContent() {
 function BalanceOverview() {
   const { t } = useTranslation();
   const { dflowUsdcBalance, polymarketUsdcBalance, isLoading } = usePredictWallet();
-  const totalBalance = dflowUsdcBalance + polymarketUsdcBalance;
+  const totalBalance = (dflowUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 p-4 rounded-xl border border-border bg-content1">
@@ -222,7 +222,7 @@ function BalanceChip({
   label: string;
   chainIcon: React.ReactNode;
   chainName: string;
-  balance: number;
+  balance: number | null;
   isLoading: boolean;
 }) {
   return (
@@ -237,7 +237,7 @@ function BalanceChip({
       {isLoading ? (
         <Skeleton className="h-5 w-16 rounded-md" />
       ) : (
-        <span className="text-sm font-semibold tabular-nums">${formatUsdc(balance)}</span>
+        <span className="text-sm font-semibold tabular-nums">${formatUsdc(balance ?? 0)}</span>
       )}
     </div>
   );

@@ -63,7 +63,7 @@ function BalanceRow({
   label: React.ReactNode;
   chainIcon: React.ReactNode;
   chainName: string;
-  balance: number;
+  balance: number | null;
 }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2">
@@ -77,7 +77,7 @@ function BalanceRow({
         </span>
       </div>
       <span className="text-xs font-semibold text-foreground tabular-nums">
-        ${formatUsdc(balance)}
+        ${formatUsdc(balance ?? 0)}
       </span>
     </div>
   );
@@ -89,7 +89,7 @@ export function PredictAccountButton() {
   const { dflowUsdcBalance, polymarketUsdcBalance, isLoading } = usePredictWallet();
   const { isOpen, onOpenChange, onClose } = useDisclosure();
 
-  const totalBalance = dflowUsdcBalance + polymarketUsdcBalance;
+  const totalBalance = (dflowUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
 
   const handleSignOut = useCallback(async () => {
     onClose();
