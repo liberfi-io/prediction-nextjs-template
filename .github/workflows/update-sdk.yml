@@ -1,0 +1,102 @@
+name: Update SDK Dependencies
+
+on:
+  repository_dispatch:
+    types: [sdk-released]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    name: Update @liberfi.io/* packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Update @liberfi.io/* versions
+        id: update
+        run: |
+          node -e "
+          const { execSync } = require('child_process');
+          const fs = require('fs');
+
+          const pkgPath = './package.json';
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+          // Collect @liberfi.io/* package names
+          const pkgNames = new Set();
+          for (const section of ['dependencies', 'devDependencies']) {
+            if (!pkg[section]) continue;
+            for (const name of Object.keys(pkg[section])) {
+              if (name.startsWith('@liberfi.io/')) pkgNames.add(name);
+            }
+          }
+
+          console.log('Packages to check:', [...pkgNames].join(', '));
+
+          // Fetch latest versions from npm
+          const versions = {};
+          for (const name of pkgNames) {
+            try {
+              const ver = execSync('npm view ' + name + ' version 2>/dev/null')
+                .toString().trim();
+              if (ver) versions[name] = ver;
+            } catch {
+              console.log('⚠️  Could not fetch ' + name);
+            }
+          }
+
+          // Update package.json
+          let changed = false;
+          for (const section of ['dependencies', 'devDependencies']) {
+            if (!pkg[section]) continue;
+            for (const [name, latest] of Object.entries(versions)) {
+              if (!pkg[section][name]) continue;
+              const newVer = '^' + latest;
+              if (pkg[section][name] !== newVer) {
+                console.log(name + ': ' + pkg[section][name] + ' → ' + newVer);
+                pkg[section][name] = newVer;
+                changed = true;
+              }
+            }
+          }
+
+          if (!changed) {
+            console.log('✅ All packages already up to date');
+            process.exit(0);
+          }
+
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'has_updates=true\n');
+          "
+
+      - name: Install dependencies
+        if: steps.update.outputs.has_updates == 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Commit and push
+        if: steps.update.outputs.has_updates == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore: update @liberfi.io/* SDK dependencies"
+          git push
