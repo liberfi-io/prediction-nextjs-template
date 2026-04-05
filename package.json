@@ -29,6 +29,7 @@
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-virtual": "^3.13.23",
     "framer-motion": "^12.0.0",
     "jotai": "^2.15.1",
     "js-cookie": "^3.0.5",

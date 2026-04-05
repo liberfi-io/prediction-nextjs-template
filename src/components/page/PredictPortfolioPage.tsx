@@ -1,21 +1,28 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { Chain } from "@liberfi.io/types";
 import { useAuth, useConnectedWallet } from "@liberfi.io/wallet-connector";
-import { usePredictWallet } from "@liberfi.io/ui-predict";
 import {
-  usePositions,
+  usePredictWallet,
+  PredictTradeModal,
+  PREDICT_TRADE_MODAL_ID,
+  type PredictTradeModalParams,
+} from "@liberfi.io/ui-predict";
+import {
+  usePositionsMulti,
   useInfiniteOrders,
   useInfiniteTrades,
   useCancelOrder,
+  usePolymarket,
+  buildPolymarketL2Headers,
   type PredictPosition,
   type PredictOrder,
   type PredictTrade,
   type OrderStatus,
 } from "@liberfi.io/react-predict";
-import { PortfolioStats } from "./portfolio-stats.ui";
 import {
   cn,
   Skeleton,
@@ -23,39 +30,116 @@ import {
   UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
-  SolanaIcon,
+  ChartLineIcon,
 } from "@liberfi.io/ui";
-import { Button } from "@heroui/react";
+import { useAsyncModal } from "@liberfi.io/ui-scaffold";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { FUND_WALLET_MODAL_ID } from "../FundWalletModal";
+import { predictEventHref } from "./predict-source";
 
-type PortfolioTab = "positions" | "orders" | "trades";
+type PortfolioTab = "positions" | "orders" | "history";
+
+// ---------------------------------------------------------------------------
+// Root
+// ---------------------------------------------------------------------------
 
 export function PredictPortfolioPage() {
   const { status: authStatus, signIn } = useAuth();
-  const isAuthenticated = authStatus === "authenticated";
 
-  if (!isAuthenticated) {
-    return <SignInPrompt onSignIn={signIn} />;
+  let content: React.ReactNode;
+  if (authStatus === "authenticating") {
+    content = <PortfolioSkeleton />;
+  } else if (authStatus === "authenticated") {
+    content = <PortfolioContent />;
+  } else {
+    content = <SignInPrompt onSignIn={signIn} />;
   }
 
-  return <PortfolioContent />;
+  return (
+    <div className="min-h-screen bg-zinc-950/50 pb-20 lg:pb-8">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        {content}
+      </div>
+      <PredictTradeModal />
+    </div>
+  );
 }
+
+function PortfolioSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {t("extend.portfolio.title")}
+        </h1>
+      </div>
+      {/* Stats row */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
+            <Skeleton className="mb-2 h-3 w-16" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+        ))}
+      </div>
+      {/* Tab bar */}
+      <div className="mb-4 flex gap-4 border-b border-zinc-800/60 pb-2">
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-5 w-16" />
+        <Skeleton className="h-5 w-16" />
+      </div>
+      {/* Rows */}
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+          >
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+            <Skeleton className="h-5 w-16" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in prompt (unauthenticated)
+// ---------------------------------------------------------------------------
 
 function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24 px-4">
-      <p className="text-lg text-neutral">{t("extend.portfolio.signInPrompt")}</p>
-      <Button
-        color="primary"
-        radius="full"
-        onPress={onSignIn}
-        startContent={<SignInIcon width={16} height={16} />}
-      >
-        {t("common.signIn")}
-      </Button>
-    </div>
+    <>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {t("extend.portfolio.title")}
+        </h1>
+      </div>
+      <div className="flex flex-col items-center justify-center gap-4 py-24">
+        <p className="text-sm text-zinc-400">{t("extend.portfolio.signInPrompt")}</p>
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="flex items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all hover:border-zinc-600 hover:bg-zinc-700/80 hover:text-white"
+        >
+          <SignInIcon width={16} height={16} />
+          {t("common.signIn")}
+        </button>
+      </div>
+    </>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Main content (authenticated)
+// ---------------------------------------------------------------------------
 
 function PortfolioContent() {
   const { t } = useTranslation();
@@ -66,186 +150,220 @@ function PortfolioContent() {
   const solanaAddr = solanaWallet?.address ?? "";
   const evmAddr = evmWallet?.address ?? "";
 
-  const { data: kalshiPositions, isLoading: kalshiPosLoading } = usePositions({
-    source: "kalshi",
-    user: solanaAddr,
-  });
-  const { data: polyPositions, isLoading: polyPosLoading } = usePositions({
-    source: "polymarket",
-    user: evmAddr,
+  const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
+    kalshi_user: solanaAddr || undefined,
+    polymarket_user: evmAddr || undefined,
   });
 
-  const allPositions = useMemo(() => {
-    const all: PredictPosition[] = [];
-    if (kalshiPositions?.positions) all.push(...kalshiPositions.positions);
-    if (polyPositions?.positions) all.push(...polyPositions.positions);
-    return all;
-  }, [kalshiPositions, polyPositions]);
-
-  const positionsLoading = kalshiPosLoading || polyPosLoading;
-
-  const { data: kalshiTrades, isLoading: kalshiTradesLoading } = useInfiniteTrades({
-    source: "kalshi",
-    wallet: solanaAddr,
-    limit: 100,
-  });
-  const { data: polyTrades, isLoading: polyTradesLoading } = useInfiniteTrades({
-    source: "polymarket",
-    wallet: evmAddr,
-    limit: 100,
-  });
-
-  const allTrades = useMemo(() => {
-    const all = [
-      ...(kalshiTrades?.pages?.flatMap((p) => p.items) ?? []),
-      ...(polyTrades?.pages?.flatMap((p) => p.items) ?? []),
-    ];
-    return all;
-  }, [kalshiTrades, polyTrades]);
-
-  const statsLoading = positionsLoading || kalshiTradesLoading || polyTradesLoading;
+  const allPositions = positionsData?.positions ?? [];
   const positionsCount = allPositions.length;
-  const positionsTabLabel =
-    positionsCount > 0
-      ? `${t("extend.portfolio.positions")} (${positionsCount})`
-      : t("extend.portfolio.positions");
+
+  const { kalshiUsdcBalance, polymarketUsdcBalance, isLoading: balanceLoading } = usePredictWallet();
+
+  const totalBuyingPower = (kalshiUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
+  const investedValue = useMemo(() => {
+    let total = 0;
+    for (const p of allPositions) {
+      total += p.current_value ?? p.size * (p.current_price ?? 0);
+    }
+    return total;
+  }, [allPositions]);
+  const totalNetWorth = totalBuyingPower + investedValue;
+
+  const allTimePnl = useMemo(() => {
+    let pnl = 0;
+    for (const p of allPositions) {
+      pnl += p.pnl ?? 0;
+    }
+    return pnl;
+  }, [allPositions]);
+
+  const heroLoading = balanceLoading || positionsLoading;
 
   const tabs: { key: PortfolioTab; label: string }[] = [
-    { key: "positions", label: positionsTabLabel },
+    {
+      key: "positions",
+      label:
+        positionsCount > 0
+          ? `${t("extend.portfolio.positions")} (${positionsCount})`
+          : t("extend.portfolio.positions"),
+    },
     { key: "orders", label: t("extend.portfolio.openOrders") },
-    { key: "trades", label: t("extend.portfolio.tradeHistory") },
+    { key: "history", label: t("extend.portfolio.tradeHistory") },
   ];
 
   return (
-    <div className="flex flex-col max-w-[1280px] mx-auto w-full px-4 max-sm:px-2 py-4">
-      <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
-        {t("extend.portfolio.title")}
-      </h1>
-
-      <PortfolioStats
-        positions={allPositions}
-        trades={allTrades}
-        isLoading={statsLoading}
-      />
-
-      <div className="mt-4 mb-2">
-        <BalanceOverview />
+    <>
+      {/* Title row */}
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {t("extend.portfolio.title")}
+        </h1>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "px-3 py-3 text-base font-normal transition-colors cursor-pointer whitespace-nowrap",
-              activeTab === tab.key
-                ? "text-foreground border-b-2 border-foreground"
-                : "text-neutral hover:text-foreground",
+      {/* Hero cards — 3-col grid */}
+      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Total Net Worth (spans 2 cols) */}
+        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-zinc-900/50 p-6 sm:p-8 lg:col-span-2">
+          <div className="pointer-events-none absolute -mr-16 -mt-16 right-0 top-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-zinc-400">
+                  <span className="text-sm font-medium">{t("extend.portfolio.totalNetWorth")}</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  {heroLoading ? (
+                    <Skeleton className="h-12 w-40 rounded-lg bg-zinc-800/60" />
+                  ) : (
+                    <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+                      ${formatUsdc(totalNetWorth)}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium",
+                      allTimePnl >= 0
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-red-500/10 text-red-400",
+                    )}
+                  >
+                    {allTimePnl >= 0 ? (
+                      <TrendingUpIcon className="h-4 w-4" />
+                    ) : (
+                      <TrendingDownIcon className="h-4 w-4" />
+                    )}
+                    <span>
+                      {allTimePnl >= 0 ? "+" : ""}${formatUsdc(Math.abs(allTimePnl))}
+                    </span>
+                  </span>
+                  <span className="text-sm text-zinc-500">{t("extend.portfolio.allTimePnl")}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <FundWalletButton />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column: Buying Power + Invested Assets */}
+        <div className="flex flex-col gap-4">
+          <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <UsdcIcon width={16} height={16} className="opacity-70" />
+                <span className="text-sm font-medium">{t("extend.portfolio.buyingPower")}</span>
+              </div>
+            </div>
+            {heroLoading ? (
+              <Skeleton className="h-8 w-24 rounded-lg bg-zinc-800/60" />
+            ) : (
+              <div className="text-2xl font-bold text-white">${formatUsdc(totalBuyingPower)}</div>
             )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="min-h-[400px] py-2">
-        {activeTab === "positions" && (
-          <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
-        )}
-        {activeTab === "orders" && (
-          <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />
-        )}
-        {activeTab === "trades" && (
-          <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Balance overview
-// ---------------------------------------------------------------------------
-
-function BalanceOverview() {
-  const { t } = useTranslation();
-  const { dflowUsdcBalance, polymarketUsdcBalance, isLoading } = usePredictWallet();
-  const totalBalance = (dflowUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
-
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 p-4 rounded-xl border border-border bg-content1">
-      <div className="flex items-center gap-3 flex-1">
-        <UsdcIcon width={28} height={28} className="shrink-0" />
-        <div className="flex flex-col">
-          <span className="text-xs text-neutral">{t("extend.portfolio.totalBalance")}</span>
-          {isLoading ? (
-            <Skeleton className="h-7 w-24 rounded-md" />
-          ) : (
-            <span className="text-xl font-bold tabular-nums">${formatUsdc(totalBalance)}</span>
-          )}
+          </div>
+          <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <ChartLineIcon width={16} height={16} className="text-blue-400 opacity-70" />
+                <span className="text-sm font-medium">{t("extend.portfolio.investedAssets")}</span>
+              </div>
+              {positionsCount > 0 && (
+                <span className="text-xs text-zinc-500">
+                  {positionsCount} {positionsCount === 1 ? "position" : "positions"}
+                </span>
+              )}
+            </div>
+            {heroLoading ? (
+              <Skeleton className="h-8 w-24 rounded-lg bg-zinc-800/60" />
+            ) : (
+              <div className="text-2xl font-bold text-white">${formatUsdc(investedValue)}</div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-4 sm:gap-6">
-        <BalanceChip
-          icon={<PolymarketIcon width={16} height={16} />}
-          label="Polymarket"
-          chainIcon={<PolygonIcon size={12} />}
-          chainName="Polygon"
-          balance={polymarketUsdcBalance}
-          isLoading={isLoading}
-        />
-        <BalanceChip
-          icon={<KalshiIcon width={46} height={14} />}
-          label="Kalshi"
-          chainIcon={<SolanaIcon width={12} height={12} />}
-          chainName="Solana"
-          balance={dflowUsdcBalance}
-          isLoading={isLoading}
-        />
+      {/* Tabs */}
+      <div className="border-b border-zinc-800/50">
+        <div className="flex">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
+                activeTab === tab.key
+                  ? "border-white text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-300",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Tab content */}
+      <div className="space-y-4">
+        {activeTab === "positions" && (
+          <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
+        )}
+        {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+        {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+      </div>
+    </>
   );
 }
 
-function BalanceChip({
-  icon,
-  label,
-  chainIcon,
-  chainName,
-  balance,
-  isLoading,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  chainIcon: React.ReactNode;
-  chainName: string;
-  balance: number | null;
-  isLoading: boolean;
-}) {
+// ---------------------------------------------------------------------------
+// Fund Wallet button
+// ---------------------------------------------------------------------------
+
+function FundWalletButton() {
+  const { t } = useTranslation();
+  const { onOpen } = useAsyncModal(FUND_WALLET_MODAL_ID);
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="flex items-center gap-1.5 text-xs text-neutral">
-        {icon}
-        <span className="max-sm:hidden">{label}</span>
-        <span className="flex items-center gap-0.5 text-[10px]">
-          {chainIcon} {chainName}
-        </span>
-      </span>
-      {isLoading ? (
-        <Skeleton className="h-5 w-16 rounded-md" />
-      ) : (
-        <span className="text-sm font-semibold tabular-nums">${formatUsdc(balance ?? 0)}</span>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={() => onOpen()}
+      className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-400 transition-all hover:border-emerald-500/50 hover:bg-emerald-500/20 cursor-pointer"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      {t("extend.predict.fundWallet.title")}
+    </button>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Positions panel
 // ---------------------------------------------------------------------------
+
+type SortKey = "value" | "pnl" | "size";
+
+const SORT_OPTIONS = [
+  { key: "value" as SortKey, labelKey: "extend.portfolio.sortValue" as const },
+  { key: "pnl" as SortKey, labelKey: "extend.portfolio.sortPnl" as const },
+  { key: "size" as SortKey, labelKey: "extend.portfolio.sortShares" as const },
+];
+
+function positionSortValue(p: PredictPosition, key: SortKey): number {
+  switch (key) {
+    case "value":
+      return p.current_value ?? p.size * (p.current_price ?? 0);
+    case "pnl":
+      return p.pnl ?? 0;
+    case "size":
+      return p.size ?? 0;
+  }
+}
 
 function PositionsPanel({
   positions,
@@ -255,94 +373,284 @@ function PositionsPanel({
   isLoading: boolean;
 }) {
   const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("value");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    let list = positions;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.market?.question?.toLowerCase().includes(q) ||
+          p.market?.outcomes?.[0]?.label?.toLowerCase().includes(q),
+      );
+    }
+    return [...list].sort((a, b) => positionSortValue(b, sortKey) - positionSortValue(a, sortKey));
+  }, [positions, search, sortKey]);
+
+  const currentLabel = t(SORT_OPTIONS.find((o) => o.key === sortKey)!.labelKey);
 
   if (isLoading) return <PanelSkeleton />;
-  if (positions.length === 0) return <EmptyState message={t("extend.portfolio.noPositions")} />;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
-        <div className="flex-[3] min-w-0 pr-2">{t("predict.positions.event")}</div>
-        <div className="flex-1 pr-2 text-right">{t("predict.positions.totalSize")}</div>
-        <div className="flex-1 pr-2 text-right">{t("predict.positions.avgPrice")}</div>
-        <div className="flex-1 pr-2 text-right">{t("predict.positions.markPrice")}</div>
-        <div className="flex-[1.5] pr-2 text-right">{t("predict.positions.pnl")}</div>
-        <div className="flex-1 pr-2 text-right">{t("predict.positions.payoutIfRight")}</div>
+    <div className="space-y-4">
+      {/* Search + sort row */}
+      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            placeholder={t("extend.portfolio.searchPositions")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-zinc-800/50 bg-zinc-900/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 transition-colors focus:border-zinc-700 focus:outline-none"
+          />
+        </div>
+        <div ref={sortRef} className="relative sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setSortMenuOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-800/50 bg-zinc-900/50 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-zinc-800/50 hover:text-zinc-300 cursor-pointer"
+          >
+            <span>{currentLabel}</span>
+            <ChevronDownIcon className={cn("h-3.5 w-3.5 transition-transform", sortMenuOpen && "rotate-180")} />
+          </button>
+          {sortMenuOpen && (
+            <div
+              className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-xl border border-zinc-800 shadow-2xl shadow-black/50"
+              style={{ backgroundColor: "#18181b" }}
+            >
+              <div className="p-1">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => { setSortKey(opt.key); setSortMenuOpen(false); }}
+                    className={cn(
+                      "flex w-full items-center px-3 py-1.5 rounded-lg text-sm transition-all cursor-pointer",
+                      sortKey === opt.key
+                        ? "bg-violet-500/10 text-violet-300"
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                    )}
+                  >
+                    {t(opt.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {positions.map((pos, i) => (
-        <PositionRow key={`${pos.market?.slug ?? i}`} position={pos} />
-      ))}
+      {/* Position rows */}
+      {filtered.length === 0 ? (
+        <EmptyState message={t("extend.portfolio.noPositions")} />
+      ) : (
+        <div className="divide-y divide-zinc-800/30 overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/20">
+          {filtered.map((pos, i) => (
+            <PositionRow key={`${pos.source}-${pos.market?.slug ?? i}`} position={pos} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function PositionRow({ position }: { position: PredictPosition }) {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { onOpen: openTradeModal } = useAsyncModal<PredictTradeModalParams>(PREDICT_TRADE_MODAL_ID);
   const pnl = position.pnl ?? 0;
   const pnlPercent = position.pnl_percent ?? 0;
   const avgPrice = position.avg_price ?? 0;
   const currentPrice = position.current_price ?? 0;
-  const pnlColor = pnl > 0 ? "text-success" : pnl < 0 ? "text-danger" : "text-foreground";
-  const pnlSign = pnl > 0 ? "+" : "";
-  const marketLabel = position.market?.outcomes?.[0]?.label ?? position.market?.question ?? "—";
+  const invested = position.size * avgPrice;
+  const currentValue = position.current_value ?? position.size * currentPrice;
+  const pnlColor = pnl > 0 ? "text-emerald-400" : pnl < 0 ? "text-red-400" : "text-zinc-400";
+  const marketLabel = position.market?.question ?? "—";
+  const marketName =
+    position.market?.outcomes?.[0]?.label ?? position.market?.slug ?? "";
   const sideLabel = position.side;
-  const payoutIfRight = position.size;
+  const isYes = sideLabel?.toLowerCase() === "yes";
+  const source = position.source;
+
+  const eventSlug = position.event?.slug;
+  const handleNavigate = useCallback(() => {
+    if (eventSlug) router.push(predictEventHref({ slug: eventSlug, source }));
+  }, [eventSlug, source, router]);
+
+  const handleSell = useCallback(
+    () => {
+      if (!position.event || !position.market) return;
+      openTradeModal({
+        params: {
+          event: position.event,
+          market: position.market,
+          initialSide: "sell",
+          initialOutcome: (position.side?.toLowerCase() === "yes" ? "yes" : "no") as "yes" | "no",
+        },
+      });
+    },
+    [position.event, position.market, position.side, openTradeModal],
+  );
 
   return (
-    <>
+    <div className="group transition-[background-color] duration-150 hover:bg-zinc-800/30">
       {/* Desktop row */}
-      <div className="hidden lg:flex items-center py-2.5 border-b border-border/50 hover:bg-content2/40 transition-colors text-sm">
-        <div className="flex-[3] min-w-0 pr-2">
-          <div className="flex flex-col gap-y-0.5">
-            <span className="text-foreground truncate font-medium">{marketLabel}</span>
-            <span className={cn("text-[10px] font-medium", sideLabel.toLowerCase() === "yes" ? "text-primary" : "text-secondary")}>
-              {sideLabel}
+      <div className="hidden items-center gap-4 px-5 py-4 lg:flex">
+        {/* Col 1: Icon + event info */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {source === "kalshi" ? (
+              <KalshiIcon width={32} height={12} />
+            ) : (
+              <PolymarketIcon width={24} height={24} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <span
+              className={cn("mb-1 line-clamp-1 text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
+              onClick={handleNavigate}
+            >
+              {marketLabel}
             </span>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <span className="max-w-[200px] truncate">{marketName}</span>
+              <span className="text-zinc-700">&bull;</span>
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 font-medium",
+                  isYes
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
+                {sideLabel}
+              </span>
+              <span className="text-zinc-600">&bull;</span>
+              <span>{position.size} shares</span>
+              <span className="text-zinc-600">&bull;</span>
+              <span className="inline-flex items-center gap-1">
+                {source === "kalshi" ? (
+                  <KalshiIcon width={36} height={12} />
+                ) : (
+                  <>
+                    <PolymarketIcon width={16} height={16} />
+                    <span className="text-zinc-400">Polymarket</span>
+                  </>
+                )}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">{position.size}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">{formatPrice(avgPrice)}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">{formatPrice(currentPrice)}</div>
-        <div className={cn("flex-[1.5] pr-2 text-right font-mono", pnlColor)}>
-          {pnlSign}${Math.abs(pnl).toFixed(2)}
-          <span className="text-[10px] ml-0.5 opacity-70">({pnlSign}{pnlPercent.toFixed(1)}%)</span>
+
+        {/* Col 2: Price change */}
+        <div className="min-w-[120px] shrink-0 text-center">
+          <span className="text-sm">
+            {formatPrice(avgPrice)}{" "}
+            <span className="text-zinc-600">&rarr;</span>{" "}
+            <span className={currentPrice > avgPrice ? "text-emerald-400" : currentPrice < avgPrice ? "text-red-400" : ""}>
+              {formatPrice(currentPrice)}
+            </span>
+          </span>
         </div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">${payoutIfRight.toFixed(2)}</div>
+
+        {/* Col 3: Invested */}
+        <div className="min-w-[90px] shrink-0 text-right">
+          <div className="mb-0.5 text-xs text-zinc-500">{t("extend.portfolio.invested")}</div>
+          <div className="text-sm font-medium text-white">${invested.toFixed(2)}</div>
+        </div>
+
+        {/* Col 4: Value + PnL */}
+        <div className="min-w-[130px] shrink-0 text-right">
+          <div className="mb-0.5 text-base font-bold text-white">${currentValue.toFixed(2)}</div>
+          <div className={cn("text-xs font-semibold", pnlColor)}>
+            {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}
+            {pnlPercent.toFixed(1)}%)
+          </div>
+        </div>
+
+        {/* Col 5: Sell button */}
+        <div className="shrink-0">
+          <button
+            type="button"
+            onClick={handleSell}
+            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20"
+          >
+            {t("extend.portfolio.sell")}
+          </button>
+        </div>
       </div>
 
       {/* Mobile card */}
-      <div className="lg:hidden rounded-lg border border-border bg-content1 p-3 flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-medium text-foreground line-clamp-2">{marketLabel}</span>
-          <span className={cn("shrink-0 text-xs font-medium px-1.5 py-0.5 rounded",
-            sideLabel.toLowerCase() === "yes" ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
-          )}>
-            {sideLabel}
-          </span>
+      <div className="p-4 lg:hidden">
+        <div className="mb-3 flex gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {source === "kalshi" ? (
+              <KalshiIcon width={30} height={11} />
+            ) : (
+              <PolymarketIcon width={22} height={22} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <span
+              className={cn("line-clamp-2 text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
+              onClick={handleNavigate}
+            >
+              {marketLabel}
+            </span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 font-medium",
+                  isYes
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
+                {sideLabel}
+              </span>
+              <span>{position.size} shares</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.size")}</span>
-            <span className="font-mono text-foreground">{position.size}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.price")}</span>
-            <span className="font-mono text-foreground">{formatPrice(currentPrice)}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.pnl")}</span>
-            <span className={cn("font-mono", pnlColor)}>
-              {pnlSign}${Math.abs(pnl).toFixed(2)} ({pnlSign}{pnlPercent.toFixed(1)}%)
+        <div className="flex items-center justify-between">
+          <div className="text-xs">
+            <span className="text-zinc-500">{formatPrice(avgPrice)}</span>
+            <span className="mx-1 text-zinc-600">&rarr;</span>
+            <span className={currentPrice > avgPrice ? "text-emerald-400" : currentPrice < avgPrice ? "text-red-400" : "text-zinc-300"}>
+              {formatPrice(currentPrice)}
             </span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.payout")}</span>
-            <span className="font-mono text-foreground">${payoutIfRight.toFixed(2)}</span>
+          <div className="text-right">
+            <div className="text-sm font-bold text-white">${currentValue.toFixed(2)}</div>
+            <div className={cn("text-xs font-semibold", pnlColor)}>
+              {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleSell}
+            className="ml-3 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400"
+          >
+            {t("extend.portfolio.sell")}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -353,22 +661,56 @@ function PositionRow({ position }: { position: PredictPosition }) {
 function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: string }) {
   const { t } = useTranslation();
   const cancelMutation = useCancelOrder();
+  const { credentials } = usePolymarket();
 
-  const { data: kalshiOrders, isLoading: kalshiLoading, fetchNextPage: fetchNextKalshi, hasNextPage: hasMoreKalshi } =
-    useInfiniteOrders({ source: "kalshi", wallet_address: solanaAddr });
-  const { data: polyOrders, isLoading: polyLoading, fetchNextPage: fetchNextPoly, hasNextPage: hasMorePoly } =
-    useInfiniteOrders({ source: "polymarket", wallet_address: evmAddr });
+  const polymarketGetHeaders = useMemo(() => {
+    if (!credentials) return undefined;
+    return async (): Promise<Record<string, string>> => {
+      const headers = await buildPolymarketL2Headers(credentials.address, {
+        apiKey: credentials.apiKey,
+        secret: credentials.secret,
+        passphrase: credentials.passphrase,
+        method: "GET",
+        requestPath: "/orders",
+      });
+      return headers as unknown as Record<string, string>;
+    };
+  }, [credentials]);
+
+  const {
+    data: kalshiOrders,
+    isLoading: kalshiLoading,
+    fetchNextPage: fetchNextKalshi,
+    hasNextPage: hasMoreKalshi,
+    isFetchingNextPage: isFetchingKalshi,
+  } = useInfiniteOrders({ source: "kalshi", wallet_address: solanaAddr });
+  const {
+    data: polyOrders,
+    isLoading: polyLoading,
+    fetchNextPage: fetchNextPoly,
+    hasNextPage: hasMorePoly,
+    isFetchingNextPage: isFetchingPoly,
+  } = useInfiniteOrders(
+    { source: "polymarket", wallet_address: credentials ? evmAddr : "" },
+    { getHeaders: polymarketGetHeaders },
+  );
 
   const isLoading = kalshiLoading || polyLoading;
+  const isFetchingMore = isFetchingKalshi || isFetchingPoly;
+  const hasMore = hasMoreKalshi || hasMorePoly;
 
   const orders = useMemo(() => {
     const all: PredictOrder[] = [];
     const openStatuses = new Set(["live", "open", "submitted", "pending"]);
     if (kalshiOrders?.pages) {
-      all.push(...kalshiOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)));
+      all.push(
+        ...kalshiOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)),
+      );
     }
     if (polyOrders?.pages) {
-      all.push(...polyOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)));
+      all.push(
+        ...polyOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)),
+      );
     }
     return all;
   }, [kalshiOrders, polyOrders]);
@@ -380,43 +722,64 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     [cancelMutation],
   );
 
-  const handleLoadMore = useCallback(() => {
-    if (hasMoreKalshi) fetchNextKalshi();
-    if (hasMorePoly) fetchNextPoly();
-  }, [hasMoreKalshi, hasMorePoly, fetchNextKalshi, fetchNextPoly]);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: orders.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 10,
+  });
+
+  useEffect(() => {
+    const items = virtualizer.getVirtualItems();
+    const last = items[items.length - 1];
+    if (!last) return;
+    if (last.index >= orders.length - 5 && hasMore && !isFetchingMore) {
+      if (hasMoreKalshi) fetchNextKalshi();
+      if (hasMorePoly) fetchNextPoly();
+    }
+  }, [
+    virtualizer.getVirtualItems(),
+    orders.length,
+    hasMore,
+    hasMoreKalshi,
+    hasMorePoly,
+    isFetchingMore,
+    fetchNextKalshi,
+    fetchNextPoly,
+  ]);
 
   if (isLoading) return <PanelSkeleton />;
   if (orders.length === 0) return <EmptyState message={t("extend.portfolio.noOrders")} />;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
-        <div className="w-16 shrink-0 pr-2">{t("extend.portfolio.side")}</div>
-        <div className="flex-1 pr-2">{t("extend.portfolio.outcome")}</div>
-        <div className="flex-1 pr-2">{t("extend.portfolio.type")}</div>
-        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.price")}</div>
-        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.filled")}</div>
-        <div className="w-20 shrink-0 pr-2">{t("extend.portfolio.status")}</div>
-        <div className="w-16 shrink-0" />
+    <div
+      ref={parentRef}
+      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20"
+    >
+      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((vItem) => {
+          const order = orders[vItem.index];
+          return (
+            <div
+              key={order.id}
+              className="absolute left-0 top-0 w-full"
+              style={{ height: vItem.size, transform: `translateY(${vItem.start}px)` }}
+            >
+              <OrderRow
+                order={order}
+                onCancel={handleCancel}
+                isCancelling={cancelMutation.isPending}
+                isLast={vItem.index === orders.length - 1}
+              />
+            </div>
+          );
+        })}
       </div>
-
-      {orders.map((order) => (
-        <OrderRow
-          key={order.id}
-          order={order}
-          onCancel={handleCancel}
-          isCancelling={cancelMutation.isPending}
-        />
-      ))}
-
-      {(hasMoreKalshi || hasMorePoly) && (
-        <button
-          type="button"
-          onClick={handleLoadMore}
-          className="text-sm text-primary hover:text-primary/80 py-2 cursor-pointer"
-        >
-          {t("extend.portfolio.loadMore")}
-        </button>
+      {isFetchingMore && (
+        <div className="flex justify-center border-t border-zinc-800/30 py-3">
+          <span className="text-xs text-zinc-500">{t("extend.portfolio.loadMore")}...</span>
+        </div>
       )}
     </div>
   );
@@ -426,119 +789,157 @@ function OrderRow({
   order,
   onCancel,
   isCancelling,
+  isLast,
 }: {
   order: PredictOrder;
   onCancel: (order: PredictOrder) => void;
   isCancelling: boolean;
+  isLast: boolean;
 }) {
   const { t } = useTranslation();
   const isBuy = order.side === "BUY";
+  const source = order.source;
 
   return (
-    <>
-      {/* Desktop row */}
-      <div className="hidden lg:flex items-center py-2.5 border-b border-border/50 text-sm">
-        <div className="w-16 shrink-0 pr-2">
-          <span className={cn("inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
-            isBuy ? "bg-primary/10 text-primary" : "bg-danger/10 text-danger"
-          )}>
-            {order.side}
-          </span>
+    <div
+      className={cn(
+        "group h-full transition-[background-color] duration-150 hover:bg-zinc-800/30",
+        !isLast && "border-b border-zinc-800/30",
+      )}
+    >
+      {/* Desktop */}
+      <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {source === "kalshi" ? (
+            <KalshiIcon width={28} height={10} />
+          ) : (
+            <PolymarketIcon width={20} height={20} />
+          )}
         </div>
-        <div className="flex-1 pr-2 text-foreground capitalize">{order.outcome ?? "—"}</div>
-        <div className="flex-1 pr-2 text-neutral capitalize">{order.order_type ?? "limit"}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">
+        <span
+          className={cn(
+            "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
+            isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+          )}
+        >
+          {order.side}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm capitalize text-white">
+          {order.outcome ?? "—"}
+        </span>
+        <span className="shrink-0 text-xs capitalize text-zinc-500">{order.order_type ?? "limit"}</span>
+        <span className="shrink-0 text-sm font-mono text-white">
           {order.price ? formatPrice(parseFloat(order.price)) : "—"}
-        </div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">
+        </span>
+        <span className="shrink-0 text-xs text-zinc-400">
           {order.size_matched ?? "0"}/{order.original_size ?? "—"}
-        </div>
-        <div className="w-20 shrink-0 pr-2">
-          <OrderStatusBadge status={order.status} />
-        </div>
-        <div className="w-16 shrink-0 text-right">
-          <button
-            type="button"
-            onClick={() => onCancel(order)}
-            disabled={isCancelling}
-            className="text-[10px] text-danger hover:text-danger/80 cursor-pointer disabled:opacity-50 transition-colors"
-          >
-            {t("extend.portfolio.cancel")}
-          </button>
-        </div>
+        </span>
+        <OrderStatusBadge status={order.status} />
+        <button
+          type="button"
+          onClick={() => onCancel(order)}
+          disabled={isCancelling}
+          className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+        >
+          {t("extend.portfolio.cancel")}
+        </button>
       </div>
 
-      {/* Mobile card */}
-      <div className="lg:hidden rounded-lg border border-border bg-content1 p-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded",
-              isBuy ? "bg-primary/10 text-primary" : "bg-danger/10 text-danger"
-            )}>
-              {order.side}
-            </span>
-            <span className="text-sm text-foreground capitalize">{order.outcome ?? "—"}</span>
+      {/* Mobile */}
+      <div className="p-4 lg:hidden">
+        <div className="mb-2 flex items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {source === "kalshi" ? (
+              <KalshiIcon width={24} height={9} />
+            ) : (
+              <PolymarketIcon width={18} height={18} />
+            )}
           </div>
-          <OrderStatusBadge status={order.status} />
+          <span
+            className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
+              isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+            )}
+          >
+            {order.side}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm capitalize text-white">
+            {order.outcome ?? "—"}
+          </span>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.price")}</span>
-            <span className="font-mono text-foreground">{order.price ? formatPrice(parseFloat(order.price)) : "—"}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-zinc-400">
+            <span className="capitalize">{order.order_type ?? "limit"}</span>
+            <span className="font-mono text-white">
+              {order.price ? formatPrice(parseFloat(order.price)) : "—"}
+            </span>
+            <span>{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
+            <OrderStatusBadge status={order.status} />
           </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.filled")}</span>
-            <span className="font-mono text-foreground">{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
-          </div>
-          <div className="flex-1" />
           <button
             type="button"
             onClick={() => onCancel(order)}
             disabled={isCancelling}
-            className="text-xs text-danger hover:text-danger/80 cursor-pointer disabled:opacity-50 border border-border rounded px-2 py-1"
+            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400"
           >
             {t("extend.portfolio.cancel")}
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const colorMap: Record<string, string> = {
-    live: "bg-success/10 text-success",
-    open: "bg-success/10 text-success",
-    submitted: "bg-warning/10 text-warning",
-    pending: "bg-warning/10 text-warning",
-    matched: "bg-primary/10 text-primary",
-    cancelled: "bg-neutral/10 text-neutral",
-    failed: "bg-danger/10 text-danger",
-    expired: "bg-neutral/10 text-neutral",
+    live: "bg-emerald-500/10 text-emerald-400",
+    open: "bg-emerald-500/10 text-emerald-400",
+    submitted: "bg-amber-500/10 text-amber-400",
+    pending: "bg-amber-500/10 text-amber-400",
+    matched: "bg-sky-500/10 text-sky-400",
+    cancelled: "bg-zinc-500/10 text-zinc-400",
+    failed: "bg-red-500/10 text-red-400",
+    expired: "bg-zinc-500/10 text-zinc-400",
   };
 
   return (
-    <span className={cn("inline-block rounded px-1.5 py-0.5 text-[10px] font-medium capitalize",
-      colorMap[status] ?? "bg-neutral/10 text-neutral"
-    )}>
+    <span
+      className={cn(
+        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium capitalize",
+        colorMap[status] ?? "bg-zinc-500/10 text-zinc-400",
+      )}
+    >
       {status}
     </span>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Trades panel
+// Trades (history) panel
 // ---------------------------------------------------------------------------
 
 function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: string }) {
   const { t } = useTranslation();
+  const router = useRouter();
 
-  const { data: kalshiTrades, isLoading: kalshiLoading, fetchNextPage: fetchNextKalshi, hasNextPage: hasMoreKalshi } =
-    useInfiniteTrades({ source: "kalshi", wallet: solanaAddr, limit: 50 });
-  const { data: polyTrades, isLoading: polyLoading, fetchNextPage: fetchNextPoly, hasNextPage: hasMorePoly } =
-    useInfiniteTrades({ source: "polymarket", wallet: evmAddr, limit: 50 });
+  const {
+    data: kalshiTrades,
+    isLoading: kalshiLoading,
+    fetchNextPage: fetchNextKalshi,
+    hasNextPage: hasMoreKalshi,
+    isFetchingNextPage: isFetchingKalshi,
+  } = useInfiniteTrades({ source: "kalshi", wallet: solanaAddr, limit: 50 });
+  const {
+    data: polyTrades,
+    isLoading: polyLoading,
+    fetchNextPage: fetchNextPoly,
+    hasNextPage: hasMorePoly,
+    isFetchingNextPage: isFetchingPoly,
+  } = useInfiniteTrades({ source: "polymarket", wallet: evmAddr, limit: 50 });
 
   const isLoading = kalshiLoading || polyLoading;
+  const isFetchingMore = isFetchingKalshi || isFetchingPoly;
+  const hasMore = hasMoreKalshi || hasMorePoly;
 
   const trades = useMemo(() => {
     const all: PredictTrade[] = [];
@@ -548,125 +949,321 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     return all;
   }, [kalshiTrades, polyTrades]);
 
-  const handleLoadMore = useCallback(() => {
-    if (hasMoreKalshi) fetchNextKalshi();
-    if (hasMorePoly) fetchNextPoly();
-  }, [hasMoreKalshi, hasMorePoly, fetchNextKalshi, fetchNextPoly]);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: trades.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80,
+    overscan: 10,
+  });
+
+  useEffect(() => {
+    const items = virtualizer.getVirtualItems();
+    const last = items[items.length - 1];
+    if (!last) return;
+    if (last.index >= trades.length - 5 && hasMore && !isFetchingMore) {
+      if (hasMoreKalshi) fetchNextKalshi();
+      if (hasMorePoly) fetchNextPoly();
+    }
+  }, [
+    virtualizer.getVirtualItems(),
+    trades.length,
+    hasMore,
+    hasMoreKalshi,
+    hasMorePoly,
+    isFetchingMore,
+    fetchNextKalshi,
+    fetchNextPoly,
+  ]);
+
+  const handleNavigate = useCallback(
+    (trade: PredictTrade) => {
+      if (trade.event?.slug) {
+        router.push(predictEventHref({ slug: trade.event.slug, source: trade.source }));
+      }
+    },
+    [router],
+  );
 
   if (isLoading) return <PanelSkeleton />;
   if (trades.length === 0) return <EmptyState message={t("extend.portfolio.noTrades")} />;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="hidden lg:flex items-center text-neutral text-xs font-normal py-2 border-b border-border/50">
-        <div className="w-16 shrink-0 pr-2">{t("extend.portfolio.side")}</div>
-        <div className="flex-1 pr-2">{t("extend.portfolio.outcome")}</div>
-        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.price")}</div>
-        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.qty")}</div>
-        <div className="flex-1 pr-2 text-right">{t("extend.portfolio.total")}</div>
-        <div className="flex-[1.5] pr-2 text-right">{t("extend.portfolio.time")}</div>
+    <div
+      ref={parentRef}
+      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20"
+    >
+      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((vItem) => {
+          const trade = trades[vItem.index];
+          return (
+            <div
+              key={trade.id ?? vItem.index}
+              className="absolute left-0 top-0 w-full"
+              style={{ height: vItem.size, transform: `translateY(${vItem.start}px)` }}
+            >
+              <TradeRow
+                trade={trade}
+                isLast={vItem.index === trades.length - 1}
+                onNavigate={handleNavigate}
+              />
+            </div>
+          );
+        })}
       </div>
-
-      {trades.map((trade, i) => (
-        <TradeRow key={`${trade.id ?? i}`} trade={trade} />
-      ))}
-
-      {(hasMoreKalshi || hasMorePoly) && (
-        <button
-          type="button"
-          onClick={handleLoadMore}
-          className="text-sm text-primary hover:text-primary/80 py-2 cursor-pointer"
-        >
-          {t("extend.portfolio.loadMore")}
-        </button>
+      {isFetchingMore && (
+        <div className="flex justify-center border-t border-zinc-800/30 py-3">
+          <span className="text-xs text-zinc-500">{t("extend.portfolio.loadMore")}...</span>
+        </div>
       )}
     </div>
   );
 }
 
-function TradeRow({ trade }: { trade: PredictTrade }) {
-  const { t } = useTranslation();
+function TradeRow({
+  trade,
+  isLast,
+  onNavigate,
+}: {
+  trade: PredictTrade;
+  isLast: boolean;
+  onNavigate: (trade: PredictTrade) => void;
+}) {
   const isBuy = trade.side?.toUpperCase() === "BUY";
   const timeStr = formatTimestamp(trade.timestamp);
   const price = trade.price ?? 0;
   const usdSize = trade.usd_size ?? 0;
+  const source = trade.source;
+  const eventTitle = trade.event?.title ?? trade.market?.question ?? "";
+  const outcomeLabel = trade.outcome ?? "—";
 
   return (
-    <>
+    <div
+      className={cn(
+        "group h-full transition-[background-color] duration-150 hover:bg-zinc-800/30",
+        !isLast && "border-b border-zinc-800/30",
+      )}
+    >
       {/* Desktop row */}
-      <div className="hidden lg:flex items-center py-2.5 border-b border-border/50 text-sm">
-        <div className="w-16 shrink-0 pr-2">
-          <span className={cn("inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
-            isBuy ? "bg-primary/10 text-primary" : "bg-danger/10 text-danger"
-          )}>
-            {trade.side}
-          </span>
+      <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
+        {/* Source icon */}
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {source === "kalshi" ? (
+            <KalshiIcon width={32} height={12} />
+          ) : (
+            <PolymarketIcon width={24} height={24} />
+          )}
         </div>
-        <div className="flex-1 pr-2 text-foreground capitalize">{trade.outcome ?? "—"}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">{formatPrice(price)}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">{trade.size}</div>
-        <div className="flex-1 pr-2 text-right font-mono text-foreground">${usdSize.toFixed(2)}</div>
-        <div className="flex-[1.5] pr-2 text-right text-neutral whitespace-nowrap">{timeStr}</div>
+
+        {/* Event + outcome info */}
+        <div className="min-w-0 flex-1">
+          {eventTitle && (
+            <span
+              className={cn(
+                "mb-1 line-clamp-1 text-sm font-medium text-white",
+                trade.event?.slug && "cursor-pointer hover:underline",
+              )}
+              onClick={() => onNavigate(trade)}
+            >
+              {eventTitle}
+            </span>
+          )}
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <span className="max-w-[200px] truncate capitalize">{outcomeLabel}</span>
+            <span className="text-zinc-700">&bull;</span>
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 font-medium",
+                isBuy
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-red-500/10 text-red-400",
+              )}
+            >
+              {trade.side}
+            </span>
+            <span className="text-zinc-600">&bull;</span>
+            <span>{trade.size} shares</span>
+            <span className="text-zinc-600">&bull;</span>
+            <span className="inline-flex items-center gap-1">
+              {source === "kalshi" ? (
+                <KalshiIcon width={36} height={12} />
+              ) : (
+                <>
+                  <PolymarketIcon width={14} height={14} />
+                  <span className="text-zinc-400">Polymarket</span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Price */}
+        <div className="min-w-[80px] shrink-0 text-center">
+          <div className="text-sm font-medium text-white">{formatPrice(price)}</div>
+        </div>
+
+        {/* Total */}
+        <div className="min-w-[90px] shrink-0 text-right">
+          <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+        </div>
+
+        {/* Time */}
+        <div className="min-w-[80px] shrink-0 text-right">
+          <span className="whitespace-nowrap text-xs text-zinc-500">{timeStr}</span>
+        </div>
       </div>
 
       {/* Mobile card */}
-      <div className="lg:hidden rounded-lg border border-border bg-content1 p-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded",
-              isBuy ? "bg-primary/10 text-primary" : "bg-danger/10 text-danger"
-            )}>
-              {trade.side}
-            </span>
-            <span className="text-sm text-foreground capitalize">{trade.outcome ?? "—"}</span>
+      <div className="p-4 lg:hidden">
+        <div className="mb-3 flex gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {source === "kalshi" ? (
+              <KalshiIcon width={30} height={11} />
+            ) : (
+              <PolymarketIcon width={22} height={22} />
+            )}
           </div>
-          <span className="text-[11px] text-neutral">{timeStr}</span>
+          <div className="min-w-0 flex-1">
+            {eventTitle && (
+              <span
+                className={cn(
+                  "line-clamp-2 text-sm font-medium text-white",
+                  trade.event?.slug && "cursor-pointer hover:underline",
+                )}
+                onClick={() => onNavigate(trade)}
+              >
+                {eventTitle}
+              </span>
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 font-medium",
+                  isBuy
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
+                {trade.side}
+              </span>
+              <span className="capitalize">{outcomeLabel}</span>
+              <span className="text-zinc-600">&bull;</span>
+              <span>{trade.size} shares</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.price")}</span>
-            <span className="font-mono text-foreground">{formatPrice(price)}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.qty")}</span>
-            <span className="font-mono text-foreground">{trade.size}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-neutral">{t("extend.portfolio.total")}</span>
-            <span className="font-mono text-foreground">${usdSize.toFixed(2)}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-zinc-500">{timeStr}</span>
+          <div className="text-right">
+            <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+            <div className="text-xs text-zinc-400">{formatPrice(price)}/share</div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Shared helpers
+// Shared helpers & icons
 // ---------------------------------------------------------------------------
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center text-sm text-neutral py-24">
-      {message}
-    </div>
+    <div className="flex items-center justify-center py-16 text-sm text-zinc-500">{message}</div>
   );
 }
 
 function PanelSkeleton() {
   return (
-    <div className="flex flex-col gap-3 py-4 animate-pulse">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-lg" />
+    <div className="mt-4 flex animate-pulse flex-col gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-xl bg-zinc-800/40" />
       ))}
     </div>
   );
 }
 
-function PolygonIcon({ size = 20 }: { size?: number }) {
+function TrendingUpIcon({ className }: { className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 38 33" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Polygon">
-      <path d="M29 10.2a2.2 2.2 0 0 0-2.1 0l-4.8 2.8-3.3 1.9-4.8 2.8a2.2 2.2 0 0 1-2.1 0l-3.8-2.2a2.1 2.1 0 0 1-1.1-1.9V9.5c0-.8.4-1.5 1.1-1.9l3.8-2.1a2.2 2.2 0 0 1 2.1 0l3.8 2.1c.7.4 1.1 1.1 1.1 1.9v2.8l3.3-1.9V7.6a2.1 2.1 0 0 0-1.1-1.9L16.1.5a2.2 2.2 0 0 0-2.1 0L7.1 4.4a2 2 0 0 0-.5.4L6.4 5A2.1 2.1 0 0 0 6 6.4v9.9c0 .8.4 1.5 1.1 1.9l6.9 4a2.2 2.2 0 0 0 2.1 0l4.8-2.7 3.3-1.9 4.8-2.8a2.2 2.2 0 0 1 2.1 0l3.8 2.2c.7.4 1.1 1.1 1.1 1.9v4a2.1 2.1 0 0 1-1.1 1.8l-3.7 2.2a2.2 2.2 0 0 1-2.1 0l-3.8-2.2a2.1 2.1 0 0 1-1.1-1.9v-2.8l-3.3 1.9v2.8c0 .8.4 1.5 1.1 1.9l6.9 4a2.2 2.2 0 0 0 2.1 0l6.9-4a2.1 2.1 0 0 0 1.1-1.9v-8c0-.8-.4-1.5-1.1-1.9L29 10.2Z" fill="#8247E5" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M16 7h6v6" />
+      <path d="m22 7-8.5 8.5-5-5L2 17" />
+    </svg>
+  );
+}
+
+function TrendingDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M16 17h6v-6" />
+      <path d="m22 17-8.5-8.5-5 5L2 7" />
+    </svg>
+  );
+}
+
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
     </svg>
   );
 }

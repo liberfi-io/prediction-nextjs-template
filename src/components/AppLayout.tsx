@@ -18,6 +18,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,7 +30,13 @@ import {
   i18n,
   defaultNS,
 } from "@liberfi.io/i18n";
-import { PredictClient, PredictProvider, usePredictWsClient } from "@liberfi.io/react-predict";
+import {
+  PredictClient,
+  PredictProvider,
+  PolymarketProvider,
+  usePredictWsClient,
+  usePositionsMulti,
+} from "@liberfi.io/react-predict";
 import type { PredictEvent } from "@liberfi.io/react-predict";
 import {
   SearchEventsButton,
@@ -46,6 +53,9 @@ import {
   LogoIcon,
   MiniLogoIcon,
   cn,
+  UsdcIcon,
+  PolymarketIcon,
+  KalshiIcon,
 } from "@liberfi.io/ui";
 import type { LinkComponentType } from "@liberfi.io/ui";
 import {
@@ -56,11 +66,13 @@ import {
   type NavItem,
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
+import { usePredictWallet } from "@liberfi.io/ui-predict";
 import { predictEventHref } from "./page/predict-source";
 import { queryClient } from "../libs/queryClient";
 import { AuthProviders } from "./AuthProviders";
 import { PredictAccountButton } from "./PredictAccountButton";
 import { PredictDepositButton } from "./PredictDepositButton";
+import { FundWalletModal } from "./FundWalletModal";
 import { LanguageButton } from "./LanguageButton";
 import en from "../locales/en.json";
 import zh from "../locales/zh.json";
@@ -133,7 +145,7 @@ function ServiceProviders({ children }: PropsWithChildren) {
 
   return (
     <PredictProvider client={predictClient} wsClient={predictWsClient}>
-      {children}
+      <PolymarketProvider>{children}</PolymarketProvider>
     </PredictProvider>
   );
 }
@@ -210,14 +222,11 @@ function PageShell({ children }: PropsWithChildren) {
         headerVisible={["desktop", "tablet", "mobile"]}
         footerVisible={["mobile"]}
         header={
-          <ScaffoldHeader style={{ background: "transparent", border: "none" }}>
+          <ScaffoldHeader className="!bg-[#0a0a0b] !border-none">
             <div
               className="w-full h-full px-6 max-lg:px-4 max-sm:px-3 flex items-center gap-6 max-lg:gap-4 max-sm:gap-2"
               style={{
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
                 borderBottom: "1px solid rgba(39,39,42,0.6)",
-                background: "rgba(10,10,11,0.8)",
               }}
             >
               {/* Left: Logo + desktop nav tabs */}
@@ -235,15 +244,15 @@ function PageShell({ children }: PropsWithChildren) {
                 </div>
               </div>
 
-              {/* Center: Search bar — centered like matchr.xyz */}
+              {/* Center: Search bar — matchr.xyz style */}
               <div className="hidden sm:flex flex-1 min-w-0 justify-center">
                 <SearchEventsButton
                   onSelectEvent={handleSelectEvent}
                   modalParams={searchModalParams}
-                  className="w-full !min-w-0 !max-w-md"
+                  className="w-full !min-w-0 !max-w-md !rounded-lg !bg-zinc-900/60 !border-[1px] !border-zinc-800 hover:!border-zinc-700 !h-[30px] !min-h-0 [&_kbd]:!rounded [&_kbd]:!bg-zinc-800/60 [&_kbd]:!border-zinc-700/50 [&_kbd]:!text-zinc-500 [&_kbd]:!font-mono [&_kbd]:!text-[10px]"
                 />
               </div>
-              {/* Mobile search: full width */}
+              {/* Mobile search */}
               <div className="sm:hidden flex-1 min-w-0">
                 <SearchEventsButton
                   onSelectEvent={handleSelectEvent}
@@ -252,16 +261,17 @@ function PageShell({ children }: PropsWithChildren) {
                 />
               </div>
 
-              {/* Right: actions (desktop shows all, mobile shows only Account) */}
-              <div className="shrink-0 flex items-center gap-3 max-sm:gap-2">
+              {/* Right: language + balance + deposit + account */}
+              <div className="shrink-0 flex items-center gap-2">
+                <div className="hidden sm:block">
+                  <LanguageButton />
+                </div>
+                {isAuthenticated && <PredictBalanceIndicator />}
                 {isAuthenticated && (
                   <div className="hidden sm:block">
                     <PredictDepositButton />
                   </div>
                 )}
-                <div className="hidden sm:block">
-                  <LanguageButton />
-                </div>
                 <PredictAccountButton />
               </div>
             </div>
@@ -271,6 +281,7 @@ function PageShell({ children }: PropsWithChildren) {
       >
         {children}
       </Scaffold>
+      <FundWalletModal />
     </PredictWalletProvider>
   );
 }
@@ -297,10 +308,10 @@ function NavTab({
       type="button"
       data-active={active}
       className={cn(
-        "h-7 text-xs font-medium px-2.5 py-1 rounded-sm cursor-pointer whitespace-nowrap",
+        "px-2.5 py-1 text-xs font-medium rounded transition-all cursor-pointer whitespace-nowrap",
         active
-          ? "text-white"
-          : "text-zinc-500 hover:text-zinc-300",
+          ? "text-zinc-200"
+          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
       )}
       onClick={handlePress}
       aria-label={item.label}
@@ -308,6 +319,145 @@ function NavTab({
     >
       {item.label}
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Balance indicator
+// ---------------------------------------------------------------------------
+
+function formatUsdc(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function PredictBalanceIndicator() {
+  const router = useRouter();
+  const {
+    kalshiUsdcBalance,
+    polymarketUsdcBalance,
+    solanaAddress,
+    evmAddress,
+    isLoading: balanceLoading,
+  } = usePredictWallet();
+
+  const { data: positionsData } = usePositionsMulti({
+    kalshi_user: solanaAddress || undefined,
+    polymarket_user: evmAddress || undefined,
+  });
+
+  const cashTotal = (kalshiUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
+
+  const positionsValue = useMemo(() => {
+    const all = positionsData?.positions ?? [];
+    let total = 0;
+    for (const p of all) {
+      total += p.current_value ?? p.size * (p.current_price ?? 0);
+    }
+    return total;
+  }, [positionsData]);
+
+  const portfolioTotal = cashTotal + positionsValue;
+
+  const initialLoading =
+    balanceLoading &&
+    kalshiUsdcBalance === null &&
+    polymarketUsdcBalance === null;
+
+  const [isOpen, setIsOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    closeTimer.current = setTimeout(() => setIsOpen(false), 150);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  return (
+    <div
+      className="relative hidden lg:block"
+      ref={ref}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button
+        type="button"
+        onClick={() => router.push("/portfolio")}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-500/10 hover:bg-zinc-500/20 border border-zinc-500/20 hover:border-zinc-500/30 rounded-lg transition-all cursor-pointer"
+      >
+        <div className="flex items-center gap-1.5" title="Cash Balance">
+          <UsdcIcon width={16} height={16} aria-hidden="true" />
+          <span className="text-xs font-medium text-zinc-100 tabular-nums">
+            {initialLoading ? "..." : `$${formatUsdc(cashTotal)}`}
+          </span>
+        </div>
+        <div className="w-px h-4 bg-zinc-700/40" />
+        <div className="flex items-center gap-1.5" title="Positions Value">
+          <ChartLineIcon width={16} height={16} className="text-blue-400" aria-hidden="true" />
+          <span className="text-xs font-medium text-zinc-100 tabular-nums">
+            ${formatUsdc(positionsValue)}
+          </span>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500" aria-hidden="true">
+          <path d={isOpen ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6"} />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden" style={{ backgroundColor: "#18181b" }}>
+          <div className="p-2">
+            <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium px-3 pt-1 pb-2">Cash Breakdown</div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2.5">
+                <PolymarketIcon width={20} height={20} />
+                <span className="text-sm text-zinc-400">Polymarket</span>
+              </div>
+              <span className="text-sm font-medium text-zinc-100 tabular-nums">
+                {polymarketUsdcBalance != null ? `$${formatUsdc(polymarketUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2.5">
+                <KalshiIcon width={20} height={20} />
+                <span className="text-sm text-zinc-400">Kalshi</span>
+              </div>
+              <span className="text-sm font-medium text-zinc-100 tabular-nums">
+                {kalshiUsdcBalance != null ? `$${formatUsdc(kalshiUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-zinc-800/50 p-2">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+              <div className="flex items-center gap-2.5">
+                <ChartLineIcon width={20} height={20} className="text-blue-400" />
+                <span className="text-sm text-zinc-400">Positions</span>
+              </div>
+              <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatUsdc(positionsValue)}</span>
+            </div>
+          </div>
+          <div className="border-t border-zinc-800/50 p-2">
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="text-sm text-zinc-300 font-medium">Portfolio Total</span>
+              <span className="text-sm font-bold text-white tabular-nums">
+                {initialLoading ? "..." : `$${formatUsdc(portfolioTotal)}`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

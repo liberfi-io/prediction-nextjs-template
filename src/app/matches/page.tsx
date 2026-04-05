@@ -1,13 +1,17 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import {
-  matchesQueryKey,
-  fetchMatchesPage,
+  matchMarketsQueryKey,
+  fetchMatchMarketsPage,
 } from "@liberfi.io/react-predict/server";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictMatchesPage } from "src/components/page/PredictMatchesPage";
 
-const DEFAULT_PARAMS = { sort_by: "spread" as const, limit: 20 };
+const DEFAULT_PARAMS = {
+  sort_by: "spread" as const,
+  status: "active" as const,
+  limit: 20,
+};
 
 export default async function Page() {
   const queryClient = createServerQueryClient();
@@ -15,20 +19,21 @@ export default async function Page() {
 
   await Promise.race([
     queryClient.prefetchInfiniteQuery({
-      queryKey: matchesQueryKey(DEFAULT_PARAMS),
+      queryKey: matchMarketsQueryKey(DEFAULT_PARAMS),
       queryFn: ({ pageParam }) =>
-        fetchMatchesPage(client, {
+        fetchMatchMarketsPage(client, {
           ...DEFAULT_PARAMS,
-          ...(pageParam ? { cursor: pageParam } : {}),
+          offset: pageParam,
         }),
-      initialPageParam: undefined as string | undefined,
+      initialPageParam: 0,
       getNextPageParam: (lastPage: {
-        has_more?: boolean;
-        next_cursor?: string;
-      }) =>
-        lastPage.has_more && lastPage.next_cursor
-          ? lastPage.next_cursor
-          : undefined,
+        total: number;
+        offset: number;
+        items: unknown[];
+      }) => {
+        const nextOffset = lastPage.offset + lastPage.items.length;
+        return nextOffset < lastPage.total ? nextOffset : undefined;
+      },
       pages: 1,
     }),
     new Promise<void>((_, reject) =>

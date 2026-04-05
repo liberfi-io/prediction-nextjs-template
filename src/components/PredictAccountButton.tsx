@@ -1,33 +1,30 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  LocaleCode,
   useTranslation,
-  useLocale,
-  useChangeLocale,
-  useLocaleContext,
 } from "@liberfi.io/i18n";
-import { useAuth } from "@liberfi.io/wallet-connector";
-import { usePredictWallet } from "@liberfi.io/ui-predict";
+import { useAuth, useWallets, type EvmWalletAdapter } from "@liberfi.io/wallet-connector";
+import { usePredictWallet, KycModal, SetupModal } from "@liberfi.io/ui-predict";
+import { dflowKYCQueryKey, polymarketSetupQueryKey } from "@liberfi.io/react-predict";
+import { truncateAddress } from "@liberfi.io/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  Button,
   Spinner,
-  StyledPopover,
-  PopoverContent,
-  PopoverTrigger,
   SignInIcon,
-  SignOutIcon,
-  PolymarketIcon,
-  KalshiIcon,
   SolanaIcon,
-  UsdcIcon,
-  ChevronDownIcon,
-  TranslateIcon,
-  useDisclosure,
+  PolygonIcon,
   cn,
 } from "@liberfi.io/ui";
-import { PredictDepositButton } from "./PredictDepositButton";
+import { createWalletClient, custom, type Hex } from "viem";
+import { polygon } from "viem/chains";
+import {
+  deploySafe,
+  executeSafe,
+  buildAllApprovalTxns,
+  pollTransaction,
+  type PolymarketRelayConfig,
+} from "../lib/polymarket-relay";
 
 function formatUsdc(amount: number): string {
   return amount.toLocaleString("en-US", {
@@ -36,49 +33,105 @@ function formatUsdc(amount: number): string {
   });
 }
 
-function PolygonIcon({ size = 20 }: { size?: number }) {
+function GradientAvatar({
+  seed,
+  size = 32,
+  className,
+}: {
+  seed?: string;
+  size?: number;
+  className?: string;
+}) {
+  const hash = seed
+    ? seed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    : 0;
+  const c1 = `hsl(${(hash * 37) % 360}, 70%, 60%)`;
+  const c2 = `hsl(${(hash * 73) % 360}, 65%, 45%)`;
+  const c3 = `hsl(${(hash * 113) % 360}, 75%, 55%)`;
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 38 33"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Polygon"
-    >
-      <path
-        d="M29 10.2a2.2 2.2 0 0 0-2.1 0l-4.8 2.8-3.3 1.9-4.8 2.8a2.2 2.2 0 0 1-2.1 0l-3.8-2.2a2.1 2.1 0 0 1-1.1-1.9V9.5c0-.8.4-1.5 1.1-1.9l3.8-2.1a2.2 2.2 0 0 1 2.1 0l3.8 2.1c.7.4 1.1 1.1 1.1 1.9v2.8l3.3-1.9V7.6a2.1 2.1 0 0 0-1.1-1.9L16.1.5a2.2 2.2 0 0 0-2.1 0L7.1 4.4a2 2 0 0 0-.5.4L6.4 5A2.1 2.1 0 0 0 6 6.4v9.9c0 .8.4 1.5 1.1 1.9l6.9 4a2.2 2.2 0 0 0 2.1 0l4.8-2.7 3.3-1.9 4.8-2.8a2.2 2.2 0 0 1 2.1 0l3.8 2.2c.7.4 1.1 1.1 1.1 1.9v4a2.1 2.1 0 0 1-1.1 1.8l-3.7 2.2a2.2 2.2 0 0 1-2.1 0l-3.8-2.2a2.1 2.1 0 0 1-1.1-1.9v-2.8l-3.3 1.9v2.8c0 .8.4 1.5 1.1 1.9l6.9 4a2.2 2.2 0 0 0 2.1 0l6.9-4a2.1 2.1 0 0 0 1.1-1.9v-8c0-.8-.4-1.5-1.1-1.9L29 10.2Z"
-        fill="#8247E5"
-      />
-    </svg>
+    <div
+      className={cn("rounded-lg shadow-inner flex-shrink-0", className)}
+      style={{
+        width: size,
+        height: size,
+        background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`,
+      }}
+    />
   );
 }
 
-function BalanceRow({
-  label,
-  chainIcon,
-  chainName,
+
+function WalletEntry({
+  address,
   balance,
+  chainName,
+  chainIcon,
+  trailing,
+  balancePlaceholder,
 }: {
-  label: React.ReactNode;
-  chainIcon: React.ReactNode;
-  chainName: string;
+  address?: string;
   balance: number | null;
+  chainName: string;
+  chainIcon: React.ReactNode;
+  trailing?: React.ReactNode;
+  balancePlaceholder?: React.ReactNode;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!address) return;
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    },
+    [address],
+  );
+
   return (
-    <div className="flex items-center gap-2 px-4 py-2">
-      <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-        <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-          {label}
-        </span>
-        <span className="flex items-center gap-1 text-[11px] text-neutral">
-          {chainIcon}
-          {chainName}
-        </span>
+    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/50 transition-all">
+      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800">
+        {chainIcon}
       </div>
-      <span className="text-xs font-semibold text-foreground tabular-nums">
-        ${formatUsdc(balance ?? 0)}
-      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-zinc-300 truncate">
+            {address ? truncateAddress(address) : "—"}
+          </span>
+          {address && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              title="Copy Address"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg>
+              )}
+            </button>
+          )}
+          {trailing}
+        </div>
+        <div className="flex items-center gap-1.5 text-xs mt-0.5">
+          {balancePlaceholder ?? (
+            <>
+              <span className="text-white font-medium">
+                ${formatUsdc(balance ?? 0)}
+              </span>
+              <span className="text-zinc-500">USDC · {chainName}</span>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -86,177 +139,318 @@ function BalanceRow({
 export function PredictAccountButton() {
   const { t } = useTranslation();
   const { status, signIn, signOut } = useAuth();
-  const { dflowUsdcBalance, polymarketUsdcBalance, isLoading } = usePredictWallet();
-  const { isOpen, onOpenChange, onClose } = useDisclosure();
+  const {
+    kalshiUsdcBalance,
+    polymarketUsdcBalance,
+    evmAddress,
+    solanaAddress,
+    kalshiKycVerified,
+    kalshiKycUrl,
+    kalshiKycLoading,
+    polymarketSetupVerified,
+    polymarketSafeDeployed,
+    polymarketTokenApproved,
+    polymarketSetupLoading,
+  } = usePredictWallet();
+  const queryClient = useQueryClient();
+  const wallets = useWallets();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isKycRefreshing, setIsKycRefreshing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const totalBalance = (dflowUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
+  const displayAddress = solanaAddress || evmAddress || "";
+
+  const relayConfig: PolymarketRelayConfig = useMemo(
+    () => ({ signProxyUrl: "/predict-api/api/v1/polymarket/sign" }),
+    [],
+  );
+
+  const handleDeployAndApprove = useCallback(async () => {
+    const evmWallet = wallets.find(
+      (w) => w.chainNamespace === "EVM" && w.isConnected,
+    ) as EvmWalletAdapter | undefined;
+    if (!evmWallet || !evmAddress) {
+      throw new Error("EVM wallet not connected");
+    }
+
+    await evmWallet.switchChain("137" as never);
+
+    const provider = await evmWallet.getEip1193Provider();
+    if (!provider) throw new Error("Cannot get EIP-1193 provider");
+
+    const walletClient = createWalletClient({
+      account: evmAddress as Hex,
+      chain: polygon,
+      transport: custom(provider),
+    });
+
+    if (!polymarketSafeDeployed) {
+      const deployResult = await deploySafe(walletClient, relayConfig);
+      if (deployResult.transactionID) {
+        await pollTransaction(relayConfig, deployResult.transactionID);
+      }
+    }
+
+    if (!polymarketTokenApproved) {
+      const approvalTxns = buildAllApprovalTxns();
+      const approveResult = await executeSafe(walletClient, approvalTxns, relayConfig);
+      if (approveResult.transactionID) {
+        await pollTransaction(relayConfig, approveResult.transactionID);
+      }
+    }
+
+    queryClient.invalidateQueries({
+      queryKey: polymarketSetupQueryKey(evmAddress),
+    });
+  }, [wallets, evmAddress, polymarketSafeDeployed, polymarketTokenApproved, relayConfig, queryClient]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    closeTimer.current = setTimeout(() => setIsOpen(false), 150);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   const handleSignOut = useCallback(async () => {
-    onClose();
+    setIsOpen(false);
     await signOut();
-  }, [signOut, onClose]);
+  }, [signOut]);
+
+  const handleKycRefresh = useCallback(async () => {
+    if (!solanaAddress) return;
+    setIsKycRefreshing(true);
+    await queryClient.invalidateQueries({
+      queryKey: dflowKYCQueryKey(solanaAddress),
+    });
+    setIsKycRefreshing(false);
+  }, [queryClient, solanaAddress]);
 
   if (status === "unauthenticated") {
     return (
-      <Button
-        size="sm"
-        color="primary"
-        radius="full"
-        disableRipple
-        onPress={signIn}
-        startContent={<SignInIcon width={14} height={14} />}
+      <button
+        type="button"
+        onClick={signIn}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
       >
+        <SignInIcon width={14} height={14} />
         {t("common.signIn")}
-      </Button>
+      </button>
     );
   }
 
   if (status === "authenticating" || status === "deauthenticating") {
     return (
-      <Button
-        size="sm"
-        radius="full"
-        isDisabled
-        disableRipple
-        className="bg-content2 h-8 min-h-0 px-3"
-      >
-        <Spinner size="sm" color="current" />
-      </Button>
+      <div className="flex items-center justify-center w-8 h-8">
+        <Spinner size="sm" color="current" className="text-zinc-500" />
+      </div>
     );
   }
 
   return (
-    <StyledPopover
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      placement="bottom-end"
-      showArrow={false}
+    <div
+      className="relative"
+      ref={dropdownRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <PopoverTrigger>
-        <Button
-          size="sm"
-          disableRipple
-          className="bg-content2 h-8 min-h-0 px-3 rounded-full"
-          startContent={
-            <UsdcIcon width={16} height={16} className="shrink-0" />
-          }
-          endContent={
-            <ChevronDownIcon
-              width={12}
-              height={12}
-              className={cn(
-                "text-neutral transition-transform duration-200 shrink-0",
-                isOpen && "rotate-180",
-              )}
-            />
-          }
+      <div className="relative cursor-pointer">
+        <GradientAvatar seed={displayAddress} size={32} />
+        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-zinc-900 rounded-full flex items-center justify-center">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+        </div>
+      </div>
+
+      <KycModal
+        isOpen={isKycModalOpen}
+        onClose={() => setIsKycModalOpen(false)}
+        kycUrl={kalshiKycUrl}
+      />
+
+      {evmAddress && (
+        <SetupModal
+          isOpen={isSetupModalOpen}
+          onClose={() => setIsSetupModalOpen(false)}
+          evmAddress={evmAddress}
+          safeDeployed={polymarketSafeDeployed}
+          tokenApproved={polymarketTokenApproved}
+          keysConnected={false}
+          onDeployAndApprove={handleDeployAndApprove}
+        />
+      )}
+
+      {isOpen && (
+        <div
+          className="absolute right-0 mt-2 w-80 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden"
+          style={{ backgroundColor: "#18181b" }}
         >
-          {isLoading ? (
-            <Spinner size="sm" color="current" />
-          ) : (
-            <span className="text-xs font-semibold tabular-nums">
-              ${formatUsdc(totalBalance)}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent>
-        <div className="w-[260px] py-2">
-          {/* Balance overview */}
-          <div className="flex items-center gap-2 px-4 pb-2 border-b border-border">
-            <UsdcIcon width={18} height={18} className="shrink-0" />
-            <span className="flex-1 text-sm font-semibold text-foreground">
-              {t("extend.predict.account.totalBalance")}
-            </span>
-            <span className="text-sm font-bold tabular-nums">
-              ${formatUsdc(totalBalance)}
-            </span>
-          </div>
-
-          <div className="pt-1">
-            <BalanceRow
-              label={
-                <>
-                  <PolymarketIcon width={16} height={16} className="shrink-0" />
-                  {"Polymarket"}
-                </>
-              }
-              chainIcon={<PolygonIcon size={12} />}
-              chainName="Polygon"
-              balance={polymarketUsdcBalance}
-            />
-            <BalanceRow
-              label={<KalshiIcon width={46} height={14} />}
-              chainIcon={<SolanaIcon width={12} height={12} />}
-              chainName="Solana"
-              balance={dflowUsdcBalance}
-            />
-          </div>
-
-          {/* Mobile-only: Deposit */}
-          <div className="sm:hidden mt-1 pt-1 border-t border-border px-2">
-            <PredictDepositButton />
-          </div>
-
-          {/* Mobile-only: Language switcher */}
-          <div className="sm:hidden mt-1 pt-1 border-t border-border px-4">
-            <MobileLanguageSwitcher />
+          {/* Wallets */}
+          <div className="p-2">
+            {solanaAddress && (
+              <WalletEntry
+                address={solanaAddress}
+                balance={kalshiUsdcBalance}
+                chainName="Solana"
+                chainIcon={<SolanaIcon width={24} height={24} />}
+                trailing={
+                  <>
+                    {kalshiKycLoading ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/15 text-zinc-400">
+                        <span className="inline-block w-2.5 h-2.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+                        {t("extend.predict.kyc.verifying")}
+                      </span>
+                    ) : kalshiKycVerified ? (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400"
+                        title={t("extend.predict.kyc.verified")}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {t("extend.predict.kyc.verified")}
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsKycModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                          title={t("extend.predict.kyc.unverified")}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                          </svg>
+                          {t("extend.predict.kyc.unverifiedShort")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleKycRefresh();
+                          }}
+                          className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                          title={t("extend.predict.kyc.refresh")}
+                          disabled={isKycRefreshing}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={cn(isKycRefreshing && "animate-spin")}
+                          >
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </>
+                }
+              />
+            )}
+            {evmAddress && (
+              <WalletEntry
+                address={evmAddress}
+                balance={polymarketUsdcBalance}
+                chainName="Polygon"
+                chainIcon={<PolygonIcon width={24} height={24} />}
+                balancePlaceholder={
+                  !polymarketSetupVerified && !polymarketSetupLoading ? (
+                    <span className="text-amber-400/80 text-[11px] font-medium">
+                      {t("extend.predict.setup.unverifiedShort")}
+                    </span>
+                  ) : undefined
+                }
+                trailing={
+                  <>
+                    {polymarketSetupLoading ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/15 text-zinc-400">
+                        <span className="inline-block w-2.5 h-2.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+                        {t("extend.predict.setup.verifying")}
+                      </span>
+                    ) : polymarketSetupVerified ? (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400"
+                        title={t("extend.predict.setup.verified")}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {t("extend.predict.setup.verified")}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsSetupModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                        title={t("extend.predict.setup.unverified")}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                          <line x1="12" y1="9" x2="12" y2="13" />
+                          <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        {t("extend.predict.setup.unverifiedShort")}
+                      </button>
+                    )}
+                  </>
+                }
+              />
+            )}
           </div>
 
           {/* Sign out */}
-          <div className="mt-1 pt-1 border-t border-border px-4 pb-1">
+          <div className="border-t border-zinc-800/50 p-2">
             <button
               type="button"
-              className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-danger transition-colors hover:text-danger/80"
               onClick={handleSignOut}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors cursor-pointer text-red-400 hover:bg-red-500/10"
             >
-              <SignOutIcon width={15} height={15} />
-              <span className="text-sm">{t("common.signOut")}</span>
+              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-500/10">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </div>
+              {t("common.signOut")}
             </button>
           </div>
         </div>
-      </PopoverContent>
-    </StyledPopover>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Mobile-only language switcher inside account dropdown
-// ---------------------------------------------------------------------------
-
-function MobileLanguageSwitcher() {
-  const { t } = useTranslation();
-  const locale = useLocale();
-  const changeLocale = useChangeLocale();
-  const { languages } = useLocaleContext();
-
-  const handleChange = useCallback(
-    (code: LocaleCode) => changeLocale(code),
-    [changeLocale],
-  );
-
-  return (
-    <div className="flex items-center gap-2 py-2">
-      <TranslateIcon width={15} height={15} className="text-neutral shrink-0" />
-      <span className="text-sm text-foreground flex-1">{t("extend.header.language")}</span>
-      <div className="flex gap-1">
-        {languages.map((lang) => (
-          <button
-            key={lang.localCode}
-            type="button"
-            onClick={() => handleChange(lang.localCode as LocaleCode)}
-            className={cn(
-              "text-xs px-2 py-1 rounded-md cursor-pointer transition-colors",
-              lang.localCode === locale
-                ? "bg-content2 text-foreground font-medium"
-                : "text-neutral hover:text-foreground",
-            )}
-          >
-            {lang.localCode.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
