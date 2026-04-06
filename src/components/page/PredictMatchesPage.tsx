@@ -21,8 +21,8 @@ export function PredictMatchesPage() {
   const handleSelect = useCallback(
     (match: MatchMarketFlat, source: ProviderSource) => {
       const market = source === match.source_a ? match.market_a : match.market_b;
-      if (market?.slug) {
-        router.push(`/${toDisplaySource(source)}/${market.slug}`);
+      if (market?.event_slug) {
+        router.push(`/${toDisplaySource(source)}/${market.event_slug}`);
       }
     },
     [router],
@@ -31,17 +31,32 @@ export function PredictMatchesPage() {
   const getMarketHref = useCallback(
     (match: MatchMarketFlat, source: ProviderSource) => {
       const market = source === match.source_a ? match.market_a : match.market_b;
-      if (market?.slug) {
-        return `/${toDisplaySource(source)}/${market.slug}`;
+      if (market?.event_slug) {
+        return `/${toDisplaySource(source)}/${market.event_slug}`;
       }
       return undefined;
     },
     [],
   );
 
+  const handleHover = useCallback(
+    (match: MatchMarketFlat) => {
+      const hrefA = match.market_a?.event_slug
+        ? `/${toDisplaySource(match.source_a)}/${match.market_a.event_slug}`
+        : null;
+      const hrefB = match.market_b?.event_slug
+        ? `/${toDisplaySource(match.source_b)}/${match.market_b.event_slug}`
+        : null;
+      if (hrefA) router.prefetch(hrefA);
+      if (hrefB && hrefB !== hrefA) router.prefetch(hrefB);
+    },
+    [router],
+  );
+
   return (
     <MatchesPage
       onSelect={handleSelect}
+      onHover={handleHover}
       getMarketHref={getMarketHref}
       LinkComponent={NoPrefetchLink}
       bgImageSrc="/matches-bg.webp"
