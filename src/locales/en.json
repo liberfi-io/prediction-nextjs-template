@@ -80,13 +80,13 @@
         "modalTitle": "Polymarket Wallet Setup",
         "modalDescription": "Complete these steps to trade on Polymarket. Gas fees are covered.",
         "step1": "Deploy Safe Wallet",
+        "step1Desc": "Create a secure smart wallet on Polygon to hold your funds and execute trades on Polymarket.",
         "step2": "Approve USDC",
-        "step3": "Connect API Keys",
+        "step2Desc": "Authorize Polymarket contracts to use your USDC.e for trading. This is a one-time approval.",
         "stepComplete": "Complete",
         "stepPending": "Pending",
         "stepRunning": "Processing...",
         "setupButton": "Set Up Wallet",
-        "connectButton": "Connect API",
         "done": "Done"
       }
     },

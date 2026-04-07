@@ -80,13 +80,13 @@
         "modalTitle": "Polymarket 錢包設置",
         "modalDescription": "完成以下步驟以在 Polymarket 上交易。Gas 費用由平台承擔。",
         "step1": "部署 Safe 錢包",
+        "step1Desc": "在 Polygon 網絡上創建安全智能錢包，用於持有資金並在 Polymarket 上執行交易。",
         "step2": "授權 USDC",
-        "step3": "連接 API 密鑰",
+        "step2Desc": "授權 Polymarket 合約使用您的 USDC.e 進行交易，僅需授權一次。",
         "stepComplete": "已完成",
         "stepPending": "待處理",
         "stepRunning": "處理中...",
         "setupButton": "設置錢包",
-        "connectButton": "連接 API",
         "done": "完成"
       }
     },

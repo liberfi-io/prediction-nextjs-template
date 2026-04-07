@@ -417,7 +417,7 @@ function MainScreen({
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <p className="text-sm text-zinc-400 text-center max-w-[240px]">
+            <p className="text-sm text-zinc-400 text-center">
               {needsKyc
                 ? t("extend.predict.kyc.unverified")
                 : t("extend.predict.setup.unverified")}
