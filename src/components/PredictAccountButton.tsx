@@ -91,7 +91,7 @@ function WalletEntry({
   );
 
   return (
-    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/50 transition-all">
+    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] transition-all">
       <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800">
         {chainIcon}
       </div>
@@ -241,7 +241,7 @@ export function PredictAccountButton() {
       <button
         type="button"
         onClick={signIn}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+        className="flex items-center gap-1.5 px-3 py-2 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 border border-[#c7ff2e]/25 hover:border-[#c7ff2e]/40 text-[#c7ff2e] rounded-[10px] text-sm font-semibold transition-all duration-200 cursor-pointer"
       >
         <SignInIcon width={14} height={14} />
         {t("common.signIn")}
@@ -291,8 +291,13 @@ export function PredictAccountButton() {
 
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-80 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden"
-          style={{ backgroundColor: "#18181b" }}
+          className="absolute right-0 mt-2 w-80 z-50 overflow-hidden"
+          style={{
+            borderRadius: 14,
+            border: "1px solid rgba(39,39,42,1)",
+            background: "rgba(24,24,27,1)",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          }}
         >
           {/* Wallets */}
           <div className="p-2">
@@ -424,13 +429,13 @@ export function PredictAccountButton() {
           </div>
 
           {/* Sign out */}
-          <div className="border-t border-zinc-800/50 p-2">
+          <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors cursor-pointer text-red-400 hover:bg-red-500/10"
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-[10px] transition-colors cursor-pointer text-red-400 hover:bg-red-500/10"
             >
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-500/10">
+              <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-red-500/10">
                 <svg
                   width="14"
                   height="14"

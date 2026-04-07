@@ -43,15 +43,20 @@ export function LanguageButton() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label={t("extend.header.language")}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-zinc-500/10 text-zinc-400 border-zinc-500/20 hover:bg-zinc-500/20 hover:text-zinc-300 cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 py-2 rounded-[10px] text-sm font-medium transition-all border bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-800 hover:text-white cursor-pointer"
       >
         <TranslateIcon width={14} height={14} />
       </button>
 
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-36 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
-          style={{ backgroundColor: "#18181b" }}
+          className="absolute right-0 mt-2 w-36 z-50 overflow-hidden"
+          style={{
+            borderRadius: 14,
+            border: "1px solid rgba(39,39,42,1)",
+            background: "rgba(24,24,27,1)",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          }}
         >
           <div className="p-1">
             {languages.map((lang) => {
@@ -64,13 +69,28 @@ export function LanguageButton() {
                     handleSelect(lang.localCode as LocaleCode)
                   }
                   className={cn(
-                    "w-full flex items-center px-3 py-1.5 rounded-lg text-sm transition-all cursor-pointer",
+                    "w-full flex items-center justify-between px-3 py-2 rounded-[10px] text-sm transition-all cursor-pointer",
                     selected
-                      ? "bg-violet-500/10 text-violet-300"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
+                      ? "bg-[#c7ff2e]/[0.08] text-[#c7ff2e]"
+                      : "text-zinc-400 hover:text-white hover:bg-[rgba(39,39,42,0.5)]",
                   )}
                 >
                   {lang.displayName}
+                  {selected && (
+                    <svg
+                      viewBox="0 0 24 24"
+                      width={16}
+                      height={16}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="flex-shrink-0"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
                 </button>
               );
             })}

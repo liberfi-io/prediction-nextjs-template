@@ -308,9 +308,9 @@ function NavTab({
       type="button"
       data-active={active}
       className={cn(
-        "px-2.5 py-1 text-xs font-medium rounded transition-all cursor-pointer whitespace-nowrap",
+        "px-3 py-1.5 text-sm font-medium rounded-[10px] transition-all cursor-pointer whitespace-nowrap",
         active
-          ? "text-zinc-200"
+          ? "text-[#c7ff2e]"
           : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
       )}
       onClick={handlePress}
@@ -395,7 +395,7 @@ function PredictBalanceIndicator() {
       <button
         type="button"
         onClick={() => router.push("/portfolio")}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-500/10 hover:bg-zinc-500/20 border border-zinc-500/20 hover:border-zinc-500/30 rounded-lg transition-all cursor-pointer"
+        className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 hover:border-[#c7ff2e]/30 rounded-[10px] transition-all cursor-pointer"
       >
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <UsdcIcon width={16} height={16} aria-hidden="true" />
@@ -416,10 +416,18 @@ function PredictBalanceIndicator() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden" style={{ backgroundColor: "#18181b" }}>
+        <div
+          className="absolute right-0 mt-2 w-64 z-50 overflow-hidden"
+          style={{
+            borderRadius: 14,
+            border: "1px solid rgba(39,39,42,1)",
+            background: "rgba(24,24,27,1)",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          }}
+        >
           <div className="p-2">
-            <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium px-3 pt-1 pb-2">Cash Breakdown</div>
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+            <div className="text-[11px] uppercase tracking-[0.05em] text-zinc-500 font-medium px-3 pt-1 pb-2">Cash Breakdown</div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
               <div className="flex items-center gap-2.5">
                 <PolymarketIcon width={20} height={20} />
                 <span className="text-sm text-zinc-400">Polymarket</span>
@@ -428,7 +436,7 @@ function PredictBalanceIndicator() {
                 {polymarketUsdcBalance != null ? `$${formatUsdc(polymarketUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
               <div className="flex items-center gap-2.5">
                 <KalshiIcon width={20} height={20} />
                 <span className="text-sm text-zinc-400">Kalshi</span>
@@ -438,8 +446,8 @@ function PredictBalanceIndicator() {
               </span>
             </div>
           </div>
-          <div className="border-t border-zinc-800/50 p-2">
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg">
+          <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
               <div className="flex items-center gap-2.5">
                 <ChartLineIcon width={20} height={20} className="text-blue-400" />
                 <span className="text-sm text-zinc-400">Positions</span>
@@ -447,10 +455,10 @@ function PredictBalanceIndicator() {
               <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatUsdc(positionsValue)}</span>
             </div>
           </div>
-          <div className="border-t border-zinc-800/50 p-2">
+          <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
             <div className="flex items-center justify-between gap-3 px-3 py-2">
               <span className="text-sm text-zinc-300 font-medium">Portfolio Total</span>
-              <span className="text-sm font-bold text-white tabular-nums">
+              <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
                 {initialLoading ? "..." : `$${formatUsdc(portfolioTotal)}`}
               </span>
             </div>

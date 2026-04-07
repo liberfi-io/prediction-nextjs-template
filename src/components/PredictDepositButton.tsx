@@ -18,7 +18,7 @@ export function PredictDepositButton() {
       type="button"
       aria-label={t("extend.predict.deposit.title")}
       onClick={handlePress}
-      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+      className="flex items-center gap-1 px-3 py-2 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 border border-[#c7ff2e]/25 hover:border-[#c7ff2e]/40 text-[#c7ff2e] rounded-[10px] text-sm font-semibold transition-all duration-200 cursor-pointer"
     >
       {t("extend.predict.deposit.title")}
     </button>

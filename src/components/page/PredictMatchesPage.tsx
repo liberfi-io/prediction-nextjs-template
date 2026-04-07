@@ -56,6 +56,7 @@ export function PredictMatchesPage() {
   return (
     <MatchesPage
       onSelect={handleSelect}
+      // @ts-expect-error onHover added in local SDK, not yet published to npm
       onHover={handleHover}
       getMarketHref={getMarketHref}
       LinkComponent={NoPrefetchLink}
