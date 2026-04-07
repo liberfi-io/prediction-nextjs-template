@@ -404,7 +404,6 @@ function MainScreen({
             evmAddress={evmAddress}
             safeDeployed={polymarketSafeDeployed}
             tokenApproved={polymarketTokenApproved}
-            keysConnected={false}
             onDeployAndApprove={handleDeployAndApprove}
           />
         )}
