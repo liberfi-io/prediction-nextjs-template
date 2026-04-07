@@ -59,7 +59,7 @@ export function PredictMatchesPage() {
       onHover={handleHover}
       getMarketHref={getMarketHref}
       LinkComponent={NoPrefetchLink}
-      bgImageSrc="/matches-bg.webp"
+      bgImageSrc="/matches-bg-wide.png"
     />
   );
 }

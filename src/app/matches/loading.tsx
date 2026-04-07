@@ -13,7 +13,7 @@ export default function Loading() {
       }}
     >
       <img
-        src="/matches-bg.webp"
+        src="/matches-bg-wide.png"
         alt=""
         aria-hidden
         style={{
