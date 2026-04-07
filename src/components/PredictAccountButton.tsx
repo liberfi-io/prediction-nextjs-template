@@ -290,7 +290,6 @@ export function PredictAccountButton() {
           evmAddress={evmAddress}
           safeDeployed={polymarketSafeDeployed}
           tokenApproved={polymarketTokenApproved}
-          keysConnected={false}
           onDeployAndApprove={handleDeployAndApprove}
         />
       )}
