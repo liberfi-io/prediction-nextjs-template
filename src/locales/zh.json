@@ -68,15 +68,15 @@
       "kyc": {
         "verified": "已驗證",
         "verifying": "驗證中",
-        "unverified": "需要 KYC 驗證 — 點擊驗證",
-        "unverifiedShort": "需要 KYC",
+        "unverified": "購買 Kalshi 倉位需要完成身份驗證。",
+        "unverifiedShort": "前往驗證",
         "refresh": "刷新 KYC 狀態"
       },
       "setup": {
         "verified": "已驗證",
         "verifying": "驗證中",
-        "unverified": "需要設置 — 點擊設置",
-        "unverifiedShort": "需要設置",
+        "unverified": "需要完成錢包設置才能在 Polymarket 交易。",
+        "unverifiedShort": "設置錢包",
         "modalTitle": "Polymarket 錢包設置",
         "modalDescription": "完成以下步驟以在 Polymarket 上交易。Gas 費用由平台承擔。",
         "step1": "部署 Safe 錢包",

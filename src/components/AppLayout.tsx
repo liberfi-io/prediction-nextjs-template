@@ -308,7 +308,7 @@ function NavTab({
       type="button"
       data-active={active}
       className={cn(
-        "px-3 py-1.5 text-sm font-medium rounded-[10px] transition-all cursor-pointer whitespace-nowrap",
+        "px-3 py-1.5 text-sm font-medium rounded-[10px] transition-colors cursor-pointer whitespace-nowrap focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
         active
           ? "text-[#c7ff2e]"
           : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
@@ -394,8 +394,7 @@ function PredictBalanceIndicator() {
     >
       <button
         type="button"
-        onClick={() => router.push("/portfolio")}
-        className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 hover:border-[#c7ff2e]/30 rounded-[10px] transition-all cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <UsdcIcon width={16} height={16} aria-hidden="true" />
@@ -410,8 +409,8 @@ function PredictBalanceIndicator() {
             ${formatUsdc(positionsValue)}
           </span>
         </div>
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500" aria-hidden="true">
-          <path d={isOpen ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6"} />
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 

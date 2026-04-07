@@ -71,7 +71,7 @@ export function FundWalletModal() {
           onOpenChange={props.onOpenChange}
           size="md"
           classNames={{
-            base: "!bg-[#18181b] border border-zinc-800",
+            base: "!bg-[#18181b] !rounded-[14px] !border !border-[rgba(39,39,42,1)] !shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]",
             body: "!p-0",
           }}
         >
@@ -182,10 +182,16 @@ function WalletSelector({
     <div className="relative">
       <button
         type="button"
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors cursor-pointer"
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-zinc-800/50 hover:bg-[rgba(39,39,42,0.5)] border border-zinc-700/50 transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         onClick={() => setOpen((v) => !v)}
       >
-        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800">
+        <div
+          className="flex items-center justify-center w-7 h-7 rounded-[10px]"
+          style={{
+            background: "linear-gradient(to bottom right, rgba(199,255,46,0.08), rgba(23,201,100,0.08))",
+            border: "1px solid rgba(199,255,46,0.1)",
+          }}
+        >
           {current.chainIcon}
         </div>
         <div className="flex-1 min-w-0 text-left">
@@ -208,34 +214,47 @@ function WalletSelector({
 
       {open && wallets.length > 1 && (
         <div
-          className="absolute left-0 right-0 mt-1 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden"
-          style={{ backgroundColor: "#18181b" }}
+          className="absolute left-0 right-0 mt-2 z-50 overflow-hidden"
+          style={{
+            borderRadius: 14,
+            border: "1px solid rgba(39,39,42,1)",
+            background: "rgba(24,24,27,1)",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          }}
         >
-          {wallets
-            .filter((w) => w.key !== selected)
-            .map((w) => (
-              <button
-                key={w.key}
-                type="button"
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-800/50 transition-colors cursor-pointer"
-                onClick={() => {
-                  onSelect(w.key);
-                  setOpen(false);
-                }}
-              >
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800">
-                  {w.chainIcon}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-sm font-medium text-zinc-300 truncate">
-                    {w.address ? truncateAddress(w.address) : "—"}
+          <div className="p-1">
+            {wallets
+              .filter((w) => w.key !== selected)
+              .map((w) => (
+                <button
+                  key={w.key}
+                  type="button"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] transition-colors cursor-pointer"
+                  onClick={() => {
+                    onSelect(w.key);
+                    setOpen(false);
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-center w-7 h-7 rounded-[10px]"
+                    style={{
+                      background: "linear-gradient(to bottom right, rgba(199,255,46,0.08), rgba(23,201,100,0.08))",
+                      border: "1px solid rgba(199,255,46,0.1)",
+                    }}
+                  >
+                    {w.chainIcon}
                   </div>
-                  <div className="text-xs text-zinc-500">
-                    ${formatUsdc(w.balance ?? 0)} USDC · {w.chainName}
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="text-sm font-medium text-zinc-300 truncate">
+                      {w.address ? truncateAddress(w.address) : "—"}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      ${formatUsdc(w.balance ?? 0)} USDC · {w.chainName}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+          </div>
         </div>
       )}
     </div>
@@ -262,7 +281,7 @@ function ModalHeader({
           <button
             type="button"
             onClick={onBack}
-            className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] text-zinc-400 hover:text-white transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             <ChevronLeftIcon width={18} height={18} />
           </button>
@@ -272,7 +291,7 @@ function ModalHeader({
       <button
         type="button"
         onClick={onClose}
-        className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+        className="p-1 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] text-zinc-400 hover:text-white transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <XCloseIcon width={18} height={18} />
       </button>
@@ -399,26 +418,19 @@ function MainScreen({
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-semibold text-white">
-                {needsKyc
-                  ? t("extend.predict.kyc.unverifiedShort")
-                  : t("extend.predict.setup.unverifiedShort")}
-              </p>
-              <p className="text-xs text-zinc-400 max-w-[240px]">
-                {needsKyc
-                  ? t("extend.predict.kyc.unverified")
-                  : t("extend.predict.setup.unverified")}
-              </p>
-            </div>
+            <p className="text-sm text-zinc-400 text-center max-w-[240px]">
+              {needsKyc
+                ? t("extend.predict.kyc.unverified")
+                : t("extend.predict.setup.unverified")}
+            </p>
             <button
               type="button"
               onClick={() => needsKyc ? setIsKycModalOpen(true) : setIsSetupModalOpen(true)}
-              className="px-6 py-2.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 hover:border-amber-500/50 text-sm font-semibold transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-[10px] bg-[#c7ff2e]/10 border border-[#c7ff2e]/25 text-[#c7ff2e] hover:bg-[#c7ff2e]/20 hover:border-[#c7ff2e]/40 text-sm font-semibold transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {needsKyc
                 ? t("extend.predict.kyc.unverifiedShort")
-                : t("extend.predict.setup.setupButton")}
+                : t("extend.predict.setup.unverifiedShort")}
             </button>
           </div>
         ) : (
@@ -429,10 +441,10 @@ function MainScreen({
               </div>
               <div className="flex items-center justify-center gap-2">
                 <UsdcIcon width={24} height={24} />
-                <span className="text-2xl font-bold text-white tabular-nums">
-                  ${formatUsdc(balance ?? 0)}
-                </span>
-                <span className="text-sm text-zinc-500 self-end mb-0.5">USDC</span>
+              <span className="text-2xl font-bold text-[#c7ff2e] tabular-nums">
+                ${formatUsdc(balance ?? 0)}
+              </span>
+              <span className="text-sm text-zinc-500 self-end mb-0.5">USDC</span>
               </div>
             </div>
 
@@ -440,17 +452,17 @@ function MainScreen({
               <button
                 type="button"
                 onClick={onDeposit}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 transition-all cursor-pointer group"
+                className="flex flex-col items-center gap-2 p-4 rounded-[14px] border border-[#c7ff2e]/20 bg-[#c7ff2e]/5 hover:bg-[#c7ff2e]/10 hover:border-[#c7ff2e]/40 transition-colors cursor-pointer group focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                <div className="w-10 h-10 rounded-full bg-[#c7ff2e]/10 flex items-center justify-center group-hover:bg-[#c7ff2e]/20 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#c7ff2e]">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-emerald-400">{t("extend.predict.fundWallet.deposit")}</div>
+                  <div className="text-sm font-semibold text-[#c7ff2e]">{t("extend.predict.fundWallet.deposit")}</div>
                   <div className="text-[10px] text-zinc-500 mt-0.5">{t("extend.predict.fundWallet.depositSubtitle")}</div>
                 </div>
               </button>
@@ -458,7 +470,7 @@ function MainScreen({
               <button
                 type="button"
                 onClick={onWithdraw}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/40 transition-all cursor-pointer group"
+                className="flex flex-col items-center gap-2 p-4 rounded-[14px] border border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/40 transition-colors cursor-pointer group focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400">
@@ -497,7 +509,7 @@ function QRCodeImage({ value }: { value: string }) {
 
   return (
     <div
-      className="rounded-lg overflow-hidden border border-zinc-700 bg-white p-2"
+      className="rounded-[10px] overflow-hidden border border-zinc-700 bg-white p-2"
       style={{ width: 180, height: 180 }}
       dangerouslySetInnerHTML={{ __html: svgString }}
       aria-hidden="true"
@@ -515,18 +527,18 @@ function CopyAddressRow({ address }: { address: string }) {
   }, [address]);
 
   return (
-    <div className="flex items-center gap-2 bg-zinc-800/50 rounded-lg px-3 py-2">
+    <div className="flex items-center gap-2 bg-zinc-800/50 rounded-[10px] px-3 py-2 border border-zinc-700/50">
       <span className="flex-1 font-mono text-xs text-zinc-300 truncate">
         {address}
       </span>
       <button
         type="button"
         onClick={handleCopy}
-        className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors cursor-pointer shrink-0"
+        className="p-1.5 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] text-zinc-500 hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label="Copy address"
       >
         {copied ? (
-          <CheckIcon width={14} height={14} className="text-emerald-400" />
+          <CheckIcon width={14} height={14} className="text-[#c7ff2e]" />
         ) : (
           <CopyIcon width={14} height={14} />
         )}
@@ -578,14 +590,14 @@ function DepositScreen({
         <WalletSelector selected={selectedWallet} onSelect={onSelectWallet} />
 
         {/* Info banner */}
-        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg px-3 py-2.5">
-          <p className="text-xs text-blue-300 leading-relaxed">
+        <div className="bg-[#c7ff2e]/5 border border-[#c7ff2e]/15 rounded-[10px] px-3 py-2.5">
+          <p className="text-xs text-[#c7ff2e]/70 leading-relaxed">
             {t("extend.predict.fundWallet.depositInfo", { chain: chainName })}
           </p>
         </div>
 
         {!isSolana && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2">
             <p className="text-xs text-amber-300">
               {t("extend.predict.fundWallet.depositMinAmount", { amount: "2" })}
             </p>
@@ -618,11 +630,11 @@ function DepositScreen({
         )}
 
         {/* Balance display */}
-        <div className="flex items-center justify-between bg-zinc-800/30 rounded-lg px-3 py-2.5">
+        <div className="flex items-center justify-between bg-zinc-800/30 rounded-[10px] px-3 py-2.5 border border-zinc-700/50">
           <span className="text-xs text-zinc-400">{t("extend.predict.fundWallet.currentBalance")}</span>
           <div className="flex items-center gap-1.5">
             <UsdcIcon width={14} height={14} />
-            <span className="text-sm font-medium text-white tabular-nums">
+            <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
               ${formatUsdc(balance ?? 0)}
             </span>
           </div>
@@ -633,11 +645,11 @@ function DepositScreen({
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
             {t("extend.predict.fundWallet.supported")}
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800 rounded text-[10px] text-zinc-300 border border-zinc-700/50">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
             <UsdcIcon width={12} height={12} /> USDC
           </span>
           {isSolana && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800 rounded text-[10px] text-zinc-300 border border-zinc-700/50">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
               <SolanaIcon width={12} height={12} /> {t("extend.predict.fundWallet.solForFees")}
             </span>
           )}
@@ -649,7 +661,7 @@ function DepositScreen({
             href={explorerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-zinc-700/50 bg-zinc-800/40 hover:bg-zinc-800 hover:border-zinc-600 text-sm text-zinc-300 hover:text-white transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-all"
           >
             {t("extend.predict.fundWallet.viewOnExplorer", { explorer: isSolana ? "Solscan" : "Polygonscan" })}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -825,7 +837,7 @@ function WithdrawScreen({
         <WalletSelector selected={selectedWallet} onSelect={onSelectWallet} />
 
         {/* Info banner */}
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2.5">
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2.5">
           <p className="text-xs text-amber-300 leading-relaxed">
             {t("extend.predict.fundWallet.withdrawInfo", { chain: chainName })}
           </p>
@@ -847,7 +859,7 @@ function WithdrawScreen({
           <label className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
             {t("extend.predict.fundWallet.amount")}
           </label>
-          <div className="flex items-center bg-zinc-800/50 border border-zinc-700/50 rounded-lg focus-within:border-zinc-600">
+          <div className="flex items-center bg-zinc-800/50 border border-zinc-700/50 rounded-[10px] focus-within:border-[#c7ff2e]/30">
             <input
               type="text"
               inputMode="decimal"
@@ -864,7 +876,7 @@ function WithdrawScreen({
               type="button"
               onClick={handleMax}
               disabled={isPending}
-              className="px-2 py-1 mr-2 text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 rounded transition-colors cursor-pointer disabled:opacity-50"
+              className="px-2 py-1 mr-2 text-[10px] font-semibold text-[#c7ff2e] hover:text-[#c7ff2e]/80 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 rounded-md transition-colors cursor-pointer disabled:opacity-50"
             >
               MAX
             </button>
@@ -884,10 +896,10 @@ function WithdrawScreen({
             onChange={(e) => setDestination(e.target.value)}
             disabled={isPending}
             className={cn(
-              "w-full bg-zinc-800/50 border rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none font-mono",
+              "w-full bg-zinc-800/50 border rounded-[10px] px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none font-mono",
               trimmedDest.length > 0 && !isValidAddress
                 ? "border-red-500/60 focus:border-red-500"
-                : "border-zinc-700/50 focus:border-zinc-600",
+                : "border-zinc-700/50 focus:border-[#c7ff2e]/30",
             )}
           />
           {trimmedDest.length > 0 && !isValidAddress && (
@@ -903,9 +915,9 @@ function WithdrawScreen({
           onClick={handleSubmit}
           disabled={!isValid || isPending}
           className={cn(
-            "w-full py-3 rounded-lg text-sm font-semibold transition-all",
+            "w-full py-3 rounded-[10px] text-sm font-semibold transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
             isValid && !isPending
-              ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+              ? "bg-[#c7ff2e] text-zinc-900 hover:bg-[#c7ff2e]/90 cursor-pointer"
               : "bg-zinc-800 text-zinc-500 cursor-not-allowed",
           )}
         >

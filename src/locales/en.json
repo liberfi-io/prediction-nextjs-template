@@ -68,15 +68,15 @@
       "kyc": {
         "verified": "Verified",
         "verifying": "Verifying",
-        "unverified": "KYC Required — Click to verify",
-        "unverifiedShort": "KYC Required",
+        "unverified": "Identity verification is required to buy Kalshi positions.",
+        "unverifiedShort": "Verify Identity",
         "refresh": "Refresh KYC status"
       },
       "setup": {
         "verified": "Verified",
         "verifying": "Verifying",
-        "unverified": "Setup Required — Click to set up",
-        "unverifiedShort": "Setup Required",
+        "unverified": "Wallet setup is required to trade on Polymarket.",
+        "unverifiedShort": "Set Up Wallet",
         "modalTitle": "Polymarket Wallet Setup",
         "modalDescription": "Complete these steps to trade on Polymarket. Gas fees are covered.",
         "step1": "Deploy Safe Wallet",

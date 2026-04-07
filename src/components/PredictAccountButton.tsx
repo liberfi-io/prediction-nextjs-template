@@ -92,7 +92,13 @@ function WalletEntry({
 
   return (
     <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] transition-all">
-      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800">
+      <div
+        className="flex items-center justify-center w-7 h-7 rounded-[10px]"
+        style={{
+          background: "linear-gradient(to bottom right, rgba(199,255,46,0.08), rgba(23,201,100,0.08))",
+          border: "1px solid rgba(199,255,46,0.1)",
+        }}
+      >
         {chainIcon}
       </div>
       <div className="flex-1 min-w-0">
@@ -241,7 +247,7 @@ export function PredictAccountButton() {
       <button
         type="button"
         onClick={signIn}
-        className="flex items-center gap-1.5 px-3 py-2 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 border border-[#c7ff2e]/25 hover:border-[#c7ff2e]/40 text-[#c7ff2e] rounded-[10px] text-sm font-semibold transition-all duration-200 cursor-pointer"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 border border-[#c7ff2e]/25 hover:border-[#c7ff2e]/40 text-[#c7ff2e] rounded-[10px] text-xs font-semibold transition-colors duration-200 cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <SignInIcon width={14} height={14} />
         {t("common.signIn")}
@@ -267,7 +273,7 @@ export function PredictAccountButton() {
       <div className="relative cursor-pointer">
         <GradientAvatar seed={displayAddress} size={32} />
         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-zinc-900 rounded-full flex items-center justify-center">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <div className="w-2 h-2 bg-[#c7ff2e] rounded-full animate-pulse" />
         </div>
       </div>
 

@@ -43,7 +43,7 @@ export function LanguageButton() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label={t("extend.header.language")}
-        className="flex items-center gap-1.5 px-2.5 py-2 rounded-[10px] text-sm font-medium transition-all border bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-800 hover:text-white cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-sm font-medium transition-colors border bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-800 hover:text-white cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <TranslateIcon width={14} height={14} />
       </button>
