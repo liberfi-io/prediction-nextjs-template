@@ -334,7 +334,6 @@ function formatUsdc(amount: number): string {
 }
 
 function PredictBalanceIndicator() {
-  const router = useRouter();
   const {
     kalshiUsdcBalance,
     polymarketUsdcBalance,
