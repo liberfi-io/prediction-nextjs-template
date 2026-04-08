@@ -30,6 +30,7 @@ export function PredictListPage() {
       LinkComponent={NoPrefetchLink}
       onHover={handleHover}
       onSelect={handleSelect}
+      bgImageSrc="/matches-bg-wide.png"
     />
   );
 }
