@@ -800,7 +800,7 @@ function WithdrawScreen({
 
         toast.success(t("extend.predict.fundWallet.txSubmitted"));
         queryClient.invalidateQueries({
-          queryKey: balanceQueryKey(source, polymarketSafeAddress),
+          queryKey: balanceQueryKey(source, evmAddress),
         });
         onClose();
       }
