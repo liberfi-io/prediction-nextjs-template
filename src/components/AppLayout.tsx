@@ -413,7 +413,7 @@ function PredictBalanceIndicator() {
         </div>
         <div className="w-px h-4 bg-zinc-700/40" />
         <div className="flex items-center gap-1.5" title="Positions Value">
-          <ChartLineIcon width={16} height={16} className="text-blue-400" aria-hidden="true" />
+          <ChartLineIcon width={16} height={16} className="text-bullish" aria-hidden="true" />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
             ${formatUsdc(positionsValue)}
           </span>
@@ -457,7 +457,7 @@ function PredictBalanceIndicator() {
           <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
             <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
               <div className="flex items-center gap-2.5">
-                <ChartLineIcon width={20} height={20} className="text-blue-400" />
+                <ChartLineIcon width={20} height={20} className="text-bullish" />
                 <span className="text-sm text-zinc-400">Positions</span>
               </div>
               <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatUsdc(positionsValue)}</span>

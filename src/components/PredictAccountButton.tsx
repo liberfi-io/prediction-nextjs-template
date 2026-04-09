@@ -321,7 +321,7 @@ export function PredictAccountButton() {
                       </span>
                     ) : kalshiKycVerified ? (
                       <span
-                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400"
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-bullish/15 text-bullish"
                         title={t("extend.predict.kyc.verified")}
                       >
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -401,7 +401,7 @@ export function PredictAccountButton() {
                       </span>
                     ) : polymarketSetupVerified ? (
                       <span
-                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400"
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-bullish/15 text-bullish"
                         title={t("extend.predict.setup.verified")}
                       >
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

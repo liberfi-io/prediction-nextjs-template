@@ -8,8 +8,9 @@ import { useAuth, useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
   usePredictWallet,
   PredictTradeModal,
-  PREDICT_TRADE_MODAL_ID,
-  type PredictTradeModalParams,
+  PredictSellModal,
+  PREDICT_SELL_MODAL_ID,
+  type PredictSellModalParams,
 } from "@liberfi.io/ui-predict";
 import {
   usePositionsMulti,
@@ -61,6 +62,7 @@ export function PredictPortfolioPage() {
         {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
+      <PredictSellModal />
     </div>
   );
 }
@@ -69,43 +71,111 @@ function PortfolioSkeleton() {
   const { t } = useTranslation();
   return (
     <>
+      <style>{`@keyframes pf-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+
+      {/* Title */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           {t("extend.portfolio.title")}
         </h1>
       </div>
-      {/* Stats row */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+      {/* Hero cards — same 3-col grid as PortfolioContent */}
+      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Net Worth card (spans 2 cols) */}
+        <div
+          className="relative overflow-hidden lg:col-span-2"
+          style={{
+            borderRadius: 24,
+            border: "1px solid rgba(39,39,42,0.6)",
+            background: "rgba(24,24,27,0.4)",
+            padding: "24px 32px",
+          }}
+        >
+          <Shimmer delay={0} style={{ height: 14, width: 120, marginBottom: 12 }} />
+          <Shimmer delay={100} style={{ height: 48, width: 200, marginBottom: 12 }} />
+          <Shimmer delay={200} style={{ height: 28, width: 140, borderRadius: 8 }} />
+        </div>
+        {/* Right column: 2 small cards */}
+        <div className="flex flex-col gap-4">
+          {[0, 1].map((j) => (
+            <div
+              key={j}
+              style={{
+                flex: 1,
+                borderRadius: 16,
+                border: "1px solid rgba(39,39,42,0.5)",
+                background: "rgba(24,24,27,0.4)",
+                padding: 20,
+              }}
+            >
+              <Shimmer delay={j * 150 + 100} style={{ height: 12, width: 100, marginBottom: 12 }} />
+              <Shimmer delay={j * 150 + 200} style={{ height: 32, width: 96 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs — matches actual tab bar */}
+      <div style={{ borderBottom: "1px solid rgba(39,39,42,0.5)" }}>
+        <div className="flex gap-0">
+          {[72, 88, 96].map((w, i) => (
+            <div key={i} style={{ padding: "10px 16px" }}>
+              <Shimmer delay={i * 100 + 300} style={{ height: 14, width: w }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Position rows — matches actual PositionRow layout */}
+      <div
+        className="mt-4"
+        style={{
+          borderRadius: 12,
+          border: "1px solid rgba(39,39,42,0.3)",
+          background: "rgba(24,24,27,0.2)",
+          overflow: "hidden",
+        }}
+      >
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
-            <Skeleton className="mb-2 h-3 w-16" />
-            <Skeleton className="h-6 w-24" />
-          </div>
-        ))}
-      </div>
-      {/* Tab bar */}
-      <div className="mb-4 flex gap-4 border-b border-zinc-800/60 pb-2">
-        <Skeleton className="h-5 w-20" />
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="h-5 w-16" />
-      </div>
-      {/* Rows */}
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "16px 20px",
+              borderBottom:
+                i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none",
+            }}
           >
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-32" />
+            <Shimmer delay={i * 120 + 400} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "70%" : "55%", marginBottom: 8 }} />
+              <Shimmer delay={i * 120 + 500} style={{ height: 10, width: i % 2 === 0 ? "45%" : "35%" }} />
             </div>
-            <Skeleton className="h-5 w-16" />
+            <Shimmer delay={i * 120 + 480} style={{ height: 14, width: 80, flexShrink: 0 }} />
+            <Shimmer delay={i * 120 + 520} style={{ height: 20, width: 72, flexShrink: 0 }} />
+            <Shimmer delay={i * 120 + 560} style={{ height: 36, width: 64, borderRadius: 8, flexShrink: 0 }} />
           </div>
         ))}
       </div>
     </>
+  );
+}
+
+function Shimmer({ delay = 0, style }: { delay?: number; style: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background:
+          "linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)",
+        backgroundSize: "200% 100%",
+        animation: `pf-shimmer 1.8s ease-in-out infinite ${delay}ms`,
+        borderRadius: 6,
+        ...style,
+      }}
+    />
   );
 }
 
@@ -176,8 +246,10 @@ function PortfolioContent() {
       {/* Hero cards — 3-col grid */}
       <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Total Net Worth (spans 2 cols) */}
-        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-zinc-900/50 p-6 sm:p-8 lg:col-span-2">
-          <div className="pointer-events-none absolute -mr-16 -mt-16 right-0 top-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 p-6 sm:p-8 lg:col-span-2" style={{ background: "linear-gradient(145deg, rgba(24,24,27,1) 0%, rgba(30,30,34,0.95) 40%, rgba(24,24,27,0.88) 70%, rgba(20,20,22,1) 100%)" }}>
+          <div className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.10) 0%, rgba(199,255,46,0.03) 50%, transparent 70%)" }} />
+          <div className="pointer-events-none absolute -bottom-16 -left-12 h-48 w-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.04) 0%, transparent 60%)" }} />
+          <div className="pointer-events-none absolute left-1/3 top-1/2 h-40 w-64 -translate-y-1/2 rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(255,255,255,0.015) 0%, transparent 70%)" }} />
           <div className="relative z-10">
             <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
               <div>
@@ -198,8 +270,8 @@ function PortfolioContent() {
                     className={cn(
                       "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium",
                       allTimePnl >= 0
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-red-500/10 text-red-400",
+                        ? "bg-bullish/10 text-bullish"
+                        : "bg-bearish/10 text-bearish",
                     )}
                   >
                     {allTimePnl >= 0 ? (
@@ -239,7 +311,7 @@ function PortfolioContent() {
           <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-zinc-400">
-                <ChartLineIcon width={16} height={16} className="text-blue-400 opacity-70" />
+                <ChartLineIcon width={16} height={16} className="text-bullish opacity-70" />
                 <span className="text-sm font-medium">{t("extend.portfolio.investedAssets")}</span>
               </div>
               {positionsCount > 0 && (
@@ -268,7 +340,7 @@ function PortfolioContent() {
               className={cn(
                 "whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
                 activeTab === tab.key
-                  ? "border-white text-white"
+                  ? "border-bullish text-bullish"
                   : "border-transparent text-zinc-400 hover:text-zinc-300",
               )}
             >
@@ -302,7 +374,7 @@ function FundWalletButton() {
     <button
       type="button"
       onClick={() => onOpen()}
-      className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-400 transition-all hover:border-emerald-500/50 hover:bg-emerald-500/20 cursor-pointer"
+      className="flex items-center gap-2 rounded-xl border border-bullish/30 bg-bullish/10 px-4 py-2.5 text-sm font-semibold text-bullish transition-all hover:border-bullish/50 hover:bg-bullish/20 cursor-pointer"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -388,40 +460,100 @@ function PositionsPanel({
             placeholder={t("extend.portfolio.searchPositions")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800/50 bg-zinc-900/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 transition-colors focus:border-zinc-700 focus:outline-none"
+            className="w-full py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 transition-all focus:outline-none"
+            style={{
+              borderRadius: 10,
+              border: "1px solid rgba(63,63,70,0.5)",
+              background: "rgba(39,39,42,0.6)",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(63,63,70,1)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(63,63,70,0.5)"; }}
           />
         </div>
-        <div ref={sortRef} className="relative sm:w-auto">
+        <div ref={sortRef} style={{ position: "relative" }}>
           <button
             type="button"
             onClick={() => setSortMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-800/50 bg-zinc-900/50 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-zinc-800/50 hover:text-zinc-300 cursor-pointer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              borderRadius: 10,
+              border: "1px solid rgba(63,63,70,0.5)",
+              background: "rgba(39,39,42,0.6)",
+              padding: "8px 12px",
+              fontSize: 14,
+              color: "#d4d4d8",
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(39,39,42,1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(39,39,42,0.6)"; }}
           >
+            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, color: "#a1a1aa" }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21 16-4 4-4-4" />
+              <path d="M17 20V4" />
+              <path d="m3 8 4-4 4 4" />
+              <path d="M7 4v16" />
+            </svg>
             <span>{currentLabel}</span>
-            <ChevronDownIcon className={cn("h-3.5 w-3.5 transition-transform", sortMenuOpen && "rotate-180")} />
+            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, color: "#71717a", transition: "transform 0.15s", transform: sortMenuOpen ? "rotate(180deg)" : undefined }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </button>
           {sortMenuOpen && (
             <div
-              className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-xl border border-zinc-800 shadow-2xl shadow-black/50"
-              style={{ backgroundColor: "#18181b" }}
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "100%",
+                zIndex: 50,
+                marginTop: 8,
+                borderRadius: 14,
+                border: "1px solid rgba(39,39,42,1)",
+                background: "rgba(24,24,27,1)",
+                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+                overflow: "hidden",
+                width: 200,
+                padding: 4,
+              }}
             >
-              <div className="p-1">
-                {SORT_OPTIONS.map((opt) => (
+              {SORT_OPTIONS.map((opt) => {
+                const isActive = sortKey === opt.key;
+                return (
                   <button
                     key={opt.key}
                     type="button"
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      background: isActive ? "rgba(199,255,46,0.08)" : "transparent",
+                      color: isActive ? "#c7ff2e" : "#a1a1aa",
+                      borderRadius: 10,
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "rgba(39,39,42,0.5)"; e.currentTarget.style.color = "#fff"; } }}
+                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#a1a1aa"; } }}
                     onClick={() => { setSortKey(opt.key); setSortMenuOpen(false); }}
-                    className={cn(
-                      "flex w-full items-center px-3 py-1.5 rounded-lg text-sm transition-all cursor-pointer",
-                      sortKey === opt.key
-                        ? "bg-violet-500/10 text-violet-300"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-800/50",
-                    )}
                   >
-                    {t(opt.labelKey)}
+                    <span>{t(opt.labelKey)}</span>
+                    {isActive && (
+                      <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, color: "#c7ff2e", flexShrink: 0 }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -429,7 +561,7 @@ function PositionsPanel({
 
       {/* Position rows */}
       {filtered.length === 0 ? (
-        <EmptyState message={t("extend.portfolio.noPositions")} />
+        <EmptyState message={t("extend.portfolio.noPositions")} icon="positions" />
       ) : (
         <div className="divide-y divide-zinc-800/30 overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/20">
           {filtered.map((pos, i) => (
@@ -444,14 +576,14 @@ function PositionsPanel({
 function PositionRow({ position }: { position: PredictPosition }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { onOpen: openTradeModal } = useAsyncModal<PredictTradeModalParams>(PREDICT_TRADE_MODAL_ID);
+  const { onOpen: openSellModal } = useAsyncModal<PredictSellModalParams>(PREDICT_SELL_MODAL_ID);
   const pnl = position.pnl ?? 0;
   const pnlPercent = position.pnl_percent ?? 0;
   const avgPrice = position.avg_price ?? 0;
   const currentPrice = position.current_price ?? 0;
   const invested = position.size * avgPrice;
   const currentValue = position.current_value ?? position.size * currentPrice;
-  const pnlColor = pnl > 0 ? "text-emerald-400" : pnl < 0 ? "text-red-400" : "text-zinc-400";
+  const pnlColor = pnl > 0 ? "text-bullish" : pnl < 0 ? "text-bearish" : "text-zinc-400";
   const marketLabel = position.market?.question ?? "—";
   const marketName =
     position.market?.outcomes?.[0]?.label ?? position.market?.slug ?? "";
@@ -468,16 +600,15 @@ function PositionRow({ position }: { position: PredictPosition }) {
   const handleSell = useCallback(
     () => {
       if (!position.event || !position.market) return;
-      openTradeModal({
+      openSellModal({
         params: {
           event: position.event,
           market: position.market,
-          initialSide: "sell",
           initialOutcome: (position.side?.toLowerCase() === "yes" ? "yes" : "no") as "yes" | "no",
         },
       });
     },
-    [position.event, position.market, position.side, openTradeModal],
+    [position.event, position.market, position.side, openSellModal],
   );
 
   return (
@@ -509,14 +640,17 @@ function PositionRow({ position }: { position: PredictPosition }) {
                 className={cn(
                   "rounded px-1.5 py-0.5 font-medium",
                   isYes
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-red-500/10 text-red-400",
+                    ? "bg-bullish/10 text-bullish"
+                    : "bg-bearish/10 text-bearish",
                 )}
               >
                 {sideLabel}
               </span>
               <span className="text-zinc-600">&bull;</span>
-              <span>{position.size} shares</span>
+              <span>
+                {position.size.toFixed(source === "polymarket" ? 4 : 0)}
+                {t("predict.trade.sharesUnit")}
+              </span>
               <span className="text-zinc-600">&bull;</span>
               <span className="inline-flex items-center gap-1">
                 {source === "kalshi" ? (
@@ -537,7 +671,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
           <span className="text-sm">
             {formatPrice(avgPrice)}{" "}
             <span className="text-zinc-600">&rarr;</span>{" "}
-            <span className={currentPrice > avgPrice ? "text-emerald-400" : currentPrice < avgPrice ? "text-red-400" : ""}>
+            <span className={currentPrice > avgPrice ? "text-bullish" : currentPrice < avgPrice ? "text-bearish" : ""}>
               {formatPrice(currentPrice)}
             </span>
           </span>
@@ -563,7 +697,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
           <button
             type="button"
             onClick={handleSell}
-            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20"
+            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
           >
             {t("extend.portfolio.sell")}
           </button>
@@ -594,13 +728,16 @@ function PositionRow({ position }: { position: PredictPosition }) {
                 className={cn(
                   "rounded px-1.5 py-0.5 font-medium",
                   isYes
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-red-500/10 text-red-400",
+                    ? "bg-bullish/10 text-bullish"
+                    : "bg-bearish/10 text-bearish",
                 )}
               >
                 {sideLabel}
               </span>
-              <span>{position.size} shares</span>
+              <span>
+                {position.size.toFixed(source === "polymarket" ? 4 : 0)}
+                {t("predict.trade.sharesUnit")}
+              </span>
             </div>
           </div>
         </div>
@@ -608,7 +745,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
           <div className="text-xs">
             <span className="text-zinc-500">{formatPrice(avgPrice)}</span>
             <span className="mx-1 text-zinc-600">&rarr;</span>
-            <span className={currentPrice > avgPrice ? "text-emerald-400" : currentPrice < avgPrice ? "text-red-400" : "text-zinc-300"}>
+            <span className={currentPrice > avgPrice ? "text-bullish" : currentPrice < avgPrice ? "text-bearish" : "text-zinc-300"}>
               {formatPrice(currentPrice)}
             </span>
           </div>
@@ -621,7 +758,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
           <button
             type="button"
             onClick={handleSell}
-            className="ml-3 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400"
+            className="ml-3 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
           >
             {t("extend.portfolio.sell")}
           </button>
@@ -727,7 +864,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   ]);
 
   if (isLoading) return <PanelSkeleton />;
-  if (orders.length === 0) return <EmptyState message={t("extend.portfolio.noOrders")} />;
+  if (orders.length === 0) return <EmptyState message={t("extend.portfolio.noOrders")} icon="orders" />;
 
   return (
     <div
@@ -796,7 +933,7 @@ function OrderRow({
         <span
           className={cn(
             "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
-            isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+            isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
           )}
         >
           {order.side}
@@ -835,7 +972,7 @@ function OrderRow({
           <span
             className={cn(
               "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
-              isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+              isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
             )}
           >
             {order.side}
@@ -869,8 +1006,8 @@ function OrderRow({
 
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const colorMap: Record<string, string> = {
-    live: "bg-emerald-500/10 text-emerald-400",
-    open: "bg-emerald-500/10 text-emerald-400",
+    live: "bg-bullish/10 text-bullish",
+    open: "bg-bullish/10 text-bullish",
     submitted: "bg-amber-500/10 text-amber-400",
     pending: "bg-amber-500/10 text-amber-400",
     matched: "bg-sky-500/10 text-sky-400",
@@ -963,7 +1100,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   );
 
   if (isLoading) return <PanelSkeleton />;
-  if (trades.length === 0) return <EmptyState message={t("extend.portfolio.noTrades")} />;
+  if (trades.length === 0) return <EmptyState message={t("extend.portfolio.noTrades")} icon="trades" />;
 
   return (
     <div
@@ -1054,14 +1191,17 @@ function TradeRow({
               className={cn(
                 "rounded px-1.5 py-0.5 font-medium",
                 isBuy
-                  ? "bg-emerald-500/10 text-emerald-400"
-                  : "bg-red-500/10 text-red-400",
+                  ? "bg-bullish/10 text-bullish"
+                  : "bg-bearish/10 text-bearish",
               )}
             >
               {trade.side}
             </span>
             <span className="text-zinc-600">&bull;</span>
-            <span>{trade.size} shares</span>
+            <span>
+              {trade.size.toFixed(source === "polymarket" ? 4 : 0)}
+              {t("predict.trade.sharesUnit")}
+            </span>
             <span className="text-zinc-600">&bull;</span>
             <span className="inline-flex items-center gap-1">
               {source === "kalshi" ? (
@@ -1121,15 +1261,18 @@ function TradeRow({
                 className={cn(
                   "rounded px-1.5 py-0.5 font-medium",
                   isBuy
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-red-500/10 text-red-400",
+                    ? "bg-bullish/10 text-bullish"
+                    : "bg-bearish/10 text-bearish",
                 )}
               >
                 {trade.side}
               </span>
               <span className="capitalize">{outcomeLabel}</span>
               <span className="text-zinc-600">&bull;</span>
-              <span>{trade.size} shares</span>
+              <span>
+                {trade.size.toFixed(source === "polymarket" ? 4 : 0)}
+                {t("predict.trade.sharesUnit")}
+              </span>
             </div>
           </div>
         </div>
@@ -1149,17 +1292,79 @@ function TradeRow({
 // Shared helpers & icons
 // ---------------------------------------------------------------------------
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, icon = "default" }: { message: string; icon?: "positions" | "orders" | "trades" | "default" }) {
   return (
-    <div className="flex items-center justify-center py-16 text-sm text-zinc-500">{message}</div>
+    <div className="flex flex-col items-center justify-center gap-4 py-20">
+      <EmptyIcon type={icon} />
+      <span className="text-sm text-zinc-500">{message}</span>
+    </div>
+  );
+}
+
+function EmptyIcon({ type }: { type: string }) {
+  const shared = { viewBox: "0 0 24 24", width: 40, height: 40, fill: "none", stroke: "currentColor", strokeWidth: 1, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, style: { color: "#3f3f46" } as React.CSSProperties };
+  if (type === "positions") {
+    return (
+      <svg {...shared}>
+        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+        <path d="M7 16l4-8 4 4 6-10" />
+      </svg>
+    );
+  }
+  if (type === "orders") {
+    return (
+      <svg {...shared}>
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+        <path d="M8 13h2" />
+        <path d="M8 17h2" />
+      </svg>
+    );
+  }
+  if (type === "trades") {
+    return (
+      <svg {...shared}>
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...shared}>
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   );
 }
 
 function PanelSkeleton() {
   return (
-    <div className="mt-4 flex animate-pulse flex-col gap-3">
+    <div
+      className="mt-4"
+      style={{
+        borderRadius: 12,
+        border: "1px solid rgba(39,39,42,0.3)",
+        background: "rgba(24,24,27,0.2)",
+        overflow: "hidden",
+      }}
+    >
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-16 w-full rounded-xl bg-zinc-800/40" />
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "16px 20px",
+            borderBottom: i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none",
+          }}
+        >
+          <Shimmer delay={i * 120} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Shimmer delay={i * 120 + 50} style={{ height: 14, width: i % 2 === 0 ? "65%" : "50%", marginBottom: 8 }} />
+            <Shimmer delay={i * 120 + 100} style={{ height: 10, width: "40%" }} />
+          </div>
+          <Shimmer delay={i * 120 + 80} style={{ height: 20, width: 72, flexShrink: 0 }} />
+        </div>
       ))}
     </div>
   );
@@ -1229,25 +1434,6 @@ function SearchIcon({ className }: { className?: string }) {
   );
 }
 
-function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
 
 function formatUsdc(amount: number): string {
   return amount.toLocaleString("en-US", {
