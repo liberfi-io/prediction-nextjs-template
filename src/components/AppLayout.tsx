@@ -233,14 +233,22 @@ function PageShell({ children }: PropsWithChildren) {
               <div className="shrink-0 flex items-center gap-1">
                 <Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
-                  {navItems.map((item) => (
-                    <NavTab
-                      key={item.key}
-                      item={item}
-                      active={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
-                      onNavigate={onNavigate}
-                    />
-                  ))}
+                  {navItems.map((item) => {
+                    const active =
+                      item.href === "/"
+                        ? !navItemsConfig.some(
+                            (other) => other.href !== "/" && pathname.startsWith(other.href),
+                          )
+                        : pathname.startsWith(item.href);
+                    return (
+                      <NavTab
+                        key={item.key}
+                        item={item}
+                        active={active}
+                        onNavigate={onNavigate}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
