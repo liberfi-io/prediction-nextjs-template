@@ -459,6 +459,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
   const isYes = sideLabel?.toLowerCase() === "yes";
   const source = position.source;
 
+  const imageUrl = position.market?.image_url || position.event?.image_url;
   const eventSlug = position.event?.slug;
   const handleNavigate = useCallback(() => {
     if (eventSlug) router.push(predictEventHref({ slug: eventSlug, source }));
@@ -486,7 +487,9 @@ function PositionRow({ position }: { position: PredictPosition }) {
         {/* Col 1: Icon + event info */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {source === "kalshi" ? (
+            {imageUrl ? (
+              <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : source === "kalshi" ? (
               <KalshiIcon width={32} height={12} />
             ) : (
               <PolymarketIcon width={24} height={24} />
@@ -571,7 +574,9 @@ function PositionRow({ position }: { position: PredictPosition }) {
       <div className="p-4 lg:hidden">
         <div className="mb-3 flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {source === "kalshi" ? (
+            {imageUrl ? (
+              <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : source === "kalshi" ? (
               <KalshiIcon width={30} height={11} />
             ) : (
               <PolymarketIcon width={22} height={22} />
@@ -1008,6 +1013,7 @@ function TradeRow({
   const source = trade.source;
   const eventTitle = trade.event?.title ?? trade.market?.question ?? "";
   const outcomeLabel = trade.outcome ?? "—";
+  const tradeImageUrl = trade.event?.image_url;
 
   return (
     <div
@@ -1018,9 +1024,10 @@ function TradeRow({
     >
       {/* Desktop row */}
       <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
-        {/* Source icon */}
         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-          {source === "kalshi" ? (
+          {tradeImageUrl ? (
+            <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
+          ) : source === "kalshi" ? (
             <KalshiIcon width={32} height={12} />
           ) : (
             <PolymarketIcon width={24} height={24} />
@@ -1089,7 +1096,9 @@ function TradeRow({
       <div className="p-4 lg:hidden">
         <div className="mb-3 flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {source === "kalshi" ? (
+            {tradeImageUrl ? (
+              <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
+            ) : source === "kalshi" ? (
               <KalshiIcon width={30} height={11} />
             ) : (
               <PolymarketIcon width={22} height={22} />

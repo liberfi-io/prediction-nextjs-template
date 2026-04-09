@@ -1,16 +1,26 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { unstable_cache } from "next/cache";
 import {
   resolveEventsParams,
   infiniteEventsQueryKey,
   fetchEventsPage,
+  type ListEventsParams,
 } from "@liberfi.io/react-predict/server";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictListPage } from "src/components/page/PredictListPage";
 
+const getCachedEventsPage = unstable_cache(
+  async (params: ListEventsParams) => {
+    const client = getServerPredictClient();
+    return fetchEventsPage(client, params);
+  },
+  ["events-page"],
+  { revalidate: 30 },
+);
+
 export default async function Page() {
   const queryClient = createServerQueryClient();
-  const client = getServerPredictClient();
 
   const params = resolveEventsParams({
     sort_by: "volume",
@@ -21,7 +31,7 @@ export default async function Page() {
     queryClient.prefetchInfiniteQuery({
       queryKey: infiniteEventsQueryKey(params),
       queryFn: ({ pageParam }) =>
-        fetchEventsPage(client, {
+        getCachedEventsPage({
           ...params,
           ...(pageParam ? { cursor: pageParam } : {}),
         }),
