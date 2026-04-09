@@ -26,7 +26,6 @@ import {
 import {
   cn,
   Skeleton,
-  SignInIcon,
   UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
@@ -46,19 +45,20 @@ type PortfolioTab = "positions" | "orders" | "history";
 export function PredictPortfolioPage() {
   const { status: authStatus, signIn } = useAuth();
 
-  let content: React.ReactNode;
-  if (authStatus === "authenticating") {
-    content = <PortfolioSkeleton />;
-  } else if (authStatus === "authenticated") {
-    content = <PortfolioContent />;
-  } else {
-    content = <SignInPrompt onSignIn={signIn} />;
-  }
+  const signInRef = useRef(signIn);
+  signInRef.current = signIn;
+  const didTriggerSignIn = useRef(false);
+  useEffect(() => {
+    if (authStatus === "unauthenticated" && !didTriggerSignIn.current) {
+      didTriggerSignIn.current = true;
+      queueMicrotask(() => signInRef.current());
+    }
+  }, [authStatus]);
 
   return (
     <div className="min-h-screen bg-zinc-950/50 pb-20 lg:pb-8">
       <div className="mx-auto max-w-[1200px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
-        {content}
+        {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
     </div>
@@ -104,34 +104,6 @@ function PortfolioSkeleton() {
             <Skeleton className="h-5 w-16" />
           </div>
         ))}
-      </div>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sign-in prompt (unauthenticated)
-// ---------------------------------------------------------------------------
-
-function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {t("extend.portfolio.title")}
-        </h1>
-      </div>
-      <div className="flex flex-col items-center justify-center gap-4 py-24">
-        <p className="text-sm text-zinc-400">{t("extend.portfolio.signInPrompt")}</p>
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="flex items-center gap-2 rounded-xl border border-zinc-700/50 bg-zinc-800/80 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all hover:border-zinc-600 hover:bg-zinc-700/80 hover:text-white"
-        >
-          <SignInIcon width={16} height={16} />
-          {t("common.signIn")}
-        </button>
       </div>
     </>
   );

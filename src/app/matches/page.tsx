@@ -9,6 +9,8 @@ import { PredictMatchesPage } from "src/components/page/PredictMatchesPage";
 
 const DEFAULT_PARAMS = {
   sort_by: "spread" as const,
+  sort_asc: false,
+  min_volume: 5_000,
   status: "active" as const,
   limit: 20,
 };

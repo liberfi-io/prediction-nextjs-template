@@ -68,7 +68,7 @@ import {
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { usePredictWallet } from "@liberfi.io/ui-predict";
 import { predictEventHref } from "./page/predict-source";
-import { queryClient } from "../libs/queryClient";
+import { getQueryClient } from "../libs/queryClient";
 import { AuthProviders } from "./AuthProviders";
 import { PredictAccountButton } from "./PredictAccountButton";
 import { PredictDepositButton } from "./PredictDepositButton";
@@ -107,6 +107,8 @@ export function AppLayout({ children, locale }: PropsWithChildren<{ locale: Loca
     }
     localeApplied.current = true;
   }
+
+  const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
