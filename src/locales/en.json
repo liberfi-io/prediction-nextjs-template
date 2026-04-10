@@ -46,6 +46,7 @@
         "destinationAddress": "Destination Address",
         "addressPlaceholder": "{{chain}} wallet address...",
         "invalidAddress": "Please enter a valid {{chain}} address",
+        "minWithdrawAmount": "Minimum withdrawal amount is {{amount}}",
         "confirming": "Confirming...",
         "signing": "Signing...",
         "withdrawButton": "Withdraw USDC →",

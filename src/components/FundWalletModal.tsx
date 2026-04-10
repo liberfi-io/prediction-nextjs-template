@@ -14,8 +14,8 @@ import {
   useWithdrawBuildMutation,
   useWithdrawSubmitMutation,
   useWithdrawStatusQuery,
-  usePolymarketWithdraw,
   usePolymarketDepositAddresses,
+  usePredictClient,
   type ProviderSource,
 } from "@liberfi.io/react-predict";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,14 +41,16 @@ import {
   AsyncModal,
   type RenderAsyncModalProps,
 } from "@liberfi.io/ui-scaffold";
-import { createWalletClient, custom, type Hex } from "viem";
+import { createWalletClient, custom, parseUnits, type Hex } from "viem";
 import { polygon } from "viem/chains";
 import { useWallets, type EvmWalletAdapter } from "@liberfi.io/wallet-connector";
 import {
   deploySafe,
   executeSafe,
   buildAllApprovalTxns,
+  buildTransferCalldata,
   pollTransaction,
+  POLYMARKET_CONTRACTS,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
 import { polymarketSetupQueryKey } from "@liberfi.io/react-predict";
@@ -679,6 +681,8 @@ function DepositScreen({
 // WithdrawScreen
 // ---------------------------------------------------------------------------
 
+const POLYMARKET_MIN_WITHDRAW_USD = 2;
+
 function WithdrawScreen({
   selectedWallet,
   onSelectWallet,
@@ -712,10 +716,16 @@ function WithdrawScreen({
 
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const queryClient = useQueryClient();
+  const predictClient = usePredictClient();
+  const wallets = useWallets();
+
+  const relayConfig: PolymarketRelayConfig = useMemo(
+    () => ({ signProxyUrl: "/predict-api/api/v1/polymarket/sign" }),
+    [],
+  );
 
   const buildMutation = useWithdrawBuildMutation();
   const submitMutation = useWithdrawSubmitMutation();
-  const polymarketWithdrawMutation = usePolymarketWithdraw();
 
   const { data: statusData } = useWithdrawStatusQuery({
     txHash,
@@ -752,10 +762,15 @@ function WithdrawScreen({
   const isValidAddress = isSolana
     ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmedDest)
     : /^0x[0-9a-fA-F]{40}$/.test(trimmedDest);
+
+  const isBelowMinimum = !isSolana && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount < POLYMARKET_MIN_WITHDRAW_USD;
+
+  const balanceTruncated = Math.floor((balance ?? 0) * 100) / 100;
   const isValid =
     !isNaN(parsedAmount) &&
     parsedAmount > 0 &&
-    parsedAmount <= (balance ?? 0) &&
+    !isBelowMinimum &&
+    parsedAmount <= balanceTruncated &&
     isValidAddress &&
     fromAddress != null;
 
@@ -791,14 +806,47 @@ function WithdrawScreen({
         if (!evmAddress || !polymarketSafeAddress)
           throw new Error("wallet_not_connected");
 
-        await polymarketWithdrawMutation.mutateAsync({
-          wallet_address: evmAddress,
-          safe_address: polymarketSafeAddress,
-          to: destination.trim(),
-          amount: String(parsedAmount),
+        const { deposit_address } =
+          await predictClient.preparePolymarketWithdraw({
+            safe_address: polymarketSafeAddress,
+            to: destination.trim(),
+          });
+
+        const evmWallet = wallets.find(
+          (w) => w.chainNamespace === "EVM" && w.isConnected,
+        ) as EvmWalletAdapter | undefined;
+        if (!evmWallet) throw new Error("wallet_not_connected");
+
+        await evmWallet.switchChain("137" as never);
+        const provider = await evmWallet.getEip1193Provider();
+        if (!provider) throw new Error("Cannot get EIP-1193 provider");
+
+        const walletClient = createWalletClient({
+          account: evmAddress as Hex,
+          chain: polygon,
+          transport: custom(provider),
         });
 
-        toast.success(t("extend.predict.fundWallet.txSubmitted"));
+        const amountSmallest = parseUnits(String(parsedAmount), 6);
+        const transferTx = {
+          to: POLYMARKET_CONTRACTS.USDC_E,
+          data: buildTransferCalldata(
+            deposit_address as Hex,
+            amountSmallest,
+          ),
+        };
+
+        const result = await executeSafe(
+          walletClient,
+          [transferTx],
+          relayConfig,
+        );
+
+        if (result.transactionID) {
+          toast.success(t("extend.predict.fundWallet.txSubmitted"));
+          await pollTransaction(relayConfig, result.transactionID);
+        }
+
         queryClient.invalidateQueries({
           queryKey: balanceQueryKey(source, evmAddress),
         });
@@ -821,7 +869,9 @@ function WithdrawScreen({
     polymarketSafeAddress,
     buildMutation,
     submitMutation,
-    polymarketWithdrawMutation,
+    predictClient,
+    wallets,
+    relayConfig,
     queryClient,
     onClose,
     t,
@@ -841,6 +891,14 @@ function WithdrawScreen({
             {t("extend.predict.fundWallet.withdrawInfo", { chain: chainName })}
           </p>
         </div>
+
+        {!isSolana && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2">
+            <p className="text-xs text-amber-300">
+              {t("extend.predict.fundWallet.minWithdrawAmount", { amount: `$${POLYMARKET_MIN_WITHDRAW_USD}` })}
+            </p>
+          </div>
+        )}
 
         {/* Available balance */}
         <div className="flex items-center justify-between">
@@ -936,7 +994,8 @@ function WithdrawScreen({
 // ---------------------------------------------------------------------------
 
 function formatUsdc(amount: number): string {
-  return amount.toLocaleString("en-US", {
+  const truncated = Math.floor(amount * 100) / 100;
+  return truncated.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

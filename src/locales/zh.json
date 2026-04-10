@@ -46,6 +46,7 @@
         "destinationAddress": "目標地址",
         "addressPlaceholder": "{{chain}} 錢包地址...",
         "invalidAddress": "請輸入有效的 {{chain}} 地址",
+        "minWithdrawAmount": "最低提現金額為 {{amount}}",
         "confirming": "確認中...",
         "signing": "簽名中...",
         "withdrawButton": "提現 USDC →",
