@@ -4,7 +4,12 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { Chain } from "@liberfi.io/types";
-import { useAuth, useConnectedWallet } from "@liberfi.io/wallet-connector";
+import {
+  useAuth,
+  useConnectedWallet,
+  useWallets,
+  type EvmWalletAdapter,
+} from "@liberfi.io/wallet-connector";
 import {
   usePredictWallet,
   PredictTradeModal,
@@ -14,18 +19,19 @@ import {
 } from "@liberfi.io/ui-predict";
 import {
   usePositionsMulti,
-  useInfiniteOrders,
+  useOrdersMulti,
   useInfiniteTrades,
   useCancelOrder,
   usePolymarket,
   buildPolymarketL2Headers,
+  type PolymarketSigner,
   type PredictPosition,
   type PredictOrder,
   type PredictTrade,
-  type OrderStatus,
 } from "@liberfi.io/react-predict";
 import {
   cn,
+  toast,
   UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
@@ -763,8 +769,52 @@ function PositionRow({ position }: { position: PredictPosition }) {
 
 function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: string }) {
   const { t } = useTranslation();
-  const cancelMutation = useCancelOrder();
-  const { credentials } = usePolymarket();
+  const router = useRouter();
+  const wallets = useWallets();
+  const evmWallet = useMemo(
+    () => wallets.find((w) => w.chainNamespace === "EVM" && w.isConnected) as EvmWalletAdapter | undefined,
+    [wallets],
+  );
+  const { polymarketSafeAddress } = usePredictWallet();
+  const { credentials, authenticate } = usePolymarket();
+
+  // Auto-authenticate with Polymarket to obtain L2 HMAC credentials.
+  // Privy embedded wallets sign silently — no user popup.
+  useEffect(() => {
+    if (credentials || !evmWallet) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const provider = await evmWallet.getEip1193Provider();
+        if (!provider || cancelled) return;
+        const usesSafe = !!polymarketSafeAddress;
+        const signer: PolymarketSigner = {
+          address: evmWallet.address,
+          signatureType: usesSafe ? 2 : 0,
+          signTypedData: async (domain, types, primaryType, value) => {
+            const domainFields: { name: string; type: string }[] = [];
+            if ("name" in domain) domainFields.push({ name: "name", type: "string" });
+            if ("version" in domain) domainFields.push({ name: "version", type: "string" });
+            if ("chainId" in domain) domainFields.push({ name: "chainId", type: "uint256" });
+            if ("verifyingContract" in domain) domainFields.push({ name: "verifyingContract", type: "address" });
+            if ("salt" in domain) domainFields.push({ name: "salt", type: "bytes32" });
+            const fullTypes = { EIP712Domain: domainFields, ...types };
+            return (await provider.request({
+              method: "eth_signTypedData_v4",
+              params: [
+                evmWallet.address,
+                JSON.stringify({ domain, types: fullTypes, primaryType, message: value }),
+              ],
+            })) as string;
+          },
+        };
+        if (!cancelled) await authenticate(signer);
+      } catch {
+        // Credential derivation failed — orders will stay in loading state.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [credentials, evmWallet, polymarketSafeAddress, authenticate]);
 
   const polymarketGetHeaders = useMemo(() => {
     if (!credentials) return undefined;
@@ -780,43 +830,49 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     };
   }, [credentials]);
 
-  const {
-    data: kalshiOrders,
-    isLoading: kalshiLoading,
-    fetchNextPage: fetchNextKalshi,
-    hasNextPage: hasMoreKalshi,
-    isFetchingNextPage: isFetchingKalshi,
-  } = useInfiniteOrders({ source: "kalshi", wallet_address: solanaAddr });
-  const {
-    data: polyOrders,
-    isLoading: polyLoading,
-    fetchNextPage: fetchNextPoly,
-    hasNextPage: hasMorePoly,
-    isFetchingNextPage: isFetchingPoly,
-  } = useInfiniteOrders(
-    { source: "polymarket", wallet_address: credentials ? evmAddr : "" },
-    { getHeaders: polymarketGetHeaders },
+  const cancelMutation = useCancelOrder(
+    {
+      getHeaders: credentials
+        ? async (vars) => {
+            const body = JSON.stringify({ orderID: vars.id });
+            const headers = await buildPolymarketL2Headers(credentials.address, {
+              apiKey: credentials.apiKey,
+              secret: credentials.secret,
+              passphrase: credentials.passphrase,
+              method: "DELETE",
+              requestPath: "/order",
+              body,
+            });
+            return headers as unknown as Record<string, string>;
+          }
+        : undefined,
+    },
+    {
+      onSuccess: () => {
+        toast.success(t("extend.portfolio.cancelSuccess"));
+      },
+      onError: () => {
+        toast.error(t("extend.portfolio.cancelFailed"));
+      },
+    },
   );
 
-  const isLoading = kalshiLoading || polyLoading;
-  const isFetchingMore = isFetchingKalshi || isFetchingPoly;
-  const hasMore = hasMoreKalshi || hasMorePoly;
+  const credentialsReady = !!polymarketGetHeaders;
+  const { data, isLoading: queryLoading } = useOrdersMulti(
+    {
+      kalshi_user: solanaAddr || undefined,
+      polymarket_user: evmAddr || undefined,
+    },
+    { getHeaders: polymarketGetHeaders },
+    { enabled: credentialsReady },
+  );
+  const isLoading = queryLoading || !credentialsReady;
 
   const orders = useMemo(() => {
-    const all: PredictOrder[] = [];
-    const openStatuses = new Set(["live", "open", "submitted", "pending"]);
-    if (kalshiOrders?.pages) {
-      all.push(
-        ...kalshiOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)),
-      );
-    }
-    if (polyOrders?.pages) {
-      all.push(
-        ...polyOrders.pages.flatMap((p) => p.items).filter((o) => openStatuses.has(o.status)),
-      );
-    }
-    return all;
-  }, [kalshiOrders, polyOrders]);
+    const all = data?.orders ?? [];
+    const openStatuses = new Set<string>(["live", "open", "submitted", "pending"]);
+    return all.filter((o: PredictOrder) => openStatuses.has(o.status));
+  }, [data]);
 
   const handleCancel = useCallback(
     (order: PredictOrder) => {
@@ -825,32 +881,22 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     [cancelMutation],
   );
 
+  const handleNavigate = useCallback(
+    (order: PredictOrder) => {
+      if (order.event?.slug) {
+        router.push(predictEventHref({ slug: order.event.slug, source: order.source }));
+      }
+    },
+    [router],
+  );
+
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: orders.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 72,
+    estimateSize: () => 80,
     overscan: 10,
   });
-
-  useEffect(() => {
-    const items = virtualizer.getVirtualItems();
-    const last = items[items.length - 1];
-    if (!last) return;
-    if (last.index >= orders.length - 5 && hasMore && !isFetchingMore) {
-      if (hasMoreKalshi) fetchNextKalshi();
-      if (hasMorePoly) fetchNextPoly();
-    }
-  }, [
-    virtualizer.getVirtualItems(),
-    orders.length,
-    hasMore,
-    hasMoreKalshi,
-    hasMorePoly,
-    isFetchingMore,
-    fetchNextKalshi,
-    fetchNextPoly,
-  ]);
 
   if (isLoading) return <PanelSkeleton />;
   if (orders.length === 0) return <EmptyState message={t("extend.portfolio.noOrders")} icon="orders" />;
@@ -872,6 +918,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
               <OrderRow
                 order={order}
                 onCancel={handleCancel}
+                onNavigate={handleNavigate}
                 isCancelling={cancelMutation.isPending}
                 isLast={vItem.index === orders.length - 1}
               />
@@ -879,11 +926,6 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
           );
         })}
       </div>
-      {isFetchingMore && (
-        <div className="flex justify-center border-t border-zinc-800/30 py-3">
-          <span className="text-xs text-zinc-500">{t("extend.portfolio.loadMore")}...</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -891,17 +933,22 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
 function OrderRow({
   order,
   onCancel,
+  onNavigate,
   isCancelling,
   isLast,
 }: {
   order: PredictOrder;
   onCancel: (order: PredictOrder) => void;
+  onNavigate: (order: PredictOrder) => void;
   isCancelling: boolean;
   isLast: boolean;
 }) {
   const { t } = useTranslation();
   const isBuy = order.side === "BUY";
   const source = order.source;
+  const imageUrl = order.market?.image_url || order.event?.image_url;
+  const marketQuestion = order.market?.question ?? "";
+  const canCancel = !order.status || !({ matched: 1, cancelled: 1, invalid: 1, closed: 1, failed: 1, expired: 1 } as Record<string, number>)[order.status];
 
   return (
     <div
@@ -912,110 +959,167 @@ function OrderRow({
     >
       {/* Desktop */}
       <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800/50 bg-zinc-900">
-          {source === "kalshi" ? (
-            <KalshiIcon width={28} height={10} />
+        {/* Image */}
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {imageUrl ? (
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          ) : source === "kalshi" ? (
+            <KalshiIcon width={32} height={12} />
           ) : (
-            <PolymarketIcon width={20} height={20} />
+            <PolymarketIcon width={24} height={24} />
           )}
         </div>
-        <span
-          className={cn(
-            "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
-            isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
-          )}
-        >
-          {order.side}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-sm capitalize text-white">
-          {order.outcome ?? "—"}
-        </span>
-        <span className="shrink-0 text-xs capitalize text-zinc-500">{order.order_type ?? "limit"}</span>
-        <span className="shrink-0 text-sm font-mono text-white">
-          {order.price ? formatPrice(parseFloat(order.price)) : "—"}
-        </span>
-        <span className="shrink-0 text-xs text-zinc-400">
-          {order.size_matched ?? "0"}/{order.original_size ?? "—"}
-        </span>
-        <OrderStatusBadge status={order.status} />
-        <button
-          type="button"
-          onClick={() => onCancel(order)}
-          disabled={isCancelling}
-          className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
-        >
-          {t("extend.portfolio.cancel")}
-        </button>
-      </div>
 
-      {/* Mobile */}
-      <div className="p-4 lg:hidden">
-        <div className="mb-2 flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800/50 bg-zinc-900">
+        {/* Title + source */}
+        <div className="min-w-0 flex-1">
+          {marketQuestion ? (
+            <span
+              className={cn(
+                "mb-1 line-clamp-1 text-sm font-medium text-white",
+                order.event?.slug && "cursor-pointer hover:underline",
+              )}
+              onClick={() => onNavigate(order)}
+            >
+              {marketQuestion}
+            </span>
+          ) : (
+            <span className="mb-1 line-clamp-1 text-sm text-zinc-400">
+              {order.outcome ?? "—"}
+            </span>
+          )}
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
             {source === "kalshi" ? (
-              <KalshiIcon width={24} height={9} />
+              <KalshiIcon width={36} height={12} />
             ) : (
-              <PolymarketIcon width={18} height={18} />
+              <>
+                <PolymarketIcon width={14} height={14} />
+                <span>Polymarket</span>
+              </>
             )}
           </div>
+        </div>
+
+        {/* Side + Outcome */}
+        <div className="min-w-[100px] shrink-0 text-center">
           <span
             className={cn(
-              "shrink-0 rounded px-1.5 py-0.5 text-xs font-medium",
+              "inline-block rounded px-2 py-1 text-xs font-semibold",
               isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
             )}
           >
-            {order.side}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm capitalize text-white">
-            {order.outcome ?? "—"}
+            {order.side} {order.outcome ? <span className="capitalize">{order.outcome}</span> : null}
           </span>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-zinc-400">
-            <span className="capitalize">{order.order_type ?? "limit"}</span>
-            <span className="font-mono text-white">
-              {order.price ? formatPrice(parseFloat(order.price)) : "—"}
-            </span>
-            <span>{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
-            <OrderStatusBadge status={order.status} />
+
+        {/* Price */}
+        <div className="min-w-[80px] shrink-0 text-right">
+          <div className="text-[10px] text-zinc-500">{t("extend.portfolio.price")}</div>
+          <div className="text-sm font-mono font-medium text-white">
+            {order.price ? formatPrice(parseFloat(order.price)) : "—"}
           </div>
+        </div>
+
+        {/* Filled / Total */}
+        <div className="min-w-[100px] shrink-0 text-right">
+          <div className="text-[10px] text-zinc-500">{t("extend.portfolio.filledTotal")}</div>
+          <div className="text-sm font-mono font-medium text-white">
+            {order.size_matched ?? "0"}<span className="text-zinc-500">/{order.original_size ?? "—"}</span>
+          </div>
+        </div>
+
+        {/* Cancel button */}
+        {canCancel && (
           <button
             type="button"
             onClick={() => onCancel(order)}
             disabled={isCancelling}
-            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400"
+            className="w-[72px] shrink-0 inline-flex items-center justify-center gap-1.5 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 py-1.5 text-xs font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
           >
+            {isCancelling && (
+              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
             {t("extend.portfolio.cancel")}
           </button>
+        )}
+      </div>
+
+      {/* Mobile */}
+      <div className="p-4 lg:hidden">
+        <div className="mb-3 flex gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {imageUrl ? (
+              <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : source === "kalshi" ? (
+              <KalshiIcon width={30} height={11} />
+            ) : (
+              <PolymarketIcon width={22} height={22} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            {marketQuestion ? (
+              <span
+                className={cn(
+                  "line-clamp-2 text-sm font-medium text-white",
+                  order.event?.slug && "cursor-pointer hover:underline",
+                )}
+                onClick={() => onNavigate(order)}
+              >
+                {marketQuestion}
+              </span>
+            ) : (
+              <span className="line-clamp-2 text-sm text-zinc-400 capitalize">
+                {order.outcome ?? "—"}
+              </span>
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 font-semibold",
+                  isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+                )}
+              >
+                {order.side} {order.outcome ? <span className="capitalize">{order.outcome}</span> : null}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-zinc-400">
+            <div>
+              <span className="font-mono text-sm text-white">{order.price ? formatPrice(parseFloat(order.price)) : "—"}</span>
+              <span className="ml-1 text-[10px] text-zinc-500">{t("extend.portfolio.price")}</span>
+            </div>
+            <div>
+              <span className="font-mono text-sm text-white">{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
+              <span className="ml-1 text-[10px] text-zinc-500">{t("extend.portfolio.filledTotal")}</span>
+            </div>
+          </div>
+          {canCancel && (
+            <button
+              type="button"
+              onClick={() => onCancel(order)}
+              disabled={isCancelling}
+              className="inline-flex items-center justify-center gap-1.5 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 disabled:opacity-50"
+            >
+              {isCancelling && (
+                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {t("extend.portfolio.cancel")}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const colorMap: Record<string, string> = {
-    live: "bg-bullish/10 text-bullish",
-    open: "bg-bullish/10 text-bullish",
-    submitted: "bg-amber-500/10 text-amber-400",
-    pending: "bg-amber-500/10 text-amber-400",
-    matched: "bg-sky-500/10 text-sky-400",
-    cancelled: "bg-zinc-500/10 text-zinc-400",
-    failed: "bg-red-500/10 text-red-400",
-    expired: "bg-zinc-500/10 text-zinc-400",
-  };
 
-  return (
-    <span
-      className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium capitalize",
-        colorMap[status] ?? "bg-zinc-500/10 text-zinc-400",
-      )}
-    >
-      {status}
-    </span>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Trades (history) panel
