@@ -1542,7 +1542,8 @@ function SearchIcon({ className }: { className?: string }) {
 
 
 function formatUsdc(amount: number): string {
-  return amount.toLocaleString("en-US", {
+  const truncated = Math.floor(amount * 100) / 100;
+  return truncated.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
