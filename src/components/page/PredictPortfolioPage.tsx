@@ -26,7 +26,6 @@ import {
 } from "@liberfi.io/react-predict";
 import {
   cn,
-  Skeleton,
   UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
@@ -222,6 +221,8 @@ function PortfolioContent() {
 
   const heroLoading = balanceLoading || positionsLoading;
 
+  if (heroLoading) return <PortfolioSkeleton />;
+
   const tabs: { key: PortfolioTab; label: string }[] = [
     {
       key: "positions",
@@ -257,13 +258,9 @@ function PortfolioContent() {
                   <span className="text-sm font-medium">{t("extend.portfolio.totalNetWorth")}</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  {heroLoading ? (
-                    <Skeleton className="h-12 w-40 rounded-lg bg-zinc-800/60" />
-                  ) : (
-                    <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                      ${formatUsdc(totalNetWorth)}
-                    </span>
-                  )}
+                  <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+                    ${formatUsdc(totalNetWorth)}
+                  </span>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                   <span
@@ -302,11 +299,7 @@ function PortfolioContent() {
                 <span className="text-sm font-medium">{t("extend.portfolio.buyingPower")}</span>
               </div>
             </div>
-            {heroLoading ? (
-              <Skeleton className="h-8 w-24 rounded-lg bg-zinc-800/60" />
-            ) : (
-              <div className="text-2xl font-bold text-white">${formatUsdc(totalBuyingPower)}</div>
-            )}
+            <div className="text-2xl font-bold text-white">${formatUsdc(totalBuyingPower)}</div>
           </div>
           <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
             <div className="mb-2 flex items-center justify-between">
@@ -320,11 +313,7 @@ function PortfolioContent() {
                 </span>
               )}
             </div>
-            {heroLoading ? (
-              <Skeleton className="h-8 w-24 rounded-lg bg-zinc-800/60" />
-            ) : (
-              <div className="text-2xl font-bold text-white">${formatUsdc(investedValue)}</div>
-            )}
+            <div className="text-2xl font-bold text-white">${formatUsdc(investedValue)}</div>
           </div>
         </div>
       </div>
@@ -785,7 +774,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
         secret: credentials.secret,
         passphrase: credentials.passphrase,
         method: "GET",
-        requestPath: "/orders",
+        requestPath: "/data/orders",
       });
       return headers as unknown as Record<string, string>;
     };
