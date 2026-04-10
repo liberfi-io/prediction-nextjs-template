@@ -20,7 +20,7 @@ import {
 import {
   usePositionsMulti,
   useOrdersMulti,
-  useInfiniteTrades,
+  useInfiniteTradesMulti,
   useCancelOrder,
   usePolymarket,
   buildPolymarketL2Headers,
@@ -62,8 +62,8 @@ export function PredictPortfolioPage() {
   }, [authStatus]);
 
   return (
-    <div className="min-h-screen bg-zinc-950/50 pb-20 lg:pb-8">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+    <div className="min-h-screen bg-zinc-950/50 pb-20 lg:h-[calc(100vh-var(--header-height))] lg:min-h-0 lg:overflow-hidden lg:pb-0">
+      <div className="mx-auto h-full max-w-[1200px] px-4 pt-6 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:px-8">
         {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
@@ -242,16 +242,16 @@ function PortfolioContent() {
   ];
 
   return (
-    <>
+    <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
       {/* Title row */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex shrink-0 items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           {t("extend.portfolio.title")}
         </h1>
       </div>
 
       {/* Hero cards — 3-col grid */}
-      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mb-10 grid shrink-0 grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Total Net Worth (spans 2 cols) */}
         <div className="relative overflow-hidden rounded-3xl border border-zinc-800 p-6 sm:p-8 lg:col-span-2" style={{ background: "linear-gradient(145deg, rgba(24,24,27,1) 0%, rgba(30,30,34,0.95) 40%, rgba(24,24,27,0.88) 70%, rgba(20,20,22,1) 100%)" }}>
           <div className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.10) 0%, rgba(199,255,46,0.03) 50%, transparent 70%)" }} />
@@ -325,7 +325,7 @@ function PortfolioContent() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-zinc-800/50">
+      <div className="shrink-0 border-b border-zinc-800/50">
         <div className="flex">
           {tabs.map((tab) => (
             <button
@@ -333,7 +333,7 @@ function PortfolioContent() {
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
+                "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
                 activeTab === tab.key
                   ? "border-bullish text-bullish"
                   : "border-transparent text-zinc-400 hover:text-zinc-300",
@@ -346,14 +346,14 @@ function PortfolioContent() {
       </div>
 
       {/* Tab content */}
-      <div className="space-y-4">
+      <div className="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
         {activeTab === "positions" && (
           <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
         )}
         {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
         {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -445,9 +445,9 @@ function PositionsPanel({
   if (isLoading) return <PanelSkeleton />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
       {/* Search + sort row */}
-      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center">
+      <div className="flex shrink-0 flex-col gap-3 pt-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <input
@@ -558,7 +558,7 @@ function PositionsPanel({
       {filtered.length === 0 ? (
         <EmptyState message={t("extend.portfolio.noPositions")} icon="positions" />
       ) : (
-        <div className="divide-y divide-zinc-800/30 overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/20">
+        <div className="divide-y divide-zinc-800/30 overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:min-h-0 lg:flex-1 lg:overflow-y-auto custom-scrollbar">
           {filtered.map((pos, i) => (
             <PositionRow key={`${pos.source}-${pos.market?.slug ?? i}`} position={pos} />
           ))}
@@ -588,9 +588,13 @@ function PositionRow({ position }: { position: PredictPosition }) {
 
   const imageUrl = position.market?.image_url || position.event?.image_url;
   const eventSlug = position.event?.slug;
+  const href = eventSlug ? predictEventHref({ slug: eventSlug, source }) : undefined;
   const handleNavigate = useCallback(() => {
-    if (eventSlug) router.push(predictEventHref({ slug: eventSlug, source }));
-  }, [eventSlug, source, router]);
+    if (href) router.push(href);
+  }, [href, router]);
+  const handlePrefetch = useCallback(() => {
+    if (href) router.prefetch(href);
+  }, [href, router]);
 
   const handleSell = useCallback(
     () => {
@@ -625,6 +629,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
             <span
               className={cn("mb-1 line-clamp-1 text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
               onClick={handleNavigate}
+              onMouseEnter={handlePrefetch}
             >
               {marketLabel}
             </span>
@@ -643,7 +648,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
               </span>
               <span className="text-zinc-600">&bull;</span>
               <span>
-                {position.size.toFixed(source === "polymarket" ? 4 : 0)}
+                {formatShares(position.size)}
                 {t("predict.trade.sharesUnit")}
               </span>
               <span className="text-zinc-600">&bull;</span>
@@ -715,6 +720,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
             <span
               className={cn("line-clamp-2 text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
               onClick={handleNavigate}
+              onMouseEnter={handlePrefetch}
             >
               {marketLabel}
             </span>
@@ -730,7 +736,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
                 {sideLabel}
               </span>
               <span>
-                {position.size.toFixed(source === "polymarket" ? 4 : 0)}
+                {formatShares(position.size)}
                 {t("predict.trade.sharesUnit")}
               </span>
             </div>
@@ -890,6 +896,15 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     [router],
   );
 
+  const handlePrefetch = useCallback(
+    (order: PredictOrder) => {
+      if (order.event?.slug) {
+        router.prefetch(predictEventHref({ slug: order.event.slug, source: order.source }));
+      }
+    },
+    [router],
+  );
+
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: orders.length,
@@ -904,7 +919,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   return (
     <div
       ref={parentRef}
-      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20"
+      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:max-h-none lg:min-h-0 lg:flex-1 custom-scrollbar"
     >
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -919,6 +934,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
                 order={order}
                 onCancel={handleCancel}
                 onNavigate={handleNavigate}
+                onPrefetch={handlePrefetch}
                 isCancelling={cancelMutation.isPending}
                 isLast={vItem.index === orders.length - 1}
               />
@@ -934,12 +950,14 @@ function OrderRow({
   order,
   onCancel,
   onNavigate,
+  onPrefetch,
   isCancelling,
   isLast,
 }: {
   order: PredictOrder;
   onCancel: (order: PredictOrder) => void;
   onNavigate: (order: PredictOrder) => void;
+  onPrefetch: (order: PredictOrder) => void;
   isCancelling: boolean;
   isLast: boolean;
 }) {
@@ -979,6 +997,7 @@ function OrderRow({
                 order.event?.slug && "cursor-pointer hover:underline",
               )}
               onClick={() => onNavigate(order)}
+              onMouseEnter={() => onPrefetch(order)}
             >
               {marketQuestion}
             </span>
@@ -1066,6 +1085,7 @@ function OrderRow({
                   order.event?.slug && "cursor-pointer hover:underline",
                 )}
                 onClick={() => onNavigate(order)}
+                onMouseEnter={() => onPrefetch(order)}
               >
                 {marketQuestion}
               </span>
@@ -1130,31 +1150,21 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   const router = useRouter();
 
   const {
-    data: kalshiTrades,
-    isLoading: kalshiLoading,
-    fetchNextPage: fetchNextKalshi,
-    hasNextPage: hasMoreKalshi,
-    isFetchingNextPage: isFetchingKalshi,
-  } = useInfiniteTrades({ source: "kalshi", wallet: solanaAddr, limit: 50 });
-  const {
-    data: polyTrades,
-    isLoading: polyLoading,
-    fetchNextPage: fetchNextPoly,
-    hasNextPage: hasMorePoly,
-    isFetchingNextPage: isFetchingPoly,
-  } = useInfiniteTrades({ source: "polymarket", wallet: evmAddr, limit: 50 });
+    data: tradesData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage: hasMore,
+    isFetchingNextPage: isFetchingMore,
+  } = useInfiniteTradesMulti({
+    kalshi_user: solanaAddr || undefined,
+    polymarket_user: evmAddr || undefined,
+    limit: 50,
+  });
 
-  const isLoading = kalshiLoading || polyLoading;
-  const isFetchingMore = isFetchingKalshi || isFetchingPoly;
-  const hasMore = hasMoreKalshi || hasMorePoly;
-
-  const trades = useMemo(() => {
-    const all: PredictTrade[] = [];
-    if (kalshiTrades?.pages) all.push(...kalshiTrades.pages.flatMap((p) => p.items));
-    if (polyTrades?.pages) all.push(...polyTrades.pages.flatMap((p) => p.items));
-    all.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-    return all;
-  }, [kalshiTrades, polyTrades]);
+  const trades = useMemo(
+    () => tradesData?.pages.flatMap((p) => p.items) ?? [],
+    [tradesData],
+  );
 
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -1169,24 +1179,23 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
     const last = items[items.length - 1];
     if (!last) return;
     if (last.index >= trades.length - 5 && hasMore && !isFetchingMore) {
-      if (hasMoreKalshi) fetchNextKalshi();
-      if (hasMorePoly) fetchNextPoly();
+      fetchNextPage();
     }
-  }, [
-    virtualizer.getVirtualItems(),
-    trades.length,
-    hasMore,
-    hasMoreKalshi,
-    hasMorePoly,
-    isFetchingMore,
-    fetchNextKalshi,
-    fetchNextPoly,
-  ]);
+  }, [virtualizer.getVirtualItems(), trades.length, hasMore, isFetchingMore, fetchNextPage]);
 
   const handleNavigate = useCallback(
     (trade: PredictTrade) => {
       if (trade.event?.slug) {
         router.push(predictEventHref({ slug: trade.event.slug, source: trade.source }));
+      }
+    },
+    [router],
+  );
+
+  const handlePrefetch = useCallback(
+    (trade: PredictTrade) => {
+      if (trade.event?.slug) {
+        router.prefetch(predictEventHref({ slug: trade.event.slug, source: trade.source }));
       }
     },
     [router],
@@ -1198,7 +1207,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   return (
     <div
       ref={parentRef}
-      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20"
+      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:max-h-none lg:min-h-0 lg:flex-1 custom-scrollbar"
     >
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -1213,6 +1222,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
                 trade={trade}
                 isLast={vItem.index === trades.length - 1}
                 onNavigate={handleNavigate}
+                onPrefetch={handlePrefetch}
               />
             </div>
           );
@@ -1231,10 +1241,12 @@ function TradeRow({
   trade,
   isLast,
   onNavigate,
+  onPrefetch,
 }: {
   trade: PredictTrade;
   isLast: boolean;
   onNavigate: (trade: PredictTrade) => void;
+  onPrefetch: (trade: PredictTrade) => void;
 }) {
   const { t } = useTranslation();
   const isBuy = trade.side?.toUpperCase() === "BUY";
@@ -1242,7 +1254,8 @@ function TradeRow({
   const price = trade.price ?? 0;
   const usdSize = trade.usd_size ?? 0;
   const source = trade.source;
-  const eventTitle = trade.event?.title ?? trade.market?.question ?? "";
+  const marketQuestion = trade.market?.question ?? "";
+  const eventTitle = source === "kalshi" ? marketQuestion : (trade.event?.title ?? "");
   const outcomeLabel = trade.outcome ?? "—";
   const tradeImageUrl = trade.event?.image_url;
 
@@ -1255,72 +1268,71 @@ function TradeRow({
     >
       {/* Desktop row */}
       <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-          {tradeImageUrl ? (
-            <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
-          ) : source === "kalshi" ? (
-            <KalshiIcon width={32} height={12} />
-          ) : (
-            <PolymarketIcon width={24} height={24} />
-          )}
-        </div>
-
-        {/* Event + outcome info */}
-        <div className="min-w-0 flex-1">
-          {eventTitle && (
-            <span
-              className={cn(
-                "mb-1 line-clamp-1 text-sm font-medium text-white",
-                trade.event?.slug && "cursor-pointer hover:underline",
-              )}
-              onClick={() => onNavigate(trade)}
-            >
-              {eventTitle}
-            </span>
-          )}
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <span className="max-w-[200px] truncate capitalize">{outcomeLabel}</span>
-            <span className="text-zinc-700">&bull;</span>
-            <span
-              className={cn(
-                "rounded px-1.5 py-0.5 font-medium",
-                isBuy
-                  ? "bg-bullish/10 text-bullish"
-                  : "bg-bearish/10 text-bearish",
-              )}
-            >
-              {trade.side}
-            </span>
-            <span className="text-zinc-600">&bull;</span>
-            <span>
-              {trade.size.toFixed(source === "polymarket" ? 4 : 0)}
-              {t("predict.trade.sharesUnit")}
-            </span>
-            <span className="text-zinc-600">&bull;</span>
-            <span className="inline-flex items-center gap-1">
-              {source === "kalshi" ? (
-                <KalshiIcon width={36} height={12} />
-              ) : (
-                <>
-                  <PolymarketIcon width={14} height={14} />
-                  <span className="text-zinc-400">Polymarket</span>
-                </>
-              )}
-            </span>
+        {/* Col 1: Icon + title + source */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+            {tradeImageUrl ? (
+              <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
+            ) : source === "kalshi" ? (
+              <KalshiIcon width={32} height={12} />
+            ) : (
+              <PolymarketIcon width={24} height={24} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            {(eventTitle || marketQuestion) && (
+              <span
+                className={cn(
+                  "mb-0.5 line-clamp-1 text-sm font-medium text-white",
+                  trade.event?.slug && "cursor-pointer hover:underline",
+                )}
+                onClick={() => onNavigate(trade)}
+                onMouseEnter={() => onPrefetch(trade)}
+              >
+                {eventTitle || marketQuestion}
+              </span>
+            )}
+            {eventTitle && marketQuestion && eventTitle !== marketQuestion && (
+              <span className="mb-0.5 line-clamp-1 text-xs text-zinc-400">
+                {marketQuestion}
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <span className="inline-flex items-center gap-1">
+                {source === "kalshi" ? (
+                  <KalshiIcon width={36} height={12} />
+                ) : (
+                  <>
+                    <PolymarketIcon width={14} height={14} />
+                    <span className="text-zinc-500">Polymarket</span>
+                  </>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Price */}
-        <div className="min-w-[80px] shrink-0 text-center">
-          <div className="text-sm font-medium text-white">{formatPrice(price)}</div>
+        {/* Col 2: Side + Outcome badge */}
+        <div className="min-w-[120px] shrink-0 text-center">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold",
+              isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+            )}
+          >
+            {trade.side} <span className="capitalize">{outcomeLabel}</span>
+          </span>
         </div>
 
-        {/* Total */}
-        <div className="min-w-[90px] shrink-0 text-right">
-          <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+        {/* Col 3: Price x Shares = Total */}
+        <div className="min-w-[160px] shrink-0 text-right">
+          <div className="text-xs font-mono text-zinc-400">
+            {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+          </div>
+          <div className="text-base font-bold text-white">${usdSize.toFixed(2)}</div>
         </div>
 
-        {/* Time */}
+        {/* Col 4: Time */}
         <div className="min-w-[80px] shrink-0 text-right">
           <span className="whitespace-nowrap text-xs text-zinc-500">{timeStr}</span>
         </div>
@@ -1339,33 +1351,31 @@ function TradeRow({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            {eventTitle && (
+            {(eventTitle || marketQuestion) && (
               <span
                 className={cn(
                   "line-clamp-2 text-sm font-medium text-white",
                   trade.event?.slug && "cursor-pointer hover:underline",
                 )}
                 onClick={() => onNavigate(trade)}
+                onMouseEnter={() => onPrefetch(trade)}
               >
-                {eventTitle}
+                {eventTitle || marketQuestion}
               </span>
             )}
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+            {eventTitle && marketQuestion && eventTitle !== marketQuestion && (
+              <span className="mt-0.5 line-clamp-1 text-xs text-zinc-400">
+                {marketQuestion}
+              </span>
+            )}
+            <div className="mt-1">
               <span
                 className={cn(
-                  "rounded px-1.5 py-0.5 font-medium",
-                  isBuy
-                    ? "bg-bullish/10 text-bullish"
-                    : "bg-bearish/10 text-bearish",
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold",
+                  isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
                 )}
               >
-                {trade.side}
-              </span>
-              <span className="capitalize">{outcomeLabel}</span>
-              <span className="text-zinc-600">&bull;</span>
-              <span>
-                {trade.size.toFixed(source === "polymarket" ? 4 : 0)}
-                {t("predict.trade.sharesUnit")}
+                {trade.side} <span className="capitalize">{outcomeLabel}</span>
               </span>
             </div>
           </div>
@@ -1373,8 +1383,10 @@ function TradeRow({
         <div className="flex items-center justify-between">
           <span className="text-xs text-zinc-500">{timeStr}</span>
           <div className="text-right">
+            <div className="text-xs font-mono text-zinc-400">
+              {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+            </div>
             <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
-            <div className="text-xs text-zinc-400">{formatPrice(price)}/share</div>
           </div>
         </div>
       </div>
@@ -1534,6 +1546,10 @@ function formatUsdc(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatShares(size: number, maxDecimals = 4): string {
+  return parseFloat(size.toFixed(maxDecimals)).toString();
 }
 
 function formatPrice(price: number): string {
