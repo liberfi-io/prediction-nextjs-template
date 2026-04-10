@@ -1143,6 +1143,7 @@ function TradeRow({
   isLast: boolean;
   onNavigate: (trade: PredictTrade) => void;
 }) {
+  const { t } = useTranslation();
   const isBuy = trade.side?.toUpperCase() === "BUY";
   const timeStr = formatTimestamp(trade.timestamp);
   const price = trade.price ?? 0;
