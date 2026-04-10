@@ -1549,7 +1549,8 @@ function formatUsdc(amount: number): string {
 }
 
 function formatShares(size: number, maxDecimals = 4): string {
-  return parseFloat(size.toFixed(maxDecimals)).toString();
+  const factor = Math.pow(10, maxDecimals);
+  return parseFloat((Math.floor(size * factor) / factor).toFixed(maxDecimals)).toString();
 }
 
 function formatPrice(price: number): string {
