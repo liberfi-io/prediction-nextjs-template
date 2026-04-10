@@ -336,9 +336,19 @@ function NavTab({
 // Balance indicator
 // ---------------------------------------------------------------------------
 
+/** Truncate a USD amount to integer cents (floor). */
+function toCents(amount: number): number {
+  return Math.floor(amount * 100);
+}
+
+/** Format a raw USD amount (truncates to 2 dp, no rounding). */
 function formatUsdc(amount: number): string {
-  const truncated = Math.floor(amount * 100) / 100;
-  return truncated.toLocaleString("en-US", {
+  return formatCents(toCents(amount));
+}
+
+/** Format an integer-cents value as a USD string. */
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -358,18 +368,20 @@ function PredictBalanceIndicator() {
     polymarket_user: evmAddress || undefined,
   });
 
-  const cashTotal = (kalshiUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
+  const cashKalshiCents = toCents(kalshiUsdcBalance ?? 0);
+  const cashPolymarketCents = toCents(polymarketUsdcBalance ?? 0);
+  const cashTotalCents = cashKalshiCents + cashPolymarketCents;
 
-  const positionsValue = useMemo(() => {
+  const positionsCents = useMemo(() => {
     const all = positionsData?.positions ?? [];
     let total = 0;
     for (const p of all) {
       total += p.current_value ?? p.size * (p.current_price ?? 0);
     }
-    return total;
+    return toCents(total);
   }, [positionsData]);
 
-  const portfolioTotal = cashTotal + positionsValue;
+  const portfolioTotalCents = cashTotalCents + positionsCents;
 
   const initialLoading =
     balanceLoading &&
@@ -409,14 +421,14 @@ function PredictBalanceIndicator() {
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <UsdcIcon width={16} height={16} aria-hidden="true" />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
-            {initialLoading ? "..." : `$${formatUsdc(cashTotal)}`}
+            {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
           </span>
         </div>
         <div className="w-px h-4 bg-zinc-700/40" />
         <div className="flex items-center gap-1.5" title="Positions Value">
           <ChartLineIcon width={16} height={16} className="text-bullish" aria-hidden="true" />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
-            ${formatUsdc(positionsValue)}
+            ${formatCents(positionsCents)}
           </span>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
@@ -461,14 +473,14 @@ function PredictBalanceIndicator() {
                 <ChartLineIcon width={20} height={20} className="text-bullish" />
                 <span className="text-sm text-zinc-400">Positions</span>
               </div>
-              <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatUsdc(positionsValue)}</span>
+              <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatCents(positionsCents)}</span>
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
             <div className="flex items-center justify-between gap-3 px-3 py-2">
               <span className="text-sm text-zinc-300 font-medium">Portfolio Total</span>
               <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
-                {initialLoading ? "..." : `$${formatUsdc(portfolioTotal)}`}
+                {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
               </span>
             </div>
           </div>

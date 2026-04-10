@@ -26,12 +26,19 @@ import {
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
 
-function formatUsdc(amount: number): string {
-  const truncated = Math.floor(amount * 100) / 100;
-  return truncated.toLocaleString("en-US", {
+function toCents(amount: number): number {
+  return Math.floor(amount * 100);
+}
+
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatUsdc(amount: number): string {
+  return formatCents(toCents(amount));
 }
 
 function GradientAvatar({

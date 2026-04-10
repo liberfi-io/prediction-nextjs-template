@@ -765,12 +765,12 @@ function WithdrawScreen({
 
   const isBelowMinimum = !isSolana && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount < POLYMARKET_MIN_WITHDRAW_USD;
 
-  const balanceTruncated = Math.floor((balance ?? 0) * 100) / 100;
+  const balanceCents = toCents(balance ?? 0);
   const isValid =
     !isNaN(parsedAmount) &&
     parsedAmount > 0 &&
     !isBelowMinimum &&
-    parsedAmount <= balanceTruncated &&
+    toCents(parsedAmount) <= balanceCents &&
     isValidAddress &&
     fromAddress != null;
 
@@ -993,12 +993,19 @@ function WithdrawScreen({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatUsdc(amount: number): string {
-  const truncated = Math.floor(amount * 100) / 100;
-  return truncated.toLocaleString("en-US", {
+function toCents(amount: number): number {
+  return Math.floor(amount * 100);
+}
+
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatUsdc(amount: number): string {
+  return formatCents(toCents(amount));
 }
 
 const WITHDRAW_ERROR_PATTERNS: [RegExp, string][] = [

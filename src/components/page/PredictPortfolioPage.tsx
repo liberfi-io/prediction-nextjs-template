@@ -207,15 +207,15 @@ function PortfolioContent() {
 
   const { kalshiUsdcBalance, polymarketUsdcBalance, isLoading: balanceLoading } = usePredictWallet();
 
-  const totalBuyingPower = (kalshiUsdcBalance ?? 0) + (polymarketUsdcBalance ?? 0);
-  const investedValue = useMemo(() => {
+  const buyingPowerCents = toCents(kalshiUsdcBalance ?? 0) + toCents(polymarketUsdcBalance ?? 0);
+  const investedCents = useMemo(() => {
     let total = 0;
     for (const p of allPositions) {
       total += p.current_value ?? p.size * (p.current_price ?? 0);
     }
-    return total;
+    return toCents(total);
   }, [allPositions]);
-  const totalNetWorth = totalBuyingPower + investedValue;
+  const netWorthCents = buyingPowerCents + investedCents;
 
   const allTimePnl = useMemo(() => {
     let pnl = 0;
@@ -265,7 +265,7 @@ function PortfolioContent() {
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                    ${formatUsdc(totalNetWorth)}
+                    ${formatCents(netWorthCents)}
                   </span>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
@@ -305,7 +305,7 @@ function PortfolioContent() {
                 <span className="text-sm font-medium">{t("extend.portfolio.buyingPower")}</span>
               </div>
             </div>
-            <div className="text-2xl font-bold text-white">${formatUsdc(totalBuyingPower)}</div>
+            <div className="text-2xl font-bold text-white">${formatCents(buyingPowerCents)}</div>
           </div>
           <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
             <div className="mb-2 flex items-center justify-between">
@@ -319,7 +319,7 @@ function PortfolioContent() {
                 </span>
               )}
             </div>
-            <div className="text-2xl font-bold text-white">${formatUsdc(investedValue)}</div>
+            <div className="text-2xl font-bold text-white">${formatCents(investedCents)}</div>
           </div>
         </div>
       </div>
@@ -1541,9 +1541,16 @@ function SearchIcon({ className }: { className?: string }) {
 }
 
 
+function toCents(amount: number): number {
+  return Math.floor(amount * 100);
+}
+
 function formatUsdc(amount: number): string {
-  const truncated = Math.floor(amount * 100) / 100;
-  return truncated.toLocaleString("en-US", {
+  return formatCents(toCents(amount));
+}
+
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
