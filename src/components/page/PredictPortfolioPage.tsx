@@ -62,8 +62,8 @@ export function PredictPortfolioPage() {
   }, [authStatus]);
 
   return (
-    <div className="min-h-screen bg-zinc-950/50 pb-20 lg:h-[calc(100vh-var(--header-height))] lg:min-h-0 lg:overflow-hidden lg:pb-0">
-      <div className="mx-auto h-full max-w-[1200px] px-4 pt-6 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:px-8">
+    <div className="bg-zinc-950/50 sm:h-[calc(100vh-var(--header-height))] sm:min-h-0 sm:overflow-hidden">
+      <div className="mx-auto h-full max-w-[1200px] px-4 pt-6 sm:flex sm:flex-col sm:px-6 sm:pt-8 lg:px-8">
         {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
@@ -86,10 +86,10 @@ function PortfolioSkeleton() {
       </div>
 
       {/* Hero cards — same 3-col grid as PortfolioContent */}
-      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mb-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {/* Net Worth card (spans 2 cols) */}
         <div
-          className="relative overflow-hidden lg:col-span-2"
+          className="relative overflow-hidden sm:col-span-2"
           style={{
             borderRadius: 24,
             border: "1px solid rgba(39,39,42,0.6)",
@@ -132,7 +132,7 @@ function PortfolioSkeleton() {
         </div>
       </div>
 
-      {/* Position rows — matches actual PositionRow layout */}
+      {/* Position rows shimmer */}
       <div
         className="mt-4"
         style={{
@@ -145,23 +145,36 @@ function PortfolioSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "16px 20px",
-              borderBottom:
-                i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none",
-            }}
+            style={{ borderBottom: i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none" }}
           >
-            <Shimmer delay={i * 120 + 400} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "70%" : "55%", marginBottom: 8 }} />
-              <Shimmer delay={i * 120 + 500} style={{ height: 10, width: i % 2 === 0 ? "45%" : "35%" }} />
+            {/* Desktop row shimmer */}
+            <div className="hidden lg:flex items-center gap-3" style={{ padding: "16px 20px" }}>
+              <Shimmer delay={i * 120 + 400} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "70%" : "55%", marginBottom: 8 }} />
+                <Shimmer delay={i * 120 + 500} style={{ height: 10, width: i % 2 === 0 ? "45%" : "35%" }} />
+              </div>
+              <Shimmer delay={i * 120 + 480} style={{ height: 14, width: 80, flexShrink: 0 }} />
+              <Shimmer delay={i * 120 + 520} style={{ height: 20, width: 72, flexShrink: 0 }} />
+              <Shimmer delay={i * 120 + 560} style={{ height: 36, width: 64, borderRadius: 8, flexShrink: 0 }} />
             </div>
-            <Shimmer delay={i * 120 + 480} style={{ height: 14, width: 80, flexShrink: 0 }} />
-            <Shimmer delay={i * 120 + 520} style={{ height: 20, width: 72, flexShrink: 0 }} />
-            <Shimmer delay={i * 120 + 560} style={{ height: 36, width: 64, borderRadius: 8, flexShrink: 0 }} />
+            {/* Compact row shimmer (tablet + mobile) */}
+            <div className="lg:hidden" style={{ padding: "12px 16px" }}>
+              <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+                <Shimmer delay={i * 120 + 400} style={{ height: 40, width: 40, borderRadius: 8, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "80%" : "65%", marginBottom: 6 }} />
+                  <Shimmer delay={i * 120 + 500} style={{ height: 10, width: "40%" }} />
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Shimmer delay={i * 120 + 480} style={{ height: 12, width: 100 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Shimmer delay={i * 120 + 520} style={{ height: 14, width: 60 }} />
+                  <Shimmer delay={i * 120 + 560} style={{ height: 28, width: 52, borderRadius: 8 }} />
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -242,7 +255,7 @@ function PortfolioContent() {
   ];
 
   return (
-    <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+    <div className="sm:flex sm:min-h-0 sm:flex-1 sm:flex-col">
       {/* Title row */}
       <div className="mb-8 flex shrink-0 items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-white">
@@ -251,9 +264,9 @@ function PortfolioContent() {
       </div>
 
       {/* Hero cards — 3-col grid */}
-      <div className="mb-10 grid shrink-0 grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mb-10 grid shrink-0 grid-cols-1 gap-6 sm:grid-cols-3">
         {/* Total Net Worth (spans 2 cols) */}
-        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 p-6 sm:p-8 lg:col-span-2" style={{ background: "linear-gradient(145deg, rgba(24,24,27,1) 0%, rgba(30,30,34,0.95) 40%, rgba(24,24,27,0.88) 70%, rgba(20,20,22,1) 100%)" }}>
+        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 p-6 sm:col-span-2 sm:p-8" style={{ background: "linear-gradient(145deg, rgba(24,24,27,1) 0%, rgba(30,30,34,0.95) 40%, rgba(24,24,27,0.88) 70%, rgba(20,20,22,1) 100%)" }}>
           <div className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.10) 0%, rgba(199,255,46,0.03) 50%, transparent 70%)" }} />
           <div className="pointer-events-none absolute -bottom-16 -left-12 h-48 w-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.04) 0%, transparent 60%)" }} />
           <div className="pointer-events-none absolute left-1/3 top-1/2 h-40 w-64 -translate-y-1/2 rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(255,255,255,0.015) 0%, transparent 70%)" }} />
@@ -289,7 +302,7 @@ function PortfolioContent() {
                   <span className="text-sm text-zinc-500">{t("extend.portfolio.allTimePnl")}</span>
                 </div>
               </div>
-              <div className="flex gap-2 sm:gap-3">
+              <div className="hidden sm:flex gap-2 sm:gap-3">
                 <FundWalletButton />
               </div>
             </div>
@@ -324,34 +337,37 @@ function PortfolioContent() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="shrink-0 border-b border-zinc-800/50">
-        <div className="flex">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
-                activeTab === tab.key
-                  ? "border-bullish text-bullish"
-                  : "border-transparent text-zinc-400 hover:text-zinc-300",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* Tab + list section: fill remaining viewport on mobile, flex-fill on tablet+ */}
+      <div className="flex h-[calc(100dvh-var(--scaffold-header-height)-var(--scaffold-footer-height))] flex-col sm:h-auto sm:min-h-0 sm:flex-1">
+        {/* Tabs */}
+        <div className="shrink-0 border-b border-zinc-800/50">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
+                  activeTab === tab.key
+                    ? "border-bullish text-bullish"
+                    : "border-transparent text-zinc-400 hover:text-zinc-300",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Tab content */}
-      <div className="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-        {activeTab === "positions" && (
-          <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
-        )}
-        {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
-        {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+        {/* Tab content */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {activeTab === "positions" && (
+            <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
+          )}
+          {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+          {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+        </div>
       </div>
     </div>
   );
@@ -445,9 +461,9 @@ function PositionsPanel({
   if (isLoading) return <PanelSkeleton />;
 
   return (
-    <div className="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Search + sort row */}
-      <div className="flex shrink-0 flex-col gap-3 pt-4 sm:flex-row sm:items-center">
+      <div className="flex shrink-0 items-center gap-3 pt-4">
         <div className="relative flex-1">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <input
@@ -558,7 +574,7 @@ function PositionsPanel({
       {filtered.length === 0 ? (
         <EmptyState message={t("extend.portfolio.noPositions")} icon="positions" />
       ) : (
-        <div className="divide-y divide-zinc-800/30 overflow-hidden rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:min-h-0 lg:flex-1 lg:overflow-y-auto custom-scrollbar">
+        <div className="min-h-0 flex-1 divide-y divide-zinc-800/30 overflow-y-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 custom-scrollbar">
           {filtered.map((pos, i) => (
             <PositionRow key={`${pos.source}-${pos.market?.slug ?? i}`} position={pos} />
           ))}
@@ -704,66 +720,59 @@ function PositionRow({ position }: { position: PredictPosition }) {
         </div>
       </div>
 
-      {/* Mobile card */}
-      <div className="p-4 lg:hidden">
-        <div className="mb-3 flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {imageUrl ? (
-              <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-            ) : source === "kalshi" ? (
-              <KalshiIcon width={30} height={11} />
-            ) : (
-              <PolymarketIcon width={22} height={22} />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
+      {/* Compact layout (tablet + mobile) */}
+      <div className="flex items-center gap-3 p-4 lg:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {imageUrl ? (
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          ) : source === "kalshi" ? (
+            <KalshiIcon width={30} height={11} />
+          ) : (
+            <PolymarketIcon width={22} height={22} />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
             <span
-              className={cn("line-clamp-2 text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
+              className={cn("min-w-0 flex-1 truncate text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
               onClick={handleNavigate}
               onMouseEnter={handlePrefetch}
             >
               {marketLabel}
             </span>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
-              <span
-                className={cn(
-                  "rounded px-1.5 py-0.5 font-medium",
-                  isYes
-                    ? "bg-bullish/10 text-bullish"
-                    : "bg-bearish/10 text-bearish",
-                )}
-              >
-                {sideLabel}
-              </span>
-              <span>
-                {formatShares(position.size)}
-                {t("predict.trade.sharesUnit")}
-              </span>
-            </div>
           </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-xs">
-            <span className="text-zinc-500">{formatPrice(avgPrice)}</span>
-            <span className="mx-1 text-zinc-600">&rarr;</span>
-            <span className={currentPrice > avgPrice ? "text-bullish" : currentPrice < avgPrice ? "text-bearish" : "text-zinc-300"}>
-              {formatPrice(currentPrice)}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 font-medium",
+                isYes ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+              )}
+            >
+              {sideLabel}
+            </span>
+            <span>{formatShares(position.size)}{t("predict.trade.sharesUnit")}</span>
+            <span className="text-zinc-600">&middot;</span>
+            <span className="text-zinc-500">
+              {formatPrice(avgPrice)}<span className="mx-0.5">&rarr;</span>
+              <span className={currentPrice > avgPrice ? "text-bullish" : currentPrice < avgPrice ? "text-bearish" : ""}>
+                {formatPrice(currentPrice)}
+              </span>
             </span>
           </div>
-          <div className="text-right">
-            <div className="text-sm font-bold text-white">${currentValue.toFixed(2)}</div>
-            <div className={cn("text-xs font-semibold", pnlColor)}>
-              {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleSell}
-            className="ml-3 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
-          >
-            {t("extend.portfolio.sell")}
-          </button>
         </div>
+        <div className="shrink-0 text-right">
+          <div className="text-sm font-bold text-white">${currentValue.toFixed(2)}</div>
+          <div className={cn("text-xs font-semibold", pnlColor)}>
+            {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleSell}
+          className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
+        >
+          {t("extend.portfolio.sell")}
+        </button>
       </div>
     </div>
   );
@@ -909,8 +918,9 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   const virtualizer = useVirtualizer({
     count: orders.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 80,
+    estimateSize: () => 64,
     overscan: 10,
+    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
   if (isLoading) return <PanelSkeleton />;
@@ -919,7 +929,7 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   return (
     <div
       ref={parentRef}
-      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:max-h-none lg:min-h-0 lg:flex-1 custom-scrollbar"
+      className="mt-4 min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 custom-scrollbar"
     >
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -927,8 +937,10 @@ function OrdersPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
           return (
             <div
               key={order.id}
+              ref={virtualizer.measureElement}
+              data-index={vItem.index}
               className="absolute left-0 top-0 w-full"
-              style={{ height: vItem.size, transform: `translateY(${vItem.start}px)` }}
+              style={{ transform: `translateY(${vItem.start}px)` }}
             >
               <OrderRow
                 order={order}
@@ -971,12 +983,12 @@ function OrderRow({
   return (
     <div
       className={cn(
-        "group h-full transition-[background-color] duration-150 hover:bg-zinc-800/30",
+        "group transition-[background-color] duration-150 hover:bg-zinc-800/30",
         !isLast && "border-b border-zinc-800/30",
       )}
     >
       {/* Desktop */}
-      <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
+      <div className="hidden items-center gap-4 px-5 py-4 lg:flex">
         {/* Image */}
         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
           {imageUrl ? (
@@ -1065,75 +1077,69 @@ function OrderRow({
         )}
       </div>
 
-      {/* Mobile */}
-      <div className="p-4 lg:hidden">
-        <div className="mb-3 flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {imageUrl ? (
-              <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-            ) : source === "kalshi" ? (
-              <KalshiIcon width={30} height={11} />
-            ) : (
-              <PolymarketIcon width={22} height={22} />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            {marketQuestion ? (
-              <span
-                className={cn(
-                  "line-clamp-2 text-sm font-medium text-white",
-                  order.event?.slug && "cursor-pointer hover:underline",
-                )}
-                onClick={() => onNavigate(order)}
-                onMouseEnter={() => onPrefetch(order)}
-              >
-                {marketQuestion}
-              </span>
-            ) : (
-              <span className="line-clamp-2 text-sm text-zinc-400 capitalize">
-                {order.outcome ?? "—"}
-              </span>
-            )}
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-              <span
-                className={cn(
-                  "rounded px-1.5 py-0.5 font-semibold",
-                  isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
-                )}
-              >
-                {order.side} {order.outcome ? <span className="capitalize">{order.outcome}</span> : null}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-zinc-400">
-            <div>
-              <span className="font-mono text-sm text-white">{order.price ? formatPrice(parseFloat(order.price)) : "—"}</span>
-              <span className="ml-1 text-[10px] text-zinc-500">{t("extend.portfolio.price")}</span>
-            </div>
-            <div>
-              <span className="font-mono text-sm text-white">{order.size_matched ?? "0"}/{order.original_size ?? "—"}</span>
-              <span className="ml-1 text-[10px] text-zinc-500">{t("extend.portfolio.filledTotal")}</span>
-            </div>
-          </div>
-          {canCancel && (
-            <button
-              type="button"
-              onClick={() => onCancel(order)}
-              disabled={isCancelling}
-              className="inline-flex items-center justify-center gap-1.5 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 disabled:opacity-50"
-            >
-              {isCancelling && (
-                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              )}
-              {t("extend.portfolio.cancel")}
-            </button>
+      {/* Compact layout (tablet + mobile) */}
+      <div className="flex items-center gap-3 p-4 lg:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {imageUrl ? (
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          ) : source === "kalshi" ? (
+            <KalshiIcon width={30} height={11} />
+          ) : (
+            <PolymarketIcon width={22} height={22} />
           )}
         </div>
+        <div className="min-w-0 flex-1">
+          {marketQuestion ? (
+            <span
+              className={cn(
+                "truncate text-sm font-medium text-white block",
+                order.event?.slug && "cursor-pointer hover:underline",
+              )}
+              onClick={() => onNavigate(order)}
+              onMouseEnter={() => onPrefetch(order)}
+            >
+              {marketQuestion}
+            </span>
+          ) : (
+            <span className="truncate text-sm capitalize text-zinc-400 block">
+              {order.outcome ?? "—"}
+            </span>
+          )}
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 font-semibold",
+                isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+              )}
+            >
+              {order.side} {order.outcome ? <span className="capitalize">{order.outcome}</span> : null}
+            </span>
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="font-mono text-sm font-medium text-white">
+            {order.price ? formatPrice(parseFloat(order.price)) : "—"}
+          </div>
+          <div className="font-mono text-xs text-zinc-400">
+            {order.size_matched ?? "0"}<span className="text-zinc-600">/{order.original_size ?? "—"}</span>
+          </div>
+        </div>
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => onCancel(order)}
+            disabled={isCancelling}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 disabled:opacity-50"
+          >
+            {isCancelling && (
+              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {t("extend.portfolio.cancel")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1170,8 +1176,9 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   const virtualizer = useVirtualizer({
     count: trades.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 80,
+    estimateSize: () => 64,
     overscan: 10,
+    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
   useEffect(() => {
@@ -1207,7 +1214,7 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
   return (
     <div
       ref={parentRef}
-      className="mt-4 max-h-[600px] overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 lg:max-h-none lg:min-h-0 lg:flex-1 custom-scrollbar"
+      className="mt-4 min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 custom-scrollbar"
     >
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
@@ -1215,8 +1222,10 @@ function TradesPanel({ solanaAddr, evmAddr }: { solanaAddr: string; evmAddr: str
           return (
             <div
               key={trade.id ?? vItem.index}
+              ref={virtualizer.measureElement}
+              data-index={vItem.index}
               className="absolute left-0 top-0 w-full"
-              style={{ height: vItem.size, transform: `translateY(${vItem.start}px)` }}
+              style={{ transform: `translateY(${vItem.start}px)` }}
             >
               <TradeRow
                 trade={trade}
@@ -1262,12 +1271,12 @@ function TradeRow({
   return (
     <div
       className={cn(
-        "group h-full transition-[background-color] duration-150 hover:bg-zinc-800/30",
+        "group transition-[background-color] duration-150 hover:bg-zinc-800/30",
         !isLast && "border-b border-zinc-800/30",
       )}
     >
       {/* Desktop row */}
-      <div className="hidden h-full items-center gap-4 px-5 py-4 lg:flex">
+      <div className="hidden items-center gap-4 px-5 py-4 lg:flex">
         {/* Col 1: Icon + title + source */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
@@ -1338,55 +1347,46 @@ function TradeRow({
         </div>
       </div>
 
-      {/* Mobile card */}
-      <div className="p-4 lg:hidden">
-        <div className="mb-3 flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-            {tradeImageUrl ? (
-              <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
-            ) : source === "kalshi" ? (
-              <KalshiIcon width={30} height={11} />
-            ) : (
-              <PolymarketIcon width={22} height={22} />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            {(eventTitle || marketQuestion) && (
-              <span
-                className={cn(
-                  "line-clamp-2 text-sm font-medium text-white",
-                  trade.event?.slug && "cursor-pointer hover:underline",
-                )}
-                onClick={() => onNavigate(trade)}
-                onMouseEnter={() => onPrefetch(trade)}
-              >
-                {eventTitle || marketQuestion}
-              </span>
-            )}
-            {eventTitle && marketQuestion && eventTitle !== marketQuestion && (
-              <span className="mt-0.5 line-clamp-1 text-xs text-zinc-400">
-                {marketQuestion}
-              </span>
-            )}
-            <div className="mt-1">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold",
-                  isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
-                )}
-              >
-                {trade.side} <span className="capitalize">{outcomeLabel}</span>
-              </span>
-            </div>
+      {/* Compact layout (tablet + mobile) */}
+      <div className="flex items-center gap-3 p-4 lg:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
+          {tradeImageUrl ? (
+            <img src={tradeImageUrl} alt="" className="h-full w-full object-cover" />
+          ) : source === "kalshi" ? (
+            <KalshiIcon width={30} height={11} />
+          ) : (
+            <PolymarketIcon width={22} height={22} />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          {(eventTitle || marketQuestion) && (
+            <span
+              className={cn(
+                "truncate text-sm font-medium text-white block",
+                trade.event?.slug && "cursor-pointer hover:underline",
+              )}
+              onClick={() => onNavigate(trade)}
+              onMouseEnter={() => onPrefetch(trade)}
+            >
+              {eventTitle || marketQuestion}
+            </span>
+          )}
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold",
+                isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+              )}
+            >
+              {trade.side} <span className="capitalize">{outcomeLabel}</span>
+            </span>
+            <span className="text-zinc-500">{timeStr}</span>
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-zinc-500">{timeStr}</span>
-          <div className="text-right">
-            <div className="text-xs font-mono text-zinc-400">
-              {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
-            </div>
-            <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+        <div className="shrink-0 text-right">
+          <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+          <div className="font-mono text-xs text-zinc-400">
+            {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
           </div>
         </div>
       </div>
@@ -1456,20 +1456,31 @@ function PanelSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "16px 20px",
-            borderBottom: i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none",
-          }}
+          style={{ borderBottom: i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none" }}
         >
-          <Shimmer delay={i * 120} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Shimmer delay={i * 120 + 50} style={{ height: 14, width: i % 2 === 0 ? "65%" : "50%", marginBottom: 8 }} />
-            <Shimmer delay={i * 120 + 100} style={{ height: 10, width: "40%" }} />
+          {/* Desktop shimmer */}
+          <div className="hidden lg:flex items-center gap-3" style={{ padding: "16px 20px" }}>
+            <Shimmer delay={i * 120} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Shimmer delay={i * 120 + 50} style={{ height: 14, width: i % 2 === 0 ? "65%" : "50%", marginBottom: 8 }} />
+              <Shimmer delay={i * 120 + 100} style={{ height: 10, width: "40%" }} />
+            </div>
+            <Shimmer delay={i * 120 + 80} style={{ height: 20, width: 72, flexShrink: 0 }} />
           </div>
-          <Shimmer delay={i * 120 + 80} style={{ height: 20, width: 72, flexShrink: 0 }} />
+          {/* Compact shimmer (tablet + mobile) */}
+          <div className="lg:hidden" style={{ padding: "12px 16px" }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+              <Shimmer delay={i * 120} style={{ height: 40, width: 40, borderRadius: 8, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Shimmer delay={i * 120 + 50} style={{ height: 14, width: i % 2 === 0 ? "75%" : "60%", marginBottom: 6 }} />
+                <Shimmer delay={i * 120 + 100} style={{ height: 10, width: "35%" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Shimmer delay={i * 120 + 80} style={{ height: 12, width: 90 }} />
+              <Shimmer delay={i * 120 + 120} style={{ height: 14, width: 60 }} />
+            </div>
+          </div>
         </div>
       ))}
     </div>

@@ -56,6 +56,8 @@ import {
   UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
+  SearchIcon,
+  useScreen,
 } from "@liberfi.io/ui";
 import type { LinkComponentType } from "@liberfi.io/ui";
 import {
@@ -188,7 +190,8 @@ function PageShell({ children }: PropsWithChildren) {
   const { status: authStatus } = useAuth();
   const isAuthenticated = authStatus === "authenticated";
 
-  const { onClose: closePredictSearch } = useAsyncModal(PREDICT_SEARCH_MODAL_ID);
+  const { onOpen: openPredictSearch, onClose: closePredictSearch } =
+    useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
   const handlePredictHover = useCallback(
     (event: PredictEvent) => {
@@ -254,34 +257,31 @@ function PageShell({ children }: PropsWithChildren) {
                 </div>
               </div>
 
-              {/* Center: Search bar — matchr.xyz style */}
-              <div className="hidden sm:flex flex-1 min-w-0 justify-center">
+              {/* Center: Search bar — desktop only */}
+              <div className="hidden lg:flex flex-1 min-w-0 justify-center">
                 <SearchEventsButton
+                  displayMode="desktop"
                   onSelectEvent={handleSelectEvent}
                   modalParams={searchModalParams}
                   className="w-full !min-w-0 !max-w-md !rounded-lg !bg-zinc-900/60 !border-[1px] !border-zinc-800 hover:!border-zinc-700 !h-[30px] !min-h-0 [&_kbd]:!rounded [&_kbd]:!bg-zinc-800/60 [&_kbd]:!border-zinc-700/50 [&_kbd]:!text-zinc-500 [&_kbd]:!font-mono [&_kbd]:!text-[10px]"
                 />
               </div>
-              {/* Mobile search */}
-              <div className="sm:hidden flex-1 min-w-0">
-                <SearchEventsButton
-                  onSelectEvent={handleSelectEvent}
-                  modalParams={searchModalParams}
-                  className="w-full !min-w-0"
-                />
-              </div>
 
-              {/* Right: language + balance + deposit + account */}
-              <div className="shrink-0 flex items-center gap-2">
+              {/* Right: search icon (tablet/mobile) + language + balance + deposit + account */}
+              <div className="shrink-0 ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openPredictSearch({ params: searchModalParams })}
+                  aria-label="Search"
+                  className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-sm font-medium transition-colors border bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-800 hover:text-white cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  <SearchIcon width={14} height={14} />
+                </button>
                 <div className="hidden sm:block">
                   <LanguageButton />
                 </div>
                 {isAuthenticated && <PredictBalanceIndicator />}
-                {isAuthenticated && (
-                  <div className="hidden sm:block">
-                    <PredictDepositButton />
-                  </div>
-                )}
+                {isAuthenticated && <PredictDepositButton />}
                 <PredictAccountButton />
               </div>
             </div>
@@ -354,6 +354,63 @@ function formatCents(cents: number): string {
   });
 }
 
+function BalanceBreakdownContent({
+  polymarketUsdcBalance,
+  kalshiUsdcBalance,
+  positionsCents,
+  portfolioTotalCents,
+  initialLoading,
+}: {
+  polymarketUsdcBalance: number | null;
+  kalshiUsdcBalance: number | null;
+  positionsCents: number;
+  portfolioTotalCents: number;
+  initialLoading: boolean;
+}) {
+  return (
+    <>
+      <div className="p-2">
+        <div className="text-[11px] uppercase tracking-[0.05em] text-zinc-500 font-medium px-3 pt-1 pb-2">Cash Breakdown</div>
+        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+          <div className="flex items-center gap-2.5">
+            <PolymarketIcon width={20} height={20} />
+            <span className="text-sm text-zinc-400">Polymarket</span>
+          </div>
+          <span className="text-sm font-medium text-zinc-100 tabular-nums">
+            {polymarketUsdcBalance != null ? `$${formatUsdc(polymarketUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+          <div className="flex items-center gap-2.5">
+            <KalshiIcon width={20} height={20} />
+            <span className="text-sm text-zinc-400">Kalshi</span>
+          </div>
+          <span className="text-sm font-medium text-zinc-100 tabular-nums">
+            {kalshiUsdcBalance != null ? `$${formatUsdc(kalshiUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
+          </span>
+        </div>
+      </div>
+      <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+          <div className="flex items-center gap-2.5">
+            <ChartLineIcon width={20} height={20} className="text-bullish" />
+            <span className="text-sm text-zinc-400">Positions</span>
+          </div>
+          <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatCents(positionsCents)}</span>
+        </div>
+      </div>
+      <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
+        <div className="flex items-center justify-between gap-3 px-3 py-2">
+          <span className="text-sm text-zinc-300 font-medium">Portfolio Total</span>
+          <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
+            {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PredictBalanceIndicator() {
   const {
     kalshiUsdcBalance,
@@ -362,6 +419,7 @@ function PredictBalanceIndicator() {
     evmAddress,
     isLoading: balanceLoading,
   } = usePredictWallet();
+  const { isMobile } = useScreen();
 
   const { data: positionsData } = usePositionsMulti({
     kalshi_user: solanaAddress || undefined,
@@ -393,12 +451,18 @@ function PredictBalanceIndicator() {
   const ref = useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = useCallback(() => {
+    if (isMobile) return;
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setIsOpen(true);
-  }, []);
+  }, [isMobile]);
 
   const handleMouseLeave = useCallback(() => {
+    if (isMobile) return;
     closeTimer.current = setTimeout(() => setIsOpen(false), 150);
+  }, [isMobile]);
+
+  const handleClick = useCallback(() => {
+    setIsOpen((prev) => !prev);
   }, []);
 
   useEffect(() => {
@@ -407,16 +471,38 @@ function PredictBalanceIndicator() {
     };
   }, []);
 
+  const breakdownProps = {
+    polymarketUsdcBalance,
+    kalshiUsdcBalance,
+    positionsCents,
+    portfolioTotalCents,
+    initialLoading,
+  };
+
   return (
     <div
-      className="relative hidden lg:block"
+      className="relative"
       ref={ref}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Tablet & Mobile: USDC icon + total balance */}
       <button
         type="button"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        onClick={handleClick}
+        className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      >
+        <UsdcIcon width={16} height={16} aria-hidden="true" />
+        <span className="text-xs font-medium text-zinc-100 tabular-nums">
+          {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
+        </span>
+      </button>
+
+      {/* Desktop: full breakdown with cash + positions + chevron */}
+      <button
+        type="button"
+        onClick={handleClick}
+        className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <UsdcIcon width={16} height={16} aria-hidden="true" />
@@ -436,7 +522,34 @@ function PredictBalanceIndicator() {
         </svg>
       </button>
 
-      {isOpen && (
+      {/* Mobile: modal overlay */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={() => setIsOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full max-w-sm mb-safe animate-in slide-in-from-bottom duration-200"
+            style={{
+              borderRadius: "14px 14px 0 0",
+              border: "1px solid rgba(39,39,42,1)",
+              borderBottom: "none",
+              background: "rgba(24,24,27,1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-8 h-1 rounded-full bg-zinc-700" />
+            </div>
+            <BalanceBreakdownContent {...breakdownProps} />
+            <div className="pb-safe" />
+          </div>
+        </div>
+      )}
+
+      {/* Tablet & Desktop: popover dropdown */}
+      {!isMobile && isOpen && (
         <div
           className="absolute right-0 mt-2 w-64 z-50 overflow-hidden"
           style={{
@@ -446,44 +559,7 @@ function PredictBalanceIndicator() {
             boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
           }}
         >
-          <div className="p-2">
-            <div className="text-[11px] uppercase tracking-[0.05em] text-zinc-500 font-medium px-3 pt-1 pb-2">Cash Breakdown</div>
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-              <div className="flex items-center gap-2.5">
-                <PolymarketIcon width={20} height={20} />
-                <span className="text-sm text-zinc-400">Polymarket</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-100 tabular-nums">
-                {polymarketUsdcBalance != null ? `$${formatUsdc(polymarketUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-              <div className="flex items-center gap-2.5">
-                <KalshiIcon width={20} height={20} />
-                <span className="text-sm text-zinc-400">Kalshi</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-100 tabular-nums">
-                {kalshiUsdcBalance != null ? `$${formatUsdc(kalshiUsdcBalance)}` : initialLoading ? "..." : "$0.00"}
-              </span>
-            </div>
-          </div>
-          <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
-            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-              <div className="flex items-center gap-2.5">
-                <ChartLineIcon width={20} height={20} className="text-bullish" />
-                <span className="text-sm text-zinc-400">Positions</span>
-              </div>
-              <span className="text-sm font-medium text-zinc-100 tabular-nums">${formatCents(positionsCents)}</span>
-            </div>
-          </div>
-          <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
-            <div className="flex items-center justify-between gap-3 px-3 py-2">
-              <span className="text-sm text-zinc-300 font-medium">Portfolio Total</span>
-              <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
-                {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
-              </span>
-            </div>
-          </div>
+          <BalanceBreakdownContent {...breakdownProps} />
         </div>
       )}
     </div>

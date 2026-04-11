@@ -25,7 +25,7 @@ export function PredictDepositButton() {
         <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
         <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
       </svg>
-      {t("extend.predict.deposit.title")}
+      <span className="hidden sm:inline">{t("extend.predict.deposit.title")}</span>
     </button>
   );
 }

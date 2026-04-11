@@ -38,8 +38,8 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   );
 
   return (
-    <div className={cn("w-full h-full px-4 max-sm:px-0 flex flex-col gap-2.5 overflow-y-auto")}>
-      <div className="p-2 sm:p-4 flex w-full max-w-[1550px] mx-auto">
+    <div className={cn("w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto")}>
+      <div className="p-2 lg:p-4 flex w-full max-w-[1550px] mx-auto">
         <EventDetailPage
           eventSlug={id}
           source={source}
