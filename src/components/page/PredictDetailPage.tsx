@@ -9,6 +9,7 @@ import { useSimilarEvents } from "@liberfi.io/react-predict";
 import type { ProviderSource } from "@liberfi.io/react-predict";
 import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import { predictEventHref } from "./predict-source";
+import { EventActivitySection } from "./EventActivitySection";
 
 export function PredictDetailPage({ id, source }: { id: string; source: ProviderSource }) {
   const router = useRouter();
@@ -46,6 +47,9 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
           walletAddress={walletAddress}
           onSimilarEventClick={handleSimilarEventClick}
           onBack={() => router.back()}
+          renderActivitySection={({ event, walletAddress: addr }) => (
+            <EventActivitySection event={event} walletAddress={addr} />
+          )}
         />
       </div>
     </div>
