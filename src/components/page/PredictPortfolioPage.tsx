@@ -1567,7 +1567,11 @@ function formatCents(cents: number): string {
   });
 }
 
-function formatShares(size: number, maxDecimals = 4): string {
+/**
+ * Default 2 decimals: Polymarket ROUNDING_CONFIG.size is always 2;
+ * DFlow uses 0. 2 is a safe upper bound for all providers.
+ */
+function formatShares(size: number, maxDecimals = 2): string {
   const factor = Math.pow(10, maxDecimals);
   return parseFloat((Math.floor(size * factor) / factor).toFixed(maxDecimals)).toString();
 }
