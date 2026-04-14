@@ -16,6 +16,9 @@ import {
   PredictSellModal,
   PREDICT_SELL_MODAL_ID,
   type PredictSellModalParams,
+  PredictRedeemModal,
+  PREDICT_REDEEM_MODAL_ID,
+  type PredictRedeemModalParams,
 } from "@liberfi.io/ui-predict";
 import {
   usePositionsMulti,
@@ -68,6 +71,7 @@ export function PredictPortfolioPage() {
       </div>
       <PredictTradeModal />
       <PredictSellModal />
+      <PredictRedeemModal />
     </div>
   );
 }
@@ -588,6 +592,7 @@ function PositionRow({ position }: { position: PredictPosition }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { onOpen: openSellModal } = useAsyncModal<PredictSellModalParams>(PREDICT_SELL_MODAL_ID);
+  const { onOpen: openRedeemModal } = useAsyncModal<PredictRedeemModalParams>(PREDICT_REDEEM_MODAL_ID);
   const pnl = position.pnl ?? 0;
   const pnlPercent = position.pnl_percent ?? 0;
   const avgPrice = position.avg_price ?? 0;
@@ -624,6 +629,20 @@ function PositionRow({ position }: { position: PredictPosition }) {
       });
     },
     [position.event, position.market, position.side, openSellModal],
+  );
+
+  const handleRedeem = useCallback(
+    () => {
+      if (!position.event || !position.market) return;
+      openRedeemModal({
+        params: {
+          event: position.event,
+          market: position.market,
+          position,
+        },
+      });
+    },
+    [position, openRedeemModal],
   );
 
   return (
@@ -708,15 +727,25 @@ function PositionRow({ position }: { position: PredictPosition }) {
           </div>
         </div>
 
-        {/* Col 5: Sell button */}
+        {/* Col 5: Sell / Redeem button */}
         <div className="shrink-0">
-          <button
-            type="button"
-            onClick={handleSell}
-            className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
-          >
-            {t("extend.portfolio.sell")}
-          </button>
+          {position.redeemable ? (
+            <button
+              type="button"
+              onClick={handleRedeem}
+              className="cursor-pointer rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-all hover:border-green-500/50 hover:bg-green-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500/60"
+            >
+              {t("predict.redeem.confirm")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSell}
+              className="cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
+            >
+              {t("extend.portfolio.sell")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -766,13 +795,23 @@ function PositionRow({ position }: { position: PredictPosition }) {
             {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleSell}
-          className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
-        >
-          {t("extend.portfolio.sell")}
-        </button>
+        {position.redeemable ? (
+          <button
+            type="button"
+            onClick={handleRedeem}
+            className="shrink-0 cursor-pointer rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500/60"
+          >
+            {t("predict.redeem.confirm")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSell}
+            className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
+          >
+            {t("extend.portfolio.sell")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1258,6 +1297,7 @@ function TradeRow({
   onPrefetch: (trade: PredictTrade) => void;
 }) {
   const { t } = useTranslation();
+  const isRedeem = trade.type === "REDEEM";
   const isBuy = trade.side?.toUpperCase() === "BUY";
   const timeStr = formatTimestamp(trade.timestamp);
   const price = trade.price ?? 0;
@@ -1326,19 +1366,39 @@ function TradeRow({
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold",
-              isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+              isRedeem
+                ? "bg-primary/10 text-primary"
+                : isBuy
+                  ? "bg-bullish/10 text-bullish"
+                  : "bg-bearish/10 text-bearish",
             )}
           >
-            {trade.side} <span className="capitalize">{outcomeLabel}</span>
+            {isRedeem ? t("predict.profile.redeem") : trade.side}
+            {outcomeLabel !== "—" && <span className="capitalize"> {outcomeLabel}</span>}
           </span>
         </div>
 
         {/* Col 3: Price x Shares = Total */}
         <div className="min-w-[160px] shrink-0 text-right">
-          <div className="text-xs font-mono text-zinc-400">
-            {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
-          </div>
-          <div className="text-base font-bold text-white">${usdSize.toFixed(2)}</div>
+          {isRedeem ? (
+            <>
+              {trade.size > 0 && (
+                <div className="text-xs font-mono text-zinc-400">
+                  {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+                </div>
+              )}
+              <div className="text-base font-bold text-white">
+                {usdSize > 0 ? `+$${usdSize.toFixed(2)}` : "$0.00"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-xs font-mono text-zinc-400">
+                {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+              </div>
+              <div className="text-base font-bold text-white">${usdSize.toFixed(2)}</div>
+            </>
+          )}
         </div>
 
         {/* Col 4: Time */}
@@ -1375,19 +1435,39 @@ function TradeRow({
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold",
-                isBuy ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
+                isRedeem
+                  ? "bg-primary/10 text-primary"
+                  : isBuy
+                    ? "bg-bullish/10 text-bullish"
+                    : "bg-bearish/10 text-bearish",
               )}
             >
-              {trade.side} <span className="capitalize">{outcomeLabel}</span>
+              {isRedeem ? t("predict.profile.redeem") : trade.side}
+              {outcomeLabel !== "—" && <span className="capitalize"> {outcomeLabel}</span>}
             </span>
             <span className="text-zinc-500">{timeStr}</span>
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
-          <div className="font-mono text-xs text-zinc-400">
-            {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
-          </div>
+          {isRedeem ? (
+            <>
+              <div className="text-sm font-bold text-white">
+                {usdSize > 0 ? `+$${usdSize.toFixed(2)}` : "$0.00"}
+              </div>
+              {trade.size > 0 && (
+                <div className="font-mono text-xs text-zinc-400">
+                  {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-bold text-white">${usdSize.toFixed(2)}</div>
+              <div className="font-mono text-xs text-zinc-400">
+                {formatPrice(price)} &times; {formatShares(trade.size)}{t("predict.trade.sharesUnit")}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
