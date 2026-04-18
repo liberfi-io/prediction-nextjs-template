@@ -7,10 +7,15 @@ import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictMatchesPage } from "src/components/page/PredictMatchesPage";
 
+// v1.1: removed the hardcoded `min_volume: 5000` filter. The matcher's
+// `dead_market` pre-filter (both legs < $100 24h volume) already drops
+// the truly dead pairs, and the new `signal_tag` (liquid_gap /
+// active_gap / stale_gap / stale_data) lets the UI tell users *why* a
+// pair is low-quality instead of silently hiding it. Users can still
+// raise the floor via the in-page MatchesFilterBar.
 const DEFAULT_PARAMS = {
   sort_by: "spread" as const,
   sort_asc: false,
-  min_volume: 5_000,
   status: "active" as const,
   limit: 20,
 };
