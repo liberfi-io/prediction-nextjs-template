@@ -60,14 +60,25 @@ export const FUND_WALLET_MODAL_ID = "fund-prediction-wallet";
 type WalletSource = "solana" | "evm";
 type Screen = "main" | "deposit" | "withdraw";
 
+/**
+ * Optional payload accepted by `useAsyncModal(FUND_WALLET_MODAL_ID).onOpen({ params })`.
+ * When provided, lets the caller jump directly to the Deposit (or Withdraw)
+ * screen with a specific wallet (e.g. "evm" for Polymarket, "solana" for
+ * Kalshi) preselected, instead of always landing on the Main choice screen.
+ */
+export type FundWalletParams = {
+  initialScreen?: Screen;
+  initialWallet?: WalletSource;
+};
+
 // ---------------------------------------------------------------------------
 // Modal shell
 // ---------------------------------------------------------------------------
 
 export function FundWalletModal() {
   return (
-    <AsyncModal id={FUND_WALLET_MODAL_ID}>
-      {(props: RenderAsyncModalProps) => (
+    <AsyncModal<FundWalletParams> id={FUND_WALLET_MODAL_ID}>
+      {(props: RenderAsyncModalProps<FundWalletParams>) => (
         <StyledModal
           isOpen={props.isOpen}
           onOpenChange={props.onOpenChange}
@@ -78,7 +89,7 @@ export function FundWalletModal() {
           }}
         >
           <ModalContent>
-            <FundWalletContent onClose={props.onClose} />
+            <FundWalletContent onClose={props.onClose} params={props.params} />
           </ModalContent>
         </StyledModal>
       )}
@@ -90,9 +101,17 @@ export function FundWalletModal() {
 // Content router
 // ---------------------------------------------------------------------------
 
-function FundWalletContent({ onClose }: { onClose: () => void }) {
-  const [screen, setScreen] = useState<Screen>("main");
-  const [selectedWallet, setSelectedWallet] = useState<WalletSource>("solana");
+function FundWalletContent({
+  onClose,
+  params,
+}: {
+  onClose: () => void;
+  params?: FundWalletParams;
+}) {
+  const [screen, setScreen] = useState<Screen>(params?.initialScreen ?? "main");
+  const [selectedWallet, setSelectedWallet] = useState<WalletSource>(
+    params?.initialWallet ?? "solana",
+  );
 
   const goMain = useCallback(() => setScreen("main"), []);
 
