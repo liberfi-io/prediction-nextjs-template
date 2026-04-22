@@ -8,16 +8,22 @@ import type { LinkComponentType } from "@liberfi.io/ui";
 import { MatchesPage as MatchesPageRaw } from "@liberfi.io/ui-predict";
 
 /**
- * v1.1 forward-compat — published `@liberfi.io/ui-predict` typings may not
- * yet expose `onSelectMatch` / `getMatchHref`. We widen the props here so
+ * Forward-compat — published `@liberfi.io/ui-predict` typings may not yet
+ * expose the v1.1 `onSelectMatch` / `getMatchHref` props nor the v1.2
+ * per-leg `onSelectLeg` / `getLegHref` props. We widen the props here so
  * this template builds against both the old (npm) and new (local link)
  * SDK versions during the rollout window. The runtime component already
- * accepts these props in v1.1.
+ * accepts these props in v1.2.
  */
 const MatchesPage = MatchesPageRaw as unknown as React.ComponentType<
   React.ComponentProps<typeof MatchesPageRaw> & {
     onSelectMatch?: (match: MatchMarketFlat) => void;
     getMatchHref?: (match: MatchMarketFlat) => string | undefined;
+    onSelectLeg?: (match: MatchMarketFlat, leg: MatchLegLite) => void;
+    getLegHref?: (
+      match: MatchMarketFlat,
+      leg: MatchLegLite,
+    ) => string | undefined;
   }
 >;
 import type {
@@ -95,6 +101,11 @@ function buildInternalHref(match: MatchMarketFlat): string | undefined {
   return `/${toDisplaySource(target.source)}/${target.slug}`;
 }
 
+function buildLegHref(leg: MatchLegLite): string | undefined {
+  if (!leg?.event_slug) return undefined;
+  return `/${toDisplaySource(leg.source)}/${leg.event_slug}`;
+}
+
 export function PredictMatchesPage() {
   const router = useRouter();
 
@@ -111,10 +122,34 @@ export function PredictMatchesPage() {
     [],
   );
 
+  const handleSelectLeg = useCallback(
+    (_match: MatchMarketFlat, leg: MatchLegLite) => {
+      const href = buildLegHref(leg);
+      if (href) router.push(href);
+    },
+    [router],
+  );
+
+  const getLegHref = useCallback(
+    (_match: MatchMarketFlat, leg: MatchLegLite) => buildLegHref(leg),
+    [],
+  );
+
   const handleHover = useCallback(
     (match: MatchMarketFlat) => {
-      const href = buildInternalHref(match);
-      if (href) router.prefetch(href);
+      // NoPrefetchLink disables Next's hover prefetch entirely, and the
+      // card body links to the cheaper leg while each PlatformRow links
+      // to its own platform — so prefetch all three candidate hrefs on
+      // card hover. router.prefetch dedupes on the same path, so the
+      // cheaper-leg URL counted twice is effectively a single fetch.
+      const cheaperHref = buildInternalHref(match);
+      if (cheaperHref) router.prefetch(cheaperHref);
+
+      const legs = (match as MatchMarketFlatV11).legs ?? [];
+      for (const leg of legs) {
+        const legHref = buildLegHref(leg);
+        if (legHref && legHref !== cheaperHref) router.prefetch(legHref);
+      }
     },
     [router],
   );
@@ -123,6 +158,8 @@ export function PredictMatchesPage() {
     <MatchesPage
       onSelectMatch={handleSelectMatch}
       getMatchHref={getMatchHref}
+      onSelectLeg={handleSelectLeg}
+      getLegHref={getLegHref}
       onHover={handleHover}
       LinkComponent={NoPrefetchLink}
       bgImageSrc="/matches-bg-wide.png"
