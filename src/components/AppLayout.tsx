@@ -32,6 +32,7 @@ import {
 } from "@liberfi.io/i18n";
 import {
   PredictClient,
+  PredictWsClient,
   PredictProvider,
   PolymarketProvider,
   usePredictWsClient,
@@ -144,8 +145,14 @@ function ServiceProviders({ children }: PropsWithChildren) {
     [],
   );
 
-  // TODO: re-enable when prediction WS backend is ready
-  const predictWsClient = null;
+  // Live WebSocket client for orderbook/price/trade subscriptions. Falls back
+  // to `null` when the env var is not configured, in which case the SDK's
+  // realtime hooks transparently degrade to REST polling.
+  const predictWsClient = useMemo(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_PREDICT_WS_URL;
+    if (!wsUrl) return null;
+    return new PredictWsClient({ wsUrl });
+  }, []);
 
   return (
     <PredictProvider client={predictClient} wsClient={predictWsClient}>
