@@ -153,6 +153,10 @@ function WalletEntry({
 
 export function PredictAccountButton() {
   const { t } = useTranslation();
+  const tString = useCallback(
+    (key: string) => (t as (translationKey: string) => string)(key),
+    [t],
+  );
   const { status, signIn, signOut } = useAuth();
   const {
     kalshiUsdcBalance,
@@ -262,7 +266,7 @@ export function PredictAccountButton() {
         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c7ff2e]/10 hover:bg-[#c7ff2e]/20 border border-[#c7ff2e]/25 hover:border-[#c7ff2e]/40 text-[#c7ff2e] rounded-[10px] text-xs font-semibold transition-colors duration-200 cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <SignInIcon width={14} height={14} />
-        {t("common.signIn")}
+        {tString("common.signIn")}
       </button>
     );
   }
@@ -354,7 +358,7 @@ export function PredictAccountButton() {
                   onSetupOpen={() => setIsSetupModalOpen(true)}
                   onKycRefresh={handleKycRefresh}
                   onSignOut={handleSignOut}
-                  t={t}
+                  t={tString}
                 />
               </div>
             </div>
@@ -383,7 +387,7 @@ export function PredictAccountButton() {
                 onSetupOpen={() => setIsSetupModalOpen(true)}
                 onKycRefresh={handleKycRefresh}
                 onSignOut={handleSignOut}
-                t={t}
+                t={tString}
               />
             </div>
           )}
@@ -422,7 +426,7 @@ function AccountMenuContent({
   onSetupOpen: () => void;
   onKycRefresh: () => void;
   onSignOut: () => void;
-  t: ReturnType<typeof import("@liberfi.io/i18n").useTranslation>["t"];
+  t: (key: string) => string;
 }) {
   return (
     <>
