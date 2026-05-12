@@ -15,6 +15,7 @@ import {
   useWithdrawSubmitMutation,
   useWithdrawStatusQuery,
   usePolymarketDepositAddresses,
+  usePolymarketSupportedAssets,
   usePredictClient,
   type ProviderSource,
 } from "@liberfi.io/react-predict";
@@ -30,8 +31,12 @@ import {
   CopyIcon,
   CheckIcon,
   UsdcIcon,
+  UsdtIcon,
   SolanaIcon,
   PolygonIcon,
+  EthereumIcon,
+  BinanceIcon,
+  TokenIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   XCloseIcon,
@@ -53,6 +58,12 @@ import {
   POLYMARKET_CONTRACTS,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
+import {
+  DEPOSIT_CHAINS,
+  DEPOSIT_CHAIN_ORDER,
+  type DepositChainConfig,
+  type DepositChainKey,
+} from "../lib/polymarket-deposit-chains";
 import { polymarketSetupQueryKey } from "@liberfi.io/react-predict";
 
 export const FUND_WALLET_MODAL_ID = "fund-prediction-wallet";
@@ -567,6 +578,452 @@ function CopyAddressRow({ address }: { address: string }) {
   );
 }
 
+/**
+ * Renders the small chain icon shown inside `DepositChainTab` chips.
+ *
+ * Kept inline so we can swap implementations easily without exporting more
+ * surface area — each chain only needs a constant icon component.
+ */
+function chainIcon(key: DepositChainKey, size = 14): ReactNode {
+  switch (key) {
+    case "solana":
+      return <SolanaIcon width={size} height={size} />;
+    case "ethereum":
+      return <EthereumIcon width={size} height={size} />;
+    case "polygon":
+      return <PolygonIcon width={size} height={size} />;
+    case "bnb":
+      return <BinanceIcon width={size} height={size} />;
+  }
+}
+
+/**
+ * Network picker shown above the QR code on the Polymarket deposit screen.
+ *
+ * Visual treatment matches `WalletSelector` (trigger button + absolute
+ * popover) so the two stacked selectors feel like a single control family.
+ * Hidden when only one chain is available (defensive — bridge always returns
+ * at least Solana + EVM).
+ */
+function DepositChainSelect({
+  chains,
+  value,
+  onChange,
+}: {
+  chains: DepositChainConfig[];
+  value: DepositChainKey;
+  onChange: (key: DepositChainKey) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  if (chains.length <= 1) return null;
+
+  const current = chains.find((c) => c.key === value) ?? chains[0];
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+        {t("extend.predict.fundWallet.network")}
+      </div>
+      <div className="relative">
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] bg-zinc-800/50 hover:bg-[rgba(39,39,42,0.5)] border border-zinc-700/50 transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <div
+            className="flex items-center justify-center w-7 h-7 rounded-[10px]"
+            style={{
+              background:
+                "linear-gradient(to bottom right, rgba(199,255,46,0.08), rgba(23,201,100,0.08))",
+              border: "1px solid rgba(199,255,46,0.1)",
+            }}
+          >
+            {chainIcon(current.key, 18)}
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-sm font-medium text-zinc-200 truncate">
+              {current.label}
+            </div>
+          </div>
+          <ChevronDownIcon
+            width={16}
+            height={16}
+            className={cn(
+              "text-zinc-500 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+
+        {open && (
+          <div
+            className="absolute left-0 right-0 mt-2 z-50 overflow-hidden"
+            style={{
+              borderRadius: 14,
+              border: "1px solid rgba(39,39,42,1)",
+              background: "rgba(24,24,27,1)",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="p-1">
+              {chains
+                .filter((c) => c.key !== value)
+                .map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-[rgba(39,39,42,0.5)] transition-colors cursor-pointer"
+                    onClick={() => {
+                      onChange(c.key);
+                      setOpen(false);
+                    }}
+                  >
+                    <div
+                      className="flex items-center justify-center w-7 h-7 rounded-[10px]"
+                      style={{
+                        background:
+                          "linear-gradient(to bottom right, rgba(199,255,46,0.08), rgba(23,201,100,0.08))",
+                        border: "1px solid rgba(199,255,46,0.1)",
+                      }}
+                    >
+                      {chainIcon(c.key, 18)}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-sm font-medium text-zinc-200">
+                        {c.label}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * For the Kalshi (Solana account) branch, the deposit destination is always
+ * the user's own Solana TEE wallet — no bridge involved. We keep this branch
+ * isolated from the Polymarket multi-chain flow so the Kalshi UX is unchanged.
+ */
+function KalshiDepositBody({
+  solanaAddress,
+  balance,
+}: {
+  solanaAddress: string | undefined;
+  balance: number | null;
+}) {
+  const { t } = useTranslation();
+  const chainName = "Solana";
+  const explorerUrl = solanaAddress
+    ? `https://solscan.io/account/${solanaAddress}`
+    : null;
+
+  return (
+    <>
+      <div className="bg-[#c7ff2e]/5 border border-[#c7ff2e]/15 rounded-[10px] px-3 py-2.5">
+        <p className="text-xs text-[#c7ff2e]/70 leading-relaxed">
+          {t("extend.predict.fundWallet.depositInfo", { chain: chainName })}
+        </p>
+      </div>
+
+      {solanaAddress ? (
+        <>
+          <div className="flex justify-center">
+            <QRCodeImage value={solanaAddress} />
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+              {t("extend.predict.fundWallet.yourAddress", { chain: chainName })}
+            </div>
+            <CopyAddressRow address={solanaAddress} />
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-32">
+          <span className="text-sm text-zinc-500">
+            {t("extend.predict.fundWallet.walletNotConnected")}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between bg-zinc-800/30 rounded-[10px] px-3 py-2.5 border border-zinc-700/50">
+        <span className="text-xs text-zinc-400">
+          {t("extend.predict.fundWallet.currentBalance")}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <UsdcIcon width={14} height={14} />
+          <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
+            ${formatUsdc(balance ?? 0)}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+          {t("extend.predict.fundWallet.supported")}
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
+          <UsdcIcon width={12} height={12} /> USDC
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
+          <SolanaIcon width={12} height={12} />{" "}
+          {t("extend.predict.fundWallet.solForFees")}
+        </span>
+      </div>
+
+      {explorerUrl && (
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-all"
+        >
+          {t("extend.predict.fundWallet.viewOnExplorer", { explorer: "Solscan" })}
+          <ExternalLinkIcon />
+        </a>
+      )}
+    </>
+  );
+}
+
+/**
+ * Polymarket multi-chain deposit body — chain picker (Solana / ETH / Polygon
+ * / BNB) drives the QR code, address, minimum-deposit hint, supported-token
+ * chips and explorer link.
+ *
+ * Each EVM chip points at the same bridge `evm` address; only the explorer
+ * URL and chip label change. Solana uses the bridge `svm` address.
+ */
+function PolymarketDepositBody({
+  polymarketSafeAddress,
+  balance,
+}: {
+  polymarketSafeAddress: string | undefined;
+  balance: number | null;
+}) {
+  const { t } = useTranslation();
+  const { data: depositAddresses, isLoading: depositAddressesLoading } =
+    usePolymarketDepositAddresses(polymarketSafeAddress);
+  const { data: supportedAssets } = usePolymarketSupportedAssets();
+
+  const availableChains = useMemo<DepositChainConfig[]>(() => {
+    const ordered = DEPOSIT_CHAIN_ORDER.map((k) => DEPOSIT_CHAINS[k]);
+    // If we don't yet know what the bridge supports (loading / cold cache),
+    // show all configured chains rather than blanking the picker.
+    if (!supportedAssets || supportedAssets.length === 0) {
+      return ordered;
+    }
+    const supportedChainIds = new Set(
+      supportedAssets.map((a) => a.chainId.toLowerCase()),
+    );
+    const filtered = ordered.filter((c) =>
+      supportedChainIds.has(c.chainId.toLowerCase()),
+    );
+    return filtered.length > 0 ? filtered : ordered;
+  }, [supportedAssets]);
+
+  const [selectedChainKey, setSelectedChainKey] = useState<DepositChainKey>(
+    availableChains[0]?.key ?? "solana",
+  );
+
+  // Keep the selected chain in sync when the available set changes (e.g.
+  // supportedAssets loads in after the modal opened).
+  useEffect(() => {
+    if (
+      availableChains.length > 0 &&
+      !availableChains.some((c) => c.key === selectedChainKey)
+    ) {
+      setSelectedChainKey(availableChains[0].key);
+    }
+  }, [availableChains, selectedChainKey]);
+
+  const selectedChain =
+    availableChains.find((c) => c.key === selectedChainKey) ??
+    availableChains[0];
+
+  const address =
+    selectedChain && depositAddresses
+      ? selectedChain.bridgeField === "svm"
+        ? depositAddresses.svm
+        : depositAddresses.evm
+      : undefined;
+
+  const chainAssets = useMemo(() => {
+    if (!supportedAssets || !selectedChain) return [];
+    return supportedAssets.filter(
+      (a) => a.chainId.toLowerCase() === selectedChain.chainId.toLowerCase(),
+    );
+  }, [supportedAssets, selectedChain]);
+
+  const minAmountUsd = useMemo(() => {
+    if (chainAssets.length === 0) return null;
+    return Math.min(...chainAssets.map((a) => a.minCheckoutUsd));
+  }, [chainAssets]);
+
+  /**
+   * Token chips surface only the chain's native gas token and the two stable
+   * coins (USDC, USDT) the bridge actually supports on this chain. Listing
+   * every bridge asset is too noisy and most users only ever deposit one of
+   * these three; matches the user-facing simplicity of competitor deposit
+   * screens.
+   */
+  const supportedSymbols = useMemo(() => {
+    if (!selectedChain) return [];
+    const bridgeSymbols = new Set(
+      chainAssets
+        .map((a) => a.token?.symbol?.toUpperCase())
+        .filter((s): s is string => Boolean(s)),
+    );
+    const out: string[] = [selectedChain.nativeSymbol];
+    if (bridgeSymbols.has("USDC")) out.push("USDC");
+    if (bridgeSymbols.has("USDT")) out.push("USDT");
+    return out;
+  }, [chainAssets, selectedChain]);
+
+  const explorerUrl =
+    selectedChain && address ? selectedChain.buildExplorerUrl(address) : null;
+
+  return (
+    <>
+      <DepositChainSelect
+        chains={availableChains}
+        value={selectedChainKey}
+        onChange={setSelectedChainKey}
+      />
+
+      {selectedChain && (
+        <div className="bg-[#c7ff2e]/5 border border-[#c7ff2e]/15 rounded-[10px] px-3 py-2.5">
+          <p className="text-xs text-[#c7ff2e]/70 leading-relaxed">
+            {t("extend.predict.fundWallet.depositInfo", {
+              chain: selectedChain.label,
+            })}
+          </p>
+        </div>
+      )}
+
+      {minAmountUsd != null && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2">
+          <p className="text-xs text-amber-300">
+            {t("extend.predict.fundWallet.minDepositUsd", {
+              amount: formatMinAmount(minAmountUsd),
+            })}
+          </p>
+        </div>
+      )}
+
+      {depositAddressesLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-zinc-600 border-t-zinc-300" />
+        </div>
+      ) : address && selectedChain ? (
+        <>
+          <div className="flex justify-center">
+            <QRCodeImage value={address} />
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+              {t("extend.predict.fundWallet.yourAddress", {
+                chain: selectedChain.label,
+              })}
+            </div>
+            <CopyAddressRow address={address} />
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-32">
+          <span className="text-sm text-zinc-500">
+            {t("extend.predict.fundWallet.walletNotConnected")}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between bg-zinc-800/30 rounded-[10px] px-3 py-2.5 border border-zinc-700/50">
+        <span className="text-xs text-zinc-400">
+          {t("extend.predict.fundWallet.currentBalance")}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <UsdcIcon width={14} height={14} />
+          <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
+            ${formatUsdc(balance ?? 0)}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+          {t("extend.predict.fundWallet.supported")}
+        </span>
+        {supportedSymbols.map((symbol) => (
+          <span
+            key={symbol}
+            className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50"
+          >
+            <SupportedTokenIcon symbol={symbol} /> {symbol}
+          </span>
+        ))}
+      </div>
+
+      {explorerUrl && selectedChain && (
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-all"
+        >
+          {t("extend.predict.fundWallet.viewOnExplorer", {
+            explorer: selectedChain.explorerName,
+          })}
+          <ExternalLinkIcon />
+        </a>
+      )}
+    </>
+  );
+}
+
+function SupportedTokenIcon({ symbol }: { symbol: string }) {
+  const upper = symbol.toUpperCase();
+  switch (upper) {
+    case "USDC":
+      return <UsdcIcon width={12} height={12} />;
+    case "USDT":
+      return <UsdtIcon width={12} height={12} />;
+    case "SOL":
+      return <SolanaIcon width={12} height={12} />;
+    case "ETH":
+      return <EthereumIcon width={12} height={12} />;
+    case "POL":
+    case "MATIC":
+      return <PolygonIcon width={12} height={12} />;
+    case "BNB":
+      return <BinanceIcon width={12} height={12} />;
+    default:
+      return <TokenIcon symbol={upper} size={12} />;
+  }
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+  );
+}
+
 function DepositScreen({
   selectedWallet,
   onSelectWallet,
@@ -586,110 +1043,28 @@ function DepositScreen({
     polymarketSafeAddress,
   } = usePredictWallet();
 
-  const { data: depositAddresses, isLoading: depositAddressesLoading } =
-    usePolymarketDepositAddresses(polymarketSafeAddress);
-
   const isSolana = selectedWallet === "solana";
-  const address = isSolana
-    ? solanaAddress
-    : depositAddresses?.evm ?? undefined;
-  const balance = isSolana ? kalshiUsdcBalance : polymarketUsdcBalance;
-  const chainName = isSolana ? "Solana" : "Polygon";
-
-  const explorerUrl = useMemo(() => {
-    if (!polymarketSafeAddress && !solanaAddress) return null;
-    return isSolana
-      ? `https://solscan.io/account/${solanaAddress}`
-      : `https://polygonscan.com/address/${polymarketSafeAddress}`;
-  }, [polymarketSafeAddress, solanaAddress, isSolana]);
 
   return (
     <div>
-      <ModalHeader title={t("extend.predict.fundWallet.depositTitle")} onBack={onBack} onClose={onClose} />
+      <ModalHeader
+        title={t("extend.predict.fundWallet.depositTitle")}
+        onBack={onBack}
+        onClose={onClose}
+      />
       <div className="px-5 pb-5 space-y-4">
         <WalletSelector selected={selectedWallet} onSelect={onSelectWallet} />
 
-        {/* Info banner */}
-        <div className="bg-[#c7ff2e]/5 border border-[#c7ff2e]/15 rounded-[10px] px-3 py-2.5">
-          <p className="text-xs text-[#c7ff2e]/70 leading-relaxed">
-            {t("extend.predict.fundWallet.depositInfo", { chain: chainName })}
-          </p>
-        </div>
-
-        {!isSolana && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2">
-            <p className="text-xs text-amber-300">
-              {t("extend.predict.fundWallet.depositMinAmount", { amount: "2" })}
-            </p>
-          </div>
-        )}
-
-        {!isSolana && depositAddressesLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-zinc-600 border-t-zinc-300" />
-          </div>
-        ) : address ? (
-          <>
-            {/* QR Code */}
-            <div className="flex justify-center">
-              <QRCodeImage value={address} />
-            </div>
-
-            {/* Address label + copy */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
-                {t("extend.predict.fundWallet.yourAddress", { chain: chainName })}
-              </div>
-              <CopyAddressRow address={address} />
-            </div>
-          </>
+        {isSolana ? (
+          <KalshiDepositBody
+            solanaAddress={solanaAddress}
+            balance={kalshiUsdcBalance}
+          />
         ) : (
-          <div className="flex items-center justify-center h-32">
-            <span className="text-sm text-zinc-500">{t("extend.predict.fundWallet.walletNotConnected")}</span>
-          </div>
-        )}
-
-        {/* Balance display */}
-        <div className="flex items-center justify-between bg-zinc-800/30 rounded-[10px] px-3 py-2.5 border border-zinc-700/50">
-          <span className="text-xs text-zinc-400">{t("extend.predict.fundWallet.currentBalance")}</span>
-          <div className="flex items-center gap-1.5">
-            <UsdcIcon width={14} height={14} />
-            <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
-              ${formatUsdc(balance ?? 0)}
-            </span>
-          </div>
-        </div>
-
-        {/* Supported tokens */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
-            {t("extend.predict.fundWallet.supported")}
-          </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
-            <UsdcIcon width={12} height={12} /> USDC
-          </span>
-          {isSolana && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-800/60 rounded-md text-[10px] text-zinc-300 border border-zinc-700/50">
-              <SolanaIcon width={12} height={12} /> {t("extend.predict.fundWallet.solForFees")}
-            </span>
-          )}
-        </div>
-
-        {/* Explorer link */}
-        {explorerUrl && (
-          <a
-            href={explorerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] border border-zinc-700/50 bg-zinc-800/60 hover:bg-zinc-800 text-sm text-zinc-300 hover:text-white transition-all"
-          >
-            {t("extend.predict.fundWallet.viewOnExplorer", { explorer: isSolana ? "Solscan" : "Polygonscan" })}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </a>
+          <PolymarketDepositBody
+            polymarketSafeAddress={polymarketSafeAddress}
+            balance={polymarketUsdcBalance}
+          />
         )}
       </div>
     </div>
@@ -1025,6 +1400,17 @@ function formatCents(cents: number): string {
 
 function formatUsdc(amount: number): string {
   return formatCents(toCents(amount));
+}
+
+/**
+ * Format a Bridge `minCheckoutUsd` value for display in the deposit banner.
+ *
+ * Drops trailing `.00` for whole-dollar minimums (e.g. `$2` instead of `$2.00`)
+ * while preserving meaningful cents (e.g. `$0.50`).
+ */
+function formatMinAmount(usd: number): string {
+  if (Number.isInteger(usd)) return `$${usd}`;
+  return `$${usd.toFixed(2)}`;
 }
 
 const WITHDRAW_ERROR_PATTERNS: [RegExp, string][] = [

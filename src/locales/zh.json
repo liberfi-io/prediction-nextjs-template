@@ -32,6 +32,8 @@
         "depositTitle": "充值",
         "depositInfo": "{{chain}} 錢包 — 向此地址發送 {{chain}} 網路上的 USDC。請僅發送 {{chain}} 網路上的資產。",
         "depositMinAmount": "最低充值金額：${{amount}}",
+        "network": "網路",
+        "minDepositUsd": "最低充值金額：{{amount}}",
         "yourAddress": "您的 {{chain}} 地址",
         "walletNotConnected": "錢包未連接",
         "currentBalance": "當前餘額",
