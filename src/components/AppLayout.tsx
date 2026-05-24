@@ -267,7 +267,6 @@ function PageShell({ children }: PropsWithChildren) {
               {/* Center: Search bar — desktop only */}
               <div className="hidden lg:flex flex-1 min-w-0 justify-center">
                 <SearchEventsButton
-                  displayMode="desktop"
                   onSelectEvent={handleSelectEvent}
                   modalParams={searchModalParams}
                   className="w-full !min-w-0 !max-w-md !rounded-lg !bg-zinc-900/60 !border-[1px] !border-zinc-800 hover:!border-zinc-700 !h-[30px] !min-h-0 [&_kbd]:!rounded [&_kbd]:!bg-zinc-800/60 [&_kbd]:!border-zinc-700/50 [&_kbd]:!text-zinc-500 [&_kbd]:!font-mono [&_kbd]:!text-[10px]"
