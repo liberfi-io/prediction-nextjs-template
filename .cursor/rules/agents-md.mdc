@@ -1,0 +1,8 @@
+---
+description: Use AGENTS.md as the shared project agent rule source
+alwaysApply: true
+---
+
+# Shared Agent Rules
+
+Read and follow the project root `AGENTS.md` as the shared project rule source.
