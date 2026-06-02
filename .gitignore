@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Turborepo
 .turbo
+
+# local plans / research artifacts
+.plans/
