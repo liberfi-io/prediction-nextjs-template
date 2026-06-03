@@ -103,6 +103,6 @@ jobs:
 
       - name: Trigger deploy
         if: steps.update.outputs.has_updates == 'true'
-        run: gh workflow run deploy.yml
+        run: gh workflow run deploy-staging.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

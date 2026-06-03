@@ -1,13 +1,14 @@
-name: Deploy to Vercel
+name: Deploy to Vercel Production
 
 on:
   push:
-    branches: [main]
+    tags:
+      - "v*"
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -15,7 +16,9 @@ env:
 
 jobs:
   deploy:
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +44,7 @@ jobs:
         id: deploy
         run: |
           DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "url=${DEPLOY_URL}" >> "${GITHUB_OUTPUT}"
 
       - name: Notify Lark (Success)
         if: success()
@@ -68,11 +71,12 @@ jobs:
             "content": {
               "post": {
                 "en_us": {
-                  "title": "✅ Prediction Deploy Succeeded",
+                  "title": "✅ Prediction Production Deploy Succeeded",
                   "content": [
                     [
                       {"tag": "text", "text": "Repo: prediction-nextjs-template\n"},
-                      {"tag": "text", "text": "Branch: main\n"},
+                      {"tag": "text", "text": "Environment: production\n"},
+                      {"tag": "text", "text": "Branch: ${GITHUB_REF_NAME}\n"},
                       {"tag": "text", "text": "Commit: ${COMMIT_SHA} - ${COMMIT_MSG}\n"},
                       {"tag": "text", "text": "Author: ${COMMIT_AUTHOR}\n"},
                       {"tag": "text", "text": "URL: "},
@@ -110,11 +114,12 @@ jobs:
             "content": {
               "post": {
                 "en_us": {
-                  "title": "❌ Prediction Deploy Failed",
+                  "title": "❌ Prediction Production Deploy Failed",
                   "content": [
                     [
                       {"tag": "text", "text": "Repo: prediction-nextjs-template\n"},
-                      {"tag": "text", "text": "Branch: main\n"},
+                      {"tag": "text", "text": "Environment: production\n"},
+                      {"tag": "text", "text": "Branch: ${GITHUB_REF_NAME}\n"},
                       {"tag": "text", "text": "Commit: ${COMMIT_SHA} - ${COMMIT_MSG}\n"},
                       {"tag": "text", "text": "Author: ${COMMIT_AUTHOR}\n"},
                       {"tag": "text", "text": "Details: "},

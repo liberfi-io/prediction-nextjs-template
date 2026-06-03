@@ -83,4 +83,4 @@
 - SDK 集成：数据 hooks `@liberfi.io/react-predict`、服务端 prefetch `@liberfi.io/react-predict/server`、UI `@liberfi.io/ui-predict`、布局 `@liberfi.io/ui-scaffold`、类型 `@liberfi.io/types`。
 - API 路由：浏览器经 `NEXT_PUBLIC_PREDICT_URL`（默认 `/predict-api`）→ Next.js rewrite → `PREDICT_URL`；服务端 `getServerPredictClient()` 直接用 `PREDICT_URL`。
 - Singleton 保证：`next.config.mjs` 为 `jotai`、`@tanstack/react-query` 固定单实例解析，避免重复实例。
-- 部署：GitHub Actions（`.github/workflows/deploy.yml`，push `main` 或 `workflow_dispatch`）→ Vercel CLI（`vercel pull` / `vercel build --prod` / `vercel deploy --prebuilt --prod`）。
+- 部署：GitHub Actions 分为 staging 与 production；`.github/workflows/deploy-staging.yml` 在 push `main` 或手动触发时部署 Vercel Custom Environment `staging`，`.github/workflows/deploy-prod.yml` 在 push `v*` tag 或手动触发时绑定 GitHub Environment `production` 后部署 Vercel production。

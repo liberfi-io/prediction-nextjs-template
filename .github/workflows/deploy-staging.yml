@@ -1,0 +1,131 @@
+name: Deploy to Vercel Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=staging --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --target=staging --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --target=staging --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=${DEPLOY_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Notify Lark (Success)
+        if: success()
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          LARK_SIGN_KEY: ${{ secrets.LARK_SIGN_KEY }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          SIGN_STRING="${TIMESTAMP}"$'\n'"${LARK_SIGN_KEY}"
+          SIGN=$(echo -n "" | openssl dgst -sha256 -hmac "$SIGN_STRING" -binary | base64)
+
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          COMMIT_SHA=$(git log -1 --pretty=%h)
+          DEPLOY_URL="${{ steps.deploy.outputs.url }}"
+
+          curl -s -X POST "$LARK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "timestamp": "$TIMESTAMP",
+            "sign": "$SIGN",
+            "msg_type": "post",
+            "content": {
+              "post": {
+                "en_us": {
+                  "title": "✅ Prediction Staging Deploy Succeeded",
+                  "content": [
+                    [
+                      {"tag": "text", "text": "Repo: prediction-nextjs-template\n"},
+                      {"tag": "text", "text": "Environment: staging\n"},
+                      {"tag": "text", "text": "Branch: main\n"},
+                      {"tag": "text", "text": "Commit: ${COMMIT_SHA} - ${COMMIT_MSG}\n"},
+                      {"tag": "text", "text": "Author: ${COMMIT_AUTHOR}\n"},
+                      {"tag": "text", "text": "URL: "},
+                      {"tag": "a", "text": "${DEPLOY_URL}", "href": "${DEPLOY_URL}"}
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Notify Lark (Failure)
+        if: failure()
+        env:
+          LARK_WEBHOOK_URL: ${{ secrets.LARK_WEBHOOK_URL }}
+          LARK_SIGN_KEY: ${{ secrets.LARK_SIGN_KEY }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          SIGN_STRING="${TIMESTAMP}"$'\n'"${LARK_SIGN_KEY}"
+          SIGN=$(echo -n "" | openssl dgst -sha256 -hmac "$SIGN_STRING" -binary | base64)
+
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          COMMIT_SHA=$(git log -1 --pretty=%h)
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "$LARK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "timestamp": "$TIMESTAMP",
+            "sign": "$SIGN",
+            "msg_type": "post",
+            "content": {
+              "post": {
+                "en_us": {
+                  "title": "❌ Prediction Staging Deploy Failed",
+                  "content": [
+                    [
+                      {"tag": "text", "text": "Repo: prediction-nextjs-template\n"},
+                      {"tag": "text", "text": "Environment: staging\n"},
+                      {"tag": "text", "text": "Branch: main\n"},
+                      {"tag": "text", "text": "Commit: ${COMMIT_SHA} - ${COMMIT_MSG}\n"},
+                      {"tag": "text", "text": "Author: ${COMMIT_AUTHOR}\n"},
+                      {"tag": "text", "text": "Details: "},
+                      {"tag": "a", "text": "View Logs", "href": "${RUN_URL}"}
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+          EOF
