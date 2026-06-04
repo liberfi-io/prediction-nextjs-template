@@ -38,7 +38,7 @@ export function TeamFlag({
       height={size}
       loading="lazy"
       className={cn(
-        "rounded-full object-cover shrink-0 ring-1 ring-white/10",
+        "rounded-sm object-cover shrink-0",
         className,
       )}
       style={{ width: size, height: size }}
