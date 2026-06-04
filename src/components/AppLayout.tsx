@@ -93,6 +93,20 @@ const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
+  {
+    key: "worldcup",
+    href: "/world-cup",
+    icon: (
+      <span className="relative flex h-5 w-5 items-center justify-center">
+        <img
+          src="/worldcup/trophy.webp"
+          alt=""
+          aria-hidden
+          className="absolute bottom-0 h-11 w-auto max-w-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]"
+        />
+      </span>
+    ),
+  },
   { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
   { key: "matches", href: "/matches", icon: <ZapFastIcon width={20} height={20} /> },
   { key: "portfolio", href: "/portfolio", icon: <UserIcon width={20} height={20} /> },
@@ -325,6 +339,7 @@ function NavTab({
       data-active={active}
       className={cn(
         "px-3 py-1.5 text-sm font-medium rounded-[10px] transition-colors cursor-pointer whitespace-nowrap focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+        item.key === "worldcup" && "relative",
         active
           ? "text-[#c7ff2e]"
           : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
@@ -333,7 +348,17 @@ function NavTab({
       aria-label={item.label}
       aria-current={active ? "page" : undefined}
     >
-      {item.label}
+      {item.key === "worldcup" && (
+        <img
+          src="/worldcup/trophy.webp"
+          alt=""
+          aria-hidden
+          className="absolute left-1 top-1/2 h-[18px] w-auto -translate-y-1/2"
+        />
+      )}
+      <span className={item.key === "worldcup" ? "pl-[4px]" : undefined}>
+        {item.label}
+      </span>
     </button>
   );
 }

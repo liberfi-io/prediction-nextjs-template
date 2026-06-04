@@ -23,6 +23,7 @@
     "@liberfi.io/utils": "^0.2.29",
     "@liberfi.io/wallet-connector": "^0.2.29",
     "@liberfi.io/wallet-connector-privy": "^1.1.27",
+    "@number-flow/react": "^0.6.0",
     "@paulmillr/qr": "^0.2.1",
     "@privy-io/react-auth": "^3.16.0",
     "@privy-io/server-auth": "^1.18.12",
