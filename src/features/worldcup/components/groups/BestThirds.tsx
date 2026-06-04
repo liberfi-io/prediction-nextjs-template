@@ -4,13 +4,14 @@ import { cn } from "@liberfi.io/ui";
 import { useWorldcupBestThird } from "../../data/queries";
 import { BestThirdsSkeleton } from "../skeletons";
 import { TeamFlag } from "../TeamFlag";
-import { teamName, useWcLocale } from "../util";
+import { teamName, useWcLocale, useWcT } from "../util";
 
 const TH = "px-1 py-1 text-right text-[10px] font-semibold uppercase tracking-wide text-zinc-600";
 const TD = "px-1 py-2 text-right text-[13px] tabular-nums text-zinc-300";
 
 export function BestThirds() {
   const locale = useWcLocale();
+  const t = useWcT();
   const { data: rows = [], isPending } = useWorldcupBestThird();
 
   if (isPending) return <BestThirdsSkeleton />;
@@ -19,10 +20,10 @@ export function BestThirds() {
     <div className="mt-3 rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
       <div className="mb-1 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-100">
-          {locale === "zh" ? "最佳第三名排行" : "Best Third-Placed Teams"}
+          {t("worldcup.bestThirds.title")}
         </h3>
         <span className="text-[10px] uppercase tracking-wider text-zinc-600">
-          {locale === "zh" ? "前 8 晋级" : "Top 8 advance"}
+          {t("worldcup.bestThirds.top8Advance")}
         </span>
       </div>
 
@@ -30,8 +31,8 @@ export function BestThirds() {
         <thead>
           <tr className="border-b border-zinc-800">
             <th className={cn(TH, "text-left")}>#</th>
-            <th className={cn(TH, "text-left")}>{locale === "zh" ? "球队" : "Team"}</th>
-            <th className={TH}>{locale === "zh" ? "小组" : "Grp"}</th>
+            <th className={cn(TH, "text-left")}>{t("worldcup.team")}</th>
+            <th className={TH}>{t("worldcup.groupShort")}</th>
             <th className={TH}>%</th>
           </tr>
         </thead>

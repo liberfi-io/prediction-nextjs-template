@@ -20,9 +20,12 @@ import {
   WORLDCUP_STANDINGS_QUERY_KEY,
   fetchWorldcupBestThird,
   fetchWorldcupBracket,
+  fetchWorldcupCurated,
   fetchWorldcupMatches,
   fetchWorldcupProps,
   fetchWorldcupStandings,
+  worldcupCuratedQueryKey,
+  type WcCuratedBucket,
 } from "./client";
 
 const POLL_INTERVAL_MS = 30_000;
@@ -140,5 +143,28 @@ export async function prefetchWorldcupProps(
   await queryClient.prefetchQuery({
     queryKey: WORLDCUP_PROPS_QUERY_KEY,
     queryFn: () => fetchWorldcupProps(base),
+  });
+}
+
+/** Poll a curated rail (e.g. bracket related events) from the browser. */
+export function useWorldcupCurated(bucket: WcCuratedBucket) {
+  return useQuery({
+    queryKey: worldcupCuratedQueryKey(bucket),
+    queryFn: () => fetchWorldcupCurated(CLIENT_BASE, bucket),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/** Server-side prefetch for a curated rail; no-ops when `PREDICT_URL` is unset. */
+export async function prefetchWorldcupCurated(
+  queryClient: QueryClient,
+  bucket: WcCuratedBucket,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: worldcupCuratedQueryKey(bucket),
+    queryFn: () => fetchWorldcupCurated(base, bucket),
   });
 }

@@ -8,6 +8,7 @@ import { createServerQueryClient } from "src/libs/server/queryClient";
 import {
   prefetchWorldcupBestThird,
   prefetchWorldcupBracket,
+  prefetchWorldcupCurated,
   prefetchWorldcupMatches,
   prefetchWorldcupProps,
   prefetchWorldcupStandings,
@@ -26,7 +27,11 @@ function prefetchForTab(
 ): Promise<unknown> | null {
   switch (tab) {
     case "games":
-      return prefetchWorldcupMatches(queryClient);
+      return Promise.all([
+        prefetchWorldcupMatches(queryClient),
+        // Related-events rail rendered below the widget / match list.
+        prefetchWorldcupCurated(queryClient, "bracket"),
+      ]);
     case "groups":
       return Promise.all([
         prefetchWorldcupStandings(queryClient),

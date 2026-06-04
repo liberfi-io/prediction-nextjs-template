@@ -136,11 +136,4 @@ export interface WcBracketNode {
   kickoffMs: number;
 }
 
-export const BRACKET_ROUNDS: Array<{ id: string; en: string; zh: string }> = [
-  { id: "r32", en: "Round of 32", zh: "32 强" },
-  { id: "r16", en: "Round of 16", zh: "16 强" },
-  { id: "r8", en: "Quarter-finals", zh: "1/4 决赛" },
-  { id: "r4", en: "Semi-finals", zh: "半决赛" },
-  { id: "r3rd", en: "Third place", zh: "季军赛" },
-  { id: "final", en: "Final", zh: "决赛" },
-];
+export const BRACKET_ROUNDS = ["r32", "r16", "r8", "r4", "r3rd", "final"] as const;

@@ -136,5 +136,63 @@
   "common": {
     "signIn": "Sign In",
     "signOut": "Sign Out"
+  },
+  "worldcup": {
+    "tab": {
+      "games": "Games",
+      "props": "Props",
+      "groups": "Groups",
+      "bracket": "Bracket"
+    },
+    "groupBy": {
+      "stage": "By group",
+      "time": "By date"
+    },
+    "odds": "Odds",
+    "oddsFormat": {
+      "price": "Price",
+      "percentage": "Percentage",
+      "decimal": "Decimal",
+      "american": "American",
+      "fractional": "Fractional",
+      "hongKong": "HK",
+      "indonesian": "Indo",
+      "malaysian": "Malay"
+    },
+    "groupLabel": "Group {{code}}",
+    "liveUnavailable": "Live unavailable",
+    "fullTime": "Full Time",
+    "volume": "Vol",
+    "draw": "Draw",
+    "live": "Live",
+    "matchView": "markets",
+    "relatedEvents": "Similar Events",
+    "versus": "vs",
+    "advanceProbability": "Advance",
+    "team": "Team",
+    "collapse": "Collapse",
+    "expandFullTable": "Expand full table",
+    "bestThirds": {
+      "title": "Best Third-Placed Teams",
+      "top8Advance": "Top 8 advance"
+    },
+    "groupShort": "Grp",
+    "round": {
+      "r32": "Round of 32",
+      "r16": "Round of 16",
+      "r8": "Quarter-finals",
+      "r4": "Semi-finals",
+      "r3rd": "Third place",
+      "final": "Final"
+    },
+    "milestone": {
+      "groupStage": "Group Stage",
+      "r32": "R32",
+      "r16": "R16",
+      "r8": "Quarter-finals",
+      "r4": "Semi-finals",
+      "r3rd": "Third place",
+      "final": "Final"
+    }
   }
 }

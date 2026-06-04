@@ -11,6 +11,16 @@ export function useWcLocale(): WcLocale {
   return (i18n.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 
+/**
+ * Typed-i18n t() wrapper for worldcup keys. The underlying `useTranslation().t`
+ * has a strict key union that doesn't include our `worldcup.*` namespace, so
+ * this helper returns a relaxed `(key, options?) => string` function.
+ */
+export function useWcT() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return useTranslation().t as (key: string, options?: Record<string, any>) => string;
+}
+
 export function teamName(team: WcTeam, locale: WcLocale): string {
   return locale === "zh" ? team.nameZh : team.name;
 }

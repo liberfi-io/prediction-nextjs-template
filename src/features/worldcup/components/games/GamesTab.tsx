@@ -8,7 +8,7 @@ import type { WcMatch } from "../../types";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
-import { useWcLocale } from "../util";
+import { useWcLocale, useWcT } from "../util";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
 
@@ -47,7 +47,7 @@ function SportsWidget({
   match: WcMatch | null;
   className?: string;
 }) {
-  const locale = useWcLocale();
+  const t = useWcT();
   const src = widgetSrcForMatch(match);
 
   if (!src) {
@@ -58,7 +58,7 @@ function SportsWidget({
           className,
         )}
       >
-        {locale === "zh" ? "暂无实况" : "Live unavailable"}
+        {t("worldcup.liveUnavailable")}
       </div>
     );
   }
@@ -103,6 +103,7 @@ function Toggle({
 
 export function GamesTab() {
   const router = useRouter();
+  const t = useWcT();
   const locale = useWcLocale();
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
@@ -145,10 +146,10 @@ export function GamesTab() {
     return [...byGroup.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([code, items]) => ({
-        title: `${locale === "zh" ? "" : "Group "}${code}${locale === "zh" ? " 组" : ""}`,
+        title: t("worldcup.groupLabel", { code }),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
-  }, [matches, groupBy, locale]);
+  }, [matches, groupBy, t]);
 
   if (isPending) return <GamesSkeleton />;
 
@@ -181,10 +182,10 @@ export function GamesTab() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
             <Toggle active={groupBy === "stage"} onClick={() => setGroupBy("stage")}>
-              {locale === "zh" ? "按分组" : "By group"}
+              {t("worldcup.groupBy.stage")}
             </Toggle>
             <Toggle active={groupBy === "time"} onClick={() => setGroupBy("time")}>
-              {locale === "zh" ? "按日期" : "By date"}
+              {t("worldcup.groupBy.time")}
             </Toggle>
           </div>
           <OddsFormatSelect />

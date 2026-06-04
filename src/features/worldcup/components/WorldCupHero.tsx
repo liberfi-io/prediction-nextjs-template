@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useWcLocale } from "./util";
+import { useWcT } from "./util";
 
 /**
  * Hero banner replicated from future.news World Cup page.
@@ -13,8 +13,8 @@ import { useWcLocale } from "./util";
 type Align = "start" | "center" | "end";
 
 interface Milestone {
-  en: string;
-  zh: string;
+  /** i18n key under `worldcup.milestone.` */
+  key: string;
   date: string; // DD/MM as shown on the banner
   iso: string; // resolved date used to compute timeline progress
   align: Align;
@@ -22,13 +22,13 @@ interface Milestone {
 
 // Ordered milestones with the exact flex weights used by future.news.
 const MILESTONES: Milestone[] = [
-  { en: "Group Stage", zh: "小组赛", date: "12/06", iso: "2026-06-12", align: "start" },
-  { en: "R32", zh: "32强", date: "29/06", iso: "2026-06-29", align: "center" },
-  { en: "R16", zh: "16强", date: "05/07", iso: "2026-07-05", align: "center" },
-  { en: "QF", zh: "八强", date: "10/07", iso: "2026-07-10", align: "center" },
-  { en: "SF", zh: "半决赛", date: "15/07", iso: "2026-07-15", align: "center" },
-  { en: "3rd", zh: "季军赛", date: "19/07", iso: "2026-07-19", align: "center" },
-  { en: "Final", zh: "决赛", date: "20/07", iso: "2026-07-20", align: "end" },
+  { key: "groupStage", date: "12/06", iso: "2026-06-12", align: "start" },
+  { key: "r32", date: "29/06", iso: "2026-06-29", align: "center" },
+  { key: "r16", date: "05/07", iso: "2026-07-05", align: "center" },
+  { key: "r8", date: "10/07", iso: "2026-07-10", align: "center" },
+  { key: "r4", date: "15/07", iso: "2026-07-15", align: "center" },
+  { key: "r3rd", date: "19/07", iso: "2026-07-19", align: "center" },
+  { key: "final", date: "20/07", iso: "2026-07-20", align: "end" },
 ];
 
 // Segment between milestone i and i+1. `flex` mirrors the source weights;
@@ -57,12 +57,12 @@ function spanAlign(align: Align): string {
 function Node({
   milestone,
   side,
-  locale,
+  label,
   hideLabelBelowMd,
 }: {
   milestone: Milestone;
   side: "left" | "right";
-  locale: "en" | "zh";
+  label: string;
   hideLabelBelowMd?: boolean;
 }) {
   const isCenter = milestone.align === "center";
@@ -78,14 +78,14 @@ function Node({
           milestone.align,
         )} ${hideLabelBelowMd ? "hidden md:inline" : ""}`}
       >
-        {(locale === "zh" ? milestone.zh : milestone.en) + " " + milestone.date}
+        {label + " " + milestone.date}
       </span>
     </div>
   );
 }
 
 export function WorldCupHero() {
-  const locale = useWcLocale();
+  const t = useWcT();
   // Progress fills are computed after mount to avoid SSR hydration mismatch
   // and to match the source's 0% pre-tournament state on first paint.
   const [fills, setFills] = useState<number[]>(() => SEGMENTS.map(() => 0));
@@ -142,12 +142,12 @@ export function WorldCupHero() {
                   }
                 >
                   {i === 0 && (
-                    <Node milestone={MILESTONES[0]} side="left" locale={locale} />
+                    <Node milestone={MILESTONES[0]} side="left" label={t(`worldcup.milestone.${MILESTONES[0].key}`)} />
                   )}
                   <Node
                     milestone={MILESTONES[i + 1]}
                     side="right"
-                    locale={locale}
+                    label={t(`worldcup.milestone.${MILESTONES[i + 1].key}`)}
                     hideLabelBelowMd={i + 1 !== MILESTONES.length - 1}
                   />
                   <div className="relative h-[4px] w-full rounded-full bg-white/30">

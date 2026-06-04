@@ -1,7 +1,7 @@
 "use client";
 
 import type { WcBracketNode } from "../../types";
-import { formatDayMonth, useWcLocale } from "../util";
+import { formatDayMonth, useWcLocale, useWcT } from "../util";
 
 function Slot({ label }: { label: string }) {
   return (
@@ -15,13 +15,14 @@ function Slot({ label }: { label: string }) {
 
 export function BracketMatchNode({ node }: { node: WcBracketNode }) {
   const locale = useWcLocale();
+  const t = useWcT();
   return (
     <div className="rounded-[10px] border border-zinc-800 bg-zinc-900/50 p-2.5">
       <div className="flex flex-col gap-1.5">
         <Slot label={node.homeLabel} />
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-medium uppercase text-zinc-600">
-            {locale === "zh" ? "对" : "vs"}
+            {t("worldcup.versus")}
           </span>
         </div>
         <Slot label={node.awayLabel} />

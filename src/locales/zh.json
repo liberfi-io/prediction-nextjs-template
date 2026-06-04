@@ -136,5 +136,63 @@
   "common": {
     "signIn": "登入",
     "signOut": "登出"
+  },
+  "worldcup": {
+    "tab": {
+      "games": "比賽",
+      "props": "玩法",
+      "groups": "積分榜",
+      "bracket": "對陣圖"
+    },
+    "groupBy": {
+      "stage": "按分組",
+      "time": "按日期"
+    },
+    "odds": "賠率",
+    "oddsFormat": {
+      "price": "價格",
+      "percentage": "百分比",
+      "decimal": "小數",
+      "american": "美式",
+      "fractional": "分數",
+      "hongKong": "香港",
+      "indonesian": "印尼式",
+      "malaysian": "馬來式"
+    },
+    "groupLabel": "{{code}} 組",
+    "liveUnavailable": "暫無實況",
+    "fullTime": "完場",
+    "volume": "交易量",
+    "draw": "平",
+    "live": "實況",
+    "matchView": "比賽視圖",
+    "relatedEvents": "相似事件",
+    "versus": "對",
+    "advanceProbability": "晉級概率",
+    "team": "球隊",
+    "collapse": "收起",
+    "expandFullTable": "展開完整數據",
+    "bestThirds": {
+      "title": "最佳第三名排行",
+      "top8Advance": "前 8 晉級"
+    },
+    "groupShort": "小組",
+    "round": {
+      "r32": "32 強",
+      "r16": "16 強",
+      "r8": "1/4 決賽",
+      "r4": "半決賽",
+      "r3rd": "季軍賽",
+      "final": "決賽"
+    },
+    "milestone": {
+      "groupStage": "小組賽",
+      "r32": "32強",
+      "r16": "16強",
+      "r8": "八強",
+      "r4": "半決賽",
+      "r3rd": "季軍賽",
+      "final": "決賽"
+    }
   }
 }

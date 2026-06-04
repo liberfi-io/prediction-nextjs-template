@@ -600,3 +600,33 @@ export const WORLDCUP_PROPS_QUERY_KEY = ["worldcup", "props"] as const;
 export async function fetchWorldcupProps(baseUrl: string): Promise<WcProp[]> {
   return getWorldcupJson<WcPropsResponseDto>(baseUrl, "props").then(adaptProps);
 }
+
+// ---------------------------------------------------------------------------
+// Curated events (related-events rails surfaced outside the Props tab)
+// ---------------------------------------------------------------------------
+
+/** Curated rails the backend exposes; each reuses the {@link WcPropEventDto} shape. */
+export type WcCuratedBucket = "standings" | "bracket";
+
+export interface WcCuratedEventsResponseDto {
+  bucket: string;
+  events: WcPropEventDto[] | null;
+}
+
+/** Per-bucket key so each rail caches independently. */
+export const worldcupCuratedQueryKey = (bucket: WcCuratedBucket) =>
+  ["worldcup", "curated", bucket] as const;
+
+/**
+ * Fetch a curated rail and reuse the prop adapter — curated events are the same
+ * `WCPropEvent` payload as `/props`, just pre-filtered into a themed bucket.
+ */
+export async function fetchWorldcupCurated(
+  baseUrl: string,
+  bucket: WcCuratedBucket,
+): Promise<WcProp[]> {
+  return getWorldcupJson<WcCuratedEventsResponseDto>(
+    baseUrl,
+    `curated-events?bucket=${bucket}`,
+  ).then((dto) => adaptProps({ props: dto.events }));
+}
