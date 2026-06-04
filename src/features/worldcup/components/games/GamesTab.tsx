@@ -10,6 +10,7 @@ import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
 import { useWcLocale } from "../util";
 import { MatchCard } from "./MatchCard";
+import { RelatedEvents } from "./RelatedEvents";
 
 type GroupBy = "stage" | "time";
 
@@ -33,6 +34,11 @@ function widgetSrcForMatch(match: WcMatch | null): string | null {
 // Offset from the scroll-container top for the pinned desktop widget, clearing
 // the sticky sub-tab row.
 const WIDGET_STICKY_TOP = "56px";
+
+// On desktop the widget + related events form one pinned, internally-scrolling
+// panel. Inside that scroll container the related-events header sticks right
+// below the (in-panel sticky) widget, i.e. at the widget height (400px).
+const RELATED_HEADER_STICKY_TOP = "400px";
 
 function SportsWidget({
   match,
@@ -148,11 +154,25 @@ export function GamesTab() {
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-      {/* WIDGET: full-width on top (< lg) via order-first; pinned right column
-          (>= lg) via order-last + sticky. Single iframe repositioned by CSS. */}
+      {/* WIDGET + related events: full-width on top (< lg) via order-first; on
+          desktop it's the right column — a pinned panel that scrolls internally
+          (widget pinned to its top, related header just under it) so it scrolls
+          independently of the matches and reaches its own bottom. Height is the
+          scroll viewport minus the app header (48px) and the pin offset (56px). */}
       <aside className="order-first w-full shrink-0 lg:order-last lg:w-82">
-        <div className="lg:sticky" style={{ top: WIDGET_STICKY_TOP }}>
-          <SportsWidget match={activeMatch} className="h-[400px]" />
+        <div
+          className="relative z-30 lg:sticky lg:flex lg:max-h-[calc(100dvh-104px)] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden"
+          style={{ top: WIDGET_STICKY_TOP }}
+        >
+          <SportsWidget
+            match={activeMatch}
+            className="h-[400px] shrink-0 lg:sticky lg:top-0 lg:z-30"
+          />
+          {/* Desktop: related events below the widget; header sticks under it. */}
+          <RelatedEvents
+            className="hidden lg:flex"
+            stickyHeaderTop={RELATED_HEADER_STICKY_TOP}
+          />
         </div>
       </aside>
 
@@ -161,7 +181,7 @@ export function GamesTab() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
             <Toggle active={groupBy === "stage"} onClick={() => setGroupBy("stage")}>
-              {locale === "zh" ? "按组" : "By group"}
+              {locale === "zh" ? "按分组" : "By group"}
             </Toggle>
             <Toggle active={groupBy === "time"} onClick={() => setGroupBy("time")}>
               {locale === "zh" ? "按日期" : "By date"}
@@ -189,6 +209,9 @@ export function GamesTab() {
             ))}
           </section>
         ))}
+
+        {/* Mobile: related events below the match list. */}
+        <RelatedEvents className="flex lg:hidden" />
       </div>
     </div>
   );
