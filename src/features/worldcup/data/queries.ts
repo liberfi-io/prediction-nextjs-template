@@ -1,0 +1,48 @@
+/**
+ * React Query bindings for the worldcup matches list.
+ *
+ * - {@link useWorldcupMatches} runs in the browser and polls every 30s
+ *   (aligned with the endpoint's `Cache-Control: max-age=30`).
+ * - {@link prefetchWorldcupMatches} runs on the server to seed the SSR
+ *   HydrationBoundary so the first paint is fully rendered.
+ *
+ * Both share {@link WORLDCUP_MATCHES_QUERY_KEY}; only the API base differs
+ * (server hits `PREDICT_URL` directly, the browser hits the `/predict-api`
+ * rewrite prefix).
+ */
+
+import { useQuery, type QueryClient } from "@tanstack/react-query";
+import {
+  WORLDCUP_MATCHES_QUERY_KEY,
+  fetchWorldcupMatches,
+} from "./client";
+
+const POLL_INTERVAL_MS = 30_000;
+
+/** Browser-side API prefix (rewritten by Next.js to `PREDICT_URL`). */
+const CLIENT_BASE = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
+
+/** Poll the worldcup matches list from the browser. */
+export function useWorldcupMatches() {
+  return useQuery({
+    queryKey: WORLDCUP_MATCHES_QUERY_KEY,
+    queryFn: () => fetchWorldcupMatches(CLIENT_BASE),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/**
+ * Server-side prefetch into a per-request QueryClient. No-ops when
+ * `PREDICT_URL` is unset so SSR degrades to a client-only fetch.
+ */
+export async function prefetchWorldcupMatches(
+  queryClient: QueryClient,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: WORLDCUP_MATCHES_QUERY_KEY,
+    queryFn: () => fetchWorldcupMatches(base),
+  });
+}

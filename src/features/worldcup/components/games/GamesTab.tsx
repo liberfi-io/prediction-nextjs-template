@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
-import { getMatches } from "../../data";
+import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { OddsFormatSelect } from "../OddsFormatSelect";
@@ -100,7 +100,8 @@ export function GamesTab() {
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
-  const matches = useMemo(() => getMatches(), []);
+  // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
+  const { data: matches = [] } = useWorldcupMatches();
   const onOpen = (slug: string) => router.push(`/polymarket/${slug}`);
 
   // Match currently shown in the live widget (defaults to the first live game,

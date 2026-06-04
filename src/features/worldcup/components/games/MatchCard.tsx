@@ -105,7 +105,11 @@ function Pill({
         {label}
       </span>
       <span className="shrink-0 text-sm font-bold tabular-nums">
-        <OddsNumber value={convertPrice(price, format)} variant={variant} />
+        {price > 0 ? (
+          <OddsNumber value={convertPrice(price, format)} variant={variant} />
+        ) : (
+          "—"
+        )}
       </span>
     </button>
   );
