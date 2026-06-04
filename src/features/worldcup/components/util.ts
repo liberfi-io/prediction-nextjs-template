@@ -1,28 +1,6 @@
-"use client";
-
-import { useTranslation } from "@liberfi.io/i18n";
-import type { WcTeam } from "../types";
-
-export type WcLocale = "zh" | "en";
-
-/** Current UI locale collapsed to zh / en for picking baked bilingual names. */
-export function useWcLocale(): WcLocale {
-  const { i18n } = useTranslation();
-  return (i18n.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
-}
-
-/**
- * Typed-i18n t() wrapper for worldcup keys. The underlying `useTranslation().t`
- * has a strict key union that doesn't include our `worldcup.*` namespace, so
- * this helper returns a relaxed `(key, options?) => string` function.
- */
-export function useWcT() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return useTranslation().t as (key: string, options?: Record<string, any>) => string;
-}
-
-export function teamName(team: WcTeam, locale: WcLocale): string {
-  return locale === "zh" ? team.nameZh : team.name;
+/** Returns true when the active i18n language is a Chinese variant. */
+export function isZhLang(lang: string): boolean {
+  return (lang || "en").toLowerCase().startsWith("zh");
 }
 
 /** Compact USD volume, e.g. $1.5M / $12.3K. */
@@ -34,22 +12,17 @@ export function formatVolume(usd: number): string {
 }
 
 /** Kickoff time + short date, e.g. "7:00 PM · Jun 11". */
-export function formatKickoff(ms: number, locale: WcLocale): string {
+export function formatKickoff(ms: number, lang: string): string {
   const d = new Date(ms);
-  const time = d.toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const date = d.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const intl = lang.startsWith("zh") ? "zh-CN" : "en-US";
+  const time = d.toLocaleTimeString(intl, { hour: "numeric", minute: "2-digit" });
+  const date = d.toLocaleDateString(intl, { month: "short", day: "numeric" });
   return `${time} · ${date}`;
 }
 
-export function formatDayMonth(ms: number, locale: WcLocale): string {
+export function formatDayMonth(ms: number, lang: string): string {
   const d = new Date(ms);
-  return d.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
+  return d.toLocaleDateString(lang.startsWith("zh") ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
   });

@@ -1,7 +1,8 @@
 "use client";
 
 import type { WcBracketNode } from "../../types";
-import { formatDayMonth, useWcLocale, useWcT } from "../util";
+import { useTranslation } from "@liberfi.io/i18n";
+import { formatDayMonth } from "../util";
 
 function Slot({ label }: { label: string }) {
   return (
@@ -14,15 +15,14 @@ function Slot({ label }: { label: string }) {
 }
 
 export function BracketMatchNode({ node }: { node: WcBracketNode }) {
-  const locale = useWcLocale();
-  const t = useWcT();
+  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const lang = i18n.language || "en";
   return (
     <div className="rounded-[10px] border border-zinc-800 bg-zinc-900/50 p-2.5">
       <div className="flex flex-col gap-1.5">
         <Slot label={node.homeLabel} />
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-medium uppercase text-zinc-600">
-            {t("worldcup.versus")}
+            {t("extend.worldcup.versus")}
           </span>
         </div>
         <Slot label={node.awayLabel} />
@@ -30,7 +30,7 @@ export function BracketMatchNode({ node }: { node: WcBracketNode }) {
       <div className="mt-2 flex items-center justify-between border-t border-zinc-800/60 pt-1.5 text-[10px] text-zinc-500">
         <span className="truncate">{node.city}</span>
         <span className="shrink-0 tabular-nums">
-          {formatDayMonth(node.kickoffMs, locale)}
+          {formatDayMonth(node.kickoffMs, lang)}
         </span>
       </div>
     </div>

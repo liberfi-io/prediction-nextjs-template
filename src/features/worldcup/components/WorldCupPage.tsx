@@ -1,8 +1,8 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useWcT } from "./util";
 import { cn } from "@liberfi.io/ui";
 import { GamesTab } from "./games/GamesTab";
 import { PropsTab } from "./props/PropsTab";
@@ -12,7 +12,7 @@ import { WC_TABS, type WcTab } from "../tabs";
 
 export function WorldCupPage({ tab }: { tab: WcTab }) {
   const router = useRouter();
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
 
   const go = useCallback(
     (next: WcTab) => router.push(next === "games" ? "/world-cup" : `/world-cup/${next}`),
@@ -39,7 +39,7 @@ export function WorldCupPage({ tab }: { tab: WcTab }) {
                     : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200",
                 )}
               >
-                {t(`worldcup.tab.${key}`)}
+                {t(`extend.worldcup.tab.${key}`)}
               </button>
             );
           })}

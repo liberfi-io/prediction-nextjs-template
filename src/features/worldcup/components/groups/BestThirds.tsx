@@ -1,17 +1,16 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import { useWorldcupBestThird } from "../../data/queries";
 import { BestThirdsSkeleton } from "../skeletons";
 import { TeamFlag } from "../TeamFlag";
-import { teamName, useWcLocale, useWcT } from "../util";
 
 const TH = "px-1 py-1 text-right text-[10px] font-semibold uppercase tracking-wide text-zinc-600";
 const TD = "px-1 py-2 text-right text-[13px] tabular-nums text-zinc-300";
 
 export function BestThirds() {
-  const locale = useWcLocale();
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const { data: rows = [], isPending } = useWorldcupBestThird();
 
   if (isPending) return <BestThirdsSkeleton />;
@@ -20,10 +19,10 @@ export function BestThirds() {
     <div className="mt-3 rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
       <div className="mb-1 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-100">
-          {t("worldcup.bestThirds.title")}
+          {t("extend.worldcup.bestThirds.title")}
         </h3>
         <span className="text-[10px] uppercase tracking-wider text-zinc-600">
-          {t("worldcup.bestThirds.top8Advance")}
+          {t("extend.worldcup.bestThirds.top8Advance")}
         </span>
       </div>
 
@@ -31,8 +30,8 @@ export function BestThirds() {
         <thead>
           <tr className="border-b border-zinc-800">
             <th className={cn(TH, "text-left")}>#</th>
-            <th className={cn(TH, "text-left")}>{t("worldcup.team")}</th>
-            <th className={TH}>{t("worldcup.groupShort")}</th>
+            <th className={cn(TH, "text-left")}>{t("extend.worldcup.team")}</th>
+            <th className={TH}>{t("extend.worldcup.groupShort")}</th>
             <th className={TH}>%</th>
           </tr>
         </thead>
@@ -53,7 +52,7 @@ export function BestThirds() {
                 <div className="flex min-w-0 items-center gap-1.5">
                   <TeamFlag team={row.team} size={18} />
                   <span className="truncate text-[13px] text-zinc-200">
-                    {teamName(row.team, locale)}
+                    {t("extend.worldcup.teamName." + row.team.code.toLowerCase())}
                   </span>
                 </div>
               </td>

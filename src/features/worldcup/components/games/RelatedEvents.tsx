@@ -7,7 +7,8 @@ import { formatAmountInUsd } from "@liberfi.io/utils";
 import { useWorldcupCurated } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcProp } from "../../types";
-import { useWcLocale, useWcT, type WcLocale } from "../util";
+import { useTranslation } from "@liberfi.io/i18n";
+import { isZhLang } from "../util";
 
 // Mirrors the event-detail "similar events" card borders (see ui-predict
 // event-similar-events.ui), minus the source badge — all worldcup events are
@@ -23,12 +24,12 @@ interface RelatedItem {
 }
 
 /** Reduce a curated {@link WcProp} to the fields the card renders. */
-function toItem(prop: WcProp, locale: WcLocale): RelatedItem {
+function toItem(prop: WcProp, isZh: boolean): RelatedItem {
   const teamCode = prop.outcomes.find((o) => o.teamCode)?.teamCode;
   const flag = teamCode ? TEAMS[teamCode.toUpperCase()]?.flag : undefined;
   return {
     slug: prop.slug,
-    title: locale === "zh" ? prop.titleZh : prop.titleEn,
+    title: isZh ? prop.titleZh : prop.titleEn,
     imageUrl: flag ? encodeURI(flag) : "/worldcup/fifa.webp",
     volume: prop.volume,
   };
@@ -137,18 +138,17 @@ export function RelatedEvents({
   stickyHeaderTop?: string;
 }) {
   const router = useRouter();
-  const t = useWcT();
-  const locale = useWcLocale();
+  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const isZh = isZhLang(i18n.language);
   const { data: curated = [] } = useWorldcupCurated("bracket");
 
   const items = useMemo(
-    () => curated.map((p) => toItem(p, locale)),
-    [curated, locale],
+    () => curated.map((p) => toItem(p, isZh)),
+    [curated, isZh],
   );
 
   if (items.length === 0) return null;
 
-  const volumeLabel = t("worldcup.volume");
+  const volumeLabel = t("extend.worldcup.volume");
   const open = (slug: string) => router.push(`/polymarket/${slug}`);
   const prefetch = (slug: string) => router.prefetch(`/polymarket/${slug}`);
 
@@ -161,7 +161,7 @@ export function RelatedEvents({
         style={stickyHeaderTop ? { top: stickyHeaderTop } : undefined}
       >
         <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 600 }}>
-          {t("worldcup.relatedEvents")}
+          {t("extend.worldcup.relatedEvents")}
         </span>
       </div>
       <div className="grid grid-cols-1 gap-2">

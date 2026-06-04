@@ -9,11 +9,11 @@ import type {
   PredictEvent,
   PredictMarket,
 } from "@liberfi.io/react-predict";
+import { useTranslation } from "@liberfi.io/i18n";
 import { useWorldcupProps } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcOutcome, WcProp } from "../../types";
 import { PropsSkeleton } from "../skeletons";
-import { useWcLocale, type WcLocale } from "../util";
 
 const NoPrefetchLink: LinkComponentType = (props) => (
   <Link prefetch={false} {...props} />
@@ -27,10 +27,10 @@ const NoPrefetchLink: LinkComponentType = (props) => (
  * - Binary props (Yes/No) → a single market with two outcomes (big buy buttons).
  * - Multi-outcome props → one market per outcome (3-row list + "Show More").
  */
-function propToEvent(prop: WcProp, locale: WcLocale): PredictEvent {
-  const title = locale === "zh" ? prop.titleZh : prop.titleEn;
+function propToEvent(prop: WcProp, isZh: boolean): PredictEvent {
+  const title = isZh ? prop.titleZh : prop.titleEn;
   const label = (o: WcOutcome) =>
-    locale === "zh" ? (o.labelZh ?? o.label) : o.label;
+    isZh ? (o.labelZh ?? o.label) : o.label;
   const isBinary = (prop.outcomes[0]?.label ?? "").toLowerCase() === "yes";
 
   const markets: PredictMarket[] = isBinary
@@ -69,11 +69,12 @@ function propToEvent(prop: WcProp, locale: WcLocale): PredictEvent {
 
 export function PropsTab() {
   const router = useRouter();
-  const locale = useWcLocale();
+  const { i18n } = useTranslation();
+  const isZh = (i18n.language || "en").toLowerCase().startsWith("zh");
   const { data: propEvents = [], isPending } = useWorldcupProps();
   const events = useMemo(
-    () => propEvents.map((p) => propToEvent(p, locale)),
-    [propEvents, locale],
+    () => propEvents.map((p) => propToEvent(p, isZh)),
+    [propEvents, isZh],
   );
 
   const href = (event: PredictEvent) => `/polymarket/${event.slug}`;

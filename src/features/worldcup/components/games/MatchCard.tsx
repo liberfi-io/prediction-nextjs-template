@@ -1,11 +1,12 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type { WcMatch, WcTeam } from "../../types";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
-import { formatKickoff, formatVolume, teamName, useWcLocale, useWcT, type WcLocale } from "../util";
+import { formatKickoff, formatVolume } from "../util";
 
 type PillColors = { bg: string; text: string; shadow: string };
 
@@ -124,13 +125,11 @@ function Matchup({
   match,
   homeScore,
   awayScore,
-  locale,
   mode = "compact",
 }: {
   match: WcMatch;
   homeScore: number;
   awayScore: number;
-  locale: WcLocale;
   /**
    * "compact" (desktop): the full scoreline sits inline after each name to keep
    * the left column narrow. "full" (mobile): each team shows only its own
@@ -138,12 +137,13 @@ function Matchup({
    */
   mode?: "compact" | "full";
 }) {
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   if (mode === "full") {
     const row = (team: WcTeam, score: number) => (
       <>
         <TeamFlag team={team} size={28} />
         <span className="truncate text-sm font-semibold text-zinc-100">
-          {teamName(team, locale)}
+          {t("extend.worldcup.teamName." + team.code.toLowerCase())}
         </span>
         <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-300">
           {score}
@@ -164,7 +164,7 @@ function Matchup({
       <TeamFlag team={team} size={28} />
       <div className="flex min-w-0 items-baseline gap-1.5">
         <span className="truncate text-sm font-semibold text-zinc-100">
-          {teamName(team, locale)}
+          {t("extend.worldcup.teamName." + team.code.toLowerCase())}
         </span>
         <span className="shrink-0 text-xs tabular-nums text-zinc-500">{score}</span>
       </div>
@@ -178,7 +178,9 @@ function Matchup({
   );
 }
 
-function HeaderMeta({ match, locale, t }: { match: WcMatch; locale: WcLocale; t: ReturnType<typeof useWcT> }) {
+function HeaderMeta({ match }: { match: WcMatch }) {
+  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const lang = i18n.language || "en";
   let lead: React.ReactNode;
   if (match.status === "live") {
     lead = (
@@ -193,13 +195,13 @@ function HeaderMeta({ match, locale, t }: { match: WcMatch; locale: WcLocale; t:
   } else if (match.status === "final") {
     lead = (
       <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {t("worldcup.fullTime")}
+        {t("extend.worldcup.fullTime")}
       </span>
     );
   } else {
     lead = (
       <span className="text-xs font-semibold text-zinc-200 tabular-nums">
-        {formatKickoff(match.kickoffMs, locale)}
+        {formatKickoff(match.kickoffMs, lang)}
       </span>
     );
   }
@@ -207,7 +209,7 @@ function HeaderMeta({ match, locale, t }: { match: WcMatch; locale: WcLocale; t:
     <div className="flex min-w-0 items-center gap-2">
       {lead}
       <span className="truncate text-[11px] tabular-nums text-zinc-500">
-        {formatVolume(match.volume)} {t("worldcup.volume")}
+        {formatVolume(match.volume)} {t("extend.worldcup.volume")}
       </span>
     </div>
   );
@@ -226,8 +228,7 @@ export function MatchCard({
   onOpen: (slug: string) => void;
   onLive?: (match: WcMatch) => void;
 }) {
-  const locale = useWcLocale();
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const { moneyline: ml, spread, total } = match;
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
@@ -235,7 +236,7 @@ export function MatchCard({
 
   const homeColors = teamColors(match.home.color);
   const awayColors = teamColors(match.away.color);
-  const drawLabel = t("worldcup.draw");
+  const drawLabel = t("extend.worldcup.draw");
 
   const moneylineCol = (tall: boolean) => (
     <>
@@ -286,14 +287,14 @@ export function MatchCard({
           <path d="M8 5v14l11-7z" />
         </svg>
       )}
-      {t("worldcup.live")}
+      {t("extend.worldcup.live")}
     </button>
   );
 
   const viewPill = (
     <span className="hidden shrink-0 items-center gap-1 rounded-full border border-zinc-700/60 bg-zinc-800/50 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition-colors group-hover:bg-zinc-800 md:flex">
       <span className="tabular-nums">{match.marketCount}</span>
-      {t("worldcup.matchView")}
+      {t("extend.worldcup.matchView")}
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
         <path d="m9 18 6-6-6-6" />
       </svg>
@@ -310,7 +311,7 @@ export function MatchCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
-        <HeaderMeta match={match} locale={locale} t={t} />
+        <HeaderMeta match={match} />
         <div className="flex shrink-0 items-center gap-1.5">
           {liveButton}
           {viewPill}
@@ -319,7 +320,7 @@ export function MatchCard({
 
       {/* ---------- Desktop body (>= md): matchup + 3 odds columns ---------- */}
       <div className="hidden items-stretch gap-3 px-4 pb-3 pt-2.5 md:flex">
-        <Matchup match={match} homeScore={homeScore} awayScore={awayScore} locale={locale} />
+        <Matchup match={match} homeScore={homeScore} awayScore={awayScore} />
         <div className="flex shrink-0 items-stretch gap-2">
           <div className="flex w-[112px] flex-col gap-2">{moneylineCol(false)}</div>
           <div className="flex w-[112px] flex-col gap-2">{spreadCol}</div>
@@ -329,7 +330,7 @@ export function MatchCard({
 
       {/* ---------- Mobile body (< md): matchup on top, moneyline row below ---------- */}
       <div className="flex flex-col gap-3 px-3 pb-3 pt-2.5 md:hidden">
-        <Matchup match={match} homeScore={homeScore} awayScore={awayScore} locale={locale} mode="full" />
+        <Matchup match={match} homeScore={homeScore} awayScore={awayScore} mode="full" />
         <div className="grid grid-cols-3 gap-2">{moneylineCol(true)}</div>
       </div>
     </div>

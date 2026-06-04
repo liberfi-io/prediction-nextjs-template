@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
+import { useTranslation } from "@liberfi.io/i18n";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
-import { useWcLocale, useWcT } from "../util";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
 
@@ -47,7 +47,7 @@ function SportsWidget({
   match: WcMatch | null;
   className?: string;
 }) {
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const src = widgetSrcForMatch(match);
 
   if (!src) {
@@ -58,7 +58,7 @@ function SportsWidget({
           className,
         )}
       >
-        {t("worldcup.liveUnavailable")}
+        {t("extend.worldcup.liveUnavailable")}
       </div>
     );
   }
@@ -103,8 +103,7 @@ function Toggle({
 
 export function GamesTab() {
   const router = useRouter();
-  const t = useWcT();
-  const locale = useWcLocale();
+  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const lang = i18n.language || "en";
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
@@ -129,7 +128,7 @@ export function GamesTab() {
       const byDay = new Map<string, typeof matches>();
       for (const m of [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
         const key = new Date(m.kickoffMs).toLocaleDateString(
-          locale === "zh" ? "zh-CN" : "en-US",
+          lang.startsWith("zh") ? "zh-CN" : "en-US",
           { weekday: "short", month: "short", day: "numeric" },
         );
         if (!byDay.has(key)) byDay.set(key, []);
@@ -146,7 +145,7 @@ export function GamesTab() {
     return [...byGroup.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([code, items]) => ({
-        title: t("worldcup.groupLabel", { code }),
+        title: t("extend.worldcup.groupLabel", { code }),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
   }, [matches, groupBy, t]);
@@ -182,10 +181,10 @@ export function GamesTab() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
             <Toggle active={groupBy === "stage"} onClick={() => setGroupBy("stage")}>
-              {t("worldcup.groupBy.stage")}
+              {t("extend.worldcup.groupBy.stage")}
             </Toggle>
             <Toggle active={groupBy === "time"} onClick={() => setGroupBy("time")}>
-              {t("worldcup.groupBy.time")}
+              {t("extend.worldcup.groupBy.time")}
             </Toggle>
           </div>
           <OddsFormatSelect />

@@ -131,68 +131,119 @@
       "qty": "數量",
       "total": "金額",
       "time": "時間"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "比賽",
+        "props": "玩法",
+        "groups": "積分榜",
+        "bracket": "對陣圖"
+      },
+      "groupBy": {
+        "stage": "按分組",
+        "time": "按日期"
+      },
+      "odds": "賠率",
+      "oddsFormat": {
+        "price": "價格",
+        "percentage": "百分比",
+        "decimal": "小數",
+        "american": "美式",
+        "fractional": "分數",
+        "hongKong": "香港",
+        "indonesian": "印尼式",
+        "malaysian": "馬來式"
+      },
+      "groupLabel": "{{code}} 組",
+      "liveUnavailable": "暫無實況",
+      "fullTime": "完場",
+      "volume": "交易量",
+      "draw": "平",
+      "live": "實況",
+      "matchView": "比賽視圖",
+      "relatedEvents": "相似事件",
+      "versus": "對",
+      "advanceProbability": "晉級概率",
+      "team": "球隊",
+      "collapse": "收起",
+      "expandFullTable": "展開完整數據",
+      "bestThirds": {
+        "title": "最佳第三名排行",
+        "top8Advance": "前 8 晉級"
+      },
+      "groupShort": "小組",
+      "round": {
+        "r32": "32 強",
+        "r16": "16 強",
+        "r8": "1/4 決賽",
+        "r4": "半決賽",
+        "r3rd": "季軍賽",
+        "final": "決賽"
+      },
+      "milestone": {
+        "groupStage": "小組賽",
+        "r32": "32強",
+        "r16": "16強",
+        "r8": "八強",
+        "r4": "半決賽",
+        "r3rd": "季軍賽",
+        "final": "決賽"
+      },
+      "teamName": {
+        "alg": "阿爾及利亞",
+        "arg": "阿根廷",
+        "aus": "澳大利亞",
+        "aut": "奧地利",
+        "bel": "比利時",
+        "bih": "波黑",
+        "bra": "巴西",
+        "can": "加拿大",
+        "cdr": "剛果民主共和國",
+        "che": "瑞士",
+        "civ": "科特迪瓦",
+        "col": "哥倫比亞",
+        "cvi": "佛得角",
+        "cze": "捷克",
+        "ecu": "厄瓜多爾",
+        "egy": "埃及",
+        "eng": "英格蘭",
+        "esp": "西班牙",
+        "fra": "法國",
+        "ger": "德國",
+        "gha": "加納",
+        "hai": "海地",
+        "hrv": "克羅地亞",
+        "irn": "伊朗",
+        "irq": "伊拉克",
+        "jor": "約旦",
+        "jpn": "日本",
+        "kor": "庫拉索",
+        "kr": "韓國",
+        "ksa": "沙特阿拉伯",
+        "mar": "摩洛哥",
+        "mex": "墨西哥",
+        "nld": "荷蘭",
+        "nor": "挪威",
+        "nzl": "新西蘭",
+        "pan": "巴拿馬",
+        "par": "巴拉圭",
+        "prt": "葡萄牙",
+        "qat": "卡塔爾",
+        "rsa": "南非",
+        "sco": "蘇格蘭",
+        "sen": "塞內加爾",
+        "swe": "瑞典",
+        "tun": "突尼斯",
+        "tur": "土耳其",
+        "ury": "烏拉圭",
+        "usa": "美國",
+        "uzb": "烏茲別克斯坦"
+      },
+      "mapComingSoon": "地圖視圖（P2）開發中，先以奪冠概率排行呈現。"
     }
   },
   "common": {
     "signIn": "登入",
     "signOut": "登出"
-  },
-  "worldcup": {
-    "tab": {
-      "games": "比賽",
-      "props": "玩法",
-      "groups": "積分榜",
-      "bracket": "對陣圖"
-    },
-    "groupBy": {
-      "stage": "按分組",
-      "time": "按日期"
-    },
-    "odds": "賠率",
-    "oddsFormat": {
-      "price": "價格",
-      "percentage": "百分比",
-      "decimal": "小數",
-      "american": "美式",
-      "fractional": "分數",
-      "hongKong": "香港",
-      "indonesian": "印尼式",
-      "malaysian": "馬來式"
-    },
-    "groupLabel": "{{code}} 組",
-    "liveUnavailable": "暫無實況",
-    "fullTime": "完場",
-    "volume": "交易量",
-    "draw": "平",
-    "live": "實況",
-    "matchView": "比賽視圖",
-    "relatedEvents": "相似事件",
-    "versus": "對",
-    "advanceProbability": "晉級概率",
-    "team": "球隊",
-    "collapse": "收起",
-    "expandFullTable": "展開完整數據",
-    "bestThirds": {
-      "title": "最佳第三名排行",
-      "top8Advance": "前 8 晉級"
-    },
-    "groupShort": "小組",
-    "round": {
-      "r32": "32 強",
-      "r16": "16 強",
-      "r8": "1/4 決賽",
-      "r4": "半決賽",
-      "r3rd": "季軍賽",
-      "final": "決賽"
-    },
-    "milestone": {
-      "groupStage": "小組賽",
-      "r32": "32強",
-      "r16": "16強",
-      "r8": "八強",
-      "r4": "半決賽",
-      "r3rd": "季軍賽",
-      "final": "決賽"
-    }
   }
 }

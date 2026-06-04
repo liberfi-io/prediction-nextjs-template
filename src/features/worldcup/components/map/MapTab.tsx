@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getProps } from "../../data";
@@ -8,7 +9,6 @@ import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { convertPrice } from "../../odds/convert-price";
 import { OddsNumber } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
-import { teamName, useWcLocale } from "../util";
 
 /**
  * P2 placeholder: the geographic choropleth is deferred. For the static
@@ -17,7 +17,7 @@ import { teamName, useWcLocale } from "../util";
  */
 export function MapTab() {
   const router = useRouter();
-  const locale = useWcLocale();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const [format] = useOddsFormat();
 
   const winner = useMemo(
@@ -29,9 +29,7 @@ export function MapTab() {
   return (
     <div className="mx-auto max-w-xl">
       <div className="mb-3 rounded-[10px] border border-dashed border-zinc-800 px-3 py-2 text-xs text-zinc-500">
-        {locale === "zh"
-          ? "地图视图（P2）开发中，先以夺冠概率排行呈现。"
-          : "Map view (P2) is coming soon — showing the championship ranking for now."}
+        {t("extend.worldcup.mapComingSoon")}
       </div>
       <div className="flex flex-col gap-2">
         {winner.outcomes.map((o, i) => {
@@ -48,7 +46,7 @@ export function MapTab() {
               </span>
               {team ? <TeamFlag team={team} size={22} /> : null}
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
-                {team ? teamName(team, locale) : o.label}
+                {team ? t("extend.worldcup.teamName." + team.code.toLowerCase()) : o.label}
               </span>
               <span className="text-sm font-semibold text-zinc-100 tabular-nums">
                 <OddsNumber value={convertPrice(o.price, format)} variant="fade" />

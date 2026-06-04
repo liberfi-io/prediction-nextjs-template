@@ -1,7 +1,7 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { useEffect, useState } from "react";
-import { useWcT } from "./util";
 
 /**
  * Hero banner replicated from future.news World Cup page.
@@ -85,7 +85,7 @@ function Node({
 }
 
 export function WorldCupHero() {
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   // Progress fills are computed after mount to avoid SSR hydration mismatch
   // and to match the source's 0% pre-tournament state on first paint.
   const [fills, setFills] = useState<number[]>(() => SEGMENTS.map(() => 0));
@@ -142,12 +142,12 @@ export function WorldCupHero() {
                   }
                 >
                   {i === 0 && (
-                    <Node milestone={MILESTONES[0]} side="left" label={t(`worldcup.milestone.${MILESTONES[0].key}`)} />
+                    <Node milestone={MILESTONES[0]} side="left" label={t(`extend.worldcup.milestone.${MILESTONES[0].key}`)} />
                   )}
                   <Node
                     milestone={MILESTONES[i + 1]}
                     side="right"
-                    label={t(`worldcup.milestone.${MILESTONES[i + 1].key}`)}
+                    label={t(`extend.worldcup.milestone.${MILESTONES[i + 1].key}`)}
                     hideLabelBelowMd={i + 1 !== MILESTONES.length - 1}
                   />
                   <div className="relative h-[4px] w-full rounded-full bg-white/30">

@@ -1,15 +1,15 @@
 "use client";
 
+import { useTranslation } from "@liberfi.io/i18n";
 import { useMemo, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { BRACKET_ROUNDS } from "../../types";
 import { useWorldcupBracket } from "../../data/queries";
 import { BracketSkeleton } from "../skeletons";
-import { useWcT } from "../util";
 import { BracketMatchNode } from "./BracketMatchNode";
 
 export function BracketTab() {
-  const t = useWcT();
+  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const { data: nodes = [], isPending } = useWorldcupBracket();
   const [round, setRound] = useState("r32");
 
@@ -34,7 +34,7 @@ export function BracketTab() {
           return (
             <div key={id} className="flex w-[180px] shrink-0 flex-col gap-2">
               <h3 className="text-center text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                {t(`worldcup.round.${id}`)}
+                {t(`extend.worldcup.round.${id}`)}
               </h3>
               <div className="flex flex-1 flex-col justify-around gap-2">
                 {items.map((n) => (
@@ -61,7 +61,7 @@ export function BracketTab() {
                   : "bg-zinc-900/40 text-zinc-500",
               )}
             >
-              {t(`worldcup.round.${id}`)}
+              {t(`extend.worldcup.round.${id}`)}
             </button>
           ))}
         </div>
