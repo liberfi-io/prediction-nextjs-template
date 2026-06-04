@@ -15,7 +15,7 @@ type PillColors = { bg: string; text: string; shadow: string };
 const PILL_NEUTRAL: PillColors = {
   bg: "#3f3f46",
   text: "#e4e4e7",
-  shadow: "rgba(0,0,0,0.45)",
+  shadow: darken("#3f3f46", 0.48),
 };
 
 function hexToRgb(hex: string): [number, number, number] {
