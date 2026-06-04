@@ -70,10 +70,10 @@ function propToEvent(prop: WcProp, locale: WcLocale): PredictEvent {
 export function PropsTab() {
   const router = useRouter();
   const locale = useWcLocale();
-  const { data: props = [], isPending } = useWorldcupProps();
+  const { data: propEvents = [], isPending } = useWorldcupProps();
   const events = useMemo(
-    () => props.map((p) => propToEvent(p, locale)),
-    [props, locale],
+    () => propEvents.map((p) => propToEvent(p, locale)),
+    [propEvents, locale],
   );
 
   const href = (event: PredictEvent) => `/polymarket/${event.slug}`;
