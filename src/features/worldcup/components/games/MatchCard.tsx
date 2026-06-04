@@ -307,7 +307,7 @@ export function MatchCard({
       tabIndex={0}
       onClick={() => onOpen(match.slug)}
       onKeyDown={(e) => e.key === "Enter" && onOpen(match.slug)}
-      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)]"
+      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors hover:border-[rgba(63,63,70,0.8)]"
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
