@@ -192,7 +192,7 @@ export function GamesTab() {
 
         {sections.map((section) => (
           <section key={section.title} className="flex flex-col gap-2">
-            <div className="sticky top-0 z-10 -mx-1 bg-[#0a0a0b]/95 px-1 py-1.5 backdrop-blur">
+            <div className="sticky top-[49px] z-10 -mx-1 bg-[#0a0a0b] px-1 py-1.5">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 {section.title}
               </h3>
