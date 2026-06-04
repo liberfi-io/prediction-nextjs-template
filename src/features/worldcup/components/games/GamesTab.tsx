@@ -7,6 +7,7 @@ import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { OddsFormatSelect } from "../OddsFormatSelect";
+import { GamesSkeleton } from "../skeletons";
 import { useWcLocale } from "../util";
 import { MatchCard } from "./MatchCard";
 
@@ -101,7 +102,7 @@ export function GamesTab() {
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
-  const { data: matches = [] } = useWorldcupMatches();
+  const { data: matches = [], isPending } = useWorldcupMatches();
   const onOpen = (slug: string) => router.push(`/polymarket/${slug}`);
 
   // Match currently shown in the live widget (defaults to the first live game,
@@ -142,6 +143,8 @@ export function GamesTab() {
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
   }, [matches, groupBy, locale]);
+
+  if (isPending) return <GamesSkeleton />;
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">

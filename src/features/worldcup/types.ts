@@ -89,8 +89,8 @@ export interface WcStandingRow {
   pts: number;
   /** Last-5 form, null = not played. */
   form: Array<"W" | "D" | "L" | null>;
-  /** Advance-to-knockout probability in [0,1]. */
-  advance: number;
+  /** Advance-to-knockout probability in [0,1]. Omitted until the advance market is wired. */
+  advance?: number;
 }
 
 export interface WcGroup {
@@ -105,8 +105,8 @@ export interface WcThirdPlaceRow {
   /** Source group code, e.g. "A". */
   group: string;
   team: WcTeam;
-  /** Advance-to-knockout probability in [0,1]. */
-  advance: number;
+  /** Advance-to-knockout probability in [0,1]. Omitted until the advance market is wired. */
+  advance?: number;
   /** True for the best 8 third-placed teams that reach the Round of 32. */
   qualifies: boolean;
 }

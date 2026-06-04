@@ -10,11 +10,15 @@
  */
 
 import type {
+  WcBracketNode,
+  WcGroup,
   WcMatch,
   WcMatchStatus,
   WcMoneyline,
   WcSpread,
+  WcStandingRow,
   WcTeam,
+  WcThirdPlaceRow,
   WcTotal,
 } from "../types";
 import { getTeam } from "./teams";
@@ -311,12 +315,189 @@ export const WORLDCUP_MATCHES_QUERY_KEY = ["worldcup", "matches"] as const;
  * prefix (default `/predict-api`).
  */
 export async function fetchWorldcupMatches(baseUrl: string): Promise<WcMatch[]> {
-  const res = await fetch(`${baseUrl}/api/v1/worldcup/matches`, {
+  return getWorldcupJson<WcMatchesResponseDto>(baseUrl, "matches").then(
+    adaptMatches,
+  );
+}
+
+/** GET + parse a worldcup BFF endpoint. Shared by all worldcup fetchers. */
+async function getWorldcupJson<T>(baseUrl: string, path: string): Promise<T> {
+  const res = await fetch(`${baseUrl}/api/v1/worldcup/${path}`, {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`worldcup matches request failed: ${res.status}`);
+    throw new Error(`worldcup ${path} request failed: ${res.status}`);
   }
-  const json = (await res.json()) as WcMatchesResponseDto;
-  return adaptMatches(json);
+  return (await res.json()) as T;
+}
+
+// ---------------------------------------------------------------------------
+// Standings + best-third (Groups tab)
+// ---------------------------------------------------------------------------
+
+export interface WcStandingRowDto {
+  team_code: string;
+  name: string;
+  flag_url: string;
+  color: string;
+  p: number;
+  w: number;
+  d: number;
+  l: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  pts: number;
+  form: Array<string | null> | null;
+  rank: number;
+  advance_probability?: number;
+}
+
+export interface WcStandingGroupDto {
+  group_code: string;
+  group_label: string;
+  teams: WcStandingRowDto[];
+}
+
+export interface WcStandingsResponseDto {
+  groups: WcStandingGroupDto[] | null;
+}
+
+export interface WcBestThirdRowDto extends WcStandingRowDto {
+  from_group: string;
+}
+
+export interface WcBestThirdResponseDto {
+  is_provisional: boolean;
+  teams: WcBestThirdRowDto[] | null;
+}
+
+/** Number of best third-placed teams that advance to the Round of 32. */
+const THIRD_PLACE_QUALIFY = 8;
+
+/** Coerce the backend form (nullable strings) to the W/D/L union. */
+function adaptForm(form: Array<string | null> | null): WcStandingRow["form"] {
+  return (form ?? []).map((f) => {
+    const u = (f ?? "").toUpperCase();
+    return u === "W" || u === "D" || u === "L" ? u : null;
+  });
+}
+
+function adaptStandingRow(dto: WcStandingRowDto): WcStandingRow {
+  return {
+    rank: dto.rank,
+    team: getTeam(dto.team_code),
+    p: dto.p,
+    w: dto.w,
+    d: dto.d,
+    l: dto.l,
+    gf: dto.gf,
+    ga: dto.ga,
+    gd: dto.gd,
+    pts: dto.pts,
+    form: adaptForm(dto.form),
+    advance: dto.advance_probability,
+  };
+}
+
+/** Adapt the standings response into the local group tables. */
+export function adaptStandings(dto: WcStandingsResponseDto): WcGroup[] {
+  return (dto.groups ?? []).map((g) => ({
+    code: g.group_code,
+    label: g.group_label,
+    teams: (g.teams ?? []).map(adaptStandingRow),
+  }));
+}
+
+/** Adapt the best-third response; `qualifies` is derived from the rank. */
+export function adaptBestThird(dto: WcBestThirdResponseDto): WcThirdPlaceRow[] {
+  return (dto.teams ?? []).map((t) => ({
+    rank: t.rank,
+    group: t.from_group,
+    team: getTeam(t.team_code),
+    advance: t.advance_probability,
+    qualifies: t.rank <= THIRD_PLACE_QUALIFY,
+  }));
+}
+
+export const WORLDCUP_STANDINGS_QUERY_KEY = ["worldcup", "standings"] as const;
+export const WORLDCUP_BEST_THIRD_QUERY_KEY = [
+  "worldcup",
+  "best-third",
+] as const;
+
+export async function fetchWorldcupStandings(
+  baseUrl: string,
+): Promise<WcGroup[]> {
+  return getWorldcupJson<WcStandingsResponseDto>(baseUrl, "standings").then(
+    adaptStandings,
+  );
+}
+
+export async function fetchWorldcupBestThird(
+  baseUrl: string,
+): Promise<WcThirdPlaceRow[]> {
+  return getWorldcupJson<WcBestThirdResponseDto>(baseUrl, "best-third").then(
+    adaptBestThird,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bracket (knockout tab)
+// ---------------------------------------------------------------------------
+
+export interface WcBracketMatchDto {
+  match_id: string;
+  stage: string;
+  group_code?: string;
+  status: string;
+  kickoff_at: string;
+  home_team?: WcTeamInfoDto | null;
+  away_team?: WcTeamInfoDto | null;
+  polymarket_slug?: string;
+  title?: string;
+  markets?: WcMarketDto[] | null;
+  market_count?: number;
+  home_placeholder?: string;
+  away_placeholder?: string;
+  venue?: string;
+  city?: string;
+}
+
+export interface WcBracketResponseDto {
+  matches: WcBracketMatchDto[] | null;
+}
+
+/**
+ * Adapt the bracket response into knockout nodes. The endpoint returns all 104
+ * matches (72 group-stage + 32 knockout); the bracket view only renders the
+ * knockout rounds, so the group-stage matches are filtered out.
+ */
+export function adaptBracket(dto: WcBracketResponseDto): WcBracketNode[] {
+  return (dto.matches ?? [])
+    .filter((m) => !m.stage.startsWith("group"))
+    .map((m) => {
+      const kickoffMs = Date.parse(m.kickoff_at);
+      return {
+        matchId: m.match_id,
+        round: m.stage,
+        homeLabel: m.home_placeholder ?? "",
+        awayLabel: m.away_placeholder ?? "",
+        homeTeam: m.home_team ? getTeam(m.home_team.team_code) : undefined,
+        awayTeam: m.away_team ? getTeam(m.away_team.team_code) : undefined,
+        venue: m.venue ?? "",
+        city: m.city ?? "",
+        kickoffMs: Number.isNaN(kickoffMs) ? 0 : kickoffMs,
+      };
+    });
+}
+
+export const WORLDCUP_BRACKET_QUERY_KEY = ["worldcup", "bracket"] as const;
+
+export async function fetchWorldcupBracket(
+  baseUrl: string,
+): Promise<WcBracketNode[]> {
+  return getWorldcupJson<WcBracketResponseDto>(baseUrl, "bracket").then(
+    adaptBracket,
+  );
 }

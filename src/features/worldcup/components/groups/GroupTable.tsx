@@ -70,7 +70,9 @@ export function GroupTable({ group }: { group: WcGroup }) {
                 <td className={cn(TD, expanded ? "table-cell" : "hidden sm:table-cell")}>{row.ga}</td>
                 <td className={cn(TD, expanded ? "table-cell" : "hidden sm:table-cell")}>{row.gd}</td>
                 <td className={cn(TD, "font-semibold text-zinc-100")}>{row.pts}</td>
-                <td className={cn(TD, "text-zinc-400")}>{Math.round(row.advance * 100)}</td>
+                <td className={cn(TD, "text-zinc-400")}>
+                  {row.advance != null ? Math.round(row.advance * 100) : "—"}
+                </td>
               </tr>
             );
           })}

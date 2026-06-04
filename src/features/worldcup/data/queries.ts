@@ -13,8 +13,14 @@
 
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import {
+  WORLDCUP_BEST_THIRD_QUERY_KEY,
+  WORLDCUP_BRACKET_QUERY_KEY,
   WORLDCUP_MATCHES_QUERY_KEY,
+  WORLDCUP_STANDINGS_QUERY_KEY,
+  fetchWorldcupBestThird,
+  fetchWorldcupBracket,
   fetchWorldcupMatches,
+  fetchWorldcupStandings,
 } from "./client";
 
 const POLL_INTERVAL_MS = 30_000;
@@ -44,5 +50,71 @@ export async function prefetchWorldcupMatches(
   await queryClient.prefetchQuery({
     queryKey: WORLDCUP_MATCHES_QUERY_KEY,
     queryFn: () => fetchWorldcupMatches(base),
+  });
+}
+
+/** Poll the worldcup standings (12 group tables) from the browser. */
+export function useWorldcupStandings() {
+  return useQuery({
+    queryKey: WORLDCUP_STANDINGS_QUERY_KEY,
+    queryFn: () => fetchWorldcupStandings(CLIENT_BASE),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/** Poll the worldcup best third-placed teams from the browser. */
+export function useWorldcupBestThird() {
+  return useQuery({
+    queryKey: WORLDCUP_BEST_THIRD_QUERY_KEY,
+    queryFn: () => fetchWorldcupBestThird(CLIENT_BASE),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/** Poll the worldcup knockout bracket from the browser. */
+export function useWorldcupBracket() {
+  return useQuery({
+    queryKey: WORLDCUP_BRACKET_QUERY_KEY,
+    queryFn: () => fetchWorldcupBracket(CLIENT_BASE),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/** Server-side prefetch for the standings; no-ops when `PREDICT_URL` is unset. */
+export async function prefetchWorldcupStandings(
+  queryClient: QueryClient,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: WORLDCUP_STANDINGS_QUERY_KEY,
+    queryFn: () => fetchWorldcupStandings(base),
+  });
+}
+
+/** Server-side prefetch for best-third; no-ops when `PREDICT_URL` is unset. */
+export async function prefetchWorldcupBestThird(
+  queryClient: QueryClient,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: WORLDCUP_BEST_THIRD_QUERY_KEY,
+    queryFn: () => fetchWorldcupBestThird(base),
+  });
+}
+
+/** Server-side prefetch for the bracket; no-ops when `PREDICT_URL` is unset. */
+export async function prefetchWorldcupBracket(
+  queryClient: QueryClient,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: WORLDCUP_BRACKET_QUERY_KEY,
+    queryFn: () => fetchWorldcupBracket(base),
   });
 }

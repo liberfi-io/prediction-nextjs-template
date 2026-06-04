@@ -12,7 +12,7 @@ import { WC_TABS, type WcTab } from "../tabs";
 
 const TAB_LABELS: Record<WcTab, { en: string; zh: string }> = {
   games: { en: "Games", zh: "比赛" },
-  props: { en: "Props", zh: "提案" },
+  props: { en: "Props", zh: "玩法" },
   groups: { en: "Groups", zh: "积分榜" },
   bracket: { en: "Bracket", zh: "对阵图" },
 };

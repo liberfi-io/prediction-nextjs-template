@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { BRACKET_ROUNDS } from "../../types";
-import { getBracket } from "../../data";
+import { useWorldcupBracket } from "../../data/queries";
+import { BracketSkeleton } from "../skeletons";
 import { useWcLocale } from "../util";
 import { BracketMatchNode } from "./BracketMatchNode";
 
 export function BracketTab() {
   const locale = useWcLocale();
-  const nodes = useMemo(() => getBracket(), []);
+  const { data: nodes = [], isPending } = useWorldcupBracket();
   const [round, setRound] = useState("r32");
 
   const byRound = useMemo(() => {
@@ -20,6 +21,8 @@ export function BracketTab() {
     }
     return map;
   }, [nodes]);
+
+  if (isPending) return <BracketSkeleton />;
 
   return (
     <div className="flex flex-col gap-4">

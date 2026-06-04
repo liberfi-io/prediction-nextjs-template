@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import { cn } from "@liberfi.io/ui";
-import { getBestThirds } from "../../data";
+import { useWorldcupBestThird } from "../../data/queries";
+import { BestThirdsSkeleton } from "../skeletons";
 import { TeamFlag } from "../TeamFlag";
 import { teamName, useWcLocale } from "../util";
 
@@ -11,7 +11,9 @@ const TD = "px-1 py-2 text-right text-[13px] tabular-nums text-zinc-300";
 
 export function BestThirds() {
   const locale = useWcLocale();
-  const rows = useMemo(() => getBestThirds(), []);
+  const { data: rows = [], isPending } = useWorldcupBestThird();
+
+  if (isPending) return <BestThirdsSkeleton />;
 
   return (
     <div className="mt-3 rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
@@ -55,7 +57,9 @@ export function BestThirds() {
                 </div>
               </td>
               <td className={cn(TD, "text-zinc-400")}>{row.group}</td>
-              <td className={cn(TD, "text-zinc-400")}>{Math.round(row.advance * 100)}</td>
+              <td className={cn(TD, "text-zinc-400")}>
+                {row.advance != null ? Math.round(row.advance * 100) : "—"}
+              </td>
             </tr>
           ))}
         </tbody>

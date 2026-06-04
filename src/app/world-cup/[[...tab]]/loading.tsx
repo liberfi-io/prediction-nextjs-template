@@ -1,15 +1,15 @@
+import { TabRowSkeleton } from "src/features/worldcup/components/skeletons";
+
 /**
- * Skeleton fallback for the games layout (tab row + cards). The shared hero and
- * page container come from the /world-cup layout, so this only fills children.
+ * Neutral fallback shown during the brief client-navigation RSC fetch (this
+ * route is a catch-all, so the active tab is not known here). Once the page
+ * shell streams in, the tab-specific skeleton from `page.tsx`'s Suspense
+ * boundary takes over.
  */
 export default function Loading() {
   return (
     <>
-      <div className="mb-4 flex gap-2 border-b border-zinc-800/60 pb-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-8 w-16 animate-pulse rounded-[10px] bg-zinc-800/50" />
-        ))}
-      </div>
+      <TabRowSkeleton />
       <div className="flex flex-col gap-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
