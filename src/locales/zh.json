@@ -140,7 +140,7 @@
         "bracket": "對陣圖"
       },
       "groupBy": {
-        "stage": "按分組",
+        "stage": "按階段",
         "time": "按日期"
       },
       "odds": "賠率",

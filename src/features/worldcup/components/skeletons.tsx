@@ -23,7 +23,7 @@ const CARD = "rounded-[12px] border border-zinc-800 bg-zinc-900/40";
 /** Sub-tab row placeholder, matching {@link WorldCupPage}'s sticky nav. */
 export function TabRowSkeleton() {
   return (
-    <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-2 border-b border-zinc-800/60 bg-[#0a0a0b]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+    <div className="sticky top-0 z-40 -mx-4 mb-4 flex items-center gap-2 border-b border-zinc-800/60 bg-[#0a0a0b]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
       <div className="-mx-1 flex gap-1">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className={cx("h-8 w-16 shrink-0 rounded-[10px]", PULSE)} />

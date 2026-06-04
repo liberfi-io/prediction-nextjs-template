@@ -322,9 +322,9 @@ export function MatchCard({
       <div className="hidden items-stretch gap-3 px-4 pb-3 pt-2.5 md:flex">
         <Matchup match={match} homeScore={homeScore} awayScore={awayScore} />
         <div className="flex shrink-0 items-stretch gap-2">
-          <div className="flex w-[112px] flex-col gap-2">{moneylineCol(false)}</div>
-          <div className="flex w-[112px] flex-col gap-2">{spreadCol}</div>
-          <div className="flex w-[112px] flex-col gap-2">{totalCol}</div>
+          <div className="flex w-[128px] flex-col gap-2">{moneylineCol(false)}</div>
+          <div className="flex w-[128px] flex-col gap-2">{spreadCol}</div>
+          <div className="flex w-[128px] flex-col gap-2">{totalCol}</div>
         </div>
       </div>
 

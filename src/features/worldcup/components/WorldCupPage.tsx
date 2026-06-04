@@ -22,7 +22,7 @@ export function WorldCupPage({ tab }: { tab: WcTab }) {
   return (
     <>
       {/* SUB-TAB ROW */}
-      <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-2 border-b border-zinc-800/60 bg-[#0a0a0b] px-4 py-2 sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-40 -mx-4 mb-4 flex items-center gap-2 border-b border-zinc-800/60 bg-[#0a0a0b] px-4 py-2 sm:-mx-6 sm:px-6">
         <nav className="-mx-1 flex gap-1 overflow-x-auto no-scrollbar">
           {WC_TABS.map((key) => {
             const active = key === tab;
