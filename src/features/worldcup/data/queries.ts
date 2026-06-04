@@ -16,10 +16,12 @@ import {
   WORLDCUP_BEST_THIRD_QUERY_KEY,
   WORLDCUP_BRACKET_QUERY_KEY,
   WORLDCUP_MATCHES_QUERY_KEY,
+  WORLDCUP_PROPS_QUERY_KEY,
   WORLDCUP_STANDINGS_QUERY_KEY,
   fetchWorldcupBestThird,
   fetchWorldcupBracket,
   fetchWorldcupMatches,
+  fetchWorldcupProps,
   fetchWorldcupStandings,
 } from "./client";
 
@@ -116,5 +118,27 @@ export async function prefetchWorldcupBracket(
   await queryClient.prefetchQuery({
     queryKey: WORLDCUP_BRACKET_QUERY_KEY,
     queryFn: () => fetchWorldcupBracket(base),
+  });
+}
+
+/** Poll the worldcup prop / futures events from the browser. */
+export function useWorldcupProps() {
+  return useQuery({
+    queryKey: WORLDCUP_PROPS_QUERY_KEY,
+    queryFn: () => fetchWorldcupProps(CLIENT_BASE),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/** Server-side prefetch for props; no-ops when `PREDICT_URL` is unset. */
+export async function prefetchWorldcupProps(
+  queryClient: QueryClient,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: WORLDCUP_PROPS_QUERY_KEY,
+    queryFn: () => fetchWorldcupProps(base),
   });
 }

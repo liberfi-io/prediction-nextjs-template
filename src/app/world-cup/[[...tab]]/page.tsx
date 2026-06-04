@@ -9,6 +9,7 @@ import {
   prefetchWorldcupBestThird,
   prefetchWorldcupBracket,
   prefetchWorldcupMatches,
+  prefetchWorldcupProps,
   prefetchWorldcupStandings,
 } from "src/features/worldcup/data/queries";
 
@@ -33,6 +34,8 @@ function prefetchForTab(
       ]);
     case "bracket":
       return prefetchWorldcupBracket(queryClient);
+    case "props":
+      return prefetchWorldcupProps(queryClient);
     default:
       return null;
   }
@@ -68,8 +71,8 @@ async function WorldCupTabContent({ tab }: { tab: WcTab }) {
  * props / groups / bracket / map.
  *
  * The data-fetching content is wrapped in Suspense so the first paint shows a
- * tab-specific skeleton, then hydrates; the client then polls every 30s. The
- * Props tab renders from the static dataset (resolves immediately).
+ * tab-specific skeleton, then hydrates; the client then polls every 30s. Every
+ * tab (games / props / groups / bracket) prefetches its backend endpoint.
  */
 export default async function Page({ params }: PageProps) {
   const { tab } = await params;

@@ -15,13 +15,15 @@ import type {
   WcMatch,
   WcMatchStatus,
   WcMoneyline,
+  WcOutcome,
+  WcProp,
   WcSpread,
   WcStandingRow,
   WcTeam,
   WcThirdPlaceRow,
   WcTotal,
 } from "../types";
-import { getTeam } from "./teams";
+import { getTeam, getTeamByName } from "./teams";
 import { GROUP_MATCHES, THESPORTS_MATCH_IDS } from "./schedule";
 import { deriveStatus } from "../logic/match-status";
 
@@ -500,4 +502,101 @@ export async function fetchWorldcupBracket(
   return getWorldcupJson<WcBracketResponseDto>(baseUrl, "bracket").then(
     adaptBracket,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Props (tournament-wide prop / futures events)
+// ---------------------------------------------------------------------------
+
+export interface WcPropEventDto {
+  slug: string;
+  title_en: string;
+  title_zh: string;
+  display_order: number;
+  volume?: number;
+  volume_24h?: number;
+  liquidity?: number;
+  markets: WcMarketDto[] | null;
+  market_count: number;
+}
+
+export interface WcPropsResponseDto {
+  props: WcPropEventDto[] | null;
+}
+
+/**
+ * A prop event is "binary" when it is a single Yes/No market (e.g. "Will Messi
+ * play?"). Multi-candidate events (winner, top scorer, group winners, ...) hold
+ * one market per candidate, each `[candidate, "No"]`.
+ */
+function isBinaryProp(markets: WcMarketDto[]): boolean {
+  if (markets.length !== 1) return false;
+  const names = (markets[0].outcomes ?? []).map((o) => o.name.toLowerCase());
+  return names.includes("no") && names.includes("yes");
+}
+
+/** Pick the candidate ("non-No") outcome of a per-candidate prop market. */
+function leadOutcome(market: WcMarketDto): WcOutcomeDto | undefined {
+  const outcomes = market.outcomes ?? [];
+  return outcomes.find((o) => o.name.toLowerCase() !== "no") ?? outcomes[0];
+}
+
+/** Adapt a single backend prop event into the local {@link WcProp} shape. */
+function adaptPropEvent(dto: WcPropEventDto): WcProp {
+  const markets = dto.markets ?? [];
+
+  let outcomes: WcOutcome[];
+  if (isBinaryProp(markets)) {
+    // Single Yes/No market: keep both sides, Yes first (triggers the binary
+    // buy-button layout in propToEvent), localize the canonical labels.
+    const byName = new Map(
+      (markets[0].outcomes ?? []).map((o) => [o.name.toLowerCase(), o]),
+    );
+    const yes = byName.get("yes");
+    const no = byName.get("no");
+    outcomes = [
+      { label: "Yes", labelZh: "是", price: yes?.price ?? 0 },
+      { label: "No", labelZh: "否", price: no?.price ?? 0 },
+    ];
+  } else {
+    // Multi-candidate: one outcome per market (its candidate side), desc price.
+    outcomes = markets
+      .map((m): WcOutcome | null => {
+        const lead = leadOutcome(m);
+        if (!lead) return null;
+        const label = m.group_item_title || lead.name;
+        const team = getTeamByName(label);
+        return {
+          label,
+          labelZh: team?.nameZh,
+          teamCode: team?.code,
+          price: lead.price ?? 0,
+        };
+      })
+      .filter((o): o is WcOutcome => o !== null)
+      .sort((a, b) => b.price - a.price);
+  }
+
+  return {
+    slug: dto.slug,
+    titleEn: dto.title_en,
+    titleZh: dto.title_zh,
+    volume: dto.volume ?? 0,
+    marketCount: dto.market_count,
+    outcomes,
+  };
+}
+
+/** Adapt the props response, ordered by the backend's display order. */
+export function adaptProps(dto: WcPropsResponseDto): WcProp[] {
+  return (dto.props ?? [])
+    .slice()
+    .sort((a, b) => a.display_order - b.display_order)
+    .map(adaptPropEvent);
+}
+
+export const WORLDCUP_PROPS_QUERY_KEY = ["worldcup", "props"] as const;
+
+export async function fetchWorldcupProps(baseUrl: string): Promise<WcProp[]> {
+  return getWorldcupJson<WcPropsResponseDto>(baseUrl, "props").then(adaptProps);
 }

@@ -74,3 +74,37 @@ export function getTeam(code: string): WcTeam {
     }
   );
 }
+
+/**
+ * Reverse index from English team name to {@link WcTeam}, used to resolve
+ * backend prop candidate labels (which carry names, not codes) to a team so the
+ * card can show its flag / Chinese name. Names are normalized to lowercase.
+ * A few aliases bridge name mismatches between the upstream feed and `RAW`.
+ */
+const TEAM_BY_NAME: Record<string, WcTeam> = (() => {
+  const index: Record<string, WcTeam> = {};
+  for (const team of Object.values(TEAMS)) {
+    index[team.name.toLowerCase()] = team;
+  }
+  const aliases: Array<[string, string]> = [
+    ["south korea", "KR"],
+    ["korea republic", "KR"],
+    ["usa", "USA"],
+    ["united states", "USA"],
+    ["turkey", "TUR"],
+    ["ivory coast", "CIV"],
+    ["cape verde", "CVI"],
+    ["bosnia and herzegovina", "BIH"],
+    ["iran", "IRN"],
+  ];
+  for (const [name, code] of aliases) {
+    const team = TEAMS[code];
+    if (team) index[name] = team;
+  }
+  return index;
+})();
+
+/** Resolve an English team name (e.g. "France") to a team, if known. */
+export function getTeamByName(name: string): WcTeam | undefined {
+  return TEAM_BY_NAME[name.trim().toLowerCase()];
+}

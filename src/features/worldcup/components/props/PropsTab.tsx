@@ -9,9 +9,10 @@ import type {
   PredictEvent,
   PredictMarket,
 } from "@liberfi.io/react-predict";
-import { getProps } from "../../data";
+import { useWorldcupProps } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcOutcome, WcProp } from "../../types";
+import { PropsSkeleton } from "../skeletons";
 import { useWcLocale, type WcLocale } from "../util";
 
 const NoPrefetchLink: LinkComponentType = (props) => (
@@ -69,12 +70,15 @@ function propToEvent(prop: WcProp, locale: WcLocale): PredictEvent {
 export function PropsTab() {
   const router = useRouter();
   const locale = useWcLocale();
+  const { data: props = [], isPending } = useWorldcupProps();
   const events = useMemo(
-    () => getProps().map((p) => propToEvent(p, locale)),
-    [locale],
+    () => props.map((p) => propToEvent(p, locale)),
+    [props, locale],
   );
 
   const href = (event: PredictEvent) => `/polymarket/${event.slug}`;
+
+  if (isPending) return <PropsSkeleton />;
 
   return (
     <div className="-mx-2">
