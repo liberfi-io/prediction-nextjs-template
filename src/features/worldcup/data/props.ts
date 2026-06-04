@@ -88,7 +88,7 @@ const CONTINENTS: Array<[string, string, number]> = [
 ];
 
 function players(seed: number): WcOutcome[] {
-  let p = 0.14;
+  const p = 0.14;
   return PLAYER_RANKING.map(([label, labelZh, code], i) => {
     const price = round2(Math.max(0.02, p - i * 0.012 + ((seed % 5) - 2) * 0.002));
     return { label, labelZh, teamCode: code, price };
