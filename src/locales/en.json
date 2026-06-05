@@ -239,7 +239,64 @@
         "usa": "United States",
         "uzb": "Uzbekistan"
       },
-      "mapComingSoon": "Map view (P2) is coming soon — showing the championship ranking for now."
+      "mapComingSoon": "Map view (P2) is coming soon — showing the championship ranking for now.",
+      "detail": {
+        "back": "Back",
+        "loading": "Loading match…",
+        "notFound": "Match not found",
+        "breadcrumb": {
+          "sports": "Sports",
+          "soccer": "Soccer"
+        },
+        "stats": {
+          "endDate": "End date",
+          "liquidity": "Liquidity",
+          "volume": "Volume",
+          "oi": "Open interest"
+        },
+        "banner": {
+          "beginsIn": "Begins in",
+          "started": "Kicked off",
+          "days": "D",
+          "hours": "H",
+          "mins": "M",
+          "secs": "S"
+        },
+        "tab": {
+          "center": "Match Center",
+          "news": "Market News",
+          "comments": "Comments"
+        },
+        "comingSoon": "Coming soon",
+        "trade": {
+          "buy": "Buy",
+          "sell": "Sell"
+        },
+        "markets": {
+          "title": "Markets",
+          "activeOnly": "Active only",
+          "sort": {
+            "default": "Default",
+            "odds": "Odds",
+            "volume": "Volume",
+            "liquidity": "Liquidity"
+          },
+          "category": {
+            "gameLines": "Game Lines",
+            "exactScore": "Exact Score",
+            "halftime": "Halftime Result"
+          },
+          "type": {
+            "moneyline": "Moneyline",
+            "spreads": "Spreads",
+            "totals": "Totals",
+            "both_teams_to_score": "Both Teams to Score",
+            "soccer_exact_score": "Exact Score",
+            "soccer_halftime_result": "Halftime Result",
+            "other": "Other"
+          }
+        }
+      }
     }
   },
   "common": {

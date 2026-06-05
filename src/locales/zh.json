@@ -239,7 +239,64 @@
         "usa": "美國",
         "uzb": "烏茲別克斯坦"
       },
-      "mapComingSoon": "地圖視圖（P2）開發中，先以奪冠概率排行呈現。"
+      "mapComingSoon": "地圖視圖（P2）開發中，先以奪冠概率排行呈現。",
+      "detail": {
+        "back": "返回",
+        "loading": "正在載入比賽…",
+        "notFound": "找不到該比賽",
+        "breadcrumb": {
+          "sports": "體育",
+          "soccer": "足球"
+        },
+        "stats": {
+          "endDate": "結束日期",
+          "liquidity": "流動性",
+          "volume": "成交量",
+          "oi": "未平倉"
+        },
+        "banner": {
+          "beginsIn": "距開賽",
+          "started": "已開賽",
+          "days": "天",
+          "hours": "時",
+          "mins": "分",
+          "secs": "秒"
+        },
+        "tab": {
+          "center": "比賽中心",
+          "news": "市場新聞",
+          "comments": "評論"
+        },
+        "comingSoon": "敬請期待",
+        "trade": {
+          "buy": "買入",
+          "sell": "賣出"
+        },
+        "markets": {
+          "title": "市場",
+          "activeOnly": "僅活躍",
+          "sort": {
+            "default": "默認",
+            "odds": "賠率",
+            "volume": "成交量",
+            "liquidity": "流動性"
+          },
+          "category": {
+            "gameLines": "賽事盤口",
+            "exactScore": "準確比分",
+            "halftime": "半場結果"
+          },
+          "type": {
+            "moneyline": "獨贏",
+            "spreads": "讓分",
+            "totals": "大小球",
+            "both_teams_to_score": "雙方球隊進球",
+            "soccer_exact_score": "準確比分",
+            "soccer_halftime_result": "半場結果",
+            "other": "其他"
+          }
+        }
+      }
     }
   },
   "common": {

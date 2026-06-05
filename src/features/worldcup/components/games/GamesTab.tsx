@@ -11,25 +11,9 @@ import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
+import { SportsWidget } from "./SportsWidget";
 
 type GroupBy = "stage" | "time";
-
-// Third-party TheSports football live widget. The embed URL is a fixed template
-// where only `uuid` (the match's `thesportsMatchId`) varies per game.
-// Source: .plans/worldcup/future.news/09-thesports-live-widget.md
-const WIDGET_PROFILE = "mkyhzl4n10xu5uz";
-
-/**
- * Build the live-widget URL for a given match from its `thesportsMatchId`.
- * Returns null when the match has no mapped widget id (e.g. undrawn knockout
- * fixtures), so the embed can render a placeholder instead.
- * Protocol-relative so it follows the page scheme.
- */
-function widgetSrcForMatch(match: WcMatch | null): string | null {
-  const uuid = match?.thesportsMatchId;
-  if (!uuid) return null;
-  return `//widgets-v2.thesports01.com/zh/pro/football?profile=${WIDGET_PROFILE}&uuid=${uuid}`;
-}
 
 // Offset from the scroll-container top for the pinned desktop widget, clearing
 // the sticky sub-tab row.
@@ -39,44 +23,6 @@ const WIDGET_STICKY_TOP = "56px";
 // panel. Inside that scroll container the related-events header sticks right
 // below the (in-panel sticky) widget, i.e. at the widget height (400px).
 const RELATED_HEADER_STICKY_TOP = "400px";
-
-function SportsWidget({
-  match,
-  className,
-}: {
-  match: WcMatch | null;
-  className?: string;
-}) {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
-  const src = widgetSrcForMatch(match);
-
-  if (!src) {
-    return (
-      <div
-        className={cn(
-          "flex w-full items-center justify-center rounded-[12px] border border-zinc-800 bg-zinc-900/40 text-xs text-zinc-500",
-          className,
-        )}
-      >
-        {t("extend.worldcup.liveUnavailable")}
-      </div>
-    );
-  }
-
-  return (
-    <iframe
-      // Remount on match switch so the embedded widget reloads cleanly.
-      key={match?.thesportsMatchId ?? src}
-      title="Football live widget"
-      src={src}
-      loading="lazy"
-      className={cn(
-        "w-full overflow-hidden rounded-[12px] border border-zinc-800 bg-zinc-900/40",
-        className,
-      )}
-    />
-  );
-}
 
 function Toggle({
   active,
@@ -109,7 +55,7 @@ export function GamesTab() {
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: matches = [], isPending } = useWorldcupMatches();
-  const onOpen = (slug: string) => router.push(`/polymarket/${slug}`);
+  const onOpen = (slug: string) => router.push(`/world-cup/match/${slug}`);
 
   // Match currently shown in the live widget (defaults to the first live game,
   // else the earliest scheduled one).

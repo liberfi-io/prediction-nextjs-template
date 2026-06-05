@@ -9,6 +9,7 @@
  * client-side.
  */
 
+import type { PredictEvent } from "@liberfi.io/react-predict";
 import type {
   WcBracketNode,
   WcGroup,
@@ -319,6 +320,37 @@ export const WORLDCUP_MATCHES_QUERY_KEY = ["worldcup", "matches"] as const;
 export async function fetchWorldcupMatches(baseUrl: string): Promise<WcMatch[]> {
   return getWorldcupJson<WcMatchesResponseDto>(baseUrl, "matches").then(
     adaptMatches,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Single match detail (full aggregated event)
+// ---------------------------------------------------------------------------
+
+/**
+ * Shared React Query key for a single match's full aggregated event. Distinct
+ * from the SDK's `eventQueryKey` so it never collides with the generic event
+ * detail cache (which only holds the 3 base-slug moneyline markets).
+ */
+export const worldcupMatchEventQueryKey = (slug: string) =>
+  ["worldcup", "match-event", slug] as const;
+
+/**
+ * Fetch a single World Cup match as a full {@link PredictEvent} with every
+ * market aggregated across its four Polymarket event slugs (moneyline, spreads,
+ * totals, both-teams-to-score, exact score, halftime). Hits the dedicated
+ * `GET /api/v1/worldcup/matches/{slug}` endpoint; the response is already the
+ * snake_case PredictEvent shape (no adapter needed), so the SDK leaf components
+ * (`EventPriceChart`, `EventMarketDetailWidget`, `TradeFormWidget`) consume it
+ * directly.
+ */
+export async function fetchWorldcupMatchEvent(
+  baseUrl: string,
+  slug: string,
+): Promise<PredictEvent> {
+  return getWorldcupJson<PredictEvent>(
+    baseUrl,
+    `matches/${encodeURIComponent(slug)}`,
   );
 }
 

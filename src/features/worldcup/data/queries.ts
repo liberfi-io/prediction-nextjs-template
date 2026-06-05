@@ -21,10 +21,12 @@ import {
   fetchWorldcupBestThird,
   fetchWorldcupBracket,
   fetchWorldcupCurated,
+  fetchWorldcupMatchEvent,
   fetchWorldcupMatches,
   fetchWorldcupProps,
   fetchWorldcupStandings,
   worldcupCuratedQueryKey,
+  worldcupMatchEventQueryKey,
   type WcCuratedBucket,
 } from "./client";
 
@@ -55,6 +57,37 @@ export async function prefetchWorldcupMatches(
   await queryClient.prefetchQuery({
     queryKey: WORLDCUP_MATCHES_QUERY_KEY,
     queryFn: () => fetchWorldcupMatches(base),
+  });
+}
+
+/**
+ * Poll a single match's full aggregated event from the browser. Powers the
+ * match detail page; every market type is present so the Markets panel can
+ * group and switch between them.
+ */
+export function useWorldcupMatchEvent(slug: string) {
+  return useQuery({
+    queryKey: worldcupMatchEventQueryKey(slug),
+    queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug),
+    enabled: Boolean(slug),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+/**
+ * Server-side prefetch for a single match's full event; no-ops when
+ * `PREDICT_URL` is unset so SSR degrades to a client-only fetch.
+ */
+export async function prefetchWorldcupMatchEvent(
+  queryClient: QueryClient,
+  slug: string,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base) return;
+  await queryClient.prefetchQuery({
+    queryKey: worldcupMatchEventQueryKey(slug),
+    queryFn: () => fetchWorldcupMatchEvent(base, slug),
   });
 }
 
