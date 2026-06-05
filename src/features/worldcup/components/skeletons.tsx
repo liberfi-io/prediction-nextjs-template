@@ -83,20 +83,40 @@ function MatchCardSkeleton() {
   );
 }
 
-/** Games tab: pinned live widget + toolbar + match card list. */
+// Default groupBy is "stage": the World Cup group stage is 12 groups (A–L) of
+// 4 teams = 6 matches each. The skeleton mirrors a *group section* (sticky
+// header + 6 match cards) so above-the-fold card positions line up exactly
+// with the loaded list. We only render a couple of sections — enough to fill
+// one screen plus a little — instead of all 72 cards; the rest of the list
+// just grows in below the fold when data hydrates (no visible shift).
+const WC_MATCHES_PER_GROUP = 6;
+const SKELETON_SECTION_COUNT = 1;
+
+/** Games tab: desktop live-widget rail + toolbar + grouped match card list. */
 export function GamesSkeleton() {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-      <aside className="order-first w-full shrink-0 lg:order-last lg:w-82">
+      {/* Desktop-only right rail (mobile shows the widget inline per card). */}
+      <aside className="hidden shrink-0 lg:order-last lg:block lg:w-82">
         <div className={cx("h-[400px]", PULSE, CARD)} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {/* Toolbar: groupBy toggle + odds-format select (real height 30px). */}
         <div className="flex items-center justify-between gap-2">
-          <div className={cx("h-8 w-40 rounded-[10px]", PULSE)} />
-          <div className={cx("h-8 w-24 rounded-[10px]", PULSE)} />
+          <div className={cx("h-[30px] w-40 rounded-[10px]", PULSE)} />
+          <div className={cx("h-[30px] w-24 rounded-[10px]", PULSE)} />
         </div>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <MatchCardSkeleton key={i} />
+        {Array.from({ length: SKELETON_SECTION_COUNT }).map((_, s) => (
+          <section key={s} className="flex flex-col gap-2">
+            {/* Group header: mirrors the real sticky header box (py-1.5 + a
+                text-xs label = 28px) so card positions line up exactly. */}
+            <div className="-mx-1 px-1 py-1.5">
+              <div className={cx("h-4 w-16 rounded", PULSE)} />
+            </div>
+            {Array.from({ length: WC_MATCHES_PER_GROUP }).map((_, i) => (
+              <MatchCardSkeleton key={i} />
+            ))}
+          </section>
         ))}
       </div>
     </div>

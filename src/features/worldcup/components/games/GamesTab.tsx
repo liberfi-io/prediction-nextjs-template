@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "../../data/queries";
@@ -51,17 +51,43 @@ export function GamesTab() {
   const { data: matches = [], isPending } = useWorldcupMatches();
   const onOpen = (slug: string) => router.push(`/world-cup/match/${slug}`);
 
-  // Match currently shown in the live widget (defaults to the first live game,
-  // else the earliest scheduled one).
+  // First in-progress match in list order (the one both layouts default to when
+  // multiple games are live at the same time).
+  const firstLiveMatch = useMemo(
+    () => matches.find((m) => m.status === "live") ?? null,
+    [matches]
+  );
+
+  // Desktop right-rail: match shown in the pinned live widget (defaults to the
+  // first live game, else the earliest scheduled one).
   const [liveMatch, setLiveMatch] = useState<WcMatch | null>(null);
   const activeMatch = useMemo(
     () =>
       liveMatch ??
-      matches.find((m) => m.status === "live") ??
+      firstLiveMatch ??
       [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)[0] ??
       null,
-    [liveMatch, matches]
+    [liveMatch, firstLiveMatch, matches]
   );
+
+  // Mobile (< lg): no pinned widget. The live button toggles an inline widget
+  // expanding under the tapped card; only one is open at a time. By default the
+  // first live match's widget is expanded; nothing when no game is live.
+  const [openWidgetId, setOpenWidgetId] = useState<string | null>(null);
+  const onToggleWidget = useCallback(
+    (m: WcMatch) =>
+      setOpenWidgetId((prev) => (prev === m.matchId ? null : m.matchId)),
+    []
+  );
+
+  // Apply the mobile default once matches are available; later toggles and
+  // polling refreshes don't reopen it.
+  const defaultedRef = useRef(false);
+  useEffect(() => {
+    if (defaultedRef.current || matches.length === 0) return;
+    defaultedRef.current = true;
+    setOpenWidgetId(firstLiveMatch?.matchId ?? null);
+  }, [matches.length, firstLiveMatch]);
 
   const sections = useMemo(() => {
     if (groupBy === "time") {
@@ -94,12 +120,13 @@ export function GamesTab() {
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-      {/* WIDGET + related events: full-width on top (< lg) via order-first; on
-          desktop it's the right column — a pinned panel that scrolls internally
-          (widget pinned to its top, related header just under it) so it scrolls
-          independently of the matches and reaches its own bottom. Height is the
-          scroll viewport minus the app header (48px) and the pin offset (65px). */}
-      <aside className="order-first w-full shrink-0 lg:order-last lg:w-82">
+      {/* WIDGET + related events: desktop-only right column (hidden < lg, where
+          the widget instead expands inline under each tapped card). A pinned
+          panel that scrolls internally (widget pinned to its top, related header
+          just under it) so it scrolls independently of the matches and reaches
+          its own bottom. Height is the scroll viewport minus the app header
+          (48px) and the pin offset (65px). */}
+      <aside className="hidden shrink-0 lg:order-last lg:block lg:w-82">
         <div className="relative lg:sticky lg:top-[65px] lg:flex lg:max-h-[calc(100dvh-113px)] lg:flex-col lg:gap-4 lg:pb-4 lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain no-scrollbar">
           <SportsWidget match={activeMatch} className="h-100 shrink-0" />
           {/* Desktop: related events below the widget; header sticks under it. */}
@@ -140,8 +167,10 @@ export function GamesTab() {
                 match={m}
                 format={format}
                 activeLive={activeMatch?.matchId === m.matchId}
+                widgetOpen={openWidgetId === m.matchId}
                 onOpen={onOpen}
                 onLive={setLiveMatch}
+                onToggleWidget={onToggleWidget}
               />
             ))}
           </section>

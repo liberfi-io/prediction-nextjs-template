@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type { WcMatch, WcTeam } from "../../types";
@@ -7,6 +8,7 @@ import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-pr
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
 import { formatKickoff, formatVolume } from "../util";
+import { SportsWidget } from "./SportsWidget";
 
 type PillColors = { bg: string; text: string; shadow: string };
 
@@ -220,14 +222,22 @@ export function MatchCard({
   match,
   format,
   activeLive = false,
+  widgetOpen = false,
   onOpen,
   onLive,
+  onToggleWidget,
 }: {
   match: WcMatch;
   format: OddsFormat;
+  /** Desktop: this match is the one shown in the pinned right-rail widget. */
   activeLive?: boolean;
+  /** Mobile: this card's inline live widget is expanded. */
+  widgetOpen?: boolean;
   onOpen: (slug: string) => void;
+  /** Desktop: select this match for the pinned right-rail widget. */
   onLive?: (match: WcMatch) => void;
+  /** Mobile: toggle this card's inline live widget. */
+  onToggleWidget?: (match: WcMatch) => void;
 }) {
   const { t } = useTranslation();
   const { moneyline: ml, spread, total } = match;
@@ -262,20 +272,29 @@ export function MatchCard({
   );
 
   const isLive = match.status === "live";
-  const liveButton = (
+  // The live button highlights when "active": on desktop that means selected
+  // for the pinned right-rail widget; on mobile it means this card's inline
+  // widget is expanded. We render two breakpoint-scoped variants so each
+  // follows its own state and click behavior.
+  const renderLiveButton = (opts: {
+    highlighted: boolean;
+    onClick: () => void;
+    className: string;
+  }) => (
     <button
       type="button"
       onClick={(e) => {
         stop(e);
-        onLive?.(match);
+        opts.onClick();
       }}
       className={cn(
-        "flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer",
+        "shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer",
         isLive
           ? "border-[#f76816]/50 bg-[#f76816]/15 text-[#f76816] hover:bg-[#f76816]/20"
-          : activeLive
+          : opts.highlighted
             ? "border-[#c7ff2e]/50 bg-[#c7ff2e]/15 text-[#c7ff2e]"
             : "border-zinc-700/60 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-800",
+        opts.className,
       )}
     >
       {isLive ? (
@@ -314,7 +333,18 @@ export function MatchCard({
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <HeaderMeta match={match} />
         <div className="flex shrink-0 items-center gap-1.5">
-          {liveButton}
+          {/* Desktop: selects the pinned right-rail widget. */}
+          {renderLiveButton({
+            highlighted: activeLive,
+            onClick: () => onLive?.(match),
+            className: "hidden lg:flex",
+          })}
+          {/* Mobile: toggles this card's inline expanding widget. */}
+          {renderLiveButton({
+            highlighted: widgetOpen,
+            onClick: () => onToggleWidget?.(match),
+            className: "flex lg:hidden",
+          })}
           {viewPill}
         </div>
       </div>
@@ -334,6 +364,25 @@ export function MatchCard({
         <Matchup match={match} homeScore={homeScore} awayScore={awayScore} mode="full" />
         <div className="grid grid-cols-3 gap-2">{moneylineCol(true)}</div>
       </div>
+
+      {/* ---------- Mobile (< lg): inline live widget, expands under the card ---------- */}
+      <AnimatePresence initial={false}>
+        {widgetOpen && (
+          <motion.div
+            key="live-widget"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden lg:hidden"
+            onClick={stop}
+          >
+            <div className="px-3 pb-3">
+              <SportsWidget match={match} className="h-[360px]" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
