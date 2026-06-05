@@ -49,7 +49,10 @@ export function GamesTab() {
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: matches = [], isPending } = useWorldcupMatches();
-  const onOpen = (slug: string) => router.push(`/world-cup/match/${slug}`);
+  const onOpen = useCallback(
+    (slug: string) => router.push(`/world-cup/match/${slug}`),
+    [router]
+  );
 
   // First in-progress match in list order (the one both layouts default to when
   // multiple games are live at the same time).

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
@@ -218,7 +219,7 @@ function HeaderMeta({ match }: { match: WcMatch }) {
   );
 }
 
-export function MatchCard({
+function MatchCardImpl({
   match,
   format,
   activeLive = false,
@@ -327,7 +328,7 @@ export function MatchCard({
       tabIndex={0}
       onClick={() => onOpen(match.slug)}
       onKeyDown={(e) => e.key === "Enter" && onOpen(match.slug)}
-      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors hover:border-[rgba(63,63,70,0.8)]"
+      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors [content-visibility:auto] [contain-intrinsic-size:auto_140px] hover:border-[rgba(63,63,70,0.8)]"
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
@@ -386,3 +387,11 @@ export function MatchCard({
     </div>
   );
 }
+
+/**
+ * Memoized so the 30s matches poll only re-renders cards whose props actually
+ * changed. Relies on callers passing stable callback identities (see
+ * `GamesTab`); object props (`match`) are compared by reference, so an
+ * unchanged match coming back from the poll must keep its identity.
+ */
+export const MatchCard = memo(MatchCardImpl);
