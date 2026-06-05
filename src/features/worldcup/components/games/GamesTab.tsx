@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
@@ -41,7 +40,6 @@ function Toggle({
 }
 
 export function GamesTab() {
-  const router = useRouter();
   const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
   const [format] = useOddsFormat();
@@ -50,8 +48,9 @@ export function GamesTab() {
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: matches = [], isPending } = useWorldcupMatches();
   const onOpen = useCallback(
-    (slug: string) => router.push(`/world-cup/match/${slug}`),
-    [router]
+    (slug: string) =>
+      window.open(`/world-cup/match/${slug}`, "_blank", "noopener,noreferrer"),
+    []
   );
 
   // First in-progress match in list order (the one both layouts default to when

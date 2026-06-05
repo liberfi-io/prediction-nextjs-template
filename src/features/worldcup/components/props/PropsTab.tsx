@@ -16,7 +16,7 @@ import type { WcOutcome, WcProp } from "../../types";
 import { PropsSkeleton } from "../skeletons";
 
 const NoPrefetchLink: LinkComponentType = (props) => (
-  <Link prefetch={false} {...props} />
+  <Link prefetch={false} target="_blank" rel="noopener noreferrer" {...props} />
 );
 
 /**
@@ -78,6 +78,8 @@ export function PropsTab() {
   );
 
   const href = (event: PredictEvent) => `/polymarket/${event.slug}`;
+  const open = (event: PredictEvent) =>
+    window.open(href(event), "_blank", "noopener,noreferrer");
 
   if (isPending) return <PropsSkeleton />;
 
@@ -87,8 +89,8 @@ export function PropsTab() {
         events={events}
         getEventHref={href}
         LinkComponent={NoPrefetchLink}
-        onSelect={(event) => router.push(href(event))}
-        onSelectOutcome={(event) => router.push(href(event))}
+        onSelect={open}
+        onSelectOutcome={open}
         onHover={(event) => router.prefetch(href(event))}
       />
     </div>
