@@ -15,10 +15,6 @@ import { SportsWidget } from "./SportsWidget";
 
 type GroupBy = "stage" | "time";
 
-// Offset from the scroll-container top for the pinned desktop widget, clearing
-// the sticky sub-tab row.
-const WIDGET_STICKY_TOP = "56px";
-
 // On desktop the widget + related events form one pinned, internally-scrolling
 // panel. Inside that scroll container the related-events header sticks right
 // below the (in-panel sticky) widget, i.e. at the widget height (400px).
@@ -106,10 +102,8 @@ export function GamesTab() {
           independently of the matches and reaches its own bottom. Height is the
           scroll viewport minus the app header (48px) and the pin offset (56px). */}
       <aside className="order-first w-full shrink-0 lg:order-last lg:w-82">
-        <div
-          className="relative z-30 lg:sticky lg:flex lg:max-h-[calc(100dvh-104px)] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden"
-          style={{ top: WIDGET_STICKY_TOP }}
-        >
+        {/* lg:top-14 (56px) clears the sticky sub-tab row above. */}
+        <div className="relative lg:sticky lg:top-14 lg:flex lg:max-h-[calc(100dvh-104px)] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:no-scrollbar">
           <SportsWidget
             match={activeMatch}
             className="h-[400px] shrink-0 lg:sticky lg:top-0 lg:z-30"
