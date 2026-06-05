@@ -37,8 +37,6 @@ import {
   type TeamHint,
 } from "./marketGrouping";
 
-const SOURCE: ProviderSource = "polymarket";
-
 /** Team name/code aliases used to orient spread handicaps to the home side. */
 function teamHint(match?: WcMatch): TeamHint | undefined {
   if (!match) return undefined;
