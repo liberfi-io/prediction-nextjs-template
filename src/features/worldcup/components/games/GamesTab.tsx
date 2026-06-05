@@ -156,10 +156,25 @@ export function GamesTab() {
 
         {sections.map((section) => (
           <section key={section.title} className="flex flex-col gap-2">
-            <div className="sticky top-[49px] z-10 -mx-1 bg-[#0a0a0b] px-1 py-1.5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="sticky top-[49px] z-10 -mx-1 flex items-center gap-3 bg-[#0a0a0b] px-1 py-1.5">
+              <h3 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 {section.title}
               </h3>
+              {/* Column headers aligned to the match card's 3 odds columns
+                  (each w-[128px], gap-2). Right inset is the card body's px-4
+                  (16px) plus the card's 1px right border = 17px. Only shown at
+                  md+, where all three columns render; on narrow widths the card
+                  collapses to a single moneyline row, so no header is needed. */}
+              <div className="hidden shrink-0 items-stretch gap-2 pr-[17px] md:flex">
+                {(["moneyline", "spread", "total"] as const).map((col) => (
+                  <span
+                    key={col}
+                    className="w-[128px] text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500"
+                  >
+                    {t(`extend.worldcup.marketCol.${col}`)}
+                  </span>
+                ))}
+              </div>
             </div>
             {section.items.map((m) => (
               <MatchCard

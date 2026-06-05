@@ -163,6 +163,11 @@
       "matchView": "markets",
       "relatedEvents": "Similar Events",
       "versus": "vs",
+      "marketCol": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
       "advanceProbability": "Advance",
       "team": "Team",
       "collapse": "Collapse",
