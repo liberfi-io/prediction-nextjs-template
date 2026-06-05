@@ -128,14 +128,8 @@ function RelatedEventCard({
  */
 export function RelatedEvents({
   className,
-  stickyHeaderTop,
 }: {
   className?: string;
-  /**
-   * When set, the header sticks at this viewport offset (desktop: just below
-   * the pinned widget). Omit to leave the header in normal flow (mobile).
-   */
-  stickyHeaderTop?: string;
 }) {
   const router = useRouter();
   const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const isZh = isZhLang(i18n.language);
@@ -156,10 +150,9 @@ export function RelatedEvents({
     <div
       className={`flex-col gap-y-3 mt-6 px-1 lg:mt-0 lg:px-0${className ? ` ${className}` : ""}`}
     >
-      <div
-        className={`-mx-1 px-1 py-1.5${stickyHeaderTop ? " sticky z-10 bg-[#0a0a0b]" : ""}`}
-        style={stickyHeaderTop ? { top: stickyHeaderTop } : undefined}
-      >
+      {/* Desktop only: header sticks just below the pinned widget (top-100 =
+          400px = the widget's h-100). On mobile (<lg) it stays in flow. */}
+      <div className="-mx-1 px-1 py-1.5 lg:sticky lg:top-0 lg:z-10 lg:bg-[#0a0a0b]">
         <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 600 }}>
           {t("extend.worldcup.relatedEvents")}
         </span>

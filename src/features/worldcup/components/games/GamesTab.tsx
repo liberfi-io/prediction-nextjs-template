@@ -15,11 +15,6 @@ import { SportsWidget } from "./SportsWidget";
 
 type GroupBy = "stage" | "time";
 
-// On desktop the widget + related events form one pinned, internally-scrolling
-// panel. Inside that scroll container the related-events header sticks right
-// below the (in-panel sticky) widget, i.e. at the widget height (400px).
-const RELATED_HEADER_STICKY_TOP = "400px";
-
 function Toggle({
   active,
   onClick,
@@ -35,7 +30,9 @@ function Toggle({
       onClick={onClick}
       className={cn(
         "px-2.5 py-1 rounded-[8px] text-xs font-medium transition-colors cursor-pointer",
-        active ? "bg-zinc-800 text-[#c7ff2e]" : "text-zinc-500 hover:text-zinc-200",
+        active
+          ? "bg-zinc-800 text-[#c7ff2e]"
+          : "text-zinc-500 hover:text-zinc-200"
       )}
     >
       {children}
@@ -45,7 +42,9 @@ function Toggle({
 
 export function GamesTab() {
   const router = useRouter();
-  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const lang = i18n.language || "en";
+  const { t: _t, i18n } = useTranslation();
+  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const lang = i18n.language || "en";
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
@@ -62,7 +61,7 @@ export function GamesTab() {
       matches.find((m) => m.status === "live") ??
       [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)[0] ??
       null,
-    [liveMatch, matches],
+    [liveMatch, matches]
   );
 
   const sections = useMemo(() => {
@@ -71,7 +70,7 @@ export function GamesTab() {
       for (const m of [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
         const key = new Date(m.kickoffMs).toLocaleDateString(
           lang.startsWith("zh") ? "zh-CN" : "en-US",
-          { weekday: "short", month: "short", day: "numeric" },
+          { weekday: "short", month: "short", day: "numeric" }
         );
         if (!byDay.has(key)) byDay.set(key, []);
         byDay.get(key)!.push(m);
@@ -100,19 +99,12 @@ export function GamesTab() {
           desktop it's the right column — a pinned panel that scrolls internally
           (widget pinned to its top, related header just under it) so it scrolls
           independently of the matches and reaches its own bottom. Height is the
-          scroll viewport minus the app header (48px) and the pin offset (56px). */}
+          scroll viewport minus the app header (48px) and the pin offset (65px). */}
       <aside className="order-first w-full shrink-0 lg:order-last lg:w-82">
-        {/* lg:top-14 (56px) clears the sticky sub-tab row above. */}
-        <div className="relative lg:sticky lg:top-14 lg:flex lg:max-h-[calc(100dvh-104px)] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:no-scrollbar">
-          <SportsWidget
-            match={activeMatch}
-            className="h-[400px] shrink-0 lg:sticky lg:top-0 lg:z-30"
-          />
+        <div className="relative lg:sticky lg:top-[65px] lg:flex lg:max-h-[calc(100dvh-113px)] lg:flex-col lg:gap-4 lg:pb-4 lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain no-scrollbar">
+          <SportsWidget match={activeMatch} className="h-100 shrink-0" />
           {/* Desktop: related events below the widget; header sticks under it. */}
-          <RelatedEvents
-            className="hidden lg:flex"
-            stickyHeaderTop={RELATED_HEADER_STICKY_TOP}
-          />
+          <RelatedEvents className="hidden lg:flex" />
         </div>
       </aside>
 
@@ -120,10 +112,16 @@ export function GamesTab() {
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
-            <Toggle active={groupBy === "stage"} onClick={() => setGroupBy("stage")}>
+            <Toggle
+              active={groupBy === "stage"}
+              onClick={() => setGroupBy("stage")}
+            >
               {t("extend.worldcup.groupBy.stage")}
             </Toggle>
-            <Toggle active={groupBy === "time"} onClick={() => setGroupBy("time")}>
+            <Toggle
+              active={groupBy === "time"}
+              onClick={() => setGroupBy("time")}
+            >
               {t("extend.worldcup.groupBy.time")}
             </Toggle>
           </div>

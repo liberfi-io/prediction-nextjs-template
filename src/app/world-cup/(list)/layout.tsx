@@ -17,11 +17,11 @@ export default function WorldCupListLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="w-full pb-16">
+    <div className="w-full pb-6 sm:pb-16">
       {/* Shared hero across every /world-cup sub-tab */}
       <WorldCupHero />
 
-      <div className="mx-auto w-full max-w-338 px-4 pt-4 sm:px-6">
+      <div className="mx-auto w-full max-w-338 px-4 sm:px-6 sm:pt-4">
         <WorldCupSubTabs />
         {children}
       </div>
