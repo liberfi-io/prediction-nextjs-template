@@ -161,20 +161,29 @@ export function BestThirdsSkeleton() {
   );
 }
 
-// Mirrors BracketMatchNode's box model exactly (padding + inner slot/footer
-// rows) so the skeleton node height matches the real node by construction
-// rather than a guessed fixed height.
+// Mirrors BracketMatchNode's box model exactly so the skeleton node height
+// matches the real node by construction (measured 119px), not a guessed value:
+//   p-2.5(20) + inner[slot 20 + gap 6 + vs-row 15 + gap 6 + slot 20 = 67]
+//   + mt-2(8) + footer[border 1 + pt-1.5 6 + content 15 = 22] + border 2 = 119.
+// The vs-row and footer rows are fixed at the real text-[10px] line box (15px)
+// with thin pulse bars centered inside, so heights are exact but still light.
 function BracketNodeSkeleton() {
   return (
     <div className="rounded-[10px] border border-zinc-800 bg-zinc-900/50 p-2.5">
       <div className="flex flex-col gap-1.5">
         <div className={cx("h-5 w-9 rounded", PULSE)} />
-        <div className={cx("h-3 w-6 rounded", PULSE)} />
+        <div className="flex h-[15px] items-center">
+          <div className={cx("h-2.5 w-6 rounded", PULSE)} />
+        </div>
         <div className={cx("h-5 w-9 rounded", PULSE)} />
       </div>
       <div className="mt-2 flex items-center justify-between border-t border-zinc-800/60 pt-1.5">
-        <div className={cx("h-2.5 w-16 rounded", PULSE)} />
-        <div className={cx("h-2.5 w-10 rounded", PULSE)} />
+        <div className="flex h-[15px] items-center">
+          <div className={cx("h-2.5 w-16 rounded", PULSE)} />
+        </div>
+        <div className="flex h-[15px] items-center">
+          <div className={cx("h-2.5 w-10 rounded", PULSE)} />
+        </div>
       </div>
     </div>
   );
