@@ -132,7 +132,7 @@ export function RelatedEvents({
   className?: string;
 }) {
   const router = useRouter();
-  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const isZh = isZhLang(i18n.language);
+  const { t, i18n } = useTranslation(); const isZh = isZhLang(i18n.language);
   const { data: curated = [] } = useWorldcupCurated("bracket");
 
   const items = useMemo(

@@ -8,7 +8,7 @@ import { useOddsFormat } from "../odds/OddsFormatProvider";
 
 /** Global odds-format dropdown (8 formats, zero network). */
 export function OddsFormatSelect() {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const [format, setFormat] = useOddsFormat();
   const oddsLabel = (f: OddsFormat) => t(`extend.worldcup.oddsFormat.${f}`);
   const [open, setOpen] = useState(false);

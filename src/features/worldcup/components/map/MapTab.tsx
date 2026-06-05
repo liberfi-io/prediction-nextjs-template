@@ -17,7 +17,8 @@ import { TeamFlag } from "../TeamFlag";
  */
 export function MapTab() {
   const router = useRouter();
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t: _t } = useTranslation();
+  const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const [format] = useOddsFormat();
 
   const winner = useMemo(

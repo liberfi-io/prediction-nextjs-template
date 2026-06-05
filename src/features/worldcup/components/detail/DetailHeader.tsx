@@ -23,8 +23,7 @@ export function DetailHeader({
   onTogglePanel: () => void;
   onBack: () => void;
 }) {
-  const { t: _t, i18n } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
 
   const endDate = event.end_at

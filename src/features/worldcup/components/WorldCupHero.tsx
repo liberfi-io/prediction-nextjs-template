@@ -85,7 +85,8 @@ function Node({
 }
 
 export function WorldCupHero() {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t: _t } = useTranslation();
+  const t = _t as (key: string, options?: Record<string, unknown>) => string;
   // Progress fills are computed after mount to avoid SSR hydration mismatch
   // and to match the source's 0% pre-tournament state on first paint.
   const [fills, setFills] = useState<number[]>(() => SEGMENTS.map(() => 0));

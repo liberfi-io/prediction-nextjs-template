@@ -15,7 +15,7 @@ function Slot({ label }: { label: string }) {
 }
 
 export function BracketMatchNode({ node }: { node: WcBracketNode }) {
-  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string; const lang = i18n.language || "en";
+  const { t, i18n } = useTranslation(); const lang = i18n.language || "en";
   return (
     <div className="rounded-[10px] border border-zinc-800 bg-zinc-900/50 p-2.5">
       <div className="flex flex-col gap-1.5">

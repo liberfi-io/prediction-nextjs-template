@@ -22,8 +22,7 @@ export function MatchCenterTabs({
   match: WcMatch | null;
   className?: string;
 }) {
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const [tab, setTab] = useState<CenterTab>("center");
 
   return (

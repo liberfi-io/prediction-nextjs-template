@@ -42,8 +42,7 @@ function Toggle({
 
 export function GamesTab() {
   const router = useRouter();
-  const { t: _t, i18n } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");

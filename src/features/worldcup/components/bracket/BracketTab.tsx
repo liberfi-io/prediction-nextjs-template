@@ -9,7 +9,7 @@ import { BracketSkeleton } from "../skeletons";
 import { BracketMatchNode } from "./BracketMatchNode";
 
 export function BracketTab() {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const { data: nodes = [], isPending } = useWorldcupBracket();
   const [round, setRound] = useState("r32");
 

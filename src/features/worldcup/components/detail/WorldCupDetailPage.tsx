@@ -50,8 +50,7 @@ function teamHint(match?: WcMatch): TeamHint | undefined {
 
 export function WorldCupDetailPage({ id }: { id: string }) {
   const router = useRouter();
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
 

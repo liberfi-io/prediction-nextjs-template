@@ -10,7 +10,8 @@ const TH = "px-1 py-1 text-right text-[10px] font-semibold uppercase tracking-wi
 const TD = "px-1 py-2 text-right text-[13px] tabular-nums text-zinc-300";
 
 export function BestThirds() {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t: _t } = useTranslation();
+  const t = _t as (key: string, options?: Record<string, unknown>) => string;
   const { data: rows = [], isPending } = useWorldcupBestThird();
 
   if (isPending) return <BestThirdsSkeleton />;

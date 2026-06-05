@@ -20,6 +20,69 @@ const cx = (...classes: string[]) => classes.join(" ");
 const PULSE = "animate-pulse bg-zinc-800/50";
 const CARD = "rounded-[12px] border border-zinc-800 bg-zinc-900/40";
 
+// Mirrors MatchCard's box model (header + desktop 3-odds-column body / mobile
+// matchup + moneyline-row body) so the skeleton card height matches the real
+// card by construction — the odds columns drive the height, not a guessed
+// fixed value, so there's no jump when content loads.
+function MatchCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)]">
+      <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
+        <div className={cx("h-4 w-28 rounded", PULSE)} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className={cx("h-[26.5px] w-16 rounded-full", PULSE)} />
+          <div className={cx("hidden h-[26.5px] w-20 rounded-full md:block", PULSE)} />
+        </div>
+      </div>
+
+      {/* Desktop body (>= md): matchup + 3 odds columns. */}
+      <div className="hidden items-stretch gap-3 px-4 pb-3 pt-2.5 md:flex">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className={cx("size-7 shrink-0 rounded-full", PULSE)} />
+            <div className={cx("h-4 w-28 rounded", PULSE)} />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className={cx("size-7 shrink-0 rounded-full", PULSE)} />
+            <div className={cx("h-4 w-24 rounded", PULSE)} />
+          </div>
+        </div>
+        <div className="flex shrink-0 items-stretch gap-2">
+          <div className="flex w-[128px] flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={cx("h-[34px] rounded-[9px]", PULSE)} />
+            ))}
+          </div>
+          {Array.from({ length: 2 }).map((_, c) => (
+            <div key={c} className="flex w-[128px] flex-col gap-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className={cx("min-h-[34px] flex-1 rounded-[9px]", PULSE)} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile body (< md): matchup on top, moneyline row below. */}
+      <div className="flex flex-col gap-3 px-3 pb-3 pt-2.5 md:hidden">
+        <div className="flex flex-col gap-2.5">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2.5">
+              <div className={cx("size-7 shrink-0 rounded-full", PULSE)} />
+              <div className={cx("h-4 flex-1 rounded", PULSE)} />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={cx("h-[38px] rounded-[9px]", PULSE)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Games tab: pinned live widget + toolbar + match card list. */
 export function GamesSkeleton() {
   return (
@@ -33,7 +96,7 @@ export function GamesSkeleton() {
           <div className={cx("h-8 w-24 rounded-[10px]", PULSE)} />
         </div>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={cx("h-[76px]", PULSE, CARD)} />
+          <MatchCardSkeleton key={i} />
         ))}
       </div>
     </div>
@@ -98,22 +161,40 @@ export function BestThirdsSkeleton() {
   );
 }
 
+// Mirrors BracketMatchNode's box model exactly (padding + inner slot/footer
+// rows) so the skeleton node height matches the real node by construction
+// rather than a guessed fixed height.
 function BracketNodeSkeleton() {
-  return <div className={cx("h-[104px] rounded-[10px] border border-zinc-800 bg-zinc-900/50", "animate-pulse")} />;
+  return (
+    <div className="rounded-[10px] border border-zinc-800 bg-zinc-900/50 p-2.5">
+      <div className="flex flex-col gap-1.5">
+        <div className={cx("h-5 w-9 rounded", PULSE)} />
+        <div className={cx("h-3 w-6 rounded", PULSE)} />
+        <div className={cx("h-5 w-9 rounded", PULSE)} />
+      </div>
+      <div className="mt-2 flex items-center justify-between border-t border-zinc-800/60 pt-1.5">
+        <div className={cx("h-2.5 w-16 rounded", PULSE)} />
+        <div className={cx("h-2.5 w-10 rounded", PULSE)} />
+      </div>
+    </div>
+  );
 }
 
 /** Bracket tab: round columns (>=lg) / segmented list (<lg). */
 export function BracketSkeleton() {
-  // r32..final node counts, capped per column to keep the column compact.
+  // r32..final node counts — must match the real per-round counts so the
+  // skeleton height tracks the loaded bracket (no layout shift on hydrate).
   const columns = [16, 8, 4, 2, 1, 1];
+  // Mobile defaults to the first round (r32 → 16 matches), like BracketTab.
+  const mobileCount = columns[0];
   return (
     <div className="flex flex-col gap-4">
       <div className="hidden gap-4 overflow-x-auto pb-2 lg:flex">
         {columns.map((count, ci) => (
           <div key={ci} className="flex w-[180px] shrink-0 flex-col gap-2">
-            <div className={cx("mx-auto h-3 w-20 rounded", PULSE)} />
+            <div className={cx("mx-auto h-4 w-20 rounded", PULSE)} />
             <div className="flex flex-1 flex-col justify-around gap-2">
-              {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
+              {Array.from({ length: count }).map((_, i) => (
                 <BracketNodeSkeleton key={i} />
               ))}
             </div>
@@ -121,13 +202,13 @@ export function BracketSkeleton() {
         ))}
       </div>
       <div className="flex flex-col gap-3 lg:hidden">
-        <div className="-mx-3 flex gap-1 px-3">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="-mx-3 flex gap-1 overflow-x-auto px-3 no-scrollbar">
+          {Array.from({ length: columns.length }).map((_, i) => (
             <div key={i} className={cx("h-7 w-16 shrink-0 rounded-[8px]", PULSE)} />
           ))}
         </div>
         <div className="flex flex-col gap-2">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: mobileCount }).map((_, i) => (
             <BracketNodeSkeleton key={i} />
           ))}
         </div>

@@ -33,8 +33,7 @@ export function SportsWidget({
   match: WcMatch | null;
   className?: string;
 }) {
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const src = widgetSrcForMatch(match);
 
   if (!src) {

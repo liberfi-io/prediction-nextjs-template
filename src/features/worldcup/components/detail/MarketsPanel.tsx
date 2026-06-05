@@ -37,8 +37,7 @@ export function MarketsPanel({
   onClose: () => void;
   className?: string;
 }) {
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
 
   const [sort, setSort] = useState<SortKey>("default");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -194,8 +193,7 @@ function GroupRow({
   onSelect: (slug: string) => void;
   label: string;
 }) {
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
 
   if (options.length === 0) return null;
 

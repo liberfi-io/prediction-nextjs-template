@@ -137,7 +137,8 @@ function Matchup({
    */
   mode?: "compact" | "full";
 }) {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t: _t } = useTranslation();
+  const t = _t as (key: string, options?: Record<string, unknown>) => string;
   if (mode === "full") {
     const row = (team: WcTeam, score: number) => (
       <>
@@ -179,7 +180,7 @@ function Matchup({
 }
 
 function HeaderMeta({ match }: { match: WcMatch }) {
-  const { t: _t, i18n } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
   let lead: React.ReactNode;
   if (match.status === "live") {
@@ -228,7 +229,7 @@ export function MatchCard({
   onOpen: (slug: string) => void;
   onLive?: (match: WcMatch) => void;
 }) {
-  const { t: _t } = useTranslation(); const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
   const { moneyline: ml, spread, total } = match;
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;

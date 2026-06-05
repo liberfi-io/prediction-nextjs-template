@@ -18,8 +18,7 @@ import { WC_TABS, normalizeTab, type WcTab } from "../tabs";
 export function WorldCupSubTabs() {
   const router = useRouter();
   const pathname = usePathname();
-  const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const { t } = useTranslation();
 
   const active = normalizeTab(pathname.split("/")[2]);
 
