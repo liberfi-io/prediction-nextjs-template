@@ -272,13 +272,31 @@
           "news": "Market News",
           "comments": "Comments"
         },
+        "mtab": {
+          "orderbook": "Order Book",
+          "center": "Match Center",
+          "activity": "Activity",
+          "similar": "Related"
+        },
         "comingSoon": "Coming soon",
+        "newsEmpty": "No market news yet",
+        "commentsEmpty": "No comments yet",
+        "news": {
+          "empty": "No market news yet",
+          "error": "Failed to load market news",
+          "reposted": "Reposted",
+          "showMore": "Show more",
+          "showLess": "Show less"
+        },
         "trade": {
           "buy": "Buy",
-          "sell": "Sell"
+          "sell": "Sell",
+          "yes": "Yes",
+          "no": "No"
         },
         "markets": {
           "title": "Markets",
+          "closed": "Trading closed",
           "activeOnly": "Active only",
           "sort": {
             "default": "Default",
@@ -307,5 +325,13 @@
   "common": {
     "signIn": "Sign In",
     "signOut": "Sign Out"
-  }
+  },
+  "predict.comments.title": "Comments",
+  "predict.comments.empty": "No comments yet",
+  "predict.comments.loading": "Loading comments…",
+  "predict.comments.sortLatest": "Latest",
+  "predict.comments.sortOldest": "Oldest",
+  "predict.comments.sortMostLiked": "Most liked",
+  "predict.comments.holdersOnly": "Holders",
+  "predict.comments.anonymous": "Anonymous"
 }

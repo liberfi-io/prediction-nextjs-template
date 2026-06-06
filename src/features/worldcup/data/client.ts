@@ -12,6 +12,9 @@
 import type { PredictEvent } from "@liberfi.io/react-predict";
 import type {
   WcBracketNode,
+  WcFeed,
+  WcFeedMedia,
+  WcFeedPage,
   WcGroup,
   WcMatch,
   WcMatchStatus,
@@ -363,6 +366,113 @@ async function getWorldcupJson<T>(baseUrl: string, path: string): Promise<T> {
     throw new Error(`worldcup ${path} request failed: ${res.status}`);
   }
   return (await res.json()) as T;
+}
+
+// ---------------------------------------------------------------------------
+// Market news (social / Twitter feeds)
+// ---------------------------------------------------------------------------
+//
+// Backed by `GET /api/v1/events/{slug}/feeds` (cursor-paginated). The endpoint
+// currently proxies a global feed, so the slug is forwarded but not yet used to
+// filter; the data layer stays event-scoped for forward compatibility.
+
+interface WcFeedUserDto {
+  id?: string;
+  handle?: string;
+  name?: string;
+  avatar?: string;
+  verified_type?: string;
+}
+
+interface WcFeedDto {
+  id: string;
+  tweet_id?: string;
+  origin_tweet_id?: string;
+  type: string;
+  text?: string;
+  created_at: string; // RFC3339
+  user: WcFeedUserDto;
+  photos?: string[] | null;
+  videos?: string[] | null;
+  thumbnails?: string[] | null;
+  categories?: string[] | null;
+  significance?: number;
+  platform?: number;
+  source?: string;
+}
+
+interface WcFeedsResponseDto {
+  items: WcFeedDto[] | null;
+  next_cursor?: string;
+  has_more?: boolean;
+  limit?: number;
+}
+
+export const worldcupFeedsQueryKey = (slug: string) =>
+  ["worldcup", "feeds", slug] as const;
+
+/** Flatten upstream video/photo arrays into an ordered media list. */
+function adaptFeedMedia(dto: WcFeedDto): WcFeedMedia[] {
+  const medias: WcFeedMedia[] = [];
+  const thumbnails = dto.thumbnails ?? [];
+  (dto.videos ?? []).forEach((url, i) => {
+    medias.push({ type: "video", url, thumbnail: thumbnails[i] });
+  });
+  (dto.photos ?? []).forEach((url) => {
+    medias.push({ type: "image", url });
+  });
+  return medias;
+}
+
+/** Adapt the snake_case backend feed DTO into the local {@link WcFeed} shape. */
+export function adaptFeed(dto: WcFeedDto): WcFeed {
+  return {
+    id: dto.id,
+    tweetId: dto.tweet_id,
+    originTweetId: dto.origin_tweet_id,
+    type: dto.type,
+    text: dto.text,
+    timestampMs: Date.parse(dto.created_at) || 0,
+    user: {
+      id: dto.user?.id,
+      handle: dto.user?.handle,
+      name: dto.user?.name,
+      avatar: dto.user?.avatar,
+      verifiedType: dto.user?.verified_type,
+    },
+    medias: adaptFeedMedia(dto),
+    categories: dto.categories ?? [],
+    significance: dto.significance,
+    source: dto.source,
+  };
+}
+
+/**
+ * Fetch a page of market-news feeds for a match (event) slug. Cursor is the
+ * opaque token returned by the previous page.
+ */
+export async function fetchWorldcupFeeds(
+  baseUrl: string,
+  slug: string,
+  opts: { limit?: number; cursor?: string } = {},
+): Promise<WcFeedPage> {
+  const params = new URLSearchParams();
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  const qs = params.toString();
+  const res = await fetch(
+    `${baseUrl}/api/v1/events/${encodeURIComponent(slug)}/feeds${qs ? `?${qs}` : ""}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new Error(`worldcup feeds request failed: ${res.status}`);
+  }
+  const dto = (await res.json()) as WcFeedsResponseDto;
+  return {
+    items: (dto.items ?? []).map(adaptFeed),
+    nextCursor: dto.next_cursor,
+    hasMore: Boolean(dto.has_more),
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -29,16 +29,19 @@ import {
   toast,
   KalshiIcon,
   PolymarketIcon,
+  EmptyIcon,
+  SignInIcon,
 } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
+  useAuth,
   useWallets,
   type EvmWalletAdapter,
 } from "@liberfi.io/wallet-connector";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
 
-type ActivityTab = "positions" | "orders" | "history";
+export type ActivityTab = "positions" | "orders" | "history";
 
 const LIST_HEIGHT = 600;
 
@@ -49,12 +52,20 @@ const LIST_HEIGHT = 600;
 export function EventActivitySection({
   event,
   walletAddress,
+  activeTab: controlledTab,
+  hideTabs = false,
 }: {
   event: PredictEvent;
   walletAddress?: string;
+  /** Externally controlled tab (mobile flattens these into top-level tabs). */
+  activeTab?: ActivityTab;
+  /** Hide the internal tab bar when the tab is driven externally. */
+  hideTabs?: boolean;
 }) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ActivityTab>("positions");
+  const { signIn } = useAuth();
+  const [internalTab, setInternalTab] = useState<ActivityTab>("positions");
+  const activeTab = controlledTab ?? internalTab;
 
   const marketSlugs = useMemo(
     () => event.markets?.map((m) => m.slug) ?? [],
@@ -87,33 +98,42 @@ export function EventActivitySection({
   ];
 
   return (
-    <div className="mt-6 flex flex-col px-1 lg:px-4">
+    <div
+      className={cn(
+        "flex flex-col",
+        hideTabs ? "" : "px-1 lg:px-4",
+      )}
+    >
       {/* Tabs — matching PredictPortfolioPage */}
-      <div className="shrink-0 border-b border-zinc-800/50">
-        <div className="flex">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
-                activeTab === tab.key
-                  ? "border-bullish text-bullish"
-                  : "border-transparent text-zinc-400 hover:text-zinc-300",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {!hideTabs && (
+        <div className="shrink-0 border-b border-zinc-800/50">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setInternalTab(tab.key)}
+                className={cn(
+                  "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
+                  activeTab === tab.key
+                    ? "border-bullish text-bullish"
+                    : "border-transparent text-zinc-400 hover:text-zinc-300",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {!walletAddress ? (
-        <div className="flex items-center justify-center py-20 text-sm text-zinc-500">
-          {t("predict.trade.connectWallet")}
-        </div>
+        <SignInPrompt
+          message={t("extend.portfolio.signInPrompt")}
+          buttonLabel={t("common.signIn")}
+          onSignIn={signIn}
+        />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           {activeTab === "positions" && (
@@ -825,12 +845,34 @@ function EventTradesPanel({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20">
-      <svg viewBox="0 0 24 24" width={40} height={40} fill="none" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" style={{ color: "#3f3f46" }}>
-        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-        <path d="M7 16l4-8 4 4 6-10" />
-      </svg>
+    <div className="flex flex-col items-center justify-center gap-3 py-12">
+      <EmptyIcon width={32} height={32} className="text-zinc-600" />
       <span className="text-sm text-zinc-500">{message}</span>
+    </div>
+  );
+}
+
+function SignInPrompt({
+  message,
+  buttonLabel,
+  onSignIn,
+}: {
+  message: string;
+  buttonLabel: string;
+  onSignIn: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-12">
+      <EmptyIcon width={32} height={32} className="text-zinc-600" />
+      <span className="text-sm text-zinc-500">{message}</span>
+      <button
+        type="button"
+        onClick={onSignIn}
+        className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#c7ff2e]/25 bg-[#c7ff2e]/10 px-4 py-2 text-sm font-semibold text-[#c7ff2e] transition-colors duration-200 hover:border-[#c7ff2e]/40 hover:bg-[#c7ff2e]/20 cursor-pointer"
+      >
+        <SignInIcon width={14} height={14} />
+        {buttonLabel}
+      </button>
     </div>
   );
 }

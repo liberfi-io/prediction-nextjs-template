@@ -11,7 +11,11 @@
  * rewrite prefix).
  */
 
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  type QueryClient,
+} from "@tanstack/react-query";
 import {
   WORLDCUP_BEST_THIRD_QUERY_KEY,
   WORLDCUP_BRACKET_QUERY_KEY,
@@ -21,11 +25,13 @@ import {
   fetchWorldcupBestThird,
   fetchWorldcupBracket,
   fetchWorldcupCurated,
+  fetchWorldcupFeeds,
   fetchWorldcupMatchEvent,
   fetchWorldcupMatches,
   fetchWorldcupProps,
   fetchWorldcupStandings,
   worldcupCuratedQueryKey,
+  worldcupFeedsQueryKey,
   worldcupMatchEventQueryKey,
   type WcCuratedBucket,
 } from "./client";
@@ -199,5 +205,28 @@ export async function prefetchWorldcupCurated(
   await queryClient.prefetchQuery({
     queryKey: worldcupCuratedQueryKey(bucket),
     queryFn: () => fetchWorldcupCurated(base, bucket),
+  });
+}
+
+/** Page size for the market-news feed. */
+const FEEDS_PAGE_SIZE = 20;
+
+/**
+ * Infinite, cursor-paginated market-news feed for a match (event) slug.
+ * Powers the "Market News" tab; each page forwards the opaque cursor returned
+ * by the previous page.
+ */
+export function useWorldcupFeeds(slug: string) {
+  return useInfiniteQuery({
+    queryKey: worldcupFeedsQueryKey(slug),
+    queryFn: ({ pageParam }) =>
+      fetchWorldcupFeeds(CLIENT_BASE, slug, {
+        limit: FEEDS_PAGE_SIZE,
+        cursor: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextCursor : undefined,
+    enabled: Boolean(slug),
   });
 }

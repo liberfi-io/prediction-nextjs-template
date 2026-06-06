@@ -272,13 +272,31 @@
           "news": "市場新聞",
           "comments": "評論"
         },
+        "mtab": {
+          "orderbook": "訂單簿",
+          "center": "比賽中心",
+          "activity": "動態",
+          "similar": "相關"
+        },
         "comingSoon": "敬請期待",
+        "newsEmpty": "暫無市場新聞",
+        "commentsEmpty": "暫無評論",
+        "news": {
+          "empty": "暫無市場新聞",
+          "error": "市場新聞載入失敗",
+          "reposted": "轉發",
+          "showMore": "展開",
+          "showLess": "收起"
+        },
         "trade": {
           "buy": "買入",
-          "sell": "賣出"
+          "sell": "賣出",
+          "yes": "是",
+          "no": "否"
         },
         "markets": {
           "title": "市場",
+          "closed": "已停止交易",
           "activeOnly": "僅活躍",
           "sort": {
             "default": "默認",
@@ -307,5 +325,13 @@
   "common": {
     "signIn": "登入",
     "signOut": "登出"
-  }
+  },
+  "predict.comments.title": "評論",
+  "predict.comments.empty": "暫無評論",
+  "predict.comments.loading": "載入評論中…",
+  "predict.comments.sortLatest": "最新",
+  "predict.comments.sortOldest": "最早",
+  "predict.comments.sortMostLiked": "最多讚",
+  "predict.comments.holdersOnly": "持有者",
+  "predict.comments.anonymous": "匿名"
 }

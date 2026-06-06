@@ -137,3 +137,47 @@ export interface WcBracketNode {
 }
 
 export const BRACKET_ROUNDS = ["r32", "r16", "r8", "r4", "r3rd", "final"] as const;
+
+// ---------------------------------------------------------------------------
+// Market news (social / Twitter feeds)
+// ---------------------------------------------------------------------------
+
+export interface WcFeedUser {
+  id?: string;
+  handle?: string;
+  name?: string;
+  avatar?: string;
+  /** e.g. "blue" | "business"; empty when unverified. */
+  verifiedType?: string;
+}
+
+export interface WcFeedMedia {
+  type: "image" | "video";
+  url: string;
+  /** Poster/thumbnail for videos. */
+  thumbnail?: string;
+}
+
+export interface WcFeed {
+  id: string;
+  tweetId?: string;
+  originTweetId?: string;
+  /** tweet | retweet | reply | quote */
+  type: string;
+  text?: string;
+  /** Unix milliseconds. */
+  timestampMs: number;
+  user: WcFeedUser;
+  /** Videos first, then images (mirrors the upstream ordering). */
+  medias: WcFeedMedia[];
+  categories: string[];
+  significance?: number;
+  source?: string;
+}
+
+export interface WcFeedPage {
+  items: WcFeed[];
+  /** Opaque cursor for the next page; absent when there are no more. */
+  nextCursor?: string;
+  hasMore: boolean;
+}

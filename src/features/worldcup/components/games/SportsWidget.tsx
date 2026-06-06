@@ -29,18 +29,24 @@ export function widgetSrcForMatch(match: WcMatch | null): string | null {
 export function SportsWidget({
   match,
   className,
+  bordered = true,
 }: {
   match: WcMatch | null;
   className?: string;
+  /** Draw the widget's own border/background. Set false when the host panel
+   *  already provides them (e.g. the Match Center tab) to avoid a double edge. */
+  bordered?: boolean;
 }) {
   const { t } = useTranslation();
   const src = widgetSrcForMatch(match);
+  const chrome = bordered ? "border border-zinc-800 bg-zinc-900/40" : "";
 
   if (!src) {
     return (
       <div
         className={cn(
-          "flex w-full items-center justify-center rounded-[12px] border border-zinc-800 bg-zinc-900/40 text-xs text-zinc-500",
+          "flex w-full items-center justify-center rounded-[12px] text-xs text-zinc-500",
+          chrome,
           className,
         )}
       >
@@ -57,7 +63,8 @@ export function SportsWidget({
       src={src}
       loading="lazy"
       className={cn(
-        "w-full overflow-hidden rounded-[12px] border border-zinc-800 bg-zinc-900/40",
+        "w-full overflow-hidden rounded-[12px]",
+        chrome,
         className,
       )}
     />

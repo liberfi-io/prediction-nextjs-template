@@ -15,13 +15,11 @@ export function DetailHeader({
   selectedLabel,
   panelOpen,
   onTogglePanel,
-  onBack,
 }: {
   event: PredictEvent;
   selectedLabel: string;
   panelOpen: boolean;
   onTogglePanel: () => void;
-  onBack: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
@@ -51,17 +49,6 @@ export function DetailHeader({
 
   return (
     <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex w-fit items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-200 cursor-pointer"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        {t("extend.worldcup.detail.back")}
-      </button>
-
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           {event.image_url ? (
@@ -78,9 +65,9 @@ export function DetailHeader({
             <button
               type="button"
               onClick={onTogglePanel}
-              className="flex items-center gap-1.5 text-left cursor-pointer group"
+              className="flex min-w-0 max-w-full items-center gap-1.5 text-left cursor-pointer group"
             >
-              <span className="truncate text-base font-semibold text-zinc-100">
+              <span className="min-w-0 truncate text-base font-semibold text-zinc-100">
                 {event.title}
               </span>
               <span className="shrink-0 text-zinc-600">/</span>
