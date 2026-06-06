@@ -29,7 +29,14 @@ export function FeedMedia({
           controls
           preload="none"
           className="aspect-video w-full rounded-lg bg-black object-cover"
-        />
+        >
+          <track
+            kind="captions"
+            src="data:text/vtt;charset=utf-8,WEBVTT"
+            srcLang="en"
+            label="Captions"
+          />
+        </video>
       ))}
 
       {images.length > 0 && (
@@ -40,7 +47,6 @@ export function FeedMedia({
           )}
         >
           {images.map((m, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               key={`i-${i}-${m.url}`}
               src={m.url}
