@@ -8,7 +8,6 @@ import { useWorldcupCurated } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcProp } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
-import { isZhLang } from "../util";
 
 // Mirrors the event-detail "similar events" card borders (see ui-predict
 // event-similar-events.ui), minus the source badge — all worldcup events are
@@ -24,12 +23,12 @@ interface RelatedItem {
 }
 
 /** Reduce a curated {@link WcProp} to the fields the card renders. */
-function toItem(prop: WcProp, isZh: boolean): RelatedItem {
+function toItem(prop: WcProp, isEn: boolean): RelatedItem {
   const teamCode = prop.outcomes.find((o) => o.teamCode)?.teamCode;
   const flag = teamCode ? TEAMS[teamCode.toUpperCase()]?.flag : undefined;
   return {
     slug: prop.slug,
-    title: isZh ? prop.titleZh : prop.titleEn,
+    title: isEn ? prop.title : prop.titleTrans || prop.title,
     imageUrl: flag ? encodeURI(flag) : "/worldcup/fifa.webp",
     volume: prop.volume,
   };
@@ -132,12 +131,13 @@ export function RelatedEvents({
   className?: string;
 }) {
   const router = useRouter();
-  const { t, i18n } = useTranslation(); const isZh = isZhLang(i18n.language);
+  const { t, i18n } = useTranslation();
+  const isEn = (i18n.language || "en").toLowerCase().startsWith("en");
   const { data: curated = [] } = useWorldcupCurated("bracket");
 
   const items = useMemo(
-    () => curated.map((p) => toItem(p, isZh)),
-    [curated, isZh],
+    () => curated.map((p) => toItem(p, isEn)),
+    [curated, isEn],
   );
 
   if (items.length === 0) return null;

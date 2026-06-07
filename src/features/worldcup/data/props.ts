@@ -58,7 +58,7 @@ function teamSoftmax(codes: string[], temperature: number): WcOutcome[] {
       const t = TEAMS[c.toUpperCase()];
       return {
         label: t?.name ?? c.toUpperCase(),
-        labelZh: t?.nameZh,
+        labelTrans: t?.nameZh,
         teamCode: c,
         price: round2(exps[i] / sum),
       };
@@ -89,16 +89,16 @@ const CONTINENTS: Array<[string, string, number]> = [
 
 function players(seed: number): WcOutcome[] {
   const p = 0.14;
-  return PLAYER_RANKING.map(([label, labelZh, code], i) => {
+  return PLAYER_RANKING.map(([label, labelTrans, code], i) => {
     const price = round2(Math.max(0.02, p - i * 0.012 + ((seed % 5) - 2) * 0.002));
-    return { label, labelZh, teamCode: code, price };
+    return { label, labelTrans, teamCode: code, price };
   });
 }
 
 function binaryYes(prob: number): WcOutcome[] {
   return [
-    { label: "Yes", labelZh: "是", price: round2(prob) },
-    { label: "No", labelZh: "否", price: round2(1 - prob) },
+    { label: "Yes", labelTrans: "是", price: round2(prob) },
+    { label: "No", labelTrans: "否", price: round2(1 - prob) },
   ];
 }
 
@@ -110,7 +110,7 @@ function buildOutcomes(slug: string): WcOutcome[] {
   }
   if (slug === "world-cup-winner") return teamSoftmax(TOP_TEAMS, 9).slice(0, 6);
   if (slug === "which-continent-will-win-the-world-cup")
-    return CONTINENTS.map(([label, labelZh, price]) => ({ label, labelZh, price }));
+    return CONTINENTS.map(([label, labelTrans, price]) => ({ label, labelTrans, price }));
   if (slug.startsWith("will-")) {
     if (slug.includes("messi")) return binaryYes(0.42);
     if (slug.includes("neymar")) return binaryYes(0.58);
@@ -136,8 +136,8 @@ function buildOutcomes(slug: string): WcOutcome[] {
 export function buildProps(): WcProp[] {
   return RAW.map(([slug, titleEn, titleZh, volume, marketCount]) => ({
     slug,
-    titleEn,
-    titleZh,
+    title: titleEn,
+    titleTrans: titleZh,
     volume,
     marketCount,
     outcomes: buildOutcomes(slug),

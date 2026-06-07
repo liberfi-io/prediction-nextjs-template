@@ -1,0 +1,337 @@
+{
+  "extend": {
+    "title": "{{name}} | Thị Trường Dự Đoán",
+    "description": "Giao dịch trên thị trường dự đoán được cung cấp bởi Liberfi. Duyệt sự kiện, đặt cược và theo dõi vị trí của bạn.",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "Dự Đoán",
+      "language": "Chuyển Ngôn Ngữ",
+      "searchPlaceholder": "Tìm kiếm thị trường..."
+    },
+    "nav": {
+      "predict": "Dự Đoán",
+      "markets": "Thị Trường",
+      "matches": "Trận Đấu",
+      "worldcup": "World Cup",
+      "portfolio": "Danh Mục",
+      "profile": "Hồ Sơ"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "Tổng USDC"
+      },
+      "fundWallet": {
+        "title": "Nạp Ví",
+        "walletBalance": "Số Dư Ví",
+        "deposit": "Nạp Tiền",
+        "depositSubtitle": "Thêm USDC vào ví",
+        "withdraw": "Rút Tiền",
+        "withdrawSubtitle": "Gửi USDC ra ngoài",
+        "depositTitle": "Nạp Tiền",
+        "depositInfo": "Ví {{chain}} — Gửi USDC trên {{chain}} đến địa chỉ này. Chỉ gửi tài sản trên mạng {{chain}}.",
+        "depositMinAmount": "Nạp tối thiểu: ${{amount}}",
+        "network": "Mạng",
+        "minDepositUsd": "Nạp tối thiểu: {{amount}}",
+        "yourAddress": "Địa Chỉ {{chain}} Của Bạn",
+        "walletNotConnected": "Ví chưa kết nối",
+        "currentBalance": "Số Dư Hiện Tại",
+        "supported": "Hỗ Trợ:",
+        "solForFees": "SOL (cho phí)",
+        "viewOnExplorer": "Xem trên {{explorer}}",
+        "copyAddress": "Sao chép địa chỉ",
+        "withdrawTitle": "Rút tiền",
+        "withdrawInfo": "Rút tiền {{chain}} — Gửi USDC đến bất kỳ địa chỉ ví {{chain}} nào.",
+        "available": "Có sẵn",
+        "amount": "Số tiền",
+        "destinationAddress": "Địa chỉ đích",
+        "addressPlaceholder": "Địa chỉ ví {{chain}}...",
+        "invalidAddress": "Vui lòng nhập địa chỉ {{chain}} hợp lệ",
+        "minWithdrawAmount": "Số tiền rút tối thiểu là {{amount}}",
+        "confirming": "Đang xác nhận...",
+        "signing": "Đang ký...",
+        "withdrawButton": "Rút USDC →",
+        "withdrawalConfirmed": "Rút tiền đã được xác nhận",
+        "withdrawalFailed": "Rút tiền thất bại",
+        "txSubmitted": "Giao dịch đã được gửi",
+        "errorInsufficientGas": "Không đủ POL cho phí gas",
+        "errorTxCancelled": "Giao dịch bị hủy",
+        "errorUnsupportedChain": "Chuỗi không được hỗ trợ",
+        "errorWalletNotConnected": "Ví chưa được kết nối",
+        "errorProviderUnavailable": "Nhà cung cấp ví không khả dụng"
+      },
+      "deposit": {
+        "title": "Nạp tiền",
+        "copy": "Sao chép địa chỉ",
+        "walletNotConnected": "Ví chưa được kết nối",
+        "polymarketNote": "Gửi USDC trên mạng Polygon đến địa chỉ này.",
+        "kalshiNote": "Gửi USDC trên mạng Solana đến địa chỉ này."
+      },
+      "kyc": {
+        "verified": "Đã xác minh",
+        "verifying": "Đang xác minh",
+        "unverified": "Cần xác minh danh tính để mua vị trí Kalshi.",
+        "unverifiedShort": "Xác minh danh tính",
+        "refresh": "Làm mới trạng thái KYC"
+      },
+      "setup": {
+        "verified": "Đã xác minh",
+        "verifying": "Đang xác minh",
+        "unverified": "Cần thiết lập ví để giao dịch trên Polymarket.",
+        "unverifiedShort": "Thiết Lập Ví",
+        "modalTitle": "Thiết Lập Ví Polymarket",
+        "modalDescription": "Hoàn thành các bước này để giao dịch trên Polymarket. Phí gas được bao trả.",
+        "step1": "Triển khai Ví An Toàn",
+        "step1Desc": "Tạo ví thông minh an toàn trên Polygon để giữ tiền và thực hiện giao dịch trên Polymarket.",
+        "step2": "Phê duyệt USDC",
+        "step2Desc": "Ủy quyền hợp đồng Polymarket sử dụng USDC.e của bạn để giao dịch. Đây là phê duyệt một lần.",
+        "stepComplete": "Hoàn thành",
+        "stepPending": "Đang chờ",
+        "stepRunning": "Đang xử lý...",
+        "setupButton": "Thiết Lập Ví",
+        "done": "Xong"
+      }
+    },
+    "portfolio": {
+      "title": "Danh mục đầu tư",
+      "totalBalance": "Tổng Số Dư",
+      "totalNetWorth": "Tổng Giá Trị Ròng",
+      "buyingPower": "Sức Mua",
+      "investedAssets": "Tài Sản Đầu Tư",
+      "allTimePnl": "Lãi/Lỗ Tất Cả Thời Gian",
+      "invested": "Đã Đầu Tư",
+      "sell": "Bán",
+      "searchPositions": "Tìm kiếm vị trí...",
+      "sortValue": "Giá trị",
+      "sortPnl": "Lãi/Lỗ",
+      "sortShares": "Cổ phần",
+      "positions": "Vị trí",
+      "openOrders": "Đơn hàng mở",
+      "tradeHistory": "Lịch sử",
+      "signInPrompt": "Đăng nhập để xem danh mục đầu tư",
+      "noPositions": "Không có vị thế mở",
+      "noOrders": "Không có lệnh mở",
+      "noTrades": "Không có lịch sử giao dịch",
+      "loadMore": "Tải thêm",
+      "cancel": "Hủy",
+      "cancelSuccess": "Lệnh đã hủy",
+      "cancelFailed": "Hủy lệnh thất bại",
+      "side": "Loại",
+      "outcome": "Kết quả",
+      "type": "Loại",
+      "price": "Giá",
+      "filled": "Đã khớp",
+      "filledTotal": "Đã khớp / Tổng",
+      "status": "Trạng thái",
+      "size": "Kích thước",
+      "pnl": "PnL",
+      "payout": "Thanh toán",
+      "qty": "Số lượng",
+      "total": "Tổng cộng",
+      "time": "Thời gian"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "Trận đấu",
+        "props": "Đạo cụ",
+        "groups": "Nhóm",
+        "bracket": "Bảng"
+      },
+      "groupBy": {
+        "stage": "Theo nhóm",
+        "time": "Theo ngày"
+      },
+      "odds": "Tỷ lệ cược",
+      "oddsFormat": {
+        "price": "Giá",
+        "percentage": "Phần trăm",
+        "decimal": "Thập phân",
+        "american": "Mỹ",
+        "fractional": "Phân số",
+        "hongKong": "HK",
+        "indonesian": "Indo",
+        "malaysian": "Malay"
+      },
+      "groupLabel": "Bảng {{code}}",
+      "liveUnavailable": "Trực tiếp không khả dụng",
+      "fullTime": "Toàn thời gian",
+      "volume": "Vol",
+      "draw": "Hòa",
+      "live": "Trực tiếp",
+      "matchView": "thị trường",
+      "relatedEvents": "Sự kiện tương tự",
+      "versus": "vs",
+      "marketCol": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Tổng"
+      },
+      "advanceProbability": "Tiến lên",
+      "team": "Đội",
+      "collapse": "Thu gọn",
+      "expandFullTable": "Mở rộng toàn bộ bảng",
+      "bestThirds": {
+        "title": "Đội hạng ba tốt nhất",
+        "top8Advance": "Top 8 tiến lên"
+      },
+      "groupShort": "Bảng",
+      "round": {
+        "r32": "Vòng 32 đội",
+        "r16": "Vòng 16 đội",
+        "r8": "Tứ kết",
+        "r4": "Bán kết",
+        "r3rd": "Tranh hạng ba",
+        "final": "Chung kết"
+      },
+      "milestone": {
+        "groupStage": "Vòng bảng",
+        "r32": "Vòng 32 đội",
+        "r16": "Vòng 16 đội",
+        "r8": "Tứ kết",
+        "r4": "Bán kết",
+        "r3rd": "Tranh hạng ba",
+        "final": "Chung kết"
+      },
+      "teamName": {
+        "alg": "Algeria",
+        "arg": "Argentina",
+        "aus": "Australia",
+        "aut": "Áo",
+        "bel": "Bỉ",
+        "bih": "Bosnia-Herzegovina",
+        "bra": "Brazil",
+        "can": "Canada",
+        "cdr": "Congo",
+        "che": "Thụy Sĩ",
+        "civ": "Bờ Biển Ngà",
+        "col": "Colombia",
+        "cvi": "Cabo Verde",
+        "cze": "Séc",
+        "ecu": "Ecuador",
+        "egy": "Ai Cập",
+        "eng": "Anh",
+        "esp": "Tây Ban Nha",
+        "fra": "Pháp",
+        "ger": "Đức",
+        "gha": "Ghana",
+        "hai": "Haiti",
+        "hrv": "Croatia",
+        "irn": "Iran",
+        "irq": "Iraq",
+        "jor": "Jordan",
+        "jpn": "Nhật Bản",
+        "kor": "Curaçao",
+        "kr": "Hàn Quốc",
+        "ksa": "Ả Rập Xê Út",
+        "mar": "Ma-rốc",
+        "mex": "Mexico",
+        "nld": "Hà Lan",
+        "nor": "Na Uy",
+        "nzl": "New Zealand",
+        "pan": "Panama",
+        "par": "Paraguay",
+        "prt": "Bồ Đào Nha",
+        "qat": "Qatar",
+        "rsa": "Nam Phi",
+        "sco": "Scotland",
+        "sen": "Senegal",
+        "swe": "Thụy Điển",
+        "tun": "Tunisia",
+        "tur": "Thổ Nhĩ Kỳ",
+        "ury": "Uruguay",
+        "usa": "Hoa Kỳ",
+        "uzb": "Uzbekistan"
+      },
+      "mapComingSoon": "Chế độ xem bản đồ (P2) sắp ra mắt — hiện đang hiển thị bảng xếp hạng giải đấu.",
+      "detail": {
+        "back": "Quay lại",
+        "loading": "Đang tải trận đấu…",
+        "notFound": "Không tìm thấy trận đấu",
+        "breadcrumb": {
+          "sports": "Thể thao",
+          "soccer": "Bóng đá"
+        },
+        "stats": {
+          "endDate": "Ngày kết thúc",
+          "liquidity": "Thanh khoản",
+          "volume": "Khối lượng",
+          "oi": "Lãi suất mở"
+        },
+        "banner": {
+          "beginsIn": "Bắt đầu trong",
+          "started": "Đã bắt đầu",
+          "days": "D",
+          "hours": "H",
+          "mins": "M",
+          "secs": "S"
+        },
+        "tab": {
+          "center": "Trung tâm trận đấu",
+          "news": "Tin tức thị trường",
+          "comments": "Bình luận"
+        },
+        "mtab": {
+          "orderbook": "Sổ lệnh",
+          "center": "Trung tâm trận đấu",
+          "activity": "Hoạt động",
+          "similar": "Liên quan"
+        },
+        "comingSoon": "Sắp ra mắt",
+        "newsEmpty": "Chưa có tin tức thị trường",
+        "commentsEmpty": "Chưa có bình luận",
+        "news": {
+          "empty": "Chưa có tin tức thị trường",
+          "error": "Không tải được tin tức thị trường",
+          "reposted": "Đã đăng lại",
+          "showMore": "Xem thêm",
+          "showLess": "Thu gọn"
+        },
+        "trade": {
+          "buy": "Mua",
+          "sell": "Bán",
+          "yes": "Có",
+          "no": "Không"
+        },
+        "markets": {
+          "title": "Thị trường",
+          "closed": "Đóng giao dịch",
+          "activeOnly": "Chỉ hoạt động",
+          "sort": {
+            "default": "Mặc định",
+            "odds": "Tỷ lệ cược",
+            "volume": "Khối lượng",
+            "liquidity": "Thanh khoản"
+          },
+          "category": {
+            "gameLines": "Dòng trận đấu",
+            "exactScore": "Tỷ số chính xác",
+            "halftime": "Kết quả hiệp một"
+          },
+          "type": {
+            "moneyline": "Moneyline",
+            "spreads": "Chênh lệch",
+            "totals": "Tổng số",
+            "both_teams_to_score": "Cả hai đội ghi bàn",
+            "soccer_exact_score": "Tỷ số chính xác",
+            "soccer_halftime_result": "Kết quả hiệp một",
+            "other": "Khác"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "signIn": "Đăng nhập",
+    "signOut": "Đăng xuất"
+  },
+  "predict.comments.title": "Bình luận",
+  "predict.comments.empty": "Chưa có bình luận",
+  "predict.comments.loading": "Đang tải bình luận…",
+  "predict.comments.sortLatest": "Mới nhất",
+  "predict.comments.sortOldest": "Cũ nhất",
+  "predict.comments.sortMostLiked": "Được thích nhiều nhất",
+  "predict.comments.holdersOnly": "Người nắm giữ",
+  "predict.comments.anonymous": "Ẩn danh"
+}

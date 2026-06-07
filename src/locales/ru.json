@@ -1,0 +1,337 @@
+{
+  "extend": {
+    "title": "{{name}} | Рынок прогнозов",
+    "description": "Торгуйте на рынках прогнозов с поддержкой Liberfi. Просматривайте события, делайте ставки и отслеживайте свои позиции.",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "Прогнозировать",
+      "language": "Сменить язык",
+      "searchPlaceholder": "Поиск рынков..."
+    },
+    "nav": {
+      "predict": "Прогнозировать",
+      "markets": "Рынки",
+      "matches": "Матчи",
+      "worldcup": "Чемпионат мира",
+      "portfolio": "Портфель",
+      "profile": "Профиль"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "Всего USDC"
+      },
+      "fundWallet": {
+        "title": "Пополнить кошелек",
+        "walletBalance": "Баланс кошелька",
+        "deposit": "Депозит",
+        "depositSubtitle": "Добавить USDC в кошелек",
+        "withdraw": "Вывести",
+        "withdrawSubtitle": "Отправить USDC",
+        "depositTitle": "Депозит",
+        "depositInfo": "{{chain}} Кошелек — Отправьте USDC на {{chain}} по этому адресу. Отправляйте активы только в сети {{chain}}.",
+        "depositMinAmount": "Минимальный депозит: ${{amount}}",
+        "network": "Сеть",
+        "minDepositUsd": "Минимальный депозит: {{amount}}",
+        "yourAddress": "Ваш адрес {{chain}}",
+        "walletNotConnected": "Кошелек не подключен",
+        "currentBalance": "Текущий баланс",
+        "supported": "Поддерживается:",
+        "solForFees": "SOL (для комиссий)",
+        "viewOnExplorer": "Посмотреть на {{explorer}}",
+        "copyAddress": "Скопировать адрес",
+        "withdrawTitle": "Вывод",
+        "withdrawInfo": "Вывод {{chain}} — Отправьте USDC на любой адрес кошелька {{chain}}.",
+        "available": "Доступно",
+        "amount": "Сумма",
+        "destinationAddress": "Адрес назначения",
+        "addressPlaceholder": "Адрес кошелька {{chain}}...",
+        "invalidAddress": "Пожалуйста, введите действительный адрес {{chain}}",
+        "minWithdrawAmount": "Минимальная сумма вывода {{amount}}",
+        "confirming": "Подтверждение...",
+        "signing": "Подпись...",
+        "withdrawButton": "Вывести USDC →",
+        "withdrawalConfirmed": "Вывод подтвержден",
+        "withdrawalFailed": "Вывод не удался",
+        "txSubmitted": "Транзакция отправлена",
+        "errorInsufficientGas": "Недостаточно POL для оплаты комиссии",
+        "errorTxCancelled": "Транзакция отменена",
+        "errorUnsupportedChain": "Неподдерживаемая сеть",
+        "errorWalletNotConnected": "Кошелек не подключен",
+        "errorProviderUnavailable": "Поставщик кошелька недоступен"
+      },
+      "deposit": {
+        "title": "Депозит",
+        "copy": "Скопировать адрес",
+        "walletNotConnected": "Кошелек не подключен",
+        "polymarketNote": "Отправьте USDC в сети Polygon на этот адрес.",
+        "kalshiNote": "Отправьте USDC в сети Solana на этот адрес."
+      },
+      "kyc": {
+        "verified": "Проверено",
+        "verifying": "Проверка",
+        "unverified": "Для покупки позиций Kalshi требуется верификация личности.",
+        "unverifiedShort": "Подтвердить личность",
+        "refresh": "Обновить статус KYC"
+      },
+      "setup": {
+        "verified": "Проверено",
+        "verifying": "Проверка",
+        "unverified": "Для торговли на Polymarket требуется настройка кошелька.",
+        "unverifiedShort": "Настроить кошелек",
+        "modalTitle": "Настройка кошелька Polymarket",
+        "modalDescription": "Выполните эти шаги, чтобы торговать на Polymarket. Комиссии за газ покрываются.",
+        "step1": "Развернуть Safe Wallet",
+        "step1Desc": "Создайте безопасный смарт-кошелек на Polygon для хранения средств и выполнения сделок на Polymarket.",
+        "step2": "Одобрить USDC",
+        "step2Desc": "Авторизуйте контракты Polymarket для использования вашего USDC.e в торговле. Это одноразовое одобрение.",
+        "stepComplete": "Завершено",
+        "stepPending": "В ожидании",
+        "stepRunning": "Обработка...",
+        "setupButton": "Настроить кошелек",
+        "done": "Готово"
+      }
+    },
+    "portfolio": {
+      "title": "Портфель",
+      "totalBalance": "Общий баланс",
+      "totalNetWorth": "Общая чистая стоимость",
+      "buyingPower": "Покупательная способность",
+      "investedAssets": "Инвестированные активы",
+      "allTimePnl": "Весь PnL",
+      "invested": "Инвестировано",
+      "sell": "Продать",
+      "searchPositions": "Поиск позиций...",
+      "sortValue": "Стоимость",
+      "sortPnl": "PnL",
+      "sortShares": "Акции",
+      "positions": "Позиции",
+      "openOrders": "Открытые ордера",
+      "tradeHistory": "История",
+      "signInPrompt": "Войдите, чтобы просмотреть портфель",
+      "noPositions": "Нет открытых позиций",
+      "noOrders": "Нет открытых ордеров",
+      "noTrades": "Нет истории торгов",
+      "loadMore": "Загрузить еще",
+      "cancel": "Отменить",
+      "cancelSuccess": "Ордер отменен",
+      "cancelFailed": "Не удалось отменить ордер",
+      "side": "Сторона",
+      "outcome": "Исход",
+      "type": "Тип",
+      "price": "Цена",
+      "filled": "Исполнено",
+      "filledTotal": "Исполнено / Всего",
+      "status": "Статус",
+      "size": "Размер",
+      "pnl": "PnL",
+      "payout": "Выплата",
+      "qty": "Кол-во",
+      "total": "Итого",
+      "time": "Время"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "Матчи",
+        "props": "Реквизиты",
+        "groups": "Группы",
+        "bracket": "Сетка"
+      },
+      "groupBy": {
+        "stage": "По группам",
+        "time": "По дате"
+      },
+      "odds": "Коэффициенты",
+      "oddsFormat": {
+        "price": "Цена",
+        "percentage": "Процент",
+        "decimal": "Десятичный",
+        "american": "Американский",
+        "fractional": "Дробный",
+        "hongKong": "Гонконгский",
+        "indonesian": "Индонезийский",
+        "malaysian": "Малайский"
+      },
+      "groupLabel": "Группа {{code}}",
+      "liveUnavailable": "Прямой эфир недоступен",
+      "fullTime": "Полное время",
+      "volume": "Объем",
+      "draw": "Ничья",
+      "live": "В эфире",
+      "matchView": "рынки",
+      "relatedEvents": "Похожие события",
+      "versus": "против",
+      "marketCol": {
+        "moneyline": "Линия",
+        "spread": "Фора",
+        "total": "Тотал"
+      },
+      "advanceProbability": "Продвижение",
+      "team": "Команда",
+      "collapse": "Свернуть",
+      "expandFullTable": "Развернуть всю таблицу",
+      "bestThirds": {
+        "title": "Лучшие команды, занявшие третье место",
+        "top8Advance": "Топ 8 проходят"
+      },
+      "groupShort": "Гр",
+      "round": {
+        "r32": "1/16 финала",
+        "r16": "1/8 финала",
+        "r8": "Четвертьфиналы",
+        "r4": "Полуфиналы",
+        "r3rd": "Матч за третье место",
+        "final": "Финал"
+      },
+      "milestone": {
+        "groupStage": "Групповой этап",
+        "r32": "1/32 финала",
+        "r16": "1/16 финала",
+        "r8": "Четвертьфиналы",
+        "r4": "Полуфиналы",
+        "r3rd": "Матч за третье место",
+        "final": "Финал"
+      },
+      "teamName": {
+        "alg": "Алжир",
+        "arg": "Аргентина",
+        "aus": "Австралия",
+        "aut": "Австрия",
+        "bel": "Бельгия",
+        "bih": "Босния и Герцеговина",
+        "bra": "Бразилия",
+        "can": "Канада",
+        "cdr": "ДР Конго",
+        "che": "Швейцария",
+        "civ": "Кот-д’Ивуар",
+        "col": "Колумбия",
+        "cvi": "Кабо-Верде",
+        "cze": "Чехия",
+        "ecu": "Эквадор",
+        "egy": "Египет",
+        "eng": "Англия",
+        "esp": "Испания",
+        "fra": "Франция",
+        "ger": "Германия",
+        "gha": "Гана",
+        "hai": "Гаити",
+        "hrv": "Хорватия",
+        "irn": "Иран",
+        "irq": "Ирак",
+        "jor": "Иордания",
+        "jpn": "Япония",
+        "kor": "Кюрасао",
+        "kr": "Республика Корея",
+        "ksa": "Саудовская Аравия",
+        "mar": "Марокко",
+        "mex": "Мексика",
+        "nld": "Нидерланды",
+        "nor": "Норвегия",
+        "nzl": "Новая Зеландия",
+        "pan": "Панама",
+        "par": "Парагвай",
+        "prt": "Португалия",
+        "qat": "Катар",
+        "rsa": "Южная Африка",
+        "sco": "Шотландия",
+        "sen": "Сенегал",
+        "swe": "Швеция",
+        "tun": "Тунис",
+        "tur": "Турция",
+        "ury": "Уругвай",
+        "usa": "Соединенные Штаты",
+        "uzb": "Узбекистан"
+      },
+      "mapComingSoon": "Просмотр карты (P2) скоро появится — пока показывается рейтинг чемпионата.",
+      "detail": {
+        "back": "Назад",
+        "loading": "Загрузка матча…",
+        "notFound": "Матч не найден",
+        "breadcrumb": {
+          "sports": "Спорт",
+          "soccer": "Футбол"
+        },
+        "stats": {
+          "endDate": "Дата окончания",
+          "liquidity": "Ликвидность",
+          "volume": "Объем",
+          "oi": "Открытый интерес"
+        },
+        "banner": {
+          "beginsIn": "Начнется через",
+          "started": "Начался",
+          "days": "Д",
+          "hours": "Ч",
+          "mins": "М",
+          "secs": "С"
+        },
+        "tab": {
+          "center": "Центр матчей",
+          "news": "Новости рынка",
+          "comments": "Комментарии"
+        },
+        "mtab": {
+          "orderbook": "Книга заявок",
+          "center": "Центр матчей",
+          "activity": "Активность",
+          "similar": "Связанные"
+        },
+        "comingSoon": "Скоро",
+        "newsEmpty": "Новостей рынка пока нет",
+        "commentsEmpty": "Комментариев пока нет",
+        "news": {
+          "empty": "Новостей рынка пока нет",
+          "error": "Не удалось загрузить новости рынка",
+          "reposted": "Перепост",
+          "showMore": "Показать больше",
+          "showLess": "Показать меньше"
+        },
+        "trade": {
+          "buy": "Купить",
+          "sell": "Продать",
+          "yes": "Да",
+          "no": "Нет"
+        },
+        "markets": {
+          "title": "Рынки",
+          "closed": "Торги закрыты",
+          "activeOnly": "Только активные",
+          "sort": {
+            "default": "По умолчанию",
+            "odds": "Коэффициенты",
+            "volume": "Объем",
+            "liquidity": "Ликвидность"
+          },
+          "category": {
+            "gameLines": "Линии игры",
+            "exactScore": "Точный счет",
+            "halftime": "Результат на перерыв"
+          },
+          "type": {
+            "moneyline": "Линия денег",
+            "spreads": "Форы",
+            "totals": "Тоталы",
+            "both_teams_to_score": "Обе команды забьют",
+            "soccer_exact_score": "Точный счет",
+            "soccer_halftime_result": "Результат на перерыв",
+            "other": "Другое"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "signIn": "Войти",
+    "signOut": "Выйти"
+  },
+  "predict.comments.title": "Комментарии",
+  "predict.comments.empty": "Комментариев пока нет",
+  "predict.comments.loading": "Загрузка комментариев…",
+  "predict.comments.sortLatest": "Последние",
+  "predict.comments.sortOldest": "Старые",
+  "predict.comments.sortMostLiked": "Самые понравившиеся",
+  "predict.comments.holdersOnly": "Держатели",
+  "predict.comments.anonymous": "Анонимно"
+}

@@ -1,21 +1,19 @@
+"use client";
+
 /**
- * React Query bindings for the worldcup matches list.
+ * Browser React Query hooks for the worldcup endpoints. Each hook polls every
+ * 30s (aligned with the endpoints' `Cache-Control: max-age=30`) and threads the
+ * active UI language into both the query key and the request so a language
+ * switch refetches localized content (06-i18n.md §M3).
  *
- * - {@link useWorldcupMatches} runs in the browser and polls every 30s
- *   (aligned with the endpoint's `Cache-Control: max-age=30`).
- * - {@link prefetchWorldcupMatches} runs on the server to seed the SSR
- *   HydrationBoundary so the first paint is fully rendered.
- *
- * Both share {@link WORLDCUP_MATCHES_QUERY_KEY}; only the API base differs
- * (server hits `PREDICT_URL` directly, the browser hits the `/predict-api`
- * rewrite prefix).
+ * Server-side prefetch lives in `./prefetch` (kept React-free so server
+ * components can import it); both share the same query keys so SSR hydration
+ * matches.
  */
 
-import {
-  useInfiniteQuery,
-  useQuery,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useTranslation } from "@liberfi.io/i18n";
+import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
 import {
   WORLDCUP_BEST_THIRD_QUERY_KEY,
   WORLDCUP_BRACKET_QUERY_KEY,
@@ -41,28 +39,25 @@ const POLL_INTERVAL_MS = 30_000;
 /** Browser-side API prefix (rewritten by Next.js to `PREDICT_URL`). */
 const CLIENT_BASE = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
 
-/** Poll the worldcup matches list from the browser. */
-export function useWorldcupMatches() {
-  return useQuery({
-    queryKey: WORLDCUP_MATCHES_QUERY_KEY,
-    queryFn: () => fetchWorldcupMatches(CLIENT_BASE),
-    refetchInterval: POLL_INTERVAL_MS,
-    staleTime: POLL_INTERVAL_MS,
-  });
+/**
+ * The backend `?lang=` value for the active UI language. Read from i18next and
+ * collapsed through the same {@link toSupportedLang} policy as the rest of the
+ * app, then mapped to the API code. Included in every worldcup query key so a
+ * language switch refetches localized content (06-i18n.md §M3).
+ */
+function useApiLang(): string {
+  const { i18n } = useTranslation();
+  return mapToApiLang(toSupportedLang(i18n.language));
 }
 
-/**
- * Server-side prefetch into a per-request QueryClient. No-ops when
- * `PREDICT_URL` is unset so SSR degrades to a client-only fetch.
- */
-export async function prefetchWorldcupMatches(
-  queryClient: QueryClient,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: WORLDCUP_MATCHES_QUERY_KEY,
-    queryFn: () => fetchWorldcupMatches(base),
+/** Poll the worldcup matches list from the browser. */
+export function useWorldcupMatches() {
+  const lang = useApiLang();
+  return useQuery({
+    queryKey: [...WORLDCUP_MATCHES_QUERY_KEY, lang],
+    queryFn: () => fetchWorldcupMatches(CLIENT_BASE, lang),
+    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
   });
 }
 
@@ -72,36 +67,22 @@ export async function prefetchWorldcupMatches(
  * group and switch between them.
  */
 export function useWorldcupMatchEvent(slug: string) {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: worldcupMatchEventQueryKey(slug),
-    queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug),
+    queryKey: [...worldcupMatchEventQueryKey(slug), lang],
+    queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug, lang),
     enabled: Boolean(slug),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
   });
 }
 
-/**
- * Server-side prefetch for a single match's full event; no-ops when
- * `PREDICT_URL` is unset so SSR degrades to a client-only fetch.
- */
-export async function prefetchWorldcupMatchEvent(
-  queryClient: QueryClient,
-  slug: string,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: worldcupMatchEventQueryKey(slug),
-    queryFn: () => fetchWorldcupMatchEvent(base, slug),
-  });
-}
-
 /** Poll the worldcup standings (12 group tables) from the browser. */
 export function useWorldcupStandings() {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: WORLDCUP_STANDINGS_QUERY_KEY,
-    queryFn: () => fetchWorldcupStandings(CLIENT_BASE),
+    queryKey: [...WORLDCUP_STANDINGS_QUERY_KEY, lang],
+    queryFn: () => fetchWorldcupStandings(CLIENT_BASE, lang),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
   });
@@ -109,9 +90,10 @@ export function useWorldcupStandings() {
 
 /** Poll the worldcup best third-placed teams from the browser. */
 export function useWorldcupBestThird() {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: WORLDCUP_BEST_THIRD_QUERY_KEY,
-    queryFn: () => fetchWorldcupBestThird(CLIENT_BASE),
+    queryKey: [...WORLDCUP_BEST_THIRD_QUERY_KEY, lang],
+    queryFn: () => fetchWorldcupBestThird(CLIENT_BASE, lang),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
   });
@@ -119,92 +101,34 @@ export function useWorldcupBestThird() {
 
 /** Poll the worldcup knockout bracket from the browser. */
 export function useWorldcupBracket() {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: WORLDCUP_BRACKET_QUERY_KEY,
-    queryFn: () => fetchWorldcupBracket(CLIENT_BASE),
+    queryKey: [...WORLDCUP_BRACKET_QUERY_KEY, lang],
+    queryFn: () => fetchWorldcupBracket(CLIENT_BASE, lang),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
-  });
-}
-
-/** Server-side prefetch for the standings; no-ops when `PREDICT_URL` is unset. */
-export async function prefetchWorldcupStandings(
-  queryClient: QueryClient,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: WORLDCUP_STANDINGS_QUERY_KEY,
-    queryFn: () => fetchWorldcupStandings(base),
-  });
-}
-
-/** Server-side prefetch for best-third; no-ops when `PREDICT_URL` is unset. */
-export async function prefetchWorldcupBestThird(
-  queryClient: QueryClient,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: WORLDCUP_BEST_THIRD_QUERY_KEY,
-    queryFn: () => fetchWorldcupBestThird(base),
-  });
-}
-
-/** Server-side prefetch for the bracket; no-ops when `PREDICT_URL` is unset. */
-export async function prefetchWorldcupBracket(
-  queryClient: QueryClient,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: WORLDCUP_BRACKET_QUERY_KEY,
-    queryFn: () => fetchWorldcupBracket(base),
   });
 }
 
 /** Poll the worldcup prop / futures events from the browser. */
 export function useWorldcupProps() {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: WORLDCUP_PROPS_QUERY_KEY,
-    queryFn: () => fetchWorldcupProps(CLIENT_BASE),
+    queryKey: [...WORLDCUP_PROPS_QUERY_KEY, lang],
+    queryFn: () => fetchWorldcupProps(CLIENT_BASE, lang),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
-  });
-}
-
-/** Server-side prefetch for props; no-ops when `PREDICT_URL` is unset. */
-export async function prefetchWorldcupProps(
-  queryClient: QueryClient,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: WORLDCUP_PROPS_QUERY_KEY,
-    queryFn: () => fetchWorldcupProps(base),
   });
 }
 
 /** Poll a curated rail (e.g. bracket related events) from the browser. */
 export function useWorldcupCurated(bucket: WcCuratedBucket) {
+  const lang = useApiLang();
   return useQuery({
-    queryKey: worldcupCuratedQueryKey(bucket),
-    queryFn: () => fetchWorldcupCurated(CLIENT_BASE, bucket),
+    queryKey: [...worldcupCuratedQueryKey(bucket), lang],
+    queryFn: () => fetchWorldcupCurated(CLIENT_BASE, bucket, lang),
     refetchInterval: POLL_INTERVAL_MS,
     staleTime: POLL_INTERVAL_MS,
-  });
-}
-
-/** Server-side prefetch for a curated rail; no-ops when `PREDICT_URL` is unset. */
-export async function prefetchWorldcupCurated(
-  queryClient: QueryClient,
-  bucket: WcCuratedBucket,
-): Promise<void> {
-  const base = process.env.PREDICT_URL;
-  if (!base) return;
-  await queryClient.prefetchQuery({
-    queryKey: worldcupCuratedQueryKey(bucket),
-    queryFn: () => fetchWorldcupCurated(base, bucket),
   });
 }
 

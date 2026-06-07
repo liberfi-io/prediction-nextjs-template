@@ -27,10 +27,21 @@ const NoPrefetchLink: LinkComponentType = (props) => (
  * - Binary props (Yes/No) → a single market with two outcomes (big buy buttons).
  * - Multi-outcome props → one market per outcome (3-row list + "Show More").
  */
-function propToEvent(prop: WcProp, isZh: boolean): PredictEvent {
-  const title = isZh ? prop.titleZh : prop.titleEn;
-  const label = (o: WcOutcome) =>
-    isZh ? (o.labelZh ?? o.label) : o.label;
+type TFn = (key: string, options?: Record<string, unknown>) => string;
+
+function propToEvent(prop: WcProp, isEn: boolean, t: TFn): PredictEvent {
+  const title = isEn ? prop.title : prop.titleTrans || prop.title;
+  // Deterministic labels (Yes/No, team names) come from i18n so they localize
+  // in all 12 languages; free-text candidate labels use the backend `*_trans`.
+  const label = (o: WcOutcome) => {
+    const lower = o.label.toLowerCase();
+    if (lower === "yes") return t("extend.worldcup.detail.trade.yes");
+    if (lower === "no") return t("extend.worldcup.detail.trade.no");
+    if (o.teamCode && TEAMS[o.teamCode.toUpperCase()]) {
+      return t("extend.worldcup.teamName." + o.teamCode.toLowerCase());
+    }
+    return isEn ? o.label : o.labelTrans || o.label;
+  };
   const isBinary = (prop.outcomes[0]?.label ?? "").toLowerCase() === "yes";
 
   const markets: PredictMarket[] = isBinary
@@ -69,12 +80,13 @@ function propToEvent(prop: WcProp, isZh: boolean): PredictEvent {
 
 export function PropsTab() {
   const router = useRouter();
-  const { i18n } = useTranslation();
-  const isZh = (i18n.language || "en").toLowerCase().startsWith("zh");
+  const { t: _t, i18n } = useTranslation();
+  const t = _t as TFn;
+  const isEn = (i18n.language || "en").toLowerCase().startsWith("en");
   const { data: propEvents = [], isPending } = useWorldcupProps();
   const events = useMemo(
-    () => propEvents.map((p) => propToEvent(p, isZh)),
-    [propEvents, isZh],
+    () => propEvents.map((p) => propToEvent(p, isEn, t)),
+    [propEvents, isEn, t],
   );
 
   const href = (event: PredictEvent) => `/polymarket/${event.slug}`;

@@ -14,6 +14,7 @@
 
 import {
   PropsWithChildren,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -77,16 +78,13 @@ import { PredictAccountButton } from "./PredictAccountButton";
 import { PredictDepositButton } from "./PredictDepositButton";
 import { FundWalletModal } from "./FundWalletModal";
 import { LanguageButton } from "./LanguageButton";
-import en from "../locales/en.json";
-import zh from "../locales/zh.json";
-import en2 from "@liberfi.io/i18n/locales/en.json";
-import zh2 from "@liberfi.io/i18n/locales/zh.json";
+import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
+import { i18nResources } from "../i18n/resources";
+import { ReferralCapture } from "../features/referral/components/ReferralCapture";
 
-const mergedEn = { ...en, ...en2 };
-const mergedZh = { ...zh, ...zh2 };
-
-i18n.addResourceBundle("en", defaultNS, mergedEn, true, true);
-i18n.addResourceBundle("zh", defaultNS, mergedZh, true, true);
+for (const [code, bundle] of Object.entries(i18nResources)) {
+  i18n.addResourceBundle(code, defaultNS, bundle, true, true);
+}
 
 const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
 
@@ -110,6 +108,29 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
   { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
   { key: "matches", href: "/matches", icon: <ZapFastIcon width={20} height={20} /> },
   { key: "portfolio", href: "/portfolio", icon: <UserIcon width={20} height={20} /> },
+  {
+    key: "referral",
+    href: "/referral",
+    icon: (
+      <svg
+        width={20}
+        height={20}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <polyline points="20 12 20 22 4 22 4 12" />
+        <rect x="2" y="7" width="20" height="5" />
+        <line x1="12" y1="22" x2="12" y2="7" />
+        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+      </svg>
+    ),
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -132,11 +153,9 @@ export function AppLayout({ children, locale }: PropsWithChildren<{ locale: Loca
       <AuthProviders>
         <LocaleProvider
           locale={locale}
-          supportedLanguages={["en", "zh"]}
-          resources={{
-            en: mergedEn,
-            zh: mergedZh,
-          }}
+          supportedLanguages={SUPPORTED_LANG_CODES}
+          convertDetectedLanguage={toSupportedLang}
+          resources={i18nResources}
         >
           <ServiceProviders>
             <PageShell>{children}</PageShell>
@@ -241,6 +260,9 @@ function PageShell({ children }: PropsWithChildren) {
   return (
     <PredictWalletProvider enabled>
       <PredictWsConnector />
+      <Suspense fallback={null}>
+        <ReferralCapture />
+      </Suspense>
       <Scaffold
         pathname={pathname}
         onNavigate={onNavigate}

@@ -1,0 +1,337 @@
+{
+  "extend": {
+    "title": "{{name}} | ตลาดการทำนาย",
+    "description": "ซื้อขายในตลาดการทำนายที่ขับเคลื่อนโดย Liberfi เรียกดูเหตุการณ์ วางเดิมพัน และติดตามตำแหน่งของคุณ",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "ทำนาย",
+      "language": "เปลี่ยนภาษา",
+      "searchPlaceholder": "ค้นหาตลาด..."
+    },
+    "nav": {
+      "predict": "ทำนาย",
+      "markets": "ตลาด",
+      "matches": "การแข่งขัน",
+      "worldcup": "ฟุตบอลโลก",
+      "portfolio": "พอร์ตโฟลิโอ",
+      "profile": "โปรไฟล์"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "USDC ทั้งหมด"
+      },
+      "fundWallet": {
+        "title": "เติมเงินในกระเป๋า",
+        "walletBalance": "ยอดเงินในกระเป๋า",
+        "deposit": "ฝาก",
+        "depositSubtitle": "เพิ่ม USDC ในกระเป๋า",
+        "withdraw": "ถอน",
+        "withdrawSubtitle": "ส่ง USDC ออก",
+        "depositTitle": "ฝาก",
+        "depositInfo": "{{chain}} Wallet — ส่ง USDC บน {{chain}} ไปยังที่อยู่นี้ ส่งสินทรัพย์บนเครือข่าย {{chain}} เท่านั้น",
+        "depositMinAmount": "เงินฝากขั้นต่ำ: ${{amount}}",
+        "network": "เครือข่าย",
+        "minDepositUsd": "เงินฝากขั้นต่ำ: {{amount}}",
+        "yourAddress": "ที่อยู่ {{chain}} ของคุณ",
+        "walletNotConnected": "กระเป๋าเงินไม่ได้เชื่อมต่อ",
+        "currentBalance": "ยอดเงินปัจจุบัน",
+        "supported": "รองรับ:",
+        "solForFees": "SOL (สำหรับค่าธรรมเนียม)",
+        "viewOnExplorer": "ดูบน {{explorer}}",
+        "copyAddress": "คัดลอกที่อยู่",
+        "withdrawTitle": "ถอน",
+        "withdrawInfo": "ถอน {{chain}} — ส่ง USDC ไปยังที่อยู่กระเป๋า {{chain}} ใดก็ได้",
+        "available": "ใช้ได้",
+        "amount": "จำนวน",
+        "destinationAddress": "ที่อยู่ปลายทาง",
+        "addressPlaceholder": "ที่อยู่กระเป๋า {{chain}}...",
+        "invalidAddress": "กรุณาใส่ที่อยู่ {{chain}} ที่ถูกต้อง",
+        "minWithdrawAmount": "จำนวนถอนขั้นต่ำคือ {{amount}}",
+        "confirming": "กำลังยืนยัน...",
+        "signing": "กำลังลงนาม...",
+        "withdrawButton": "ถอน USDC →",
+        "withdrawalConfirmed": "ยืนยันการถอนแล้ว",
+        "withdrawalFailed": "การถอนล้มเหลว",
+        "txSubmitted": "ส่งธุรกรรมแล้ว",
+        "errorInsufficientGas": "POL ไม่เพียงพอสำหรับค่าธรรมเนียมแก๊ส",
+        "errorTxCancelled": "ยกเลิกธุรกรรม",
+        "errorUnsupportedChain": "ไม่รองรับเครือข่าย",
+        "errorWalletNotConnected": "กระเป๋าเงินไม่ได้เชื่อมต่อ",
+        "errorProviderUnavailable": "ผู้ให้บริการกระเป๋าเงินไม่พร้อมใช้งาน"
+      },
+      "deposit": {
+        "title": "ฝาก",
+        "copy": "คัดลอกที่อยู่",
+        "walletNotConnected": "กระเป๋าเงินไม่ได้เชื่อมต่อ",
+        "polymarketNote": "ส่ง USDC บนเครือข่าย Polygon ไปยังที่อยู่นี้",
+        "kalshiNote": "ส่ง USDC บนเครือข่าย Solana ไปยังที่อยู่นี้"
+      },
+      "kyc": {
+        "verified": "ยืนยันแล้ว",
+        "verifying": "กำลังยืนยัน",
+        "unverified": "ต้องมีการยืนยันตัวตนเพื่อซื้อสถานะ Kalshi",
+        "unverifiedShort": "ยืนยันตัวตน",
+        "refresh": "รีเฟรชสถานะ KYC"
+      },
+      "setup": {
+        "verified": "ยืนยันแล้ว",
+        "verifying": "กำลังตรวจสอบ",
+        "unverified": "ต้องตั้งค่ากระเป๋าเงินเพื่อซื้อขายบน Polymarket",
+        "unverifiedShort": "ตั้งค่ากระเป๋าเงิน",
+        "modalTitle": "การตั้งค่ากระเป๋าเงิน Polymarket",
+        "modalDescription": "ทำตามขั้นตอนเหล่านี้เพื่อซื้อขายบน Polymarket ค่าธรรมเนียม Gas ครอบคลุมแล้ว",
+        "step1": "ปรับใช้ Safe Wallet",
+        "step1Desc": "สร้างกระเป๋าเงินอัจฉริยะที่ปลอดภัยบน Polygon เพื่อเก็บเงินของคุณและดำเนินการซื้อขายบน Polymarket",
+        "step2": "อนุมัติ USDC",
+        "step2Desc": "อนุญาตให้สัญญา Polymarket ใช้ USDC.e ของคุณสำหรับการซื้อขาย นี่คือการอนุมัติครั้งเดียว",
+        "stepComplete": "เสร็จสิ้น",
+        "stepPending": "รอดำเนินการ",
+        "stepRunning": "กำลังดำเนินการ...",
+        "setupButton": "ตั้งค่ากระเป๋าเงิน",
+        "done": "เสร็จสิ้น"
+      }
+    },
+    "portfolio": {
+      "title": "พอร์ตโฟลิโอ",
+      "totalBalance": "ยอดรวม",
+      "totalNetWorth": "มูลค่าสุทธิทั้งหมด",
+      "buyingPower": "กำลังซื้อ",
+      "investedAssets": "สินทรัพย์ที่ลงทุน",
+      "allTimePnl": "กำไรขาดทุนตลอดเวลา",
+      "invested": "ลงทุนแล้ว",
+      "sell": "ขาย",
+      "searchPositions": "ค้นหาตำแหน่ง...",
+      "sortValue": "มูลค่า",
+      "sortPnl": "กำไรขาดทุน",
+      "sortShares": "หุ้น",
+      "positions": "ตำแหน่ง",
+      "openOrders": "คำสั่งเปิด",
+      "tradeHistory": "ประวัติ",
+      "signInPrompt": "ลงชื่อเข้าใช้เพื่อดูพอร์ตโฟลิโอ",
+      "noPositions": "ไม่มีตำแหน่งที่เปิดอยู่",
+      "noOrders": "ไม่มีคำสั่งซื้อที่เปิดอยู่",
+      "noTrades": "ไม่มีประวัติการซื้อขาย",
+      "loadMore": "โหลดเพิ่มเติม",
+      "cancel": "ยกเลิก",
+      "cancelSuccess": "คำสั่งถูกยกเลิก",
+      "cancelFailed": "ยกเลิกคำสั่งไม่สำเร็จ",
+      "side": "ด้าน",
+      "outcome": "ผลลัพธ์",
+      "type": "ประเภท",
+      "price": "ราคา",
+      "filled": "เติมเต็ม",
+      "filledTotal": "เติมเต็ม / ทั้งหมด",
+      "status": "สถานะ",
+      "size": "ขนาด",
+      "pnl": "PnL",
+      "payout": "การจ่ายเงิน",
+      "qty": "จำนวน",
+      "total": "ทั้งหมด",
+      "time": "เวลา"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "เกม",
+        "props": "พร็อพ",
+        "groups": "กลุ่ม",
+        "bracket": "วงเล็บ"
+      },
+      "groupBy": {
+        "stage": "ตามกลุ่ม",
+        "time": "ตามวันที่"
+      },
+      "odds": "อัตราต่อรอง",
+      "oddsFormat": {
+        "price": "ราคา",
+        "percentage": "เปอร์เซ็นต์",
+        "decimal": "ทศนิยม",
+        "american": "อเมริกัน",
+        "fractional": "เศษส่วน",
+        "hongKong": "ฮ่องกง",
+        "indonesian": "อินโด",
+        "malaysian": "มาเลย์"
+      },
+      "groupLabel": "กลุ่ม {{code}}",
+      "liveUnavailable": "ถ่ายทอดสดไม่พร้อมใช้งาน",
+      "fullTime": "เต็มเวลา",
+      "volume": "ปริมาณ",
+      "draw": "เสมอ",
+      "live": "ถ่ายทอดสด",
+      "matchView": "ตลาด",
+      "relatedEvents": "เหตุการณ์ที่คล้ายกัน",
+      "versus": "พบ",
+      "marketCol": {
+        "moneyline": "มันนี่ไลน์",
+        "spread": "สเปรด",
+        "total": "รวม"
+      },
+      "advanceProbability": "ล่วงหน้า",
+      "team": "ทีม",
+      "collapse": "ย่อ",
+      "expandFullTable": "ขยายตารางเต็ม",
+      "bestThirds": {
+        "title": "ทีมอันดับสามที่ดีที่สุด",
+        "top8Advance": "8 อันดับแรกผ่านเข้ารอบ"
+      },
+      "groupShort": "กลุ่ม",
+      "round": {
+        "r32": "รอบ 32 ทีม",
+        "r16": "รอบ 16 ทีม",
+        "r8": "รอบก่อนรองชนะเลิศ",
+        "r4": "รอบรองชนะเลิศ",
+        "r3rd": "อันดับสาม",
+        "final": "รอบชิงชนะเลิศ"
+      },
+      "milestone": {
+        "groupStage": "รอบแบ่งกลุ่ม",
+        "r32": "รอบ 32 ทีม",
+        "r16": "รอบ 16 ทีม",
+        "r8": "รอบก่อนรองชนะเลิศ",
+        "r4": "รอบรองชนะเลิศ",
+        "r3rd": "อันดับสาม",
+        "final": "รอบชิงชนะเลิศ"
+      },
+      "teamName": {
+        "alg": "แอลจีเรีย",
+        "arg": "อาร์เจนตินา",
+        "aus": "ออสเตรเลีย",
+        "aut": "ออสเตรีย",
+        "bel": "เบลเยียม",
+        "bih": "บอสเนียและเฮอร์เซโกวีนา",
+        "bra": "บราซิล",
+        "can": "แคนาดา",
+        "cdr": "ดีอาร์คองโก",
+        "che": "สวิตเซอร์แลนด์",
+        "civ": "โกตดิวัวร์",
+        "col": "โคลอมเบีย",
+        "cvi": "เคปเวิร์ด",
+        "cze": "เช็ก",
+        "ecu": "เอกวาดอร์",
+        "egy": "อียิปต์",
+        "eng": "อังกฤษ",
+        "esp": "สเปน",
+        "fra": "ฝรั่งเศส",
+        "ger": "เยอรมนี",
+        "gha": "กานา",
+        "hai": "เฮติ",
+        "hrv": "โครเอเชีย",
+        "irn": "อิหร่าน",
+        "irq": "อิรัก",
+        "jor": "จอร์แดน",
+        "jpn": "ญี่ปุ่น",
+        "kor": "คูราเซา",
+        "kr": "เกาหลีใต้",
+        "ksa": "ซาอุดีอาระเบีย",
+        "mar": "โมร็อกโก",
+        "mex": "เม็กซิโก",
+        "nld": "เนเธอร์แลนด์",
+        "nor": "นอร์เวย์",
+        "nzl": "นิวซีแลนด์",
+        "pan": "ปานามา",
+        "par": "ปารากวัย",
+        "prt": "โปรตุเกส",
+        "qat": "กาตาร์",
+        "rsa": "แอฟริกาใต้",
+        "sco": "สกอตแลนด์",
+        "sen": "เซเนกัล",
+        "swe": "สวีเดน",
+        "tun": "ตูนิเซีย",
+        "tur": "ตุรกี",
+        "ury": "อุรุกวัย",
+        "usa": "สหรัฐอเมริกา",
+        "uzb": "อุซเบกิสถาน"
+      },
+      "mapComingSoon": "มุมมองแผนที่ (P2) กำลังจะมาเร็ว ๆ นี้ — แสดงอันดับแชมป์ในขณะนี้",
+      "detail": {
+        "back": "กลับ",
+        "loading": "กำลังโหลดการแข่งขัน…",
+        "notFound": "ไม่พบการแข่งขัน",
+        "breadcrumb": {
+          "sports": "กีฬา",
+          "soccer": "ฟุตบอล"
+        },
+        "stats": {
+          "endDate": "วันสิ้นสุด",
+          "liquidity": "สภาพคล่อง",
+          "volume": "ปริมาณ",
+          "oi": "ดอกเบี้ยเปิด"
+        },
+        "banner": {
+          "beginsIn": "เริ่มใน",
+          "started": "เริ่มแล้ว",
+          "days": "วัน",
+          "hours": "ชั่วโมง",
+          "mins": "นาที",
+          "secs": "วินาที"
+        },
+        "tab": {
+          "center": "ศูนย์การแข่งขัน",
+          "news": "ข่าวตลาด",
+          "comments": "ความคิดเห็น"
+        },
+        "mtab": {
+          "orderbook": "สมุดคำสั่ง",
+          "center": "ศูนย์การแข่งขัน",
+          "activity": "กิจกรรม",
+          "similar": "ที่เกี่ยวข้อง"
+        },
+        "comingSoon": "เร็วๆ นี้",
+        "newsEmpty": "ยังไม่มีข่าวตลาด",
+        "commentsEmpty": "ยังไม่มีความคิดเห็น",
+        "news": {
+          "empty": "ยังไม่มีข่าวตลาด",
+          "error": "โหลดข่าวตลาดล้มเหลว",
+          "reposted": "โพสต์ซ้ำ",
+          "showMore": "แสดงเพิ่มเติม",
+          "showLess": "แสดงน้อยลง"
+        },
+        "trade": {
+          "buy": "ซื้อ",
+          "sell": "ขาย",
+          "yes": "ใช่",
+          "no": "ไม่"
+        },
+        "markets": {
+          "title": "ตลาด",
+          "closed": "ปิดการซื้อขาย",
+          "activeOnly": "เฉพาะที่ใช้งานอยู่",
+          "sort": {
+            "default": "ค่าเริ่มต้น",
+            "odds": "อัตราต่อรอง",
+            "volume": "ปริมาณ",
+            "liquidity": "สภาพคล่อง"
+          },
+          "category": {
+            "gameLines": "ไลน์เกม",
+            "exactScore": "คะแนนที่แน่นอน",
+            "halftime": "ผลครึ่งแรก"
+          },
+          "type": {
+            "moneyline": "มันนี่ไลน์",
+            "spreads": "สเปรด",
+            "totals": "รวม",
+            "both_teams_to_score": "ทั้งสองทีมทำคะแนน",
+            "soccer_exact_score": "คะแนนที่แน่นอน",
+            "soccer_halftime_result": "ผลครึ่งแรก",
+            "other": "อื่นๆ"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "signIn": "เข้าสู่ระบบ",
+    "signOut": "ออกจากระบบ"
+  },
+  "predict.comments.title": "ความคิดเห็น",
+  "predict.comments.empty": "ยังไม่มีความคิดเห็น",
+  "predict.comments.loading": "กำลังโหลดความคิดเห็น…",
+  "predict.comments.sortLatest": "ล่าสุด",
+  "predict.comments.sortOldest": "เก่าสุด",
+  "predict.comments.sortMostLiked": "ถูกใจมากที่สุด",
+  "predict.comments.holdersOnly": "ผู้ถือ",
+  "predict.comments.anonymous": "ไม่ระบุชื่อ"
+}

@@ -38,6 +38,8 @@ import { deriveStatus } from "../logic/match-status";
 export interface WcOutcomeDto {
   token_id?: string;
   name: string;
+  /** Localized outcome name for the request language (Convention B). */
+  name_trans?: string;
   price?: number;
   best_ask?: number;
 }
@@ -46,6 +48,8 @@ export interface WcMarketDto {
   condition_id: string;
   sports_market_type: string;
   group_item_title?: string;
+  /** Localized group item title for the request language (Convention B). */
+  group_item_title_trans?: string;
   group_item_threshold?: string;
   line?: number;
   question: string;
@@ -56,6 +60,8 @@ export interface WcMarketDto {
 export interface WcTeamInfoDto {
   team_code: string;
   name: string;
+  /** Localized team name for the request language (Convention B). */
+  name_trans?: string;
   flag_url: string;
   color: string;
   abbreviation: string;
@@ -71,6 +77,8 @@ export interface WcMatchDto {
   status: string;
   polymarket_slug: string;
   title: string;
+  /** Localized match title for the request language (Convention B). */
+  title_trans?: string;
   /** TheSports feed id (static config); omitted for undrawn knockout fixtures. */
   thesports_id?: string;
   /** Aggregated USD figures; omitted (not 0) when markets are not yet ingested. */
@@ -177,7 +185,7 @@ function buildMoneyline(
 
   return {
     home: { label: home.code, teamCode: home.code, price: homeP },
-    draw: { label: "Draw", labelZh: "平", price: drawP },
+    draw: { label: "Draw", price: drawP },
     away: { label: away.code, teamCode: away.code, price: awayP },
   };
 }
@@ -235,8 +243,8 @@ function buildTotal(markets: WcMarketDto[]): WcTotal {
   if (!m) {
     return {
       line: 0,
-      over: { label: "Over", labelZh: "大", price: 0 },
-      under: { label: "Under", labelZh: "小", price: 0 },
+      over: { label: "Over", price: 0 },
+      under: { label: "Under", price: 0 },
     };
   }
   // The "under" outcome is named explicitly ("Under"); the over side is labelled
@@ -249,8 +257,8 @@ function buildTotal(markets: WcMarketDto[]): WcTotal {
   }
   return {
     line: num(m.line),
-    over: { label: "Over", labelZh: "大", price: overP },
-    under: { label: "Under", labelZh: "小", price: underP },
+    over: { label: "Over", price: overP },
+    under: { label: "Under", price: underP },
   };
 }
 
@@ -320,8 +328,11 @@ export const WORLDCUP_MATCHES_QUERY_KEY = ["worldcup", "matches"] as const;
  * `PREDICT_URL`; the browser passes the `NEXT_PUBLIC_PREDICT_URL` rewrite
  * prefix (default `/predict-api`).
  */
-export async function fetchWorldcupMatches(baseUrl: string): Promise<WcMatch[]> {
-  return getWorldcupJson<WcMatchesResponseDto>(baseUrl, "matches").then(
+export async function fetchWorldcupMatches(
+  baseUrl: string,
+  lang?: string,
+): Promise<WcMatch[]> {
+  return getWorldcupJson<WcMatchesResponseDto>(baseUrl, "matches", lang).then(
     adaptMatches,
   );
 }
@@ -350,16 +361,31 @@ export const worldcupMatchEventQueryKey = (slug: string) =>
 export async function fetchWorldcupMatchEvent(
   baseUrl: string,
   slug: string,
+  lang?: string,
 ): Promise<PredictEvent> {
   return getWorldcupJson<PredictEvent>(
     baseUrl,
     `matches/${encodeURIComponent(slug)}`,
+    lang,
   );
 }
 
-/** GET + parse a worldcup BFF endpoint. Shared by all worldcup fetchers. */
-async function getWorldcupJson<T>(baseUrl: string, path: string): Promise<T> {
-  const res = await fetch(`${baseUrl}/api/v1/worldcup/${path}`, {
+/**
+ * GET + parse a worldcup BFF endpoint. Shared by all worldcup fetchers.
+ *
+ * `lang` is the authoritative backend `?lang=` signal (06-i18n.md §"语言传递"):
+ * it is appended to the URL so SSR (direct PREDICT_URL) and the browser
+ * (`/predict-api` rewrite) behave identically and HTTP/CDN caching keys by
+ * language. Omitted/`en` requests send no param (English base).
+ */
+async function getWorldcupJson<T>(
+  baseUrl: string,
+  path: string,
+  lang?: string,
+): Promise<T> {
+  const sep = path.includes("?") ? "&" : "?";
+  const suffix = lang && lang !== "en" ? `${sep}lang=${encodeURIComponent(lang)}` : "";
+  const res = await fetch(`${baseUrl}/api/v1/worldcup/${path}${suffix}`, {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -572,18 +598,24 @@ export const WORLDCUP_BEST_THIRD_QUERY_KEY = [
 
 export async function fetchWorldcupStandings(
   baseUrl: string,
+  lang?: string,
 ): Promise<WcGroup[]> {
-  return getWorldcupJson<WcStandingsResponseDto>(baseUrl, "standings").then(
-    adaptStandings,
-  );
+  return getWorldcupJson<WcStandingsResponseDto>(
+    baseUrl,
+    "standings",
+    lang,
+  ).then(adaptStandings);
 }
 
 export async function fetchWorldcupBestThird(
   baseUrl: string,
+  lang?: string,
 ): Promise<WcThirdPlaceRow[]> {
-  return getWorldcupJson<WcBestThirdResponseDto>(baseUrl, "best-third").then(
-    adaptBestThird,
-  );
+  return getWorldcupJson<WcBestThirdResponseDto>(
+    baseUrl,
+    "best-third",
+    lang,
+  ).then(adaptBestThird);
 }
 
 // ---------------------------------------------------------------------------
@@ -640,8 +672,9 @@ export const WORLDCUP_BRACKET_QUERY_KEY = ["worldcup", "bracket"] as const;
 
 export async function fetchWorldcupBracket(
   baseUrl: string,
+  lang?: string,
 ): Promise<WcBracketNode[]> {
-  return getWorldcupJson<WcBracketResponseDto>(baseUrl, "bracket").then(
+  return getWorldcupJson<WcBracketResponseDto>(baseUrl, "bracket", lang).then(
     adaptBracket,
   );
 }
@@ -652,8 +685,10 @@ export async function fetchWorldcupBracket(
 
 export interface WcPropEventDto {
   slug: string;
-  title_en: string;
-  title_zh: string;
+  /** English base title (Convention B). */
+  title: string;
+  /** Localized title for the request language (Convention B). */
+  title_trans?: string;
   display_order: number;
   volume?: number;
   volume_24h?: number;
@@ -696,12 +731,15 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
     );
     const yes = byName.get("yes");
     const no = byName.get("no");
+    // Yes/No are deterministic — translated client-side via i18n, not *_trans.
     outcomes = [
-      { label: "Yes", labelZh: "是", price: yes?.price ?? 0 },
-      { label: "No", labelZh: "否", price: no?.price ?? 0 },
+      { label: "Yes", price: yes?.price ?? 0 },
+      { label: "No", price: no?.price ?? 0 },
     ];
   } else {
     // Multi-candidate: one outcome per market (its candidate side), desc price.
+    // Free-text candidate labels carry the backend's localized `*_trans`; team
+    // candidates additionally carry a code so the UI can use its i18n name.
     outcomes = markets
       .map((m): WcOutcome | null => {
         const lead = leadOutcome(m);
@@ -710,7 +748,7 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
         const team = getTeamByName(label);
         return {
           label,
-          labelZh: team?.nameZh,
+          labelTrans: m.group_item_title_trans ?? lead.name_trans,
           teamCode: team?.code,
           price: lead.price ?? 0,
         };
@@ -721,8 +759,8 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
 
   return {
     slug: dto.slug,
-    titleEn: dto.title_en,
-    titleZh: dto.title_zh,
+    title: dto.title,
+    titleTrans: dto.title_trans,
     volume: dto.volume ?? 0,
     marketCount: dto.market_count,
     outcomes,
@@ -739,8 +777,13 @@ export function adaptProps(dto: WcPropsResponseDto): WcProp[] {
 
 export const WORLDCUP_PROPS_QUERY_KEY = ["worldcup", "props"] as const;
 
-export async function fetchWorldcupProps(baseUrl: string): Promise<WcProp[]> {
-  return getWorldcupJson<WcPropsResponseDto>(baseUrl, "props").then(adaptProps);
+export async function fetchWorldcupProps(
+  baseUrl: string,
+  lang?: string,
+): Promise<WcProp[]> {
+  return getWorldcupJson<WcPropsResponseDto>(baseUrl, "props", lang).then(
+    adaptProps,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -766,9 +809,11 @@ export const worldcupCuratedQueryKey = (bucket: WcCuratedBucket) =>
 export async function fetchWorldcupCurated(
   baseUrl: string,
   bucket: WcCuratedBucket,
+  lang?: string,
 ): Promise<WcProp[]> {
   return getWorldcupJson<WcCuratedEventsResponseDto>(
     baseUrl,
     `curated-events?bucket=${bucket}`,
+    lang,
   ).then((dto) => adaptProps({ props: dto.events }));
 }

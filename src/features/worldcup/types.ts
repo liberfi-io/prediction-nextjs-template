@@ -20,8 +20,14 @@ export interface WcTeam {
 export type WcMatchStatus = "scheduled" | "live" | "final";
 
 export interface WcOutcome {
+  /** English base label (Convention B). */
   label: string;
-  labelZh?: string;
+  /**
+   * Localized label for the active request language, from the backend's
+   * `*_trans` field (Convention B). Undefined for deterministic labels
+   * (Yes/No, team names) that are translated client-side via i18n instead.
+   */
+  labelTrans?: string;
   /** Probability/price in [0,1]. */
   price: number;
   /** Optional team code for flag rendering in props. */
@@ -113,8 +119,10 @@ export interface WcThirdPlaceRow {
 
 export interface WcProp {
   slug: string;
-  titleEn: string;
-  titleZh: string;
+  /** English base title (Convention B). */
+  title: string;
+  /** Localized title for the active request language (backend `title_trans`). */
+  titleTrans?: string;
   volume: number;
   marketCount: number;
   /** Top outcomes for the card preview, already sorted desc by price. */

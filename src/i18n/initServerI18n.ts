@@ -1,10 +1,8 @@
 "use server";
 
-import { defaultLng, defaultNS, i18next, LocaleCode, LocaleEnum } from "@liberfi.io/i18n/server";
-import en from "../locales/en.json";
-import zh from "../locales/zh.json";
-import en2 from "@liberfi.io/i18n/locales/en.json";
-import zh2 from "@liberfi.io/i18n/locales/zh.json";
+import { defaultLng, defaultNS, i18next, LocaleCode } from "@liberfi.io/i18n/server";
+import { SUPPORTED_LANG_CODES } from "./locales";
+import { i18nResources } from "./resources";
 
 let initialized = false;
 
@@ -14,18 +12,16 @@ export async function initServerI18n(lang: LocaleCode) {
   await i18next.init({
     lng: lang,
     fallbackLng: defaultLng,
-    supportedLngs: [LocaleEnum.en, LocaleEnum.zh],
+    supportedLngs: SUPPORTED_LANG_CODES,
     ns: [defaultNS],
     defaultNS,
     initImmediate: false,
-    resources: {
-      [LocaleEnum.en]: {
-        [defaultNS]: { ...en, ...en2 },
-      },
-      [LocaleEnum.zh]: {
-        [defaultNS]: { ...zh, ...zh2 },
-      },
-    },
+    resources: Object.fromEntries(
+      Object.entries(i18nResources).map(([code, bundle]) => [
+        code,
+        { [defaultNS]: bundle },
+      ]),
+    ),
   });
 
   initialized = true;

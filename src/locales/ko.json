@@ -1,0 +1,337 @@
+{
+  "extend": {
+    "title": "{{name}} | 예측 시장",
+    "description": "Liberfi가 지원하는 예측 시장에서 거래하세요. 이벤트를 둘러보고, 베팅을 하고, 포지션을 추적하세요.",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "예측",
+      "language": "언어 변경",
+      "searchPlaceholder": "시장 검색..."
+    },
+    "nav": {
+      "predict": "예측",
+      "markets": "시장",
+      "matches": "경기",
+      "worldcup": "월드컵",
+      "portfolio": "포트폴리오",
+      "profile": "프로필"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "총 USDC"
+      },
+      "fundWallet": {
+        "title": "지갑 자금",
+        "walletBalance": "지갑 잔액",
+        "deposit": "입금",
+        "depositSubtitle": "지갑에 USDC 추가",
+        "withdraw": "출금",
+        "withdrawSubtitle": "USDC 보내기",
+        "depositTitle": "입금",
+        "depositInfo": "{{chain}} 지갑 — {{chain}}에 USDC를 이 주소로 보내세요. {{chain}} 네트워크의 자산만 보내세요.",
+        "depositMinAmount": "최소 입금: ${{amount}}",
+        "network": "네트워크",
+        "minDepositUsd": "최소 입금: {{amount}}",
+        "yourAddress": "당신의 {{chain}} 주소",
+        "walletNotConnected": "지갑이 연결되지 않음",
+        "currentBalance": "현재 잔액",
+        "supported": "지원됨:",
+        "solForFees": "SOL (수수료용)",
+        "viewOnExplorer": "{{explorer}}에서 보기",
+        "copyAddress": "주소 복사",
+        "withdrawTitle": "출금",
+        "withdrawInfo": "{{chain}} 출금 — USDC를 {{chain}} 지갑 주소로 전송합니다.",
+        "available": "사용 가능",
+        "amount": "금액",
+        "destinationAddress": "목적지 주소",
+        "addressPlaceholder": "{{chain}} 지갑 주소...",
+        "invalidAddress": "유효한 {{chain}} 주소를 입력하세요",
+        "minWithdrawAmount": "최소 출금 금액은 {{amount}}입니다",
+        "confirming": "확인 중...",
+        "signing": "서명 중...",
+        "withdrawButton": "USDC 출금 →",
+        "withdrawalConfirmed": "출금 확인됨",
+        "withdrawalFailed": "출금 실패",
+        "txSubmitted": "거래 제출됨",
+        "errorInsufficientGas": "가스 요금에 대한 POL 부족",
+        "errorTxCancelled": "거래 취소됨",
+        "errorUnsupportedChain": "지원되지 않는 체인",
+        "errorWalletNotConnected": "지갑 연결되지 않음",
+        "errorProviderUnavailable": "지갑 제공자 사용 불가"
+      },
+      "deposit": {
+        "title": "입금",
+        "copy": "주소 복사",
+        "walletNotConnected": "지갑 연결되지 않음",
+        "polymarketNote": "이 주소로 Polygon 네트워크에서 USDC를 전송하세요.",
+        "kalshiNote": "이 주소로 Solana 네트워크에서 USDC를 전송하세요."
+      },
+      "kyc": {
+        "verified": "인증됨",
+        "verifying": "인증 중",
+        "unverified": "Kalshi 포지션을 구매하려면 신원 확인이 필요합니다.",
+        "unverifiedShort": "신원 확인",
+        "refresh": "KYC 상태 새로고침"
+      },
+      "setup": {
+        "verified": "인증됨",
+        "verifying": "검증 중",
+        "unverified": "Polymarket에서 거래하려면 지갑 설정이 필요합니다.",
+        "unverifiedShort": "지갑 설정",
+        "modalTitle": "Polymarket 지갑 설정",
+        "modalDescription": "Polymarket에서 거래하려면 다음 단계를 완료하세요. 가스 요금은 포함됩니다.",
+        "step1": "안전 지갑 배포",
+        "step1Desc": "Polymarket에서 자금을 보관하고 거래를 실행할 수 있는 안전한 스마트 지갑을 Polygon에 생성하세요.",
+        "step2": "USDC 승인",
+        "step2Desc": "Polymarket 계약이 거래를 위해 귀하의 USDC.e를 사용할 수 있도록 승인하세요. 이는 일회성 승인입니다.",
+        "stepComplete": "완료",
+        "stepPending": "대기 중",
+        "stepRunning": "처리 중...",
+        "setupButton": "지갑 설정",
+        "done": "완료"
+      }
+    },
+    "portfolio": {
+      "title": "포트폴리오",
+      "totalBalance": "총 잔액",
+      "totalNetWorth": "총 순자산",
+      "buyingPower": "구매력",
+      "investedAssets": "투자 자산",
+      "allTimePnl": "전체 손익",
+      "invested": "투자됨",
+      "sell": "판매",
+      "searchPositions": "포지션 검색...",
+      "sortValue": "가치",
+      "sortPnl": "손익",
+      "sortShares": "주식",
+      "positions": "포지션",
+      "openOrders": "미체결 주문",
+      "tradeHistory": "기록",
+      "signInPrompt": "포트폴리오를 보려면 로그인하세요",
+      "noPositions": "열린 포지션 없음",
+      "noOrders": "열린 주문 없음",
+      "noTrades": "거래 내역 없음",
+      "loadMore": "더 보기",
+      "cancel": "취소",
+      "cancelSuccess": "주문 취소됨",
+      "cancelFailed": "주문 취소 실패",
+      "side": "측면",
+      "outcome": "결과",
+      "type": "유형",
+      "price": "가격",
+      "filled": "체결됨",
+      "filledTotal": "체결 / 총계",
+      "status": "상태",
+      "size": "크기",
+      "pnl": "손익",
+      "payout": "지급",
+      "qty": "수량",
+      "total": "총계",
+      "time": "시간"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "경기",
+        "props": "소품",
+        "groups": "그룹",
+        "bracket": "브래킷"
+      },
+      "groupBy": {
+        "stage": "그룹별",
+        "time": "날짜별"
+      },
+      "odds": "배당률",
+      "oddsFormat": {
+        "price": "가격",
+        "percentage": "백분율",
+        "decimal": "소수",
+        "american": "미국식",
+        "fractional": "분수",
+        "hongKong": "홍콩",
+        "indonesian": "인도네시아",
+        "malaysian": "말레이시아"
+      },
+      "groupLabel": "그룹 {{code}}",
+      "liveUnavailable": "실시간 사용 불가",
+      "fullTime": "풀타임",
+      "volume": "변동성",
+      "draw": "무승부",
+      "live": "실시간",
+      "matchView": "마켓",
+      "relatedEvents": "유사 이벤트",
+      "versus": "대",
+      "marketCol": {
+        "moneyline": "머니라인",
+        "spread": "스프레드",
+        "total": "토탈"
+      },
+      "advanceProbability": "진출",
+      "team": "팀",
+      "collapse": "축소",
+      "expandFullTable": "전체 테이블 확장",
+      "bestThirds": {
+        "title": "최고 3위 팀",
+        "top8Advance": "상위 8팀 진출"
+      },
+      "groupShort": "그룹",
+      "round": {
+        "r32": "32강",
+        "r16": "16강",
+        "r8": "8강",
+        "r4": "4강",
+        "r3rd": "3위 결정전",
+        "final": "결승"
+      },
+      "milestone": {
+        "groupStage": "조별 리그",
+        "r32": "32강",
+        "r16": "16강",
+        "r8": "8강",
+        "r4": "4강",
+        "r3rd": "3위 결정전",
+        "final": "결승"
+      },
+      "teamName": {
+        "alg": "알제리",
+        "arg": "아르헨티나",
+        "aus": "호주",
+        "aut": "오스트리아",
+        "bel": "벨기에",
+        "bih": "보스니아 헤르체고비나",
+        "bra": "브라질",
+        "can": "캐나다",
+        "cdr": "콩고 민주 공화국",
+        "che": "스위스",
+        "civ": "코트디부아르",
+        "col": "콜롬비아",
+        "cvi": "카보베르데",
+        "cze": "체코",
+        "ecu": "에콰도르",
+        "egy": "이집트",
+        "eng": "잉글랜드",
+        "esp": "스페인",
+        "fra": "프랑스",
+        "ger": "독일",
+        "gha": "가나",
+        "hai": "아이티",
+        "hrv": "크로아티아",
+        "irn": "이란",
+        "irq": "이라크",
+        "jor": "요르단",
+        "jpn": "일본",
+        "kor": "퀴라소",
+        "kr": "대한민국",
+        "ksa": "사우디아라비아",
+        "mar": "모로코",
+        "mex": "멕시코",
+        "nld": "네덜란드",
+        "nor": "노르웨이",
+        "nzl": "뉴질랜드",
+        "pan": "파나마",
+        "par": "파라과이",
+        "prt": "포르투갈",
+        "qat": "카타르",
+        "rsa": "남아프리카 공화국",
+        "sco": "스코틀랜드",
+        "sen": "세네갈",
+        "swe": "스웨덴",
+        "tun": "튀니지",
+        "tur": "튀르키예",
+        "ury": "우루과이",
+        "usa": "미국",
+        "uzb": "우즈베키스탄"
+      },
+      "mapComingSoon": "지도 보기 (P2) 곧 제공 예정 — 현재는 챔피언십 순위 표시 중입니다.",
+      "detail": {
+        "back": "뒤로",
+        "loading": "경기 로딩 중…",
+        "notFound": "경기를 찾을 수 없습니다",
+        "breadcrumb": {
+          "sports": "스포츠",
+          "soccer": "축구"
+        },
+        "stats": {
+          "endDate": "종료일",
+          "liquidity": "유동성",
+          "volume": "거래량",
+          "oi": "미결제약정"
+        },
+        "banner": {
+          "beginsIn": "시작까지",
+          "started": "시작됨",
+          "days": "일",
+          "hours": "시간",
+          "mins": "분",
+          "secs": "초"
+        },
+        "tab": {
+          "center": "경기 센터",
+          "news": "시장 뉴스",
+          "comments": "댓글"
+        },
+        "mtab": {
+          "orderbook": "주문서",
+          "center": "경기 센터",
+          "activity": "활동",
+          "similar": "관련"
+        },
+        "comingSoon": "곧 출시",
+        "newsEmpty": "시장 뉴스 없음",
+        "commentsEmpty": "댓글 없음",
+        "news": {
+          "empty": "시장 뉴스 없음",
+          "error": "시장 뉴스 로드 실패",
+          "reposted": "재게시됨",
+          "showMore": "더 보기",
+          "showLess": "간단히 보기"
+        },
+        "trade": {
+          "buy": "구매",
+          "sell": "판매",
+          "yes": "예",
+          "no": "아니오"
+        },
+        "markets": {
+          "title": "마켓",
+          "closed": "거래 종료",
+          "activeOnly": "활성화된 것만",
+          "sort": {
+            "default": "기본값",
+            "odds": "배당률",
+            "volume": "거래량",
+            "liquidity": "유동성"
+          },
+          "category": {
+            "gameLines": "경기 라인",
+            "exactScore": "정확한 점수",
+            "halftime": "전반전 결과"
+          },
+          "type": {
+            "moneyline": "머니라인",
+            "spreads": "스프레드",
+            "totals": "토탈",
+            "both_teams_to_score": "양 팀 득점",
+            "soccer_exact_score": "정확한 점수",
+            "soccer_halftime_result": "전반전 결과",
+            "other": "기타"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "signIn": "로그인",
+    "signOut": "로그아웃"
+  },
+  "predict.comments.title": "댓글",
+  "predict.comments.empty": "아직 댓글이 없습니다",
+  "predict.comments.loading": "댓글 로딩 중…",
+  "predict.comments.sortLatest": "최신순",
+  "predict.comments.sortOldest": "오래된 순",
+  "predict.comments.sortMostLiked": "좋아요 많은 순",
+  "predict.comments.holdersOnly": "보유자",
+  "predict.comments.anonymous": "익명"
+}

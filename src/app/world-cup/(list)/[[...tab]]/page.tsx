@@ -12,7 +12,9 @@ import {
   prefetchWorldcupMatches,
   prefetchWorldcupProps,
   prefetchWorldcupStandings,
-} from "src/features/worldcup/data/queries";
+} from "src/features/worldcup/data/prefetch";
+import { detectLanguage } from "src/i18n/detectLanguage";
+import { mapToApiLang } from "src/i18n/locales";
 
 interface PageProps {
   params: Promise<{ tab?: string[] }>;
@@ -24,23 +26,24 @@ const PREFETCH_TIMEOUT_MS = 3000;
 function prefetchForTab(
   tab: WcTab,
   queryClient: QueryClient,
+  lang: string,
 ): Promise<unknown> | null {
   switch (tab) {
     case "games":
       return Promise.all([
-        prefetchWorldcupMatches(queryClient),
+        prefetchWorldcupMatches(queryClient, lang),
         // Related-events rail rendered below the widget / match list.
-        prefetchWorldcupCurated(queryClient, "bracket"),
+        prefetchWorldcupCurated(queryClient, "bracket", lang),
       ]);
     case "groups":
       return Promise.all([
-        prefetchWorldcupStandings(queryClient),
-        prefetchWorldcupBestThird(queryClient),
+        prefetchWorldcupStandings(queryClient, lang),
+        prefetchWorldcupBestThird(queryClient, lang),
       ]);
     case "bracket":
-      return prefetchWorldcupBracket(queryClient);
+      return prefetchWorldcupBracket(queryClient, lang);
     case "props":
-      return prefetchWorldcupProps(queryClient);
+      return prefetchWorldcupProps(queryClient, lang);
     default:
       return null;
   }
@@ -53,7 +56,8 @@ function prefetchForTab(
  */
 async function WorldCupTabContent({ tab }: { tab: WcTab }) {
   const queryClient = createServerQueryClient();
-  const prefetch = prefetchForTab(tab, queryClient);
+  const lang = mapToApiLang(await detectLanguage());
+  const prefetch = prefetchForTab(tab, queryClient, lang);
 
   if (prefetch) {
     await Promise.race([

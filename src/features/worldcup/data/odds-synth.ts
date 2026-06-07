@@ -70,7 +70,7 @@ export function synthMoneyline(
   const { pHome, pDraw, pAway } = threeWay(homeCode, awayCode, seed);
   return {
     home: { label: homeCode.toUpperCase(), teamCode: homeCode, price: pHome },
-    draw: { label: "Draw", labelZh: "平", price: pDraw },
+    draw: { label: "Draw", price: pDraw },
     away: { label: awayCode.toUpperCase(), teamCode: awayCode, price: pAway },
   };
 }
@@ -106,8 +106,8 @@ export function synthTotal(
   const underPrice = round2(1.02 - overPrice);
   return {
     line,
-    over: { label: "Over", labelZh: "大", price: overPrice },
-    under: { label: "Under", labelZh: "小", price: underPrice },
+    over: { label: "Over", price: overPrice },
+    under: { label: "Under", price: underPrice },
   };
 }
 

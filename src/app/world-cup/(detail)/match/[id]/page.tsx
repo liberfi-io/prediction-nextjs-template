@@ -4,7 +4,9 @@ import { WorldCupDetailPage } from "src/features/worldcup/components/detail/Worl
 import {
   prefetchWorldcupMatchEvent,
   prefetchWorldcupMatches,
-} from "src/features/worldcup/data/queries";
+} from "src/features/worldcup/data/prefetch";
+import { detectLanguage } from "src/i18n/detectLanguage";
+import { mapToApiLang } from "src/i18n/locales";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +22,14 @@ const PREFETCH_TIMEOUT_MS = 3000;
  */
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
+  const lang = mapToApiLang(await detectLanguage());
 
   const queryClient = createServerQueryClient();
 
   await Promise.race([
     Promise.all([
-      prefetchWorldcupMatchEvent(queryClient, id),
-      prefetchWorldcupMatches(queryClient),
+      prefetchWorldcupMatchEvent(queryClient, id, lang),
+      prefetchWorldcupMatches(queryClient, lang),
     ]),
     new Promise<void>((_, reject) =>
       setTimeout(() => reject(new Error("prefetch timeout")), PREFETCH_TIMEOUT_MS),

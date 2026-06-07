@@ -1,0 +1,337 @@
+{
+  "extend": {
+    "title": "{{name}} | Mercato delle Previsioni",
+    "description": "Fai trading su mercati predittivi alimentati da Liberfi. Sfoglia eventi, piazza scommesse e monitora le tue posizioni.",
+    "languages": {
+      "en": "English",
+      "zh": "繁體中文"
+    },
+    "header": {
+      "predict": "Prevedi",
+      "language": "Cambia Lingua",
+      "searchPlaceholder": "Cerca mercati..."
+    },
+    "nav": {
+      "predict": "Prevedi",
+      "markets": "Mercati",
+      "matches": "Partite",
+      "worldcup": "Coppa del Mondo",
+      "portfolio": "Portafoglio",
+      "profile": "Profilo"
+    },
+    "predict": {
+      "account": {
+        "totalBalance": "Totale USDC"
+      },
+      "fundWallet": {
+        "title": "Finanzia Portafoglio",
+        "walletBalance": "Saldo Portafoglio",
+        "deposit": "Deposita",
+        "depositSubtitle": "Aggiungi USDC al portafoglio",
+        "withdraw": "Preleva",
+        "withdrawSubtitle": "Invia USDC fuori",
+        "depositTitle": "Deposita",
+        "depositInfo": "{{chain}} Portafoglio — Invia USDC su {{chain}} a questo indirizzo. Invia solo asset sulla rete {{chain}}.",
+        "depositMinAmount": "Deposito minimo: ${{amount}}",
+        "network": "Rete",
+        "minDepositUsd": "Deposito minimo: {{amount}}",
+        "yourAddress": "Il tuo indirizzo {{chain}}",
+        "walletNotConnected": "Portafoglio non connesso",
+        "currentBalance": "Saldo Attuale",
+        "supported": "Supportato:",
+        "solForFees": "SOL (per commissioni)",
+        "viewOnExplorer": "Visualizza su {{explorer}}",
+        "copyAddress": "Copia indirizzo",
+        "withdrawTitle": "Preleva",
+        "withdrawInfo": "{{chain}} Prelievo — Invia USDC a qualsiasi indirizzo wallet {{chain}}.",
+        "available": "Disponibile",
+        "amount": "Importo",
+        "destinationAddress": "Indirizzo di destinazione",
+        "addressPlaceholder": "Indirizzo wallet {{chain}}...",
+        "invalidAddress": "Inserisci un indirizzo {{chain}} valido",
+        "minWithdrawAmount": "L'importo minimo di prelievo è {{amount}}",
+        "confirming": "Conferma in corso...",
+        "signing": "Firma in corso...",
+        "withdrawButton": "Preleva USDC →",
+        "withdrawalConfirmed": "Prelievo confermato",
+        "withdrawalFailed": "Prelievo fallito",
+        "txSubmitted": "Transazione inviata",
+        "errorInsufficientGas": "POL insufficiente per le commissioni di gas",
+        "errorTxCancelled": "Transazione annullata",
+        "errorUnsupportedChain": "Catena non supportata",
+        "errorWalletNotConnected": "Wallet non connesso",
+        "errorProviderUnavailable": "Fornitore di wallet non disponibile"
+      },
+      "deposit": {
+        "title": "Deposita",
+        "copy": "Copia indirizzo",
+        "walletNotConnected": "Wallet non connesso",
+        "polymarketNote": "Invia USDC sulla rete Polygon a questo indirizzo.",
+        "kalshiNote": "Invia USDC sulla rete Solana a questo indirizzo."
+      },
+      "kyc": {
+        "verified": "Verificato",
+        "verifying": "Verifica in corso",
+        "unverified": "È richiesta la verifica dell'identità per acquistare posizioni Kalshi.",
+        "unverifiedShort": "Verifica identità",
+        "refresh": "Aggiorna stato KYC"
+      },
+      "setup": {
+        "verified": "Verificato",
+        "verifying": "Verifica",
+        "unverified": "È necessario configurare il portafoglio per fare trading su Polymarket.",
+        "unverifiedShort": "Configura Portafoglio",
+        "modalTitle": "Configurazione Portafoglio Polymarket",
+        "modalDescription": "Completa questi passaggi per fare trading su Polymarket. Le commissioni del gas sono coperte.",
+        "step1": "Distribuisci Safe Wallet",
+        "step1Desc": "Crea un portafoglio smart sicuro su Polygon per detenere i tuoi fondi ed eseguire operazioni su Polymarket.",
+        "step2": "Approva USDC",
+        "step2Desc": "Autorizza i contratti Polymarket a utilizzare il tuo USDC.e per il trading. Questa è un'approvazione unica.",
+        "stepComplete": "Completa",
+        "stepPending": "In sospeso",
+        "stepRunning": "Elaborazione...",
+        "setupButton": "Configura Portafoglio",
+        "done": "Fatto"
+      }
+    },
+    "portfolio": {
+      "title": "Portafoglio",
+      "totalBalance": "Saldo Totale",
+      "totalNetWorth": "Patrimonio Netto Totale",
+      "buyingPower": "Potere d'acquisto",
+      "investedAssets": "Attività Investite",
+      "allTimePnl": "PnL di sempre",
+      "invested": "Investito",
+      "sell": "Vendi",
+      "searchPositions": "Cerca posizioni...",
+      "sortValue": "Valore",
+      "sortPnl": "PnL",
+      "sortShares": "Azioni",
+      "positions": "Posizioni",
+      "openOrders": "Ordini aperti",
+      "tradeHistory": "Storico",
+      "signInPrompt": "Accedi per visualizzare il portafoglio",
+      "noPositions": "Nessuna posizione aperta",
+      "noOrders": "Nessun ordine aperto",
+      "noTrades": "Nessuna cronologia di scambi",
+      "loadMore": "Carica altro",
+      "cancel": "Annulla",
+      "cancelSuccess": "Ordine annullato",
+      "cancelFailed": "Annullamento ordine fallito",
+      "side": "Lato",
+      "outcome": "Esito",
+      "type": "Tipo",
+      "price": "Prezzo",
+      "filled": "Eseguito",
+      "filledTotal": "Eseguito / Totale",
+      "status": "Stato",
+      "size": "Dimensione",
+      "pnl": "PnL",
+      "payout": "Pagamento",
+      "qty": "Quantità",
+      "total": "Totale",
+      "time": "Ora"
+    },
+    "worldcup": {
+      "tab": {
+        "games": "Partite",
+        "props": "Proprietà",
+        "groups": "Gruppi",
+        "bracket": "Tabellone"
+      },
+      "groupBy": {
+        "stage": "Per gruppo",
+        "time": "Per data"
+      },
+      "odds": "Quote",
+      "oddsFormat": {
+        "price": "Prezzo",
+        "percentage": "Percentuale",
+        "decimal": "Decimale",
+        "american": "Americano",
+        "fractional": "Frazionale",
+        "hongKong": "HK",
+        "indonesian": "Indo",
+        "malaysian": "Malay"
+      },
+      "groupLabel": "Gruppo {{code}}",
+      "liveUnavailable": "Live non disponibile",
+      "fullTime": "Tempo pieno",
+      "volume": "Vol",
+      "draw": "Pareggio",
+      "live": "Live",
+      "matchView": "mercati",
+      "relatedEvents": "Eventi simili",
+      "versus": "vs",
+      "marketCol": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Totale"
+      },
+      "advanceProbability": "Avanza",
+      "team": "Squadra",
+      "collapse": "Comprimi",
+      "expandFullTable": "Espandi tabella completa",
+      "bestThirds": {
+        "title": "Migliori terze classificate",
+        "top8Advance": "Top 8 avanzano"
+      },
+      "groupShort": "Grp",
+      "round": {
+        "r32": "Sedicesimi di finale",
+        "r16": "Ottavi di finale",
+        "r8": "Quarti di finale",
+        "r4": "Semifinali",
+        "r3rd": "Terzo posto",
+        "final": "Finale"
+      },
+      "milestone": {
+        "groupStage": "Fase a gironi",
+        "r32": "R32",
+        "r16": "R16",
+        "r8": "Quarti di finale",
+        "r4": "Semifinali",
+        "r3rd": "Terzo posto",
+        "final": "Finale"
+      },
+      "teamName": {
+        "alg": "Algeria",
+        "arg": "Argentina",
+        "aus": "Australia",
+        "aut": "Austria",
+        "bel": "Belgio",
+        "bih": "Bosnia-Erzegovina",
+        "bra": "Brasile",
+        "can": "Canada",
+        "cdr": "RD Congo",
+        "che": "Svizzera",
+        "civ": "Costa d'Avorio",
+        "col": "Colombia",
+        "cvi": "Capo Verde",
+        "cze": "Cechia",
+        "ecu": "Ecuador",
+        "egy": "Egitto",
+        "eng": "Inghilterra",
+        "esp": "Spagna",
+        "fra": "Francia",
+        "ger": "Germania",
+        "gha": "Ghana",
+        "hai": "Haiti",
+        "hrv": "Croazia",
+        "irn": "Iran",
+        "irq": "Iraq",
+        "jor": "Giordania",
+        "jpn": "Giappone",
+        "kor": "Curaçao",
+        "kr": "Corea del Sud",
+        "ksa": "Arabia Saudita",
+        "mar": "Marocco",
+        "mex": "Messico",
+        "nld": "Paesi Bassi",
+        "nor": "Norvegia",
+        "nzl": "Nuova Zelanda",
+        "pan": "Panama",
+        "par": "Paraguay",
+        "prt": "Portogallo",
+        "qat": "Qatar",
+        "rsa": "Sudafrica",
+        "sco": "Scozia",
+        "sen": "Senegal",
+        "swe": "Svezia",
+        "tun": "Tunisia",
+        "tur": "Turchia",
+        "ury": "Uruguay",
+        "usa": "Stati Uniti",
+        "uzb": "Uzbekistan"
+      },
+      "mapComingSoon": "La vista mappa (P2) arriverà presto — per ora mostra la classifica del campionato.",
+      "detail": {
+        "back": "Indietro",
+        "loading": "Caricamento partita…",
+        "notFound": "Partita non trovata",
+        "breadcrumb": {
+          "sports": "Sport",
+          "soccer": "Calcio"
+        },
+        "stats": {
+          "endDate": "Data di fine",
+          "liquidity": "Liquidità",
+          "volume": "Volume",
+          "oi": "Interesse aperto"
+        },
+        "banner": {
+          "beginsIn": "Inizia tra",
+          "started": "Iniziato",
+          "days": "G",
+          "hours": "O",
+          "mins": "M",
+          "secs": "S"
+        },
+        "tab": {
+          "center": "Centro Partite",
+          "news": "Notizie di Mercato",
+          "comments": "Commenti"
+        },
+        "mtab": {
+          "orderbook": "Libro Ordini",
+          "center": "Centro Partite",
+          "activity": "Attività",
+          "similar": "Correlati"
+        },
+        "comingSoon": "Prossimamente",
+        "newsEmpty": "Ancora nessuna notizia di mercato",
+        "commentsEmpty": "Ancora nessun commento",
+        "news": {
+          "empty": "Ancora nessuna notizia di mercato",
+          "error": "Caricamento notizie di mercato fallito",
+          "reposted": "Ripubblicato",
+          "showMore": "Mostra di più",
+          "showLess": "Mostra di meno"
+        },
+        "trade": {
+          "buy": "Compra",
+          "sell": "Vendi",
+          "yes": "Sì",
+          "no": "No"
+        },
+        "markets": {
+          "title": "Mercati",
+          "closed": "Trading chiuso",
+          "activeOnly": "Solo attivi",
+          "sort": {
+            "default": "Predefinito",
+            "odds": "Quote",
+            "volume": "Volume",
+            "liquidity": "Liquidità"
+          },
+          "category": {
+            "gameLines": "Linee di gioco",
+            "exactScore": "Risultato esatto",
+            "halftime": "Risultato a metà tempo"
+          },
+          "type": {
+            "moneyline": "Moneyline",
+            "spreads": "Spread",
+            "totals": "Totali",
+            "both_teams_to_score": "Entrambe le squadre segnano",
+            "soccer_exact_score": "Risultato esatto",
+            "soccer_halftime_result": "Risultato a metà tempo",
+            "other": "Altro"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "signIn": "Accedi",
+    "signOut": "Esci"
+  },
+  "predict.comments.title": "Commenti",
+  "predict.comments.empty": "Nessun commento ancora",
+  "predict.comments.loading": "Caricamento commenti…",
+  "predict.comments.sortLatest": "Più recenti",
+  "predict.comments.sortOldest": "Più vecchi",
+  "predict.comments.sortMostLiked": "Più apprezzati",
+  "predict.comments.holdersOnly": "Detentori",
+  "predict.comments.anonymous": "Anonimo"
+}
