@@ -9,6 +9,13 @@ let initialized = false;
 export async function initServerI18n(lang: LocaleCode) {
   if (initialized) return i18next;
 
+  const resources = Object.fromEntries(
+    SUPPORTED_LANG_CODES.flatMap((code) => {
+      const bundle = i18nResources[code];
+      return bundle ? [[code, { [defaultNS]: bundle }]] : [];
+    }),
+  );
+
   await i18next.init({
     lng: lang,
     fallbackLng: defaultLng,
@@ -16,12 +23,7 @@ export async function initServerI18n(lang: LocaleCode) {
     ns: [defaultNS],
     defaultNS,
     initImmediate: false,
-    resources: Object.fromEntries(
-      Object.entries(i18nResources).map(([code, bundle]) => [
-        code,
-        { [defaultNS]: bundle },
-      ]),
-    ),
+    resources,
   });
 
   initialized = true;
