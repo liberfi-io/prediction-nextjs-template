@@ -106,7 +106,9 @@
         "totalAvailableBalance": "Общий доступный баланс",
         "totalPositions": "Всего позиций",
         "portfolioTotal": "Итого портфеля",
-        "unverified": "Не подтверждён"
+        "unverified": "Не подтверждён",
+        "totalAvailableBalance": "Общий доступный баланс",
+        "totalPositions": "Всего позиций"
       },
       "fundWallet": {
         "title": "Пополнить кошелек",

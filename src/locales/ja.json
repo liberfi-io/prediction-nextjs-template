@@ -104,7 +104,9 @@
         "availableBalance": "利用可能残高",
         "positions": "ポジション",
         "portfolioTotal": "ポートフォリオ合計",
-        "unverified": "未認証"
+        "unverified": "未認証",
+        "totalAvailableBalance": "利用可能残高合計",
+        "totalPositions": "ポジション合計"
       },
       "fundWallet": {
         "title": "ウォレットに資金を追加",

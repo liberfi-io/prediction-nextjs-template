@@ -104,7 +104,9 @@
         "availableBalance": "Số dư khả dụng",
         "positions": "Vị thế",
         "portfolioTotal": "Tổng danh mục",
-        "unverified": "Chưa xác minh"
+        "unverified": "Chưa xác minh",
+        "totalAvailableBalance": "Tổng số dư khả dụng",
+        "totalPositions": "Tổng vị thế"
       },
       "fundWallet": {
         "title": "Nạp Ví",

@@ -499,7 +499,7 @@ function WalletInfoRow({
     <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
       <div className="flex items-center gap-2.5">
         <RowIconChip>{icon}</RowIconChip>
-        <span className="text-sm text-zinc-400">{label}</span>
+        <span className="text-sm text-zinc-300">{label}</span>
       </div>
       <span className="text-sm font-medium text-zinc-100 tabular-nums">
         {value}
@@ -910,8 +910,8 @@ function BalanceDropdownContent({
             <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
               <UsdcIcon width={14} height={14} />
             </div>
-            <span className="text-sm text-zinc-400">
-              {t("extend.predict.account.availableBalance")}
+            <span className="text-sm text-zinc-300">
+              {t("extend.predict.account.totalAvailableBalance")}
             </span>
           </div>
           <span className="text-sm font-medium text-zinc-100 tabular-nums">
@@ -923,8 +923,8 @@ function BalanceDropdownContent({
             <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
               <ChartLineIcon width={14} height={14} className="text-bullish" />
             </div>
-            <span className="text-sm text-zinc-400">
-              {t("extend.predict.account.positions")}
+            <span className="text-sm text-zinc-300">
+              {t("extend.predict.account.totalPositions")}
             </span>
           </div>
           <span className="text-sm font-medium text-zinc-100 tabular-nums">

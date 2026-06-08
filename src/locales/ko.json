@@ -104,7 +104,9 @@
         "availableBalance": "사용 가능 잔액",
         "positions": "포지션",
         "portfolioTotal": "포트폴리오 총액",
-        "unverified": "미인증"
+        "unverified": "미인증",
+        "totalAvailableBalance": "총 사용 가능 잔액",
+        "totalPositions": "총 포지션"
       },
       "fundWallet": {
         "title": "지갑 자금",

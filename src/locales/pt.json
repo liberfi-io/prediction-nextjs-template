@@ -106,7 +106,9 @@
         "totalAvailableBalance": "Saldo disponível total",
         "totalPositions": "Posições totais",
         "portfolioTotal": "Total da carteira",
-        "unverified": "Não verificado"
+        "unverified": "Não verificado",
+        "totalAvailableBalance": "Saldo disponível total",
+        "totalPositions": "Posições totais"
       },
       "fundWallet": {
         "title": "Adicionar Fundos",

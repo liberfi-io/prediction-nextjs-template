@@ -106,7 +106,9 @@
         "totalAvailableBalance": "Verfügbares Guthaben gesamt",
         "totalPositions": "Positionen gesamt",
         "portfolioTotal": "Portfolio gesamt",
-        "unverified": "Nicht verifiziert"
+        "unverified": "Nicht verifiziert",
+        "totalAvailableBalance": "Gesamtes verfügbares Guthaben",
+        "totalPositions": "Gesamtpositionen"
       },
       "fundWallet": {
         "title": "Wallet aufladen",

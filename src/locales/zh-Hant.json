@@ -106,7 +106,9 @@
         "totalAvailableBalance": "總可用餘額",
         "totalPositions": "總倉位",
         "portfolioTotal": "投資組合總值",
-        "unverified": "未驗證"
+        "unverified": "未驗證",
+        "totalAvailableBalance": "總可用餘額",
+        "totalPositions": "總倉位"
       },
       "fundWallet": {
         "title": "資金錢包",

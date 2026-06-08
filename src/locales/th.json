@@ -104,7 +104,9 @@
         "availableBalance": "ยอดคงเหลือที่ใช้ได้",
         "positions": "ตำแหน่ง",
         "portfolioTotal": "พอร์ตทั้งหมด",
-        "unverified": "ยังไม่ยืนยัน"
+        "unverified": "ยังไม่ยืนยัน",
+        "totalAvailableBalance": "ยอดคงเหลือที่ใช้ได้รวม",
+        "totalPositions": "ตำแหน่งทั้งหมด"
       },
       "fundWallet": {
         "title": "เติมเงินในกระเป๋า",

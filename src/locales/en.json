@@ -106,7 +106,9 @@
         "totalAvailableBalance": "Total Available Balance",
         "totalPositions": "Total Positions",
         "portfolioTotal": "Portfolio Total",
-        "unverified": "Unverified"
+        "unverified": "Unverified",
+        "totalAvailableBalance": "Total Available Balance",
+        "totalPositions": "Total Positions"
       },
       "fundWallet": {
         "title": "Fund Wallet",

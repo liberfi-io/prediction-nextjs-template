@@ -104,7 +104,9 @@
         "availableBalance": "Solde disponible",
         "positions": "Positions",
         "portfolioTotal": "Total du portefeuille",
-        "unverified": "Non vérifié"
+        "unverified": "Non vérifié",
+        "totalAvailableBalance": "Solde disponible total",
+        "totalPositions": "Positions totales"
       },
       "fundWallet": {
         "title": "Approvisionner le portefeuille",

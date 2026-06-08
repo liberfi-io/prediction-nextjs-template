@@ -106,7 +106,9 @@
         "totalAvailableBalance": "Saldo disponible total",
         "totalPositions": "Posiciones totales",
         "portfolioTotal": "Total de la cartera",
-        "unverified": "No verificado"
+        "unverified": "No verificado",
+        "totalAvailableBalance": "Saldo disponible total",
+        "totalPositions": "Posiciones totales"
       },
       "fundWallet": {
         "title": "Fondos en la billetera",
