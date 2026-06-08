@@ -16,9 +16,54 @@
       "markets": "Markets",
       "matches": "Matches",
       "worldcup": "World Cup",
+      "leaderboard": "Leaderboard",
       "portfolio": "Portfolio",
       "profile": "Profile",
       "referral": "Referral"
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "subtitle": "World Cup Smart Money",
+      "interval": { "all": "All Time", "7d": "7D" },
+      "col": { "winRate": "win rate", "markets": "markets" },
+      "selectWallet": "Select a wallet to view details",
+      "emptyBoard": "No smart-money wallets yet",
+      "loadError": "Failed to load. Please try again.",
+      "partialQuality": "Some metrics are still being computed.",
+      "back": "Back",
+      "copy": "Copy address",
+      "loadMore": "Load more",
+      "loading": "Loading…",
+      "overview": {
+        "title": "Overview",
+        "totalValue": "Total Value",
+        "totalPnl": "Total PNL",
+        "sevenDayPnl": "7D Realized PNL"
+      },
+      "perf": {
+        "title": "Performance",
+        "sevenDayVolume": "7D Volume",
+        "realizedPnl": "Realized PNL",
+        "unrealizedPnl": "Unrealized PNL",
+        "markets": "Markets",
+        "avgInitialCost": "Avg Initial Cost",
+        "avgHoldTime": "Avg Hold Time",
+        "bestTrade": "Best Trade",
+        "worstTrade": "Worst Trade"
+      },
+      "yieldRisk": {
+        "title": "Yield & Risk",
+        "profitFactor": "Profit Factor",
+        "settlementWinRate": "Settlement Win Rate",
+        "settlementRatio": "Settled Ratio",
+        "avgEntryCount": "Avg Entries"
+      },
+      "tabs": { "positions": "Positions", "closed": "Closed", "activity": "Activity" },
+      "pos": { "avgEntry": "Avg", "last": "Last" },
+      "activity": { "buy": "Buy", "sell": "Sell", "redeem": "Redeem" },
+      "noPositions": "No open positions",
+      "noClosed": "No closed positions",
+      "noActivity": "No activity yet"
     },
     "referral": {
       "title": "Referral Rewards",

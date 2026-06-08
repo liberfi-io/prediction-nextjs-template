@@ -26,6 +26,7 @@ import {
   pollTransaction,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
+import { GradientAvatar } from "./GradientAvatar";
 
 function toCents(amount: number): number {
   return Math.floor(amount * 100);
@@ -41,35 +42,6 @@ function formatCents(cents: number): string {
 function formatUsdc(amount: number): string {
   return formatCents(toCents(amount));
 }
-
-function GradientAvatar({
-  seed,
-  size = 32,
-  className,
-}: {
-  seed?: string;
-  size?: number;
-  className?: string;
-}) {
-  const hash = seed
-    ? seed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    : 0;
-  const c1 = `hsl(${(hash * 37) % 360}, 70%, 60%)`;
-  const c2 = `hsl(${(hash * 73) % 360}, 65%, 45%)`;
-  const c3 = `hsl(${(hash * 113) % 360}, 75%, 55%)`;
-
-  return (
-    <div
-      className={cn("rounded-lg shadow-inner flex-shrink-0", className)}
-      style={{
-        width: size,
-        height: size,
-        background: `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`,
-      }}
-    />
-  );
-}
-
 
 function WalletEntry({
   address,

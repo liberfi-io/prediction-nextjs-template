@@ -16,9 +16,54 @@
       "markets": "Mercati",
       "matches": "Partite",
       "worldcup": "Coppa del Mondo",
+      "leaderboard": "Classifica",
       "portfolio": "Portafoglio",
       "profile": "Profilo",
       "referral": "Referral"
+    },
+    "leaderboard": {
+      "title": "Classifica",
+      "subtitle": "Smart Money Coppa del Mondo",
+      "interval": { "all": "Tutto", "7d": "7G" },
+      "col": { "winRate": "tasso di vincita", "markets": "mercati" },
+      "selectWallet": "Seleziona un wallet per vedere i dettagli",
+      "emptyBoard": "Ancora nessun wallet smart money",
+      "loadError": "Caricamento non riuscito. Riprova.",
+      "partialQuality": "Alcune metriche sono ancora in elaborazione.",
+      "back": "Indietro",
+      "copy": "Copia indirizzo",
+      "loadMore": "Carica altro",
+      "loading": "Caricamento…",
+      "overview": {
+        "title": "Panoramica",
+        "totalValue": "Valore totale",
+        "totalPnl": "PNL totale",
+        "sevenDayPnl": "PNL realizzato 7G"
+      },
+      "perf": {
+        "title": "Performance",
+        "sevenDayVolume": "Volume 7G",
+        "realizedPnl": "PNL realizzato",
+        "unrealizedPnl": "PNL non realizzato",
+        "markets": "Mercati",
+        "avgInitialCost": "Costo iniziale medio",
+        "avgHoldTime": "Tempo medio di detenzione",
+        "bestTrade": "Miglior trade",
+        "worstTrade": "Peggior trade"
+      },
+      "yieldRisk": {
+        "title": "Rendimento e Rischio",
+        "profitFactor": "Profit Factor",
+        "settlementWinRate": "Tasso di vincita al regolamento",
+        "settlementRatio": "Tasso di regolamento",
+        "avgEntryCount": "Ingressi medi"
+      },
+      "tabs": { "positions": "Posizioni", "closed": "Chiuse", "activity": "Attività" },
+      "pos": { "avgEntry": "Med", "last": "Ultimo" },
+      "activity": { "buy": "Acquisto", "sell": "Vendita", "redeem": "Riscatto" },
+      "noPositions": "Nessuna posizione aperta",
+      "noClosed": "Nessuna posizione chiusa",
+      "noActivity": "Ancora nessuna attività"
     },
     "referral": {
       "title": "Premi referral",

@@ -16,9 +16,54 @@
       "markets": "Рынки",
       "matches": "Матчи",
       "worldcup": "Чемпионат мира",
+      "leaderboard": "Рейтинг",
       "portfolio": "Портфель",
       "profile": "Профиль",
       "referral": "Рефералы"
+    },
+    "leaderboard": {
+      "title": "Рейтинг",
+      "subtitle": "Smart Money Чемпионата мира",
+      "interval": { "all": "Всё время", "7d": "7д" },
+      "col": { "winRate": "винрейт", "markets": "рынки" },
+      "selectWallet": "Выберите кошелёк, чтобы увидеть детали",
+      "emptyBoard": "Пока нет кошельков smart money",
+      "loadError": "Не удалось загрузить. Попробуйте ещё раз.",
+      "partialQuality": "Некоторые показатели ещё вычисляются.",
+      "back": "Назад",
+      "copy": "Копировать адрес",
+      "loadMore": "Загрузить ещё",
+      "loading": "Загрузка…",
+      "overview": {
+        "title": "Обзор",
+        "totalValue": "Общая стоимость",
+        "totalPnl": "Общий PNL",
+        "sevenDayPnl": "Реализ. PNL за 7д"
+      },
+      "perf": {
+        "title": "Показатели",
+        "sevenDayVolume": "Объём за 7д",
+        "realizedPnl": "Реализованный PNL",
+        "unrealizedPnl": "Нереализованный PNL",
+        "markets": "Рынки",
+        "avgInitialCost": "Средняя нач. стоимость",
+        "avgHoldTime": "Среднее время удержания",
+        "bestTrade": "Лучшая сделка",
+        "worstTrade": "Худшая сделка"
+      },
+      "yieldRisk": {
+        "title": "Доходность и риск",
+        "profitFactor": "Профит-фактор",
+        "settlementWinRate": "Винрейт при расчёте",
+        "settlementRatio": "Доля расчётов",
+        "avgEntryCount": "Среднее число входов"
+      },
+      "tabs": { "positions": "Позиции", "closed": "Закрытые", "activity": "Активность" },
+      "pos": { "avgEntry": "Сред", "last": "Послед" },
+      "activity": { "buy": "Покупка", "sell": "Продажа", "redeem": "Погашение" },
+      "noPositions": "Нет открытых позиций",
+      "noClosed": "Нет закрытых позиций",
+      "noActivity": "Пока нет активности"
     },
     "referral": {
       "title": "Реферальные награды",

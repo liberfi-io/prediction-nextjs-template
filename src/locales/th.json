@@ -16,9 +16,54 @@
       "markets": "ตลาด",
       "matches": "การแข่งขัน",
       "worldcup": "ฟุตบอลโลก",
+      "leaderboard": "กระดานผู้นำ",
       "portfolio": "พอร์ตโฟลิโอ",
       "profile": "โปรไฟล์",
       "referral": "แนะนำเพื่อน"
+    },
+    "leaderboard": {
+      "title": "กระดานผู้นำ",
+      "subtitle": "Smart Money ฟุตบอลโลก",
+      "interval": { "all": "ทั้งหมด", "7d": "7 วัน" },
+      "col": { "winRate": "อัตราชนะ", "markets": "ตลาด" },
+      "selectWallet": "เลือกกระเป๋าเพื่อดูรายละเอียด",
+      "emptyBoard": "ยังไม่มีกระเป๋า Smart Money",
+      "loadError": "โหลดไม่สำเร็จ โปรดลองอีกครั้ง",
+      "partialQuality": "ตัวชี้วัดบางส่วนกำลังคำนวณ",
+      "back": "กลับ",
+      "copy": "คัดลอกที่อยู่",
+      "loadMore": "โหลดเพิ่ม",
+      "loading": "กำลังโหลด…",
+      "overview": {
+        "title": "ภาพรวม",
+        "totalValue": "มูลค่ารวม",
+        "totalPnl": "กำไรขาดทุนรวม",
+        "sevenDayPnl": "กำไรที่รับรู้ 7 วัน"
+      },
+      "perf": {
+        "title": "ผลงาน",
+        "sevenDayVolume": "ปริมาณ 7 วัน",
+        "realizedPnl": "กำไรที่รับรู้",
+        "unrealizedPnl": "กำไรที่ยังไม่รับรู้",
+        "markets": "ตลาด",
+        "avgInitialCost": "ต้นทุนเริ่มต้นเฉลี่ย",
+        "avgHoldTime": "เวลาถือครองเฉลี่ย",
+        "bestTrade": "เทรดดีที่สุด",
+        "worstTrade": "เทรดแย่ที่สุด"
+      },
+      "yieldRisk": {
+        "title": "ผลตอบแทนและความเสี่ยง",
+        "profitFactor": "Profit Factor",
+        "settlementWinRate": "อัตราชนะเมื่อชำระ",
+        "settlementRatio": "อัตราการชำระ",
+        "avgEntryCount": "จำนวนเข้าเฉลี่ย"
+      },
+      "tabs": { "positions": "สถานะ", "closed": "ปิดแล้ว", "activity": "กิจกรรม" },
+      "pos": { "avgEntry": "เฉลี่ย", "last": "ล่าสุด" },
+      "activity": { "buy": "ซื้อ", "sell": "ขาย", "redeem": "ไถ่ถอน" },
+      "noPositions": "ไม่มีสถานะเปิด",
+      "noClosed": "ไม่มีสถานะที่ปิด",
+      "noActivity": "ยังไม่มีกิจกรรม"
     },
     "referral": {
       "title": "รางวัลแนะนำเพื่อน",

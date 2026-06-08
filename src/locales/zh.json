@@ -16,8 +16,53 @@
       "markets": "市場",
       "matches": "跨平台匹配",
       "worldcup": "世界盃",
+      "leaderboard": "排行榜",
       "portfolio": "持倉",
       "profile": "個人中心"
+    },
+    "leaderboard": {
+      "title": "排行榜",
+      "subtitle": "世界盃聰明錢",
+      "interval": { "all": "全部", "7d": "7天" },
+      "col": { "winRate": "勝率", "markets": "場次" },
+      "selectWallet": "選擇錢包以查看詳情",
+      "emptyBoard": "暫無聰明錢錢包",
+      "loadError": "載入失敗，請重試。",
+      "partialQuality": "部分指標仍在計算中。",
+      "back": "返回",
+      "copy": "複製地址",
+      "loadMore": "載入更多",
+      "loading": "載入中…",
+      "overview": {
+        "title": "概覽",
+        "totalValue": "總價值",
+        "totalPnl": "總盈虧",
+        "sevenDayPnl": "7天已實現盈虧"
+      },
+      "perf": {
+        "title": "表現",
+        "sevenDayVolume": "7天交易量",
+        "realizedPnl": "已實現盈虧",
+        "unrealizedPnl": "未實現盈虧",
+        "markets": "場次",
+        "avgInitialCost": "平均初始成本",
+        "avgHoldTime": "平均持倉時間",
+        "bestTrade": "最佳交易",
+        "worstTrade": "最差交易"
+      },
+      "yieldRisk": {
+        "title": "收益與風險",
+        "profitFactor": "盈利因子",
+        "settlementWinRate": "結算勝率",
+        "settlementRatio": "結算比例",
+        "avgEntryCount": "平均加倉次數"
+      },
+      "tabs": { "positions": "持倉", "closed": "已平倉", "activity": "活動" },
+      "pos": { "avgEntry": "均價", "last": "最新" },
+      "activity": { "buy": "買入", "sell": "賣出", "redeem": "贖回" },
+      "noPositions": "暫無持倉",
+      "noClosed": "暫無已平倉",
+      "noActivity": "暫無活動"
     },
     "predict": {
       "account": {

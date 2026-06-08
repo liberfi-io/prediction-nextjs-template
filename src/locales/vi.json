@@ -16,9 +16,54 @@
       "markets": "Thị Trường",
       "matches": "Trận Đấu",
       "worldcup": "World Cup",
+      "leaderboard": "Bảng xếp hạng",
       "portfolio": "Danh Mục",
       "profile": "Hồ Sơ",
       "referral": "Giới thiệu"
+    },
+    "leaderboard": {
+      "title": "Bảng xếp hạng",
+      "subtitle": "Smart Money World Cup",
+      "interval": { "all": "Tất cả", "7d": "7N" },
+      "col": { "winRate": "tỷ lệ thắng", "markets": "thị trường" },
+      "selectWallet": "Chọn một ví để xem chi tiết",
+      "emptyBoard": "Chưa có ví smart money",
+      "loadError": "Tải thất bại. Vui lòng thử lại.",
+      "partialQuality": "Một số chỉ số vẫn đang được tính toán.",
+      "back": "Quay lại",
+      "copy": "Sao chép địa chỉ",
+      "loadMore": "Tải thêm",
+      "loading": "Đang tải…",
+      "overview": {
+        "title": "Tổng quan",
+        "totalValue": "Tổng giá trị",
+        "totalPnl": "Tổng PNL",
+        "sevenDayPnl": "PNL đã thực hiện 7N"
+      },
+      "perf": {
+        "title": "Hiệu suất",
+        "sevenDayVolume": "Khối lượng 7N",
+        "realizedPnl": "PNL đã thực hiện",
+        "unrealizedPnl": "PNL chưa thực hiện",
+        "markets": "Thị trường",
+        "avgInitialCost": "Chi phí ban đầu TB",
+        "avgHoldTime": "Thời gian giữ TB",
+        "bestTrade": "Giao dịch tốt nhất",
+        "worstTrade": "Giao dịch tệ nhất"
+      },
+      "yieldRisk": {
+        "title": "Lợi nhuận & Rủi ro",
+        "profitFactor": "Hệ số lợi nhuận",
+        "settlementWinRate": "Tỷ lệ thắng khi thanh toán",
+        "settlementRatio": "Tỷ lệ thanh toán",
+        "avgEntryCount": "Số lần vào lệnh TB"
+      },
+      "tabs": { "positions": "Vị thế", "closed": "Đã đóng", "activity": "Hoạt động" },
+      "pos": { "avgEntry": "TB", "last": "Mới nhất" },
+      "activity": { "buy": "Mua", "sell": "Bán", "redeem": "Đổi thưởng" },
+      "noPositions": "Không có vị thế mở",
+      "noClosed": "Không có vị thế đã đóng",
+      "noActivity": "Chưa có hoạt động"
     },
     "referral": {
       "title": "Phần thưởng giới thiệu",

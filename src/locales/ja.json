@@ -16,9 +16,54 @@
       "markets": "市場",
       "matches": "試合",
       "worldcup": "ワールドカップ",
+      "leaderboard": "ランキング",
       "portfolio": "ポートフォリオ",
       "profile": "プロフィール",
       "referral": "リファラル"
+    },
+    "leaderboard": {
+      "title": "ランキング",
+      "subtitle": "ワールドカップ スマートマネー",
+      "interval": { "all": "全期間", "7d": "7日" },
+      "col": { "winRate": "勝率", "markets": "マーケット" },
+      "selectWallet": "ウォレットを選択して詳細を表示",
+      "emptyBoard": "スマートマネーのウォレットはまだありません",
+      "loadError": "読み込みに失敗しました。もう一度お試しください。",
+      "partialQuality": "一部の指標は計算中です。",
+      "back": "戻る",
+      "copy": "アドレスをコピー",
+      "loadMore": "もっと見る",
+      "loading": "読み込み中…",
+      "overview": {
+        "title": "概要",
+        "totalValue": "総資産",
+        "totalPnl": "合計損益",
+        "sevenDayPnl": "7日実現損益"
+      },
+      "perf": {
+        "title": "パフォーマンス",
+        "sevenDayVolume": "7日取引高",
+        "realizedPnl": "実現損益",
+        "unrealizedPnl": "未実現損益",
+        "markets": "マーケット",
+        "avgInitialCost": "平均初期コスト",
+        "avgHoldTime": "平均保有時間",
+        "bestTrade": "ベストトレード",
+        "worstTrade": "ワーストトレード"
+      },
+      "yieldRisk": {
+        "title": "リターンとリスク",
+        "profitFactor": "プロフィットファクター",
+        "settlementWinRate": "決済勝率",
+        "settlementRatio": "決済率",
+        "avgEntryCount": "平均エントリー回数"
+      },
+      "tabs": { "positions": "ポジション", "closed": "クローズ", "activity": "アクティビティ" },
+      "pos": { "avgEntry": "平均", "last": "最新" },
+      "activity": { "buy": "買い", "sell": "売り", "redeem": "償還" },
+      "noPositions": "オープンポジションなし",
+      "noClosed": "クローズ済みポジションなし",
+      "noActivity": "アクティビティはまだありません"
     },
     "referral": {
       "title": "リファラル報酬",

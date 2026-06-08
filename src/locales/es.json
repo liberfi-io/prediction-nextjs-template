@@ -16,9 +16,54 @@
       "markets": "Mercados",
       "matches": "Partidos",
       "worldcup": "Copa del Mundo",
+      "leaderboard": "Clasificación",
       "portfolio": "Portafolio",
       "profile": "Perfil",
       "referral": "Referidos"
+    },
+    "leaderboard": {
+      "title": "Clasificación",
+      "subtitle": "Smart Money del Mundial",
+      "interval": { "all": "Todo", "7d": "7D" },
+      "col": { "winRate": "tasa de acierto", "markets": "mercados" },
+      "selectWallet": "Selecciona una billetera para ver los detalles",
+      "emptyBoard": "Aún no hay billeteras smart money",
+      "loadError": "Error al cargar. Inténtalo de nuevo.",
+      "partialQuality": "Algunas métricas aún se están calculando.",
+      "back": "Atrás",
+      "copy": "Copiar dirección",
+      "loadMore": "Cargar más",
+      "loading": "Cargando…",
+      "overview": {
+        "title": "Resumen",
+        "totalValue": "Valor total",
+        "totalPnl": "PNL total",
+        "sevenDayPnl": "PNL realizado 7D"
+      },
+      "perf": {
+        "title": "Rendimiento",
+        "sevenDayVolume": "Volumen 7D",
+        "realizedPnl": "PNL realizado",
+        "unrealizedPnl": "PNL no realizado",
+        "markets": "Mercados",
+        "avgInitialCost": "Costo inicial promedio",
+        "avgHoldTime": "Tiempo promedio",
+        "bestTrade": "Mejor operación",
+        "worstTrade": "Peor operación"
+      },
+      "yieldRisk": {
+        "title": "Rendimiento y Riesgo",
+        "profitFactor": "Factor de beneficio",
+        "settlementWinRate": "Tasa de acierto al liquidar",
+        "settlementRatio": "Tasa de liquidación",
+        "avgEntryCount": "Entradas promedio"
+      },
+      "tabs": { "positions": "Posiciones", "closed": "Cerradas", "activity": "Actividad" },
+      "pos": { "avgEntry": "Prom", "last": "Último" },
+      "activity": { "buy": "Compra", "sell": "Venta", "redeem": "Canje" },
+      "noPositions": "Sin posiciones abiertas",
+      "noClosed": "Sin posiciones cerradas",
+      "noActivity": "Aún no hay actividad"
     },
     "referral": {
       "title": "Recompensas por referidos",

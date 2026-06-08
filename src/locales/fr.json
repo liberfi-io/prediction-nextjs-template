@@ -16,9 +16,54 @@
       "markets": "Marchés",
       "matches": "Matchs",
       "worldcup": "Coupe du Monde",
+      "leaderboard": "Classement",
       "portfolio": "Portefeuille",
       "profile": "Profil",
       "referral": "Parrainage"
+    },
+    "leaderboard": {
+      "title": "Classement",
+      "subtitle": "Smart Money Coupe du Monde",
+      "interval": { "all": "Tout", "7d": "7J" },
+      "col": { "winRate": "taux de réussite", "markets": "marchés" },
+      "selectWallet": "Sélectionnez un portefeuille pour voir les détails",
+      "emptyBoard": "Aucun portefeuille smart money pour le moment",
+      "loadError": "Échec du chargement. Veuillez réessayer.",
+      "partialQuality": "Certaines mesures sont encore en cours de calcul.",
+      "back": "Retour",
+      "copy": "Copier l'adresse",
+      "loadMore": "Charger plus",
+      "loading": "Chargement…",
+      "overview": {
+        "title": "Aperçu",
+        "totalValue": "Valeur totale",
+        "totalPnl": "PNL total",
+        "sevenDayPnl": "PNL réalisé 7J"
+      },
+      "perf": {
+        "title": "Performance",
+        "sevenDayVolume": "Volume 7J",
+        "realizedPnl": "PNL réalisé",
+        "unrealizedPnl": "PNL latent",
+        "markets": "Marchés",
+        "avgInitialCost": "Coût initial moyen",
+        "avgHoldTime": "Durée moyenne",
+        "bestTrade": "Meilleure transaction",
+        "worstTrade": "Pire transaction"
+      },
+      "yieldRisk": {
+        "title": "Rendement & Risque",
+        "profitFactor": "Facteur de profit",
+        "settlementWinRate": "Taux de réussite au règlement",
+        "settlementRatio": "Taux de règlement",
+        "avgEntryCount": "Entrées moyennes"
+      },
+      "tabs": { "positions": "Positions", "closed": "Clôturées", "activity": "Activité" },
+      "pos": { "avgEntry": "Moy", "last": "Dernier" },
+      "activity": { "buy": "Achat", "sell": "Vente", "redeem": "Rachat" },
+      "noPositions": "Aucune position ouverte",
+      "noClosed": "Aucune position clôturée",
+      "noActivity": "Aucune activité"
     },
     "referral": {
       "title": "Récompenses de parrainage",

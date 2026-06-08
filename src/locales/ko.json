@@ -16,9 +16,54 @@
       "markets": "시장",
       "matches": "경기",
       "worldcup": "월드컵",
+      "leaderboard": "리더보드",
       "portfolio": "포트폴리오",
       "profile": "프로필",
       "referral": "리퍼럴"
+    },
+    "leaderboard": {
+      "title": "리더보드",
+      "subtitle": "월드컵 스마트 머니",
+      "interval": { "all": "전체", "7d": "7일" },
+      "col": { "winRate": "승률", "markets": "마켓" },
+      "selectWallet": "지갑을 선택하면 상세 정보가 표시됩니다",
+      "emptyBoard": "스마트 머니 지갑이 아직 없습니다",
+      "loadError": "불러오기에 실패했습니다. 다시 시도해 주세요.",
+      "partialQuality": "일부 지표는 아직 계산 중입니다.",
+      "back": "뒤로",
+      "copy": "주소 복사",
+      "loadMore": "더 보기",
+      "loading": "불러오는 중…",
+      "overview": {
+        "title": "개요",
+        "totalValue": "총 자산",
+        "totalPnl": "총 손익",
+        "sevenDayPnl": "7일 실현 손익"
+      },
+      "perf": {
+        "title": "성과",
+        "sevenDayVolume": "7일 거래량",
+        "realizedPnl": "실현 손익",
+        "unrealizedPnl": "미실현 손익",
+        "markets": "마켓",
+        "avgInitialCost": "평균 초기 비용",
+        "avgHoldTime": "평균 보유 시간",
+        "bestTrade": "베스트 트레이드",
+        "worstTrade": "워스트 트레이드"
+      },
+      "yieldRisk": {
+        "title": "수익 및 리스크",
+        "profitFactor": "수익 팩터",
+        "settlementWinRate": "정산 승률",
+        "settlementRatio": "정산 비율",
+        "avgEntryCount": "평균 진입 횟수"
+      },
+      "tabs": { "positions": "포지션", "closed": "청산", "activity": "활동" },
+      "pos": { "avgEntry": "평균", "last": "최근" },
+      "activity": { "buy": "매수", "sell": "매도", "redeem": "상환" },
+      "noPositions": "보유 포지션 없음",
+      "noClosed": "청산된 포지션 없음",
+      "noActivity": "활동 없음"
     },
     "referral": {
       "title": "리퍼럴 보상",

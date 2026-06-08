@@ -16,9 +16,54 @@
       "markets": "Märkte",
       "matches": "Spiele",
       "worldcup": "Weltmeisterschaft",
+      "leaderboard": "Bestenliste",
       "portfolio": "Portfolio",
       "profile": "Profil",
       "referral": "Empfehlung"
+    },
+    "leaderboard": {
+      "title": "Bestenliste",
+      "subtitle": "WM Smart Money",
+      "interval": { "all": "Gesamt", "7d": "7T" },
+      "col": { "winRate": "Trefferquote", "markets": "Märkte" },
+      "selectWallet": "Wähle eine Wallet, um Details zu sehen",
+      "emptyBoard": "Noch keine Smart-Money-Wallets",
+      "loadError": "Laden fehlgeschlagen. Bitte erneut versuchen.",
+      "partialQuality": "Einige Kennzahlen werden noch berechnet.",
+      "back": "Zurück",
+      "copy": "Adresse kopieren",
+      "loadMore": "Mehr laden",
+      "loading": "Lädt…",
+      "overview": {
+        "title": "Übersicht",
+        "totalValue": "Gesamtwert",
+        "totalPnl": "Gesamt-PNL",
+        "sevenDayPnl": "7T realisierter PNL"
+      },
+      "perf": {
+        "title": "Leistung",
+        "sevenDayVolume": "7T Volumen",
+        "realizedPnl": "Realisierter PNL",
+        "unrealizedPnl": "Unrealisierter PNL",
+        "markets": "Märkte",
+        "avgInitialCost": "Ø Anfangskosten",
+        "avgHoldTime": "Ø Haltedauer",
+        "bestTrade": "Bester Trade",
+        "worstTrade": "Schlechtester Trade"
+      },
+      "yieldRisk": {
+        "title": "Rendite & Risiko",
+        "profitFactor": "Profitfaktor",
+        "settlementWinRate": "Abrechnungs-Trefferquote",
+        "settlementRatio": "Abrechnungsquote",
+        "avgEntryCount": "Ø Einstiege"
+      },
+      "tabs": { "positions": "Positionen", "closed": "Geschlossen", "activity": "Aktivität" },
+      "pos": { "avgEntry": "Ø", "last": "Letzter" },
+      "activity": { "buy": "Kauf", "sell": "Verkauf", "redeem": "Einlösen" },
+      "noPositions": "Keine offenen Positionen",
+      "noClosed": "Keine geschlossenen Positionen",
+      "noActivity": "Noch keine Aktivität"
     },
     "referral": {
       "title": "Empfehlungsprämien",
