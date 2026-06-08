@@ -9,6 +9,7 @@
     "header": {
       "predict": "Prognostizieren",
       "language": "Sprache wechseln",
+      "userSettings": "Benutzereinstellungen",
       "searchPlaceholder": "Märkte durchsuchen..."
     },
     "nav": {
@@ -102,6 +103,8 @@
         "totalBalance": "Gesamt USDC",
         "availableBalance": "Verfügbares Guthaben",
         "positions": "Positionen",
+        "totalAvailableBalance": "Verfügbares Guthaben gesamt",
+        "totalPositions": "Positionen gesamt",
         "portfolioTotal": "Portfolio gesamt",
         "unverified": "Nicht verifiziert"
       },

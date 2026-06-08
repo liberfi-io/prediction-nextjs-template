@@ -9,6 +9,7 @@
     "header": {
       "predict": "Dự Đoán",
       "language": "Chuyển Ngôn Ngữ",
+      "userSettings": "Cài đặt người dùng",
       "searchPlaceholder": "Tìm kiếm thị trường..."
     },
     "nav": {

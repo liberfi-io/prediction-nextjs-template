@@ -9,6 +9,7 @@
     "header": {
       "predict": "Prédire",
       "language": "Changer de langue",
+      "userSettings": "Paramètres utilisateur",
       "searchPlaceholder": "Rechercher des marchés..."
     },
     "nav": {

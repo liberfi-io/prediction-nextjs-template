@@ -9,6 +9,7 @@
     "header": {
       "predict": "Прогнозировать",
       "language": "Сменить язык",
+      "userSettings": "Настройки пользователя",
       "searchPlaceholder": "Поиск рынков..."
     },
     "nav": {
@@ -102,6 +103,8 @@
         "totalBalance": "Всего USDC",
         "availableBalance": "Доступный баланс",
         "positions": "Позиции",
+        "totalAvailableBalance": "Общий доступный баланс",
+        "totalPositions": "Всего позиций",
         "portfolioTotal": "Итого портфеля",
         "unverified": "Не подтверждён"
       },

@@ -1048,6 +1048,9 @@ function PredictAccountControl() {
   const [isOpen, setIsOpen] = useState(false);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  // Mobile drawer lifecycle: stays mounted through its exit animation.
+  const [drawerMounted, setDrawerMounted] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1057,29 +1060,29 @@ function PredictAccountControl() {
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
 
+  // Deposit / withdraw just open the fund-wallet modal without touching the
+  // popover's open state — same as the verify (KYC / Setup) action. The
+  // modal's backdrop appears over a stationary cursor, which fires no
+  // mouseleave, so the hover popover / drawer stays put behind it.
   const handleKalshiDeposit = useCallback(() => {
-    setIsOpen(false);
     void openFundWallet({
       params: { initialScreen: "deposit", initialWallet: "solana" },
     });
   }, [openFundWallet]);
 
   const handleKalshiWithdraw = useCallback(() => {
-    setIsOpen(false);
     void openFundWallet({
       params: { initialScreen: "withdraw", initialWallet: "solana" },
     });
   }, [openFundWallet]);
 
   const handlePolymarketDeposit = useCallback(() => {
-    setIsOpen(false);
     void openFundWallet({
       params: { initialScreen: "deposit", initialWallet: "evm" },
     });
   }, [openFundWallet]);
 
   const handlePolymarketWithdraw = useCallback(() => {
-    setIsOpen(false);
     void openFundWallet({
       params: { initialScreen: "withdraw", initialWallet: "evm" },
     });
@@ -1174,6 +1177,28 @@ function PredictAccountControl() {
     };
   }, []);
 
+  // Drive the mobile drawer's mount/exit: opening mounts it immediately;
+  // closing plays the slide-out animation before unmounting.
+  useEffect(() => {
+    if (!isMobile) {
+      setDrawerMounted(false);
+      setDrawerClosing(false);
+      return;
+    }
+    if (isOpen) {
+      setDrawerMounted(true);
+      setDrawerClosing(false);
+      return;
+    }
+    if (!drawerMounted) return;
+    setDrawerClosing(true);
+    const timer = setTimeout(() => {
+      setDrawerMounted(false);
+      setDrawerClosing(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isOpen, isMobile, drawerMounted]);
+
   const dropdownProps: BalanceDropdownProps = {
     solanaAddress,
     evmAddress,
@@ -1230,23 +1255,11 @@ function PredictAccountControl() {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Tablet & Mobile: USDC icon + total balance */}
+      {/* All sizes: full breakdown with cash + positions + chevron */}
       <button
         type="button"
         onClick={handleClick}
-        className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-      >
-        <UsdcIcon width={16} height={16} aria-hidden="true" />
-        <span className="text-xs font-medium text-zinc-100 tabular-nums">
-          {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
-        </span>
-      </button>
-
-      {/* Desktop: full breakdown with cash + positions + chevron */}
-      <button
-        type="button"
-        onClick={handleClick}
-        className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <UsdcIcon width={16} height={16} aria-hidden="true" />
@@ -1261,9 +1274,11 @@ function PredictAccountControl() {
             ${formatCents(positionsCents)}
           </span>
         </div>
+        {!isMobile && (
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
           <path d="m6 9 6 6 6-6" />
         </svg>
+        )}
       </button>
 
       {/* KYC + Setup modals are owned here because the dropdown's status
@@ -1284,30 +1299,55 @@ function PredictAccountControl() {
         />
       )}
 
-      {/* Mobile: bottom sheet */}
-      {isMobile && isOpen && (
+      {/* Mobile: right-side drawer sliding in from the edge */}
+      {isMobile && drawerMounted && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-50 flex justify-end"
           onClick={() => setIsOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/60" />
           <div
-            className="relative w-full max-w-sm mb-safe max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200"
+            className={cn(
+              "absolute inset-0 bg-black/60",
+              drawerClosing ? "animate-backdrop-out" : "animate-backdrop-in",
+            )}
+          />
+          <div
+            className={cn(
+              "relative h-full w-80 max-w-[85vw] flex flex-col",
+              drawerClosing ? "animate-drawer-out" : "animate-drawer-in",
+            )}
             style={{
-              borderRadius: "14px 14px 0 0",
-              border: "1px solid rgba(39,39,42,1)",
-              borderBottom: "none",
+              borderLeft: "1px solid rgba(39,39,42,1)",
               background: "rgba(24,24,27,1)",
+              boxShadow: "-25px 0 50px -12px rgba(0,0,0,0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="w-8 h-1 rounded-full bg-zinc-700" />
+            <div
+              className="flex items-center justify-between gap-2 px-3 pt-3 pb-2 flex-shrink-0"
+              style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+            >
+              <span className="text-sm font-semibold text-zinc-100">
+                {t("extend.header.userSettings")}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close"
+                className="p-1.5 rounded-[10px] text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+            <div
+              className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            >
               <BalanceDropdownContent {...dropdownProps} />
             </div>
-            <div className="pb-safe flex-shrink-0" />
           </div>
         </div>
       )}

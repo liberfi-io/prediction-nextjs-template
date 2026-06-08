@@ -9,6 +9,7 @@
     "header": {
       "predict": "ทำนาย",
       "language": "เปลี่ยนภาษา",
+      "userSettings": "การตั้งค่าผู้ใช้",
       "searchPlaceholder": "ค้นหาตลาด..."
     },
     "nav": {

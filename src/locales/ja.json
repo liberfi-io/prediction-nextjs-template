@@ -9,6 +9,7 @@
     "header": {
       "predict": "予測",
       "language": "言語を切り替える",
+      "userSettings": "ユーザー設定",
       "searchPlaceholder": "市場を検索..."
     },
     "nav": {

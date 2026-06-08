@@ -9,6 +9,7 @@
     "header": {
       "predict": "Predict",
       "language": "Switch Language",
+      "userSettings": "User Settings",
       "searchPlaceholder": "Search markets..."
     },
     "nav": {
@@ -102,6 +103,8 @@
         "totalBalance": "Total USDC",
         "availableBalance": "Available Balance",
         "positions": "Positions",
+        "totalAvailableBalance": "Total Available Balance",
+        "totalPositions": "Total Positions",
         "portfolioTotal": "Portfolio Total",
         "unverified": "Unverified"
       },

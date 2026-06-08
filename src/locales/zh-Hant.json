@@ -9,6 +9,7 @@
     "header": {
       "predict": "預測",
       "language": "切換語言",
+      "userSettings": "使用者設定",
       "searchPlaceholder": "搜尋市場..."
     },
     "nav": {
@@ -102,6 +103,8 @@
         "totalBalance": "USDC 總餘額",
         "availableBalance": "可用餘額",
         "positions": "倉位",
+        "totalAvailableBalance": "總可用餘額",
+        "totalPositions": "總倉位",
         "portfolioTotal": "投資組合總值",
         "unverified": "未驗證"
       },
