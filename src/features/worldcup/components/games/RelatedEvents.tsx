@@ -143,8 +143,7 @@ export function RelatedEvents({
   if (items.length === 0) return null;
 
   const volumeLabel = t("extend.worldcup.volume");
-  const open = (slug: string) =>
-    window.open(`/polymarket/${slug}`, "_blank", "noopener,noreferrer");
+  const open = (slug: string) => router.push(`/polymarket/${slug}`);
   const prefetch = (slug: string) => router.prefetch(`/polymarket/${slug}`);
 
   return (
