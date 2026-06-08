@@ -50,6 +50,8 @@ interface SmartWalletEntryDto {
   seven_day_realized_pnl: string;
   seven_day_volume: string;
   seven_day_activity_count: number;
+  thirty_day_realized_pnl?: string;
+  thirty_day_volume?: string;
   avg_initial_cost: string;
   avg_holding_seconds: string;
   avg_entry_count: string;
@@ -208,6 +210,8 @@ function adaptEntry(d: SmartWalletEntryDto): SmartWalletEntry {
     sevenDayRealizedPnl: num(d.seven_day_realized_pnl),
     sevenDayVolume: num(d.seven_day_volume),
     sevenDayActivityCount: d.seven_day_activity_count,
+    thirtyDayRealizedPnl: num(d.thirty_day_realized_pnl),
+    thirtyDayVolume: num(d.thirty_day_volume),
     avgInitialCost: num(d.avg_initial_cost),
     avgHoldingSeconds: num(d.avg_holding_seconds),
     avgEntryCount: num(d.avg_entry_count),
@@ -381,6 +385,14 @@ async function getJson<T>(baseUrl: string, path: string, lang?: string): Promise
   return (await res.json()) as T;
 }
 
+/**
+ * ChainStream tag the board is scoped to. Sent explicitly so the result never
+ * depends on the backend's default `CHAINSTREAM_TAG`: the upstream currently has
+ * data under `worldcup_2026` (the legacy `worldcup` tag returns an empty list).
+ * Override via `NEXT_PUBLIC_PREDICT_LEADERBOARD_TAG` for other deployments.
+ */
+const LEADERBOARD_TAG = process.env.NEXT_PUBLIC_PREDICT_LEADERBOARD_TAG ?? "worldcup_2026";
+
 /** Fetch + adapt the smart-money leaderboard for a time window. */
 export async function fetchSmartLeaderboard(
   baseUrl: string,
@@ -388,6 +400,7 @@ export async function fetchSmartLeaderboard(
   opts: { limit?: number; lang?: string } = {},
 ): Promise<SmartLeaderboard> {
   const params = new URLSearchParams({ interval });
+  if (LEADERBOARD_TAG) params.set("tag", LEADERBOARD_TAG);
   if (opts.limit) params.set("limit", String(opts.limit));
   return getJson<SmartLeaderboardDto>(
     baseUrl,

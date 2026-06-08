@@ -58,3 +58,64 @@
 .animate-backdrop-out {
   animation: drawer-fade-out 0.25s ease-out forwards;
 }
+
+/* Leaderboard Top3 podium — concentric ring spin + champion glow pulse.
+   Defined locally for the same reason as the drawer animations above: the
+   shared tailwind preset does not ship the tw-animate utilities. */
+@keyframes lf-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lf-ring-spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes lf-podium-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-ring-spin {
+  animation: lf-ring-spin 24s linear infinite;
+}
+
+.animate-ring-spin-reverse {
+  animation: lf-ring-spin-reverse 32s linear infinite;
+}
+
+.animate-podium-glow {
+  animation: lf-podium-glow 3.2s ease-in-out infinite;
+}
+
+/* Champion card diagonal sheen sweep (ported from top3-concentric.html). */
+@keyframes lf-sheen-move {
+  0%,
+  100% {
+    transform: translateX(-26%);
+  }
+  50% {
+    transform: translateX(26%);
+  }
+}
+
+.lf-sheen {
+  animation: lf-sheen-move 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ring-spin,
+  .animate-ring-spin-reverse,
+  .animate-podium-glow,
+  .lf-sheen {
+    animation: none;
+  }
+}

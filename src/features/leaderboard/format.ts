@@ -73,6 +73,27 @@ export function formatHoldingTime(seconds: number): string {
   return `${minutes}m`;
 }
 
+/** `10m` / `2h` / `3d` / `5w` — compact "time since" from an ISO/epoch timestamp. */
+export function formatRelativeTime(ts: string | number | null | undefined): string {
+  if (ts == null || ts === "") return "—";
+  const ms = typeof ts === "number" ? ts : Date.parse(String(ts));
+  if (!Number.isFinite(ms)) return "—";
+  const diff = Math.max(0, Date.now() - ms);
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  return `${Math.floor(days / 365)}y`;
+}
+
 /** `0x1234…cdef` — short EVM address. */
 export function shortAddress(address: string, head = 6, tail = 4): string {
   if (!address) return "";
@@ -85,4 +106,30 @@ export function pnlColorClass(value: number): string {
   if (value > 0) return "text-bullish";
   if (value < 0) return "text-bearish";
   return "text-zinc-400";
+}
+
+/**
+ * Trade volume for the active leaderboard window. The board entry only carries
+ * today / 7d / 30d / total volume; 30d falls back to total when the upstream
+ * has not populated it yet.
+ */
+export function intervalVolume(
+  entry: {
+    todayVolume: number;
+    sevenDayVolume: number;
+    thirtyDayVolume: number;
+    totalVolume: number;
+  },
+  interval: "1d" | "7d" | "30d" | "all",
+): number {
+  switch (interval) {
+    case "1d":
+      return entry.todayVolume;
+    case "7d":
+      return entry.sevenDayVolume;
+    case "30d":
+      return entry.thirtyDayVolume || entry.totalVolume;
+    default:
+      return entry.totalVolume;
+  }
 }

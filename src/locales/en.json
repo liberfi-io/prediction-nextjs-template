@@ -25,8 +25,31 @@
     "leaderboard": {
       "title": "Leaderboard",
       "subtitle": "World Cup Smart Money",
-      "interval": { "all": "All Time", "7d": "7D" },
-      "col": { "winRate": "win rate", "markets": "markets" },
+      "scopedTag": "FIFA World Cup 2026",
+      "discover": "Discover",
+      "views": { "smartMoney": "Smart Money", "liveFeed": "Smart Live Feed" },
+      "liveFeed": {
+        "comingSoon": "Smart Live Feed is coming soon",
+        "description": "Real-time smart-money trades will stream here."
+      },
+      "interval": { "1d": "1D", "7d": "7D", "30d": "30D", "all": "All" },
+      "intervalShort": { "1d": "1D", "7d": "7D", "30d": "30D" },
+      "podium": { "champion": "Champion", "second": "2nd", "third": "3rd" },
+      "col": {
+        "winRate": "win rate",
+        "markets": "markets",
+        "trader": "Trader",
+        "netPnl": "Net PNL",
+        "netPnlWindow": "{{w}} Net PNL",
+        "balance": "Balance",
+        "volTxs": "Vol / Txs",
+        "volTxsWindow": "{{w}} Vol / Txs",
+        "vol": "Vol",
+        "volWindow": "{{w}} Vol",
+        "lastTrade": "Last Trade",
+        "avgBet": "avg bet",
+        "txs": "txs"
+      },
       "selectWallet": "Select a wallet to view details",
       "emptyBoard": "No smart-money wallets yet",
       "loadError": "Failed to load. Please try again.",

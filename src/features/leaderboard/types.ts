@@ -8,8 +8,8 @@
  * upstream; the adapter parses them into numbers for display-only formatting.
  */
 
-/** Leaderboard time window. The UI ships ALL + 7D; 1d/30d are reserved. */
-export type LeaderboardInterval = "all" | "7d";
+/** Leaderboard time window. Mirrors the SDK `PredictionLeaderboardInterval`. */
+export type LeaderboardInterval = "1d" | "7d" | "30d" | "all";
 
 /** One ranked smart-money wallet on the board. */
 export interface SmartWalletEntry {
@@ -34,6 +34,8 @@ export interface SmartWalletEntry {
   sevenDayRealizedPnl: number;
   sevenDayVolume: number;
   sevenDayActivityCount: number;
+  thirtyDayRealizedPnl: number;
+  thirtyDayVolume: number;
   avgInitialCost: number;
   avgHoldingSeconds: number;
   avgEntryCount: number;

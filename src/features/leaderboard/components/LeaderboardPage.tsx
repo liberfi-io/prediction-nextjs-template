@@ -1,56 +1,73 @@
 "use client";
 
 /**
- * Smart Money Leaderboard page — master-detail container.
+ * Smart Money Leaderboard page.
  *
- * Desktop (>1024px): two columns — the {@link SmartMoneyBoard} on the left and
- * the {@link WalletDetailPanel} inline on the right. Tablet / mobile: a single
- * board column; selecting a wallet opens a full-screen slide-over sheet with a
- * back button.
+ * Top-level sub-tabs switch between "Smart Money" (the ranked board: scoped-tag
+ * header + interval toggle + Top-3 podium + virtualized table) and "Smart Live
+ * Feed" (a follow-up placeholder). Across all breakpoints the board is a single
+ * list; selecting a wallet opens the {@link WalletDetailPanel} as a full-screen
+ * slide-over with a back button.
  *
- * The selected wallet is mirrored into the `?wallet=` search param so the
- * selection is shareable and survives the browser back button. The board's
- * first entry is auto-selected on desktop once data loads.
+ * Selection (`?wallet=`), time window (`?interval=`) and the active sub-tab
+ * (`?view=`) all live in the URL so the state is shareable and survives the
+ * browser back button.
  */
 
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
-import { useScreen } from "@liberfi.io/ui";
-import { useSmartMoneyBoard } from "../data/queries";
+import { cn } from "@liberfi.io/ui";
 import type { LeaderboardInterval } from "../types";
+import { SmartLiveFeed } from "./SmartLiveFeed";
 import { SmartMoneyBoard } from "./SmartMoneyBoard";
 import { WalletDetailPanel } from "./WalletDetailPanel";
-import { WalletDetailSkeleton } from "./skeletons";
 
-const INTERVALS = new Set<LeaderboardInterval>(["all", "7d"]);
+type LeaderboardView = "smart-money" | "live-feed";
+
+const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
+const VIEWS: LeaderboardView[] = ["smart-money", "live-feed"];
+
+/** Default time window when none is set in the URL. */
+const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
 
 function parseInterval(value: string | null): LeaderboardInterval {
   return value && INTERVALS.has(value as LeaderboardInterval)
     ? (value as LeaderboardInterval)
-    : "all";
+    : DEFAULT_INTERVAL;
+}
+
+function parseView(value: string | null): LeaderboardView {
+  return value === "live-feed" ? "live-feed" : "smart-money";
 }
 
 export function LeaderboardPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isDesktop } = useScreen();
 
   const interval = parseInterval(searchParams.get("interval"));
+  const view = parseView(searchParams.get("view"));
   const selectedWallet = searchParams.get("wallet") ?? undefined;
-
-  // The board data is shared (React Query dedups) so reading it here for the
-  // desktop auto-select does not trigger an extra request.
-  const { data: board, isLoading: boardLoading } = useSmartMoneyBoard(interval);
 
   /** Replace the URL search params without scrolling or adding history noise. */
   const updateParams = useCallback(
-    (next: { wallet?: string | null; interval?: LeaderboardInterval }, replace = false) => {
+    (
+      next: {
+        wallet?: string | null;
+        interval?: LeaderboardInterval;
+        view?: LeaderboardView;
+      },
+      replace = false,
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
       if (next.interval) {
-        if (next.interval === "all") params.delete("interval");
+        if (next.interval === DEFAULT_INTERVAL) params.delete("interval");
         else params.set("interval", next.interval);
+      }
+      if (next.view) {
+        if (next.view === "smart-money") params.delete("view");
+        else params.set("view", next.view);
       }
       if ("wallet" in next) {
         if (next.wallet) params.set("wallet", next.wallet);
@@ -69,11 +86,16 @@ export function LeaderboardPage() {
     [updateParams],
   );
 
-  // Switching the time window reloads the board; clearing the selected wallet
-  // resets the detail column so it does not show stale data and re-runs the
-  // desktop auto-select against the new ranking (both columns show skeletons).
+  // Switching the time window reloads the board and clears the selected wallet
+  // so the detail does not show stale data.
   const handleInterval = useCallback(
     (next: LeaderboardInterval) => updateParams({ interval: next, wallet: null }, true),
+    [updateParams],
+  );
+
+  // Switching sub-tab clears any open wallet detail.
+  const handleView = useCallback(
+    (next: LeaderboardView) => updateParams({ view: next, wallet: null }, true),
     [updateParams],
   );
 
@@ -82,17 +104,8 @@ export function LeaderboardPage() {
     [updateParams],
   );
 
-  // Desktop auto-selects the top-ranked wallet once the board loads and nothing
-  // is selected yet. Mobile leaves the detail closed until the user taps a row.
-  const firstWallet = board?.entries[0]?.wallet;
-  useEffect(() => {
-    if (isDesktop && !selectedWallet && firstWallet) {
-      updateParams({ wallet: firstWallet }, true);
-    }
-  }, [isDesktop, selectedWallet, firstWallet, updateParams]);
-
-  // On mobile/tablet the detail is an overlay; lock body scroll while open.
-  const overlayOpen = !isDesktop && Boolean(selectedWallet);
+  // The detail overlay only exists on the Smart Money view.
+  const overlayOpen = view === "smart-money" && Boolean(selectedWallet);
   useEffect(() => {
     if (!overlayOpen) return;
     const prev = document.body.style.overflow;
@@ -112,48 +125,43 @@ export function LeaderboardPage() {
     [interval, handleInterval, selectedWallet, handleSelect],
   );
 
-  // Desktop right column: skeleton while the board reloads (e.g. interval
-  // switch) or while the auto-select is pending, the panel once a wallet is
-  // chosen (keyed by wallet so a switch remounts → its own loading skeleton),
-  // and the empty prompt only when the board has no entries to select from.
-  let desktopDetail: React.ReactNode;
-  if (boardLoading) {
-    desktopDetail = <WalletDetailSkeleton />;
-  } else if (selectedWallet) {
-    desktopDetail = <WalletDetailPanel key={selectedWallet} wallet={selectedWallet} />;
-  } else if (board && board.entries.length > 0) {
-    desktopDetail = <WalletDetailSkeleton />;
-  } else {
-    desktopDetail = <SelectPrompt message={t("extend.leaderboard.selectWallet")} />;
-  }
-
   return (
-    <div className="mx-auto flex h-full max-w-[1280px] flex-col px-4 pt-6 pb-4 sm:px-6 sm:pt-8 lg:px-8">
-      {/* Title */}
-      <div className="mb-5 shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {t("extend.leaderboard.title")}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {t("extend.leaderboard.subtitle")}
-        </p>
+    <>
+      {/* Fixed secondary menu (Discover): pinned just below the 48px app header
+          so it stays put while the page scrolls. */}
+      <div className="fixed inset-x-0 top-12 z-30 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-1">
+            {VIEWS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => handleView(v)}
+                className={cn(
+                  "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                  view === v
+                    ? "bg-bullish/15 text-bullish"
+                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
+                )}
+              >
+                {t(`extend.leaderboard.views.${v === "smart-money" ? "smartMoney" : "liveFeed"}`)}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6">
-        {/* Left: board */}
-        <div className="flex min-h-0 w-full flex-col lg:w-[400px] lg:shrink-0">
-          <SmartMoneyBoard {...boardProps} />
-        </div>
-
-        {/* Right: detail (desktop inline) */}
-        <div className="hidden min-w-0 flex-1 lg:flex lg:min-h-0 lg:flex-col">
-          {desktopDetail}
-        </div>
+      {/* Content flows in the page; pt clears the fixed secondary menu. No bottom
+          padding: the board box is sized to fill the screen left after the hero
+          scrolls away, so it must reach the viewport bottom for its header to rest
+          right under the fixed bars. */}
+      <div className="mx-auto max-w-[1280px] px-4 pt-[60px] sm:px-6 lg:px-8">
+        {view === "smart-money" ? <SmartMoneyBoard {...boardProps} /> : <SmartLiveFeed />}
       </div>
 
-      {/* Mobile / tablet: full-screen slide-over sheet */}
+      {/* Detail: full-screen slide-over on every breakpoint */}
       {overlayOpen && selectedWallet && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60" onClick={handleCloseDetail} />
           <div className="absolute inset-0 flex flex-col bg-[#0a0a0b] animate-in slide-in-from-right duration-200">
             <div className="flex shrink-0 items-center gap-3 border-b border-zinc-800/60 px-4 py-3">
@@ -168,37 +176,12 @@ export function LeaderboardPage() {
                 {t("extend.leaderboard.back")}
               </button>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col px-4 py-4">
+            <div className="mx-auto flex min-h-0 w-full max-w-[900px] flex-1 flex-col px-4 py-4 sm:px-6">
               <WalletDetailPanel key={selectedWallet} wallet={selectedWallet} />
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SelectPrompt({ message }: { message: string }) {
-  return (
-    <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800/60 bg-zinc-900/10">
-      <svg
-        viewBox="0 0 24 24"
-        width={36}
-        height={36}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-zinc-700"
-        aria-hidden
-      >
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-      <span className="text-sm text-zinc-500">{message}</span>
-    </div>
+    </>
   );
 }

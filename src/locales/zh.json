@@ -24,8 +24,31 @@
     "leaderboard": {
       "title": "排行榜",
       "subtitle": "世界盃聰明錢",
-      "interval": { "all": "全部", "7d": "7天" },
-      "col": { "winRate": "勝率", "markets": "場次" },
+      "scopedTag": "2026 世界杯",
+      "discover": "发现",
+      "views": { "smartMoney": "聪明钱", "liveFeed": "实时动态" },
+      "liveFeed": {
+        "comingSoon": "实时动态即将上线",
+        "description": "聪明钱的实时交易将在这里推送。"
+      },
+      "interval": { "1d": "1天", "7d": "7天", "30d": "30天", "all": "全部" },
+      "intervalShort": { "1d": "1日", "7d": "7日", "30d": "30日" },
+      "podium": { "champion": "冠军", "second": "亚军", "third": "季军" },
+      "col": {
+        "winRate": "勝率",
+        "markets": "場次",
+        "trader": "交易者",
+        "netPnl": "净盈亏",
+        "netPnlWindow": "{{w}}净盈亏",
+        "balance": "持仓估值",
+        "volTxs": "成交 / 笔数",
+        "volTxsWindow": "{{w}}成交 / 笔数",
+        "vol": "成交",
+        "volWindow": "{{w}}成交",
+        "lastTrade": "最近交易",
+        "avgBet": "均注",
+        "txs": "笔"
+      },
       "selectWallet": "選擇錢包以查看詳情",
       "emptyBoard": "暫無聰明錢錢包",
       "loadError": "載入失敗，請重試。",

@@ -6,20 +6,38 @@ import { prefetchSmartLeaderboard } from "src/features/leaderboard/data/prefetch
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
+import type { LeaderboardInterval } from "src/features/leaderboard/types";
 
 const PREFETCH_TIMEOUT_MS = 3000;
 
+const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
+/** Must match {@link LeaderboardPage}'s `DEFAULT_INTERVAL`. */
+const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
+
 /**
- * SSR-prefetches the ALL-time smart-money leaderboard (bounded by a 3s race so
- * a slow backend never blocks the shell) and hydrates it. While this awaits,
- * the parent Suspense streams the leaderboard skeleton.
+ * Resolve the board interval from the URL search param, mirroring the client
+ * parser so SSR prefetch and the first client query agree on the cache key.
  */
-async function LeaderboardContent() {
+function parseInterval(value: string | string[] | undefined): LeaderboardInterval {
+  const v = Array.isArray(value) ? value[0] : value;
+  return v && INTERVALS.has(v as LeaderboardInterval)
+    ? (v as LeaderboardInterval)
+    : DEFAULT_INTERVAL;
+}
+
+/**
+ * SSR-prefetches the smart-money leaderboard for the URL-selected interval
+ * (bounded by a 3s race so a slow backend never blocks the shell) and hydrates
+ * it. The interval matches {@link LeaderboardPage}'s URL-derived value so the
+ * client query hits the hydrated cache instead of refetching. While this
+ * awaits, the parent Suspense streams the leaderboard skeleton.
+ */
+async function LeaderboardContent({ interval }: { interval: LeaderboardInterval }) {
   const queryClient = createServerQueryClient();
   const lang = mapToApiLang(await detectLanguage());
 
   await Promise.race([
-    prefetchSmartLeaderboard(queryClient, "all", lang),
+    prefetchSmartLeaderboard(queryClient, interval, lang),
     new Promise<void>((_, reject) =>
       setTimeout(() => reject(new Error("prefetch timeout")), PREFETCH_TIMEOUT_MS),
     ),
@@ -33,15 +51,20 @@ async function LeaderboardContent() {
 }
 
 /**
- * Smart Money Leaderboard route. The selected wallet lives in the `?wallet=`
- * search param (read client-side in {@link LeaderboardPage}); the board itself
- * is SSR-prefetched and hydrated. Wrapped in Suspense because the page reads
- * search params on the client.
+ * Smart Money Leaderboard route. The time window (`?interval=`) and selected
+ * wallet (`?wallet=`) live in the URL: the interval drives the SSR prefetch
+ * (read here) while the wallet is read client-side in {@link LeaderboardPage}.
+ * Wrapped in Suspense because the page reads search params.
  */
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const interval = parseInterval((await searchParams).interval);
   return (
     <Suspense fallback={<LeaderboardSkeleton />}>
-      <LeaderboardContent />
+      <LeaderboardContent interval={interval} />
     </Suspense>
   );
 }
