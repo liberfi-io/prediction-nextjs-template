@@ -268,6 +268,18 @@ function PageShell({ children }: PropsWithChildren) {
     [t],
   );
 
+  // Mobile footer: hide matches / portfolio / referral and place worldcup
+  // in the middle. The full nav list stays intact for everything else.
+  const footerNavItems: NavItem[] = useMemo(() => {
+    const hidden = new Set(["matches", "portfolio", "referral"]);
+    const visible = navItems.filter((item) => !hidden.has(item.key));
+    const worldcup = visible.find((item) => item.key === "worldcup");
+    if (!worldcup) return visible;
+    const rest = visible.filter((item) => item.key !== "worldcup");
+    const mid = Math.floor(rest.length / 2);
+    return [...rest.slice(0, mid), worldcup, ...rest.slice(mid)];
+  }, [navItems]);
+
   useEffect(() => {
     navItemsConfig.forEach((item) => {
       if (item.href !== pathname) {
@@ -334,7 +346,11 @@ function PageShell({ children }: PropsWithChildren) {
               <div className="shrink-0 flex items-center gap-1">
                 <Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
-                  {navItems.map((item) => {
+                  {/* Hide "matches" (跨平台匹配) in the desktop header only;
+                      the route/module and mobile footer entry stay intact. */}
+                  {navItems
+                    .filter((item) => item.key !== "matches")
+                    .map((item) => {
                     const active =
                       item.href === "/"
                         ? !navItemsConfig.some(
@@ -380,7 +396,7 @@ function PageShell({ children }: PropsWithChildren) {
             </div>
           </ScaffoldHeader>
         }
-        footer={<ScaffoldFooter navItems={navItems} />}
+        footer={<ScaffoldFooter navItems={footerNavItems} />}
       >
         {children}
       </Scaffold>
