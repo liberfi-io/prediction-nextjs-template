@@ -585,8 +585,13 @@ function ActivityList({ wallet }: { wallet: string }) {
 }
 
 /** Localized label + colour for a trade activity type (buy / sell / redeem). */
+type ActivityTypeLabelKey =
+  | "extend.leaderboard.activity.buy"
+  | "extend.leaderboard.activity.sell"
+  | "extend.leaderboard.activity.redeem";
+
 function activityTypeMeta(type: string): {
-  key: string;
+  key: ActivityTypeLabelKey;
   className: string;
 } {
   const lower = type.toLowerCase();
