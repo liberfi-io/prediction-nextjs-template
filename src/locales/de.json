@@ -99,7 +99,11 @@
     },
     "predict": {
       "account": {
-        "totalBalance": "Gesamt USDC"
+        "totalBalance": "Gesamt USDC",
+        "availableBalance": "Verfügbares Guthaben",
+        "positions": "Positionen",
+        "portfolioTotal": "Portfolio gesamt",
+        "unverified": "Nicht verifiziert"
       },
       "fundWallet": {
         "title": "Wallet aufladen",

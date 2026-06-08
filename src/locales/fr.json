@@ -99,7 +99,11 @@
     },
     "predict": {
       "account": {
-        "totalBalance": "Total USDC"
+        "totalBalance": "Total USDC",
+        "availableBalance": "Solde disponible",
+        "positions": "Positions",
+        "portfolioTotal": "Total du portefeuille",
+        "unverified": "Non vérifié"
       },
       "fundWallet": {
         "title": "Approvisionner le portefeuille",

@@ -99,7 +99,11 @@
     },
     "predict": {
       "account": {
-        "totalBalance": "Tổng USDC"
+        "totalBalance": "Tổng USDC",
+        "availableBalance": "Số dư khả dụng",
+        "positions": "Vị thế",
+        "portfolioTotal": "Tổng danh mục",
+        "unverified": "Chưa xác minh"
       },
       "fundWallet": {
         "title": "Nạp Ví",

@@ -99,7 +99,11 @@
     },
     "predict": {
       "account": {
-        "totalBalance": "Totale USDC"
+        "totalBalance": "Totale USDC",
+        "availableBalance": "Saldo disponibile",
+        "positions": "Posizioni",
+        "portfolioTotal": "Totale portafoglio",
+        "unverified": "Non verificato"
       },
       "fundWallet": {
         "title": "Finanzia Portafoglio",
