@@ -9,6 +9,7 @@ import {
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictListPage } from "src/components/page/PredictListPage";
+import { ENABLE_KALSHI } from "src/libs/featureFlags";
 
 const getCachedEventsPage = unstable_cache(
   async (params: ListEventsParams) => {
@@ -22,9 +23,13 @@ const getCachedEventsPage = unstable_cache(
 export default async function Page() {
   const queryClient = createServerQueryClient();
 
+  // Mirror the client EventsPage default: when Kalshi is disabled the list is
+  // pinned to Polymarket, so the SSR prefetch must use the same `source` to
+  // keep the query key aligned and avoid a redundant client refetch.
   const params = resolveEventsParams({
     sort_by: "volume",
     sort_asc: false,
+    ...(ENABLE_KALSHI ? {} : { source: "polymarket" as const }),
   });
 
   await Promise.race([

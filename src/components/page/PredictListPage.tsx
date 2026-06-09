@@ -12,6 +12,7 @@ import {
   FUND_WALLET_MODAL_ID,
   type FundWalletParams,
 } from "../FundWalletModal";
+import { ENABLE_KALSHI } from "../../libs/featureFlags";
 import { predictEventHref } from "./predict-source";
 
 const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
@@ -54,6 +55,7 @@ export function PredictListPage() {
       onSelect={handleSelect}
       bgImageSrc="/matches-bg-wide.png"
       onInsufficientBalance={handleInsufficientBalance}
+      enableKalshi={ENABLE_KALSHI}
     />
   );
 }

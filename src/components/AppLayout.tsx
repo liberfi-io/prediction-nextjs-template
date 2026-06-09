@@ -94,6 +94,7 @@ import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { usePredictWallet } from "@liberfi.io/ui-predict";
 import { predictEventHref } from "./page/predict-source";
 import { getQueryClient } from "../libs/queryClient";
+import { ENABLE_KALSHI } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
 import {
   FundWalletModal,
@@ -851,7 +852,7 @@ function BalanceDropdownContent({
       {/* Wallet rows — Kalshi (Solana) and Polymarket (Polygon). Address +
           copy + venue setup status + per-venue USDC. */}
       <div className="p-2">
-        {solanaAddress && (
+        {ENABLE_KALSHI && solanaAddress && (
           <WalletEntry
             address={solanaAddress}
             venueIcon={<KalshiIcon width={40} height={40} />}
@@ -872,7 +873,7 @@ function BalanceDropdownContent({
             onWithdraw={onKalshiWithdraw}
           />
         )}
-        {solanaAddress && evmAddress && (
+        {ENABLE_KALSHI && solanaAddress && evmAddress && (
           <div
             className="-mx-2 my-1"
             style={{ borderTop: "1px solid rgba(39,39,42,1)" }}
@@ -903,7 +904,10 @@ function BalanceDropdownContent({
 
       {/* Summary: available balance + positions + portfolio total. One block,
           no internal dividers; icons use the same chip style as the quick
-          links / sign-out menu items below. */}
+          links / sign-out menu items below. Hidden when Kalshi is disabled
+          since the single remaining venue (Polymarket) already shows its own
+          balance / positions rows above. */}
+      {ENABLE_KALSHI && (
       <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
         <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
           <div className="flex items-center gap-2.5">
@@ -945,6 +949,7 @@ function BalanceDropdownContent({
           </span>
         </div>
       </div>
+      )}
 
       {/* Settings — currently just the language switcher. */}
       <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
