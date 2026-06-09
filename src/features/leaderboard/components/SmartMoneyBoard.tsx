@@ -19,7 +19,7 @@ import { memo, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, Sortable } from "@liberfi.io/ui";
-import { CopyButton } from "../../../components/CopyButton";
+import { CopyInline } from "../../../components/CopyButton";
 import { GradientAvatar } from "../../../components/GradientAvatar";
 import { useSmartMoneyBoard } from "../data/queries";
 import {
@@ -56,11 +56,18 @@ const HERO_BG =
 
 export function SmartMoneyBoard({
   interval,
+  selectedInterval,
+  pending = false,
   onIntervalChange,
   selectedWallet,
   onSelect,
 }: {
+  /** Committed window driving the data query + column labels. */
   interval: LeaderboardInterval;
+  /** Optimistically selected window for the toggle highlight (defaults to `interval`). */
+  selectedInterval?: LeaderboardInterval;
+  /** True while a window switch navigation is in flight: forces the skeleton. */
+  pending?: boolean;
   onIntervalChange: (interval: LeaderboardInterval) => void;
   selectedWallet?: string;
   onSelect: (wallet: string) => void;
@@ -68,6 +75,10 @@ export function SmartMoneyBoard({
   const { t } = useTranslation();
   const { data, isLoading, isError } = useSmartMoneyBoard(interval);
 
+  // While switching windows the board re-prefetches on the server, so surface a
+  // skeleton for that pending phase too — not just the initial query load.
+  const loading = isLoading || pending;
+  const activeInterval = selectedInterval ?? interval;
   const entries = data?.entries ?? [];
 
   return (
@@ -106,7 +117,7 @@ export function SmartMoneyBoard({
                 onClick={() => onIntervalChange(iv)}
                 className={cn(
                   "cursor-pointer rounded-lg px-3 py-1 text-xs font-semibold transition-colors",
-                  interval === iv
+                  activeInterval === iv
                     ? "bg-bullish/15 text-bullish"
                     : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
                 )}
@@ -118,7 +129,7 @@ export function SmartMoneyBoard({
         </div>
 
         {/* Podium lives on the hero gradient */}
-        {isLoading ? (
+        {loading ? (
           <div className="mt-6">
             <PodiumSkeleton />
           </div>
@@ -129,7 +140,7 @@ export function SmartMoneyBoard({
         ) : null}
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <BoardRowsSkeleton />
       ) : isError ? (
         <BoardEmpty message={t("extend.leaderboard.loadError")} />
@@ -358,16 +369,11 @@ const BoardRow = memo(function BoardRow({
       <div className="flex min-w-0 items-center gap-2.5">
         <GradientAvatar seed={entry.wallet} size={32} className="!rounded-full" />
         <div className="min-w-0">
-          <div className="flex items-center gap-1">
+          <CopyInline value={entry.wallet} title={t("extend.leaderboard.copy")}>
             <span className="truncate font-mono text-sm font-medium text-zinc-100">
               {shortAddress(entry.wallet)}
             </span>
-            <CopyButton
-              value={entry.wallet}
-              title={t("extend.leaderboard.copy")}
-              className="opacity-100 transition-opacity focus:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-            />
-          </div>
+          </CopyInline>
           <div className="mt-0.5 text-xs text-zinc-500">
             {entry.marketCount} {t("extend.leaderboard.col.markets")}
           </div>

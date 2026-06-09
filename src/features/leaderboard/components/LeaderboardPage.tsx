@@ -14,7 +14,7 @@
  * browser back button.
  */
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
@@ -28,6 +28,15 @@ type LeaderboardView = "smart-money" | "live-feed";
 const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
 const VIEWS: LeaderboardView[] = ["smart-money", "live-feed"];
 
+/**
+ * Smart Live Feed is not built yet — hide its tab (and ignore `?view=live-feed`)
+ * until it ships. Flip to `true` to re-enable.
+ */
+const ENABLE_LIVE_FEED = false;
+const VISIBLE_VIEWS: LeaderboardView[] = ENABLE_LIVE_FEED
+  ? VIEWS
+  : VIEWS.filter((v) => v !== "live-feed");
+
 /** Default time window when none is set in the URL. */
 const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
 
@@ -38,7 +47,7 @@ function parseInterval(value: string | null): LeaderboardInterval {
 }
 
 function parseView(value: string | null): LeaderboardView {
-  return value === "live-feed" ? "live-feed" : "smart-money";
+  return value === "live-feed" && ENABLE_LIVE_FEED ? "live-feed" : "smart-money";
 }
 
 export function LeaderboardPage() {
@@ -49,6 +58,16 @@ export function LeaderboardPage() {
   const interval = parseInterval(searchParams.get("interval"));
   const view = parseView(searchParams.get("view"));
   const selectedWallet = searchParams.get("wallet") ?? undefined;
+
+  // Switching the interval is a soft navigation (the server re-prefetches the
+  // board for the new window), so we wrap it in a transition to drive a loading
+  // state and optimistically track the clicked window for instant toggle
+  // feedback while the navigation is pending.
+  const [isPending, startTransition] = useTransition();
+  const [pendingInterval, setPendingInterval] = useState<LeaderboardInterval | null>(null);
+  useEffect(() => {
+    setPendingInterval(null);
+  }, [interval]);
 
   /** Replace the URL search params without scrolling or adding history noise. */
   const updateParams = useCallback(
@@ -87,9 +106,13 @@ export function LeaderboardPage() {
   );
 
   // Switching the time window reloads the board and clears the selected wallet
-  // so the detail does not show stale data.
+  // so the detail does not show stale data. Run inside a transition so the board
+  // can show a loading skeleton while the server re-prefetches.
   const handleInterval = useCallback(
-    (next: LeaderboardInterval) => updateParams({ interval: next, wallet: null }, true),
+    (next: LeaderboardInterval) => {
+      setPendingInterval(next);
+      startTransition(() => updateParams({ interval: next, wallet: null }, true));
+    },
     [updateParams],
   );
 
@@ -118,11 +141,13 @@ export function LeaderboardPage() {
   const boardProps = useMemo(
     () => ({
       interval,
+      selectedInterval: pendingInterval ?? interval,
+      pending: isPending,
       onIntervalChange: handleInterval,
       selectedWallet,
       onSelect: handleSelect,
     }),
-    [interval, handleInterval, selectedWallet, handleSelect],
+    [interval, pendingInterval, isPending, handleInterval, selectedWallet, handleSelect],
   );
 
   return (
@@ -132,7 +157,7 @@ export function LeaderboardPage() {
       <div className="fixed inset-x-0 top-12 z-30 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
           <div className="flex items-center gap-1">
-            {VIEWS.map((v) => (
+            {VISIBLE_VIEWS.map((v) => (
               <button
                 key={v}
                 type="button"

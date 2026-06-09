@@ -18,7 +18,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn, useCopyToClipboard } from "@liberfi.io/ui";
+import { cn } from "@liberfi.io/ui";
+import { CopyInline } from "../../../components/CopyButton";
 import { GradientAvatar } from "../../../components/GradientAvatar";
 import { useWalletActivities, useWalletPnl } from "../data/queries";
 import {
@@ -84,42 +85,16 @@ function WalletHeader({
   summary?: WalletPnlSummary;
 }) {
   const { t } = useTranslation();
-  const copy = useCopyToClipboard();
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    copy(wallet, () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
 
   return (
     <div className="flex items-center gap-3">
       <GradientAvatar seed={wallet} size={48} className="!rounded-xl" />
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <CopyInline value={wallet} title={t("extend.leaderboard.copy")} size={14}>
           <span className="truncate font-mono text-base font-semibold text-white">
             {shortAddress(wallet, 8, 6)}
           </span>
-          <button
-            type="button"
-            onClick={handleCopy}
-            title={t("extend.leaderboard.copy")}
-            className="shrink-0 rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            {copied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
-            )}
-          </button>
-        </div>
+        </CopyInline>
         {summary && (
           <div className="mt-0.5 text-xs text-zinc-500">
             {summary.marketCount} {t("extend.leaderboard.col.markets")} ·{" "}

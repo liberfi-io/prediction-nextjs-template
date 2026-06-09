@@ -17,9 +17,9 @@
  * shared tailwind preset does not ship the tw-animate utilities.
  */
 
-import { cn, LogoIcon } from "@liberfi.io/ui";
+import { cn, MiniLogoIcon } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
-import { CopyButton } from "../../../components/CopyButton";
+import { CopyInline } from "../../../components/CopyButton";
 import { GradientAvatar } from "../../../components/GradientAvatar";
 import { formatRate, formatSignedUsd, shortAddress } from "../format";
 import type { SmartWalletEntry } from "../types";
@@ -68,7 +68,7 @@ export function Top3Podium({
   const selected = selectedWallet?.toLowerCase();
 
   return (
-    <div className="flex items-end justify-center gap-3 px-2 sm:gap-4">
+    <div className="flex items-end justify-center gap-1.5 sm:gap-4">
       {top2 && (
         <PodiumCard rank={2} entry={top2} active={selected === top2.wallet.toLowerCase()} onSelect={onSelect} />
       )}
@@ -108,9 +108,12 @@ function PodiumCard({
       }}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "group relative shrink-0 cursor-pointer outline-none",
-        // Reference widths: rank1 268, rank2/3 240 — scaled down for mobile.
-        champion ? "w-[180px] sm:w-[268px]" : "w-[156px] sm:w-[240px]",
+        "group relative cursor-pointer outline-none",
+        // Mobile: flex-fill so all three cards fit the viewport (no clipping).
+        // Desktop: fixed reference widths (rank1 268, rank2/3 240).
+        champion
+          ? "flex-[1.12] basis-0 min-w-0 sm:w-[268px] sm:flex-none sm:basis-auto"
+          : "flex-1 basis-0 min-w-0 sm:w-[240px] sm:flex-none sm:basis-auto",
       )}
     >
       {/* Rank circle riding the top edge (half pokes out → outer card is visible). */}
@@ -135,7 +138,7 @@ function PodiumCard({
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-2xl bg-[#080806] transition-shadow",
-          champion ? "h-[256px] sm:h-[304px]" : "h-[228px] sm:h-[268px]",
+          champion ? "h-[200px] sm:h-[304px]" : "h-[180px] sm:h-[268px]",
           active && "ring-2 ring-bullish/40",
         )}
         style={{ border: style.border }}
@@ -157,18 +160,22 @@ function PodiumCard({
         <div
           className={cn(
             "relative z-[3] flex h-full flex-col items-center justify-start text-center transition-colors",
-            "gap-3 px-4 pb-[18px] pt-[22px]",
+            "gap-2 px-2 pb-3 pt-4 sm:gap-3 sm:px-4 sm:pb-[18px] sm:pt-[22px]",
             active ? "bg-white/[0.02]" : "group-hover:bg-white/[0.02]",
           )}
         >
           {/* Top: badge + emblem */}
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2 sm:gap-3">
             <span
-              className="inline-flex items-center rounded-full font-mono text-[11px] font-medium uppercase tracking-wide"
+              className={cn(
+                "inline-flex items-center rounded-full font-mono font-medium uppercase tracking-wide",
+                "px-2 py-[3px] text-[9px] sm:text-[11px]",
+                champion ? "sm:px-[13px] sm:py-[5px]" : "sm:px-3 sm:py-1",
+              )}
               style={
                 champion
-                  ? { background: style.accent, color: "#000", padding: "5px 13px" }
-                  : { color: style.accent, border: `1px solid ${style.accent}59`, padding: "4px 12px" }
+                  ? { background: style.accent, color: "#000" }
+                  : { color: style.accent, border: `1px solid ${style.accent}59` }
               }
             >
               {t(style.badgeKey)}
@@ -177,55 +184,57 @@ function PodiumCard({
             <div
               className={cn(
                 "relative flex items-center justify-center",
-                champion ? "h-24 w-24 sm:h-[120px] sm:w-[120px]" : "h-[76px] w-[76px] sm:h-24 sm:w-24",
+                champion ? "h-[60px] w-[60px] sm:h-[120px] sm:w-[120px]" : "h-12 w-12 sm:h-24 sm:w-24",
               )}
             >
               <EmblemBacking accent={style.accent} opacity={style.ringOpacity} spin={champion} />
               <div
                 className="relative z-[2] rounded-full"
-                style={{ boxShadow: champion ? undefined : `0 0 0 2px ${style.accent}` }}
+                style={{ boxShadow: `0 0 0 2px ${style.accent}` }}
               >
                 <GradientAvatar
                   seed={entry.wallet}
-                  size={champion ? 70 : 56}
-                  className="!rounded-full"
+                  className={cn(
+                    "!rounded-full",
+                    champion
+                      ? "!h-6 !w-6 sm:!h-[52px] sm:!w-[52px]"
+                      : "!h-[18px] !w-[18px] sm:!h-[34px] sm:!w-[34px]",
+                  )}
                 />
               </div>
             </div>
           </div>
 
           {/* Text: name + pnl + sub */}
-          <div className="flex flex-col items-center gap-[7px]">
-            <span className="flex items-center gap-1">
+          <div className="flex w-full flex-col items-center gap-1 sm:gap-[7px]">
+            <CopyInline value={entry.wallet} title={t("extend.leaderboard.copy")}>
               <span
                 className={cn(
                   "truncate font-mono font-medium text-white",
-                  champion ? "text-[14px] sm:text-[15px]" : "text-[12px] sm:text-[13px]",
+                  champion ? "text-[10px] sm:text-[15px]" : "text-[9px] sm:text-[13px]",
                 )}
               >
                 {shortAddress(entry.wallet)}
               </span>
-              <CopyButton
-                value={entry.wallet}
-                title={t("extend.leaderboard.copy")}
-                className="text-zinc-400 opacity-100 transition-opacity focus:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-              />
-            </span>
+            </CopyInline>
             <span
               className={cn(
                 "font-semibold tabular-nums tracking-tight",
-                champion ? "text-2xl sm:text-[30px]" : "text-lg sm:text-[23px]",
+                champion ? "text-base sm:text-[30px]" : "text-sm sm:text-[23px]",
               )}
               style={{ color: champion ? style.accent : "#fff" }}
             >
               {formatSignedUsd(entry.score)}
             </span>
             <span
-              className="font-mono text-[11px]"
+              className="font-mono text-[10px] leading-tight sm:text-[11px]"
               style={{ color: champion ? "rgba(199,255,46,0.6)" : "rgba(255,255,255,0.4)" }}
             >
-              {formatRate(entry.winRate)} {t("extend.leaderboard.col.winRate")} · {entry.marketCount}{" "}
-              {t("extend.leaderboard.col.markets")}
+              {formatRate(entry.winRate)} {t("extend.leaderboard.col.winRate")}
+              <span className="hidden sm:inline">
+                {" "}
+                · {entry.marketCount} {t("extend.leaderboard.col.markets")}
+              </span>
             </span>
           </div>
         </div>
@@ -258,20 +267,16 @@ function EmblemBacking({
           style={{ background: `radial-gradient(circle, ${accent}26 0%, transparent 70%)` }}
         />
       )}
-      {/* Thin accent ring framing the emblem. */}
+      {/* Brand logo as the emblem image. Sized to fill the circle so it stays
+          visible around the (smaller) avatar that sits on top of it. */}
       <div
-        className="absolute inset-0 rounded-full"
-        style={{ border: `1px solid ${accent}`, opacity: opacity * 0.7 }}
-      />
-      {/* Brand logo as the emblem image. */}
-      <div
-        className={cn("absolute inset-[16%]", spin && "animate-ring-spin")}
+        className={cn("absolute inset-0", spin && "animate-ring-spin")}
         style={{
           opacity,
           filter: spin ? `drop-shadow(0 0 8px ${accent}66)` : undefined,
         }}
       >
-        <LogoIcon className="h-full w-full" />
+        <MiniLogoIcon className="h-full w-full" />
       </div>
     </div>
   );
