@@ -35,14 +35,22 @@ import {
 import {
   cn,
   toast,
-  UsdcIcon,
   PolymarketIcon,
   KalshiIcon,
-  ChartLineIcon,
 } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FUND_WALLET_MODAL_ID } from "../FundWalletModal";
+import { useWalletPnl } from "../../features/leaderboard/data/queries";
+import {
+  PerformanceBiasCard,
+  TotalValueCard,
+  YieldRiskCard,
+} from "../../features/leaderboard/components/SummaryCards";
+import {
+  PerformanceBiasCardSkeleton,
+  TotalValueCardSkeleton,
+  YieldRiskCardSkeleton,
+} from "../../features/leaderboard/components/skeletons";
 import { predictEventHref } from "./predict-source";
 
 type PortfolioTab = "positions" | "orders" | "history";
@@ -89,40 +97,11 @@ function PortfolioSkeleton() {
         </h1>
       </div>
 
-      {/* Hero cards — same 3-col grid as PortfolioContent */}
-      <div className="mb-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {/* Net Worth card (spans 2 cols) */}
-        <div
-          className="relative overflow-hidden sm:col-span-2"
-          style={{
-            borderRadius: 24,
-            border: "1px solid rgba(39,39,42,0.6)",
-            background: "rgba(24,24,27,0.4)",
-            padding: "24px 32px",
-          }}
-        >
-          <Shimmer delay={0} style={{ height: 14, width: 120, marginBottom: 12 }} />
-          <Shimmer delay={100} style={{ height: 48, width: 200, marginBottom: 12 }} />
-          <Shimmer delay={200} style={{ height: 28, width: 140, borderRadius: 8 }} />
-        </div>
-        {/* Right column: 2 small cards */}
-        <div className="flex flex-col gap-4">
-          {[0, 1].map((j) => (
-            <div
-              key={j}
-              style={{
-                flex: 1,
-                borderRadius: 16,
-                border: "1px solid rgba(39,39,42,0.5)",
-                background: "rgba(24,24,27,0.4)",
-                padding: 20,
-              }}
-            >
-              <Shimmer delay={j * 150 + 100} style={{ height: 12, width: 100, marginBottom: 12 }} />
-              <Shimmer delay={j * 150 + 200} style={{ height: 32, width: 96 }} />
-            </div>
-          ))}
-        </div>
+      {/* Summary panels — same 3-col grid as PortfolioContent */}
+      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <TotalValueCardSkeleton />
+        <PerformanceBiasCardSkeleton />
+        <YieldRiskCardSkeleton />
       </div>
 
       {/* Tabs — matches actual tab bar */}
@@ -222,30 +201,6 @@ function PortfolioContent() {
   const allPositions = positionsData?.positions ?? [];
   const positionsCount = allPositions.length;
 
-  const { kalshiUsdcBalance, polymarketUsdcBalance, isLoading: balanceLoading } = usePredictWallet();
-
-  const buyingPowerCents = toCents(kalshiUsdcBalance ?? 0) + toCents(polymarketUsdcBalance ?? 0);
-  const investedCents = useMemo(() => {
-    let total = 0;
-    for (const p of allPositions) {
-      total += p.current_value ?? p.size * (p.current_price ?? 0);
-    }
-    return toCents(total);
-  }, [allPositions]);
-  const netWorthCents = buyingPowerCents + investedCents;
-
-  const allTimePnl = useMemo(() => {
-    let pnl = 0;
-    for (const p of allPositions) {
-      pnl += p.pnl ?? 0;
-    }
-    return pnl;
-  }, [allPositions]);
-
-  const heroLoading = balanceLoading || positionsLoading;
-
-  if (heroLoading) return <PortfolioSkeleton />;
-
   const tabs: { key: PortfolioTab; label: string }[] = [
     {
       key: "positions",
@@ -267,79 +222,8 @@ function PortfolioContent() {
         </h1>
       </div>
 
-      {/* Hero cards — 3-col grid */}
-      <div className="mb-10 grid shrink-0 grid-cols-1 gap-6 sm:grid-cols-3">
-        {/* Total Net Worth (spans 2 cols) */}
-        <div className="relative overflow-hidden rounded-3xl border border-zinc-800 p-6 sm:col-span-2 sm:p-8" style={{ background: "linear-gradient(145deg, rgba(24,24,27,1) 0%, rgba(30,30,34,0.95) 40%, rgba(24,24,27,0.88) 70%, rgba(20,20,22,1) 100%)" }}>
-          <div className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.10) 0%, rgba(199,255,46,0.03) 50%, transparent 70%)" }} />
-          <div className="pointer-events-none absolute -bottom-16 -left-12 h-48 w-48 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(199,255,46,0.04) 0%, transparent 60%)" }} />
-          <div className="pointer-events-none absolute left-1/3 top-1/2 h-40 w-64 -translate-y-1/2 rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(255,255,255,0.015) 0%, transparent 70%)" }} />
-          <div className="relative z-10">
-            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-zinc-400">
-                  <span className="text-sm font-medium">{t("extend.portfolio.totalNetWorth")}</span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                    ${formatCents(netWorthCents)}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium",
-                      allTimePnl >= 0
-                        ? "bg-bullish/10 text-bullish"
-                        : "bg-bearish/10 text-bearish",
-                    )}
-                  >
-                    {allTimePnl >= 0 ? (
-                      <TrendingUpIcon className="h-4 w-4" />
-                    ) : (
-                      <TrendingDownIcon className="h-4 w-4" />
-                    )}
-                    <span>
-                      {allTimePnl >= 0 ? "+" : ""}${formatUsdc(Math.abs(allTimePnl))}
-                    </span>
-                  </span>
-                  <span className="text-sm text-zinc-500">{t("extend.portfolio.allTimePnl")}</span>
-                </div>
-              </div>
-              <div className="hidden sm:flex gap-2 sm:gap-3">
-                <FundWalletButton />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right column: Buying Power + Invested Assets */}
-        <div className="flex flex-col gap-4">
-          <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <UsdcIcon width={16} height={16} className="opacity-70" />
-                <span className="text-sm font-medium">{t("extend.portfolio.buyingPower")}</span>
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-white">${formatCents(buyingPowerCents)}</div>
-          </div>
-          <div className="flex-1 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-5 transition-colors hover:bg-zinc-900/80">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <ChartLineIcon width={16} height={16} className="text-bullish opacity-70" />
-                <span className="text-sm font-medium">{t("extend.portfolio.investedAssets")}</span>
-              </div>
-              {positionsCount > 0 && (
-                <span className="text-xs text-zinc-500">
-                  {positionsCount} {positionsCount === 1 ? "position" : "positions"}
-                </span>
-              )}
-            </div>
-            <div className="text-2xl font-bold text-white">${formatCents(investedCents)}</div>
-          </div>
-        </div>
-      </div>
+      {/* Summary panels — total value / performance & bias / yield & risk */}
+      <PortfolioSummary wallet={evmAddr} />
 
       {/* Tab + list section: fill remaining viewport on mobile, flex-fill on tablet+ */}
       <div className="flex h-[calc(100dvh-var(--scaffold-header-height)-var(--scaffold-footer-height))] flex-col sm:h-auto sm:min-h-0 sm:flex-1">
@@ -378,26 +262,44 @@ function PortfolioContent() {
 }
 
 // ---------------------------------------------------------------------------
-// Fund Wallet button
+// Summary panels (total value / performance & bias / yield & risk)
 // ---------------------------------------------------------------------------
 
-function FundWalletButton() {
+const SUMMARY_GRID = "mb-10 grid shrink-0 grid-cols-1 gap-6 lg:grid-cols-3";
+
+function PortfolioSummary({ wallet }: { wallet: string }) {
   const { t } = useTranslation();
-  const { onOpen } = useAsyncModal(FUND_WALLET_MODAL_ID);
+  // Panels are driven by the connected Polymarket (EVM) wallet via the
+  // ChainStream smart-money PNL endpoint; Kalshi is not represented here.
+  const { data, isError } = useWalletPnl(wallet || undefined);
+
+  // Until the connected EVM wallet resolves (or the query is in flight) show the
+  // card skeletons so the layout does not shift.
+  if (!wallet || !data) {
+    if (isError) {
+      return (
+        <div className={SUMMARY_GRID}>
+          <div className="rounded-xl border border-zinc-800/50 bg-zinc-900/40 px-4 py-10 text-center text-sm text-zinc-500 lg:col-span-3">
+            {t("extend.leaderboard.loadError")}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className={SUMMARY_GRID}>
+        <TotalValueCardSkeleton />
+        <PerformanceBiasCardSkeleton />
+        <YieldRiskCardSkeleton />
+      </div>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen()}
-      className="flex items-center gap-2 rounded-xl border border-bullish/30 bg-bullish/10 px-4 py-2.5 text-sm font-semibold text-bullish transition-all hover:border-bullish/50 hover:bg-bullish/20 cursor-pointer"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      {t("extend.predict.fundWallet.title")}
-    </button>
+    <div className={SUMMARY_GRID}>
+      <TotalValueCard summary={data.summary} />
+      <PerformanceBiasCard summary={data.summary} />
+      <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
+    </div>
   );
 }
 
@@ -1567,49 +1469,6 @@ function PanelSkeleton() {
   );
 }
 
-function TrendingUpIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M16 7h6v6" />
-      <path d="m22 7-8.5 8.5-5-5L2 17" />
-    </svg>
-  );
-}
-
-function TrendingDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M16 17h6v-6" />
-      <path d="m22 17-8.5-8.5-5 5L2 7" />
-    </svg>
-  );
-}
-
-
 function SearchIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -1631,21 +1490,6 @@ function SearchIcon({ className }: { className?: string }) {
   );
 }
 
-
-function toCents(amount: number): number {
-  return Math.floor(amount * 100);
-}
-
-function formatUsdc(amount: number): string {
-  return formatCents(toCents(amount));
-}
-
-function formatCents(cents: number): string {
-  return (cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 /**
  * Default 2 decimals: Polymarket ROUNDING_CONFIG.size is always 2;

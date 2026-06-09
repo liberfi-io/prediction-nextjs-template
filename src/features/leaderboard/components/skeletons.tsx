@@ -160,7 +160,7 @@ function TradeBlockSkeleton() {
 }
 
 /** Card 1 — TOTAL VALUE: 4 label/value rows. */
-function TotalValueCardSkeleton() {
+export function TotalValueCardSkeleton() {
   return (
     <CardShellSkeleton>
       <StatRowsSkeleton rows={4} />
@@ -169,7 +169,7 @@ function TotalValueCardSkeleton() {
 }
 
 /** Card 2 — PERFORMANCE & BIAS: 9 label/value rows + best/worst trade blocks. */
-function PerformanceBiasCardSkeleton() {
+export function PerformanceBiasCardSkeleton() {
   return (
     <CardShellSkeleton>
       <StatRowsSkeleton rows={9} />
@@ -180,7 +180,7 @@ function PerformanceBiasCardSkeleton() {
 }
 
 /** Card 3 — YIELD & RISK: 2-column metric grid + exposure bar + legend. */
-function YieldRiskCardSkeleton() {
+export function YieldRiskCardSkeleton() {
   return (
     <CardShellSkeleton>
       <div className="grid grid-cols-2 gap-3">
