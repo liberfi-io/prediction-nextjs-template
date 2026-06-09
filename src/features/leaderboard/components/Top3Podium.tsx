@@ -25,6 +25,10 @@ import { formatRate, formatSignedUsd, shortAddress } from "../format";
 import type { SmartWalletEntry } from "../types";
 
 type Rank = 1 | 2 | 3;
+type PodiumBadgeKey =
+  | "extend.leaderboard.podium.champion"
+  | "extend.leaderboard.podium.second"
+  | "extend.leaderboard.podium.third";
 
 interface RankStyle {
   /** Accent colour for ring / badge / rank circle / champion PNL (CSS colour). */
@@ -32,7 +36,7 @@ interface RankStyle {
   /** Card border (matches reference per-rank borders). */
   border: string;
   /** Badge i18n key. */
-  badgeKey: string;
+  badgeKey: PodiumBadgeKey;
   /** Ring opacity (reference: rank1 0.95, rank2 0.4, rank3 0.3). */
   ringOpacity: number;
 }

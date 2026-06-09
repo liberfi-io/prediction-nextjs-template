@@ -41,6 +41,7 @@ import {
   PolymarketProvider,
   usePredictWsClient,
   usePositionsMulti,
+  useDeployPolymarketDepositWallet,
   polymarketSetupQueryKey,
 } from "@liberfi.io/react-predict";
 import type { PredictEvent } from "@liberfi.io/react-predict";
@@ -106,7 +107,9 @@ import { SendOutlinedIcon } from "./icons/SendOutlinedIcon";
 import {
   deploySafe,
   executeSafe,
+  executeDepositWalletBatch,
   buildAllApprovalTxns,
+  buildAllDepositApprovalCalls,
   pollTransaction,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
@@ -1020,13 +1023,20 @@ function PredictAccountControl() {
     kalshiKycUrl,
     kalshiKycLoading,
     polymarketSetupVerified,
-    polymarketSafeDeployed,
     polymarketTokenApproved,
     polymarketSetupLoading,
+    polymarketWalletKind,
+    polymarketWalletDeployed,
+    polymarketDepositWalletAddress,
     isLoading: balanceLoading,
   } = usePredictWallet();
   const queryClient = useQueryClient();
   const wallets = useWallets();
+  const deployDepositWallet = useDeployPolymarketDepositWallet(evmAddress);
+  // Only the explicit legacy `safe` kind takes the Gnosis Safe path; any other
+  // value (including an unresolved status) defaults to the deposit-wallet model
+  // so a brand-new EOA never accidentally deploys a Gnosis Safe.
+  const isDepositWallet = polymarketWalletKind !== "safe";
   const router = useRouter();
   const { isMobile } = useScreen();
 
@@ -1115,6 +1125,14 @@ function PredictAccountControl() {
   );
 
   const handleDeployAndApprove = useCallback(async () => {
+    // Hard gate: never deploy before the authoritative Polymarket setup status
+    // resolves. The active wallet model (deposit vs. legacy Safe) is decided by
+    // `wallet_kind`; acting while it is still loading risks deploying the wrong
+    // wallet type for the EOA (e.g. a Gnosis Safe for a brand-new user).
+    if (polymarketSetupLoading) {
+      throw new Error("Wallet status is still loading, please try again");
+    }
+
     const evmWallet = wallets.find(
       (w) => w.chainNamespace === "EVM" && w.isConnected,
     ) as EvmWalletAdapter | undefined;
@@ -1133,7 +1151,40 @@ function PredictAccountControl() {
       transport: custom(provider),
     });
 
-    if (!polymarketSafeDeployed) {
+    if (isDepositWallet) {
+      // Deposit wallet path: gasless server-side WALLET-CREATE (no signature),
+      // then a single WALLET batch granting pUSD + CTF approvals.
+      let depositWalletAddress = polymarketDepositWalletAddress;
+      if (!polymarketWalletDeployed) {
+        const deployResult = await deployDepositWallet.mutateAsync(evmAddress);
+        depositWalletAddress =
+          deployResult.deposit_wallet_address ?? depositWalletAddress;
+      }
+      if (!depositWalletAddress) {
+        throw new Error("deposit wallet address unavailable");
+      }
+
+      if (!polymarketTokenApproved) {
+        const approvalCalls = buildAllDepositApprovalCalls();
+        const approveResult = await executeDepositWalletBatch(
+          walletClient,
+          depositWalletAddress as Hex,
+          approvalCalls,
+          relayConfig,
+        );
+        if (approveResult.transactionID) {
+          await pollTransaction(relayConfig, approveResult.transactionID);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: polymarketSetupQueryKey(evmAddress),
+      });
+      return;
+    }
+
+    // Legacy Safe path (signatureType=2, USDC.e, V1 exchanges).
+    if (!polymarketWalletDeployed) {
       const deployResult = await deploySafe(walletClient, relayConfig);
       if (deployResult.transactionID) {
         await pollTransaction(relayConfig, deployResult.transactionID);
@@ -1158,8 +1209,12 @@ function PredictAccountControl() {
   }, [
     wallets,
     evmAddress,
-    polymarketSafeDeployed,
+    isDepositWallet,
+    polymarketSetupLoading,
+    polymarketWalletDeployed,
+    polymarketDepositWalletAddress,
     polymarketTokenApproved,
+    deployDepositWallet,
     relayConfig,
     queryClient,
   ]);
@@ -1314,7 +1369,8 @@ function PredictAccountControl() {
           isOpen={isSetupModalOpen}
           onClose={() => setIsSetupModalOpen(false)}
           evmAddress={evmAddress}
-          safeDeployed={polymarketSafeDeployed}
+          walletKind={polymarketWalletKind}
+          safeDeployed={polymarketWalletDeployed}
           tokenApproved={polymarketTokenApproved}
           onDeployAndApprove={handleDeployAndApprove}
         />

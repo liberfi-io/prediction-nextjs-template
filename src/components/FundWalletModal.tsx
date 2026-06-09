@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import encodeQR from "@paulmillr/qr";
@@ -104,7 +105,11 @@ export function FundWalletModal() {
           }}
         >
           <ModalContent>
-            <FundWalletContent onClose={props.onClose} params={props.params} />
+            <FundWalletContent
+              isOpen={props.isOpen}
+              onClose={props.onClose}
+              params={props.params}
+            />
           </ModalContent>
         </StyledModal>
       )}
@@ -117,9 +122,11 @@ export function FundWalletModal() {
 // ---------------------------------------------------------------------------
 
 function FundWalletContent({
+  isOpen,
   onClose,
   params,
 }: {
+  isOpen: boolean;
   onClose: () => void;
   params?: FundWalletParams;
 }) {
@@ -127,6 +134,19 @@ function FundWalletContent({
   const [selectedWallet, setSelectedWallet] = useState<WalletSource>(
     params?.initialWallet ?? "solana",
   );
+
+  // The modal content stays mounted across open/close cycles, so the initial
+  // `useState` values only apply once. Re-sync the target screen / wallet on
+  // every open transition so caller-supplied `params` (e.g. header deposit /
+  // withdraw) take effect instead of showing the stale previous screen.
+  const wasOpen = useRef(isOpen);
+  useEffect(() => {
+    if (isOpen && !wasOpen.current) {
+      setScreen(params?.initialScreen ?? "main");
+      setSelectedWallet(params?.initialWallet ?? "solana");
+    }
+    wasOpen.current = isOpen;
+  }, [isOpen, params]);
 
   switch (screen) {
     case "deposit":
@@ -347,6 +367,7 @@ function MainScreen({
     polymarketWalletDeployed,
     polymarketDepositWalletAddress,
     polymarketTokenApproved,
+    polymarketSetupLoading,
     evmAddress,
   } = usePredictWallet();
 
@@ -362,9 +383,21 @@ function MainScreen({
     [],
   );
 
-  const isDepositWallet = polymarketWalletKind === "deposit";
+  // Default to the deposit-wallet model: only the explicit legacy `safe` kind
+  // takes the Gnosis Safe path. Treating any non-`safe` value (including an
+  // unresolved status) as deposit prevents accidentally deploying a Safe for a
+  // brand-new EOA.
+  const isDepositWallet = polymarketWalletKind !== "safe";
 
   const handleDeployAndApprove = useCallback(async () => {
+    // Hard gate: never deploy before the authoritative Polymarket setup status
+    // resolves. The active wallet model (deposit vs. legacy Safe) is decided by
+    // `wallet_kind`; acting while it is still loading risks deploying the wrong
+    // wallet type for the EOA (e.g. a Gnosis Safe for a brand-new user).
+    if (polymarketSetupLoading) {
+      throw new Error("Wallet status is still loading, please try again");
+    }
+
     const evmWallet = wallets.find(
       (w) => w.chainNamespace === "EVM" && w.isConnected,
     ) as EvmWalletAdapter | undefined;
@@ -438,6 +471,7 @@ function MainScreen({
     wallets,
     evmAddress,
     isDepositWallet,
+    polymarketSetupLoading,
     polymarketWalletDeployed,
     polymarketDepositWalletAddress,
     polymarketTokenApproved,
@@ -1129,7 +1163,9 @@ function WithdrawScreen({
   } = usePredictWallet();
 
   const isSolana = selectedWallet === "solana";
-  const isDepositWallet = polymarketWalletKind === "deposit";
+  // Only the explicit legacy `safe` kind takes the Gnosis Safe path; any other
+  // value defaults to the deposit-wallet model.
+  const isDepositWallet = polymarketWalletKind !== "safe";
   const fromAddress = isSolana ? solanaAddress : evmAddress;
   const balance = isSolana ? kalshiUsdcBalance : polymarketUsdcBalance;
   const chainName = isSolana ? "Solana" : "Polygon";
