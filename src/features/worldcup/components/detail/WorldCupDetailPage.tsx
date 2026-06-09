@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
-import { Chain } from "@liberfi.io/types";
 import type { ProviderSource } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
@@ -13,12 +12,11 @@ import {
   type TradeSide,
 } from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
   FUND_WALLET_MODAL_ID,
   type FundWalletParams,
 } from "src/components/FundWalletModal";
-import { EventActivitySection } from "src/components/page/EventActivitySection";
+import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { DetailHeader } from "./DetailHeader";
@@ -56,9 +54,6 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
-
-  const evmWallet = useConnectedWallet(Chain.POLYGON);
-  const walletAddress = evmWallet?.address ?? "";
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
@@ -247,12 +242,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           {(mobileTab === "positions" ||
             mobileTab === "orders" ||
             mobileTab === "history") && (
-            <EventActivitySection
-              event={event}
-              walletAddress={walletAddress}
-              activeTab={mobileTab}
-              hideTabs
-            />
+            <PortfolioActivitySection activeTab={mobileTab} hideTabs />
           )}
         </div>
 
@@ -348,8 +338,8 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Activity spans Markets + CENTER width */}
-        <EventActivitySection event={event} walletAddress={walletAddress} />
+        {/* Activity spans Markets + CENTER width — full multi-source portfolio activity */}
+        <PortfolioActivitySection />
       </div>
 
       {/* ASIDE: right column — trade form above the order book */}
