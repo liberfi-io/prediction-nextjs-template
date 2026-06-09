@@ -7,18 +7,34 @@ import type { WcMatch } from "../../types";
 // Third-party TheSports football live widget. The embed URL is a fixed template
 // where only `uuid` (the match's `thesportsMatchId`) varies per game.
 // Source: .plans/worldcup/future.news/09-thesports-live-widget.md
-export const WIDGET_PROFILE = "mkyhzl4n10xu5uz";
+export const WIDGET_PROFILE = "7php8zggndfjh097yje6";
+
+/**
+ * Map the active UI language to TheSports widget's URL language segment. The
+ * embed path takes a base language code, so Chinese variants (e.g. `zh-Hant`)
+ * collapse to `zh` and every other language uses its base subtag (e.g. `ja`),
+ * defaulting to `en`.
+ */
+export function widgetLang(lang?: string | null): string {
+  const lower = (lang || "en").toLowerCase();
+  if (lower.startsWith("zh")) return "zh";
+  return lower.split("-")[0] || "en";
+}
 
 /**
  * Build the live-widget URL for a given match from its `thesportsMatchId`.
- * Returns null when the match has no mapped widget id (e.g. undrawn knockout
- * fixtures), so the embed can render a placeholder instead.
- * Protocol-relative so it follows the page scheme.
+ * The `lang` segment is supplied by the caller (the active UI language) instead
+ * of being hard-coded. Returns null when the match has no mapped widget id
+ * (e.g. undrawn knockout fixtures), so the embed can render a placeholder
+ * instead. Protocol-relative so it follows the page scheme.
  */
-export function widgetSrcForMatch(match: WcMatch | null): string | null {
+export function widgetSrcForMatch(
+  match: WcMatch | null,
+  lang?: string | null,
+): string | null {
   const uuid = match?.thesportsMatchId;
   if (!uuid) return null;
-  return `//widgets-v2.thesports01.com/zh/pro/football?profile=${WIDGET_PROFILE}&uuid=${uuid}`;
+  return `//widgets-v2.thesports01.com/${widgetLang(lang)}/pro/football?profile=${WIDGET_PROFILE}&uuid=${uuid}`;
 }
 
 /**
@@ -37,8 +53,8 @@ export function SportsWidget({
    *  already provides them (e.g. the Match Center tab) to avoid a double edge. */
   bordered?: boolean;
 }) {
-  const { t } = useTranslation();
-  const src = widgetSrcForMatch(match);
+  const { t, i18n } = useTranslation();
+  const src = widgetSrcForMatch(match, i18n.language);
   const chrome = bordered ? "border border-zinc-800 bg-zinc-900/40" : "";
 
   if (!src) {
@@ -57,8 +73,9 @@ export function SportsWidget({
 
   return (
     <iframe
-      // Remount on match switch so the embedded widget reloads cleanly.
-      key={match?.thesportsMatchId ?? src}
+      // Remount on match or language switch so the embedded widget reloads
+      // cleanly (the src encodes both the uuid and the active language).
+      key={src}
       title="Football live widget"
       src={src}
       loading="lazy"
