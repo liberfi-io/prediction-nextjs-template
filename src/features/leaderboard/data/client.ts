@@ -513,14 +513,7 @@ export async function fetchWalletPnl(
   ).then(adaptWalletPnl);
 }
 
-/**
- * Fetch + adapt a wallet's 7-day daily PNL chart series.
- *
- * The BFF serves the daily series inside the combined `/pnl` payload
- * (`{ wallet, tag, summary, daily_pnls }`) rather than a dedicated
- * `/pnl/daily` route, so we read `daily_pnls` off `/pnl` here; the extra
- * `summary` field is ignored by the daily adapter.
- */
+/** Fetch + adapt a wallet's 7-day daily PNL chart series. */
 export async function fetchWalletDailyPnl(
   baseUrl: string,
   wallet: string,
@@ -533,7 +526,7 @@ export async function fetchWalletDailyPnl(
   const qs = params.toString();
   return getJson<WalletDailyPnlResponseDto>(
     baseUrl,
-    `wallets/${encodeURIComponent(wallet)}/pnl${qs ? `?${qs}` : ""}`,
+    `wallets/${encodeURIComponent(wallet)}/pnl/daily${qs ? `?${qs}` : ""}`,
     opts.lang,
   ).then(adaptWalletDailyPnl);
 }

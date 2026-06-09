@@ -9,15 +9,26 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import {
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import { useWalletDailyPnl, useWalletPositions } from "../data/queries";
 import {
+  formatAgeMs,
   formatPercent,
   formatRate,
-  formatRelativeTime,
   formatSignedUsd,
   formatUsd,
+  parseTimestampMs,
   pnlColorClass,
 } from "../format";
 import type {
@@ -167,11 +178,7 @@ export function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) 
     },
     {
       label: t("extend.leaderboard.detail.lastActive"),
-      value: (
-        <span className="text-white">
-          {summary.lastActivityTs ? formatRelativeTime(summary.lastActivityTs) : EMPTY_VALUE}
-        </span>
-      ),
+      value: <LiveAge ts={summary.lastActivityTs} className="text-white" />,
     },
   ];
 
@@ -187,6 +194,18 @@ export function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) 
       </div>
     </Card>
   );
+}
+
+function LiveAge({
+  ts,
+  className,
+}: {
+  ts?: string | number | null;
+  className?: string;
+}) {
+  const timestampMs = parseTimestampMs(ts);
+  const ageMs = useTickAge(timestampMs ?? Date.now());
+  return <span className={className}>{timestampMs == null ? EMPTY_VALUE : formatAgeMs(ageMs)}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +317,12 @@ export function YieldRiskCard({
   );
 }
 
+/** Plot-area height (px) for the 7-day PNL sparkline. */
+const DAILY_CHART_HEIGHT = 96;
+
+/** Line color (theme `--color-bullish`). */
+const PNL_BULLISH = "#c7ff2e";
+
 function SevenDayPnlChart({
   dailyPnls,
   isError,
@@ -309,9 +334,10 @@ function SevenDayPnlChart({
   isLoading: boolean;
   label: string;
 }) {
-  const points = useMemo(() => buildChartPoints(dailyPnls), [dailyPnls]);
-  const lastPnl = dailyPnls.at(-1)?.realizedPnl ?? 0;
-  const stroke = lastPnl > 0 ? "stroke-bullish" : lastPnl < 0 ? "stroke-bearish" : "stroke-zinc-400";
+  const { i18n } = useTranslation();
+  const locale = i18n.language || undefined;
+  const color = PNL_BULLISH;
+  const data = useMemo(() => buildDailySeries(dailyPnls, locale), [dailyPnls, locale]);
 
   if (isLoading) {
     return (
@@ -324,63 +350,95 @@ function SevenDayPnlChart({
     );
   }
 
-  if (isError || points.items.length === 0) {
+  if (isError || data.length === 0) {
     return null;
   }
 
-  const zeroY = points.zeroY;
+  // Pad the value domain so a near-flat series isn't pinned to an edge and the
+  // zero baseline stays visible. Always include 0 so the reference line shows.
+  const values = data.map((d) => d.pnl);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const pad = (max - min) * 0.15 || 1;
+
+  // Only label the 1st, 4th and 7th day on the x axis.
+  const xTicks = [0, 3, 6]
+    .filter((i) => i < data.length)
+    .map((i) => data[i].label);
 
   return (
     <div className="mt-4 border-t border-zinc-800/60 pt-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-          {label}
-        </div>
-        <div className={cn("text-xs font-semibold tabular-nums", pnlColorClass(lastPnl))}>
-          {formatSignedUsd(lastPnl)}
-        </div>
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+        {label}
       </div>
-      <svg
-        viewBox="0 0 100 92"
-        role="img"
-        aria-label={label}
-        className="h-24 w-full overflow-visible"
-        preserveAspectRatio="none"
-      >
-        <line
-          x1="0"
-          x2="100"
-          y1={zeroY}
-          y2={zeroY}
-          className="stroke-zinc-800"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={points.path}
-          fill="none"
-          className={stroke}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        {points.items.map((point) => (
-          <circle
-            key={point.day}
-            cx={point.x}
-            cy={point.y}
-            r="1.6"
-            className={cn("fill-zinc-950", stroke)}
-            strokeWidth="1.5"
-            vectorEffect="non-scaling-stroke"
-          >
-            <title>
-              {point.day} {formatSignedUsd(point.realizedPnl)}
-            </title>
-          </circle>
-        ))}
-      </svg>
+      <div className="select-none" style={{ height: DAILY_CHART_HEIGHT }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 6, right: 18, bottom: 0, left: 18 }}>
+            {/* Y axis hidden (no ticks/lines) but still establishes the scale. */}
+            <YAxis hide domain={[min - pad, max + pad]} />
+            <XAxis
+              dataKey="label"
+              ticks={xTicks}
+              tick={{ fill: "#71717a", fontSize: 10 }}
+              tickMargin={6}
+              axisLine={false}
+              tickLine={false}
+              height={20}
+              interval="preserveStartEnd"
+              minTickGap={0}
+            />
+            <ReferenceLine y={0} stroke="#3f3f46" strokeWidth={1} />
+            <Tooltip
+              cursor={{ stroke: "#52525b", strokeWidth: 1, strokeDasharray: "4 4" }}
+              isAnimationActive={false}
+              wrapperStyle={{ zIndex: 2, outline: "none" }}
+              content={<DailyPnlTooltip />}
+            />
+            <Line
+              type="monotone"
+              dataKey="pnl"
+              stroke={color}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "rgba(10,10,11,0.85)", fill: color }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+interface DailyPoint {
+  /** ISO day (yyyy-mm-dd), used as a stable key. */
+  day: string;
+  /** Short axis/category label, e.g. "Jun 5". */
+  label: string;
+  /** Richer date shown in the tooltip, e.g. "Fri, Jun 5". */
+  fullLabel: string;
+  /** Realized PNL for the day (interpolated when the day is missing). */
+  pnl: number;
+}
+
+/** Tooltip payload shape we read off recharts (only the row payload is used). */
+interface DailyPnlTooltipProps {
+  active?: boolean;
+  payload?: { payload: DailyPoint }[];
+}
+
+function DailyPnlTooltip({ active, payload }: DailyPnlTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  if (!row) return null;
+  return (
+    <div className="rounded-lg border border-white/10 bg-zinc-950/90 px-3 py-2 text-xs shadow-lg backdrop-blur">
+      <div className="mb-1 font-medium text-zinc-400">{row.fullLabel}</div>
+      <div className={cn("font-semibold tabular-nums", pnlColorClass(row.pnl))}>
+        {formatSignedUsd(row.pnl)}
+      </div>
     </div>
   );
 }
@@ -416,44 +474,74 @@ function TradeHighlight({
   );
 }
 
-function buildChartPoints(dailyPnls: WalletDailyPnl[]): {
-  items: (WalletDailyPnl & { x: number; y: number })[];
-  path: string;
-  zeroY: number;
-} {
-  const values = dailyPnls.map((p) => p.realizedPnl);
-  const min = Math.min(0, ...values);
-  const max = Math.max(0, ...values);
-  const range = max - min || 1;
-  const top = 8;
-  const height = 76;
-  const items = dailyPnls.map((p, i) => {
-    const x = dailyPnls.length === 1 ? 50 : (i / (dailyPnls.length - 1)) * 100;
-    const y = top + ((max - p.realizedPnl) / range) * height;
-    return { ...p, x, y };
-  });
-  const zeroY = top + ((max - 0) / range) * height;
-  return {
-    items,
-    path: smoothPath(items),
-    zeroY,
-  };
+const DAY_MS = 86_400_000;
+
+/**
+ * Build a continuous 7-day realized-PNL series for the chart.
+ *
+ * The API may return fewer than 7 days (days with no PNL record are omitted),
+ * so we anchor a 7-day window on the latest day present and fill any missing
+ * day by linearly interpolating between its nearest known neighbors (flat
+ * carry at the leading/trailing edges). The result is always 7 evenly-spaced
+ * points so the line never collapses or skips days.
+ */
+function buildDailySeries(dailyPnls: WalletDailyPnl[], locale?: string): DailyPoint[] {
+  const known = dailyPnls
+    .map((p) => ({ ts: Date.parse(`${p.day}T00:00:00Z`), pnl: p.realizedPnl }))
+    .filter((p) => Number.isFinite(p.ts))
+    .sort((a, b) => a.ts - b.ts);
+  if (known.length === 0) return [];
+
+  const byTs = new Map<number, number>();
+  for (const k of known) byTs.set(k.ts, k.pnl);
+
+  const end = known[known.length - 1].ts;
+  const start = end - 6 * DAY_MS;
+
+  const points: DailyPoint[] = [];
+  for (let i = 0; i < 7; i += 1) {
+    const ts = start + i * DAY_MS;
+    const pnl = byTs.has(ts) ? (byTs.get(ts) as number) : interpolatePnl(ts, known);
+    points.push({
+      day: new Date(ts).toISOString().slice(0, 10),
+      label: formatDayLabel(ts, false, locale),
+      fullLabel: formatDayLabel(ts, true, locale),
+      pnl,
+    });
+  }
+  return points;
 }
 
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-  let path = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i += 1) {
-    const prev = points[i - 1];
-    const cur = points[i];
-    const midX = (prev.x + cur.x) / 2;
-    const midY = (prev.y + cur.y) / 2;
-    path += ` Q ${prev.x} ${prev.y} ${midX} ${midY}`;
+/**
+ * Linear interpolation of realized PNL at `ts` from the sorted known points.
+ * Falls back to flat carry when only one side exists (leading/trailing edge).
+ */
+function interpolatePnl(ts: number, known: { ts: number; pnl: number }[]): number {
+  let prev: { ts: number; pnl: number } | null = null;
+  let next: { ts: number; pnl: number } | null = null;
+  for (const k of known) {
+    if (k.ts <= ts) prev = k;
+    if (k.ts >= ts && next === null) next = k;
   }
-  const last = points[points.length - 1];
-  path += ` T ${last.x} ${last.y}`;
-  return path;
+  if (prev && next) {
+    if (next.ts === prev.ts) return prev.pnl;
+    const r = (ts - prev.ts) / (next.ts - prev.ts);
+    return prev.pnl + (next.pnl - prev.pnl) * r;
+  }
+  return (prev ?? next as { ts: number; pnl: number }).pnl;
+}
+
+/**
+ * Format a UTC day timestamp in the active UI language; the tooltip variant
+ * adds the weekday.
+ */
+function formatDayLabel(ts: number, withWeekday: boolean, locale?: string): string {
+  return new Date(ts).toLocaleDateString(locale, {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    ...(withWeekday ? { weekday: "short" } : null),
+  });
 }
 
 const EXPOSURE_COLORS = [

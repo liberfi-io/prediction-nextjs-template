@@ -102,7 +102,7 @@ export function WalletDetailPanel({
     <div className="flex h-full flex-col">
       <div
         ref={scrollRef}
-        className="relative flex-1 overflow-y-auto"
+        className="relative flex-1 overflow-y-auto overflow-x-hidden no-scrollbar"
       >
         <div className="flex flex-col gap-4 pb-4">
           <WalletHeader wallet={wallet} summary={data.summary} onBack={onBack} />
@@ -197,7 +197,7 @@ function WalletTabs({
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<DetailTab>("all");
+  const [tab, setTab] = useState<DetailTab>("open");
   const [query, setQuery] = useState("");
   // Single active sort column; `null` = unsorted (backend default order), which
   // is the initial state. Mirrors the ui-tokens Sortable interaction
@@ -210,7 +210,6 @@ function WalletTabs({
   const settledCount = Math.max(0, summary.tokenCount - summary.openPositionCount);
 
   const tabs: { key: DetailTab; label: string; count?: number }[] = [
-    { key: "all", label: t("extend.leaderboard.detail.tabs.all"), count: summary.tokenCount },
     { key: "open", label: t("extend.leaderboard.detail.tabs.open"), count: summary.openPositionCount },
     { key: "settled", label: t("extend.leaderboard.detail.tabs.settled"), count: settledCount },
     { key: "activity", label: t("extend.leaderboard.tabs.activity") },

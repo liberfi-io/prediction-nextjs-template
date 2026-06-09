@@ -11,6 +11,7 @@ import {
   PredictTradeModal,
   PredictSellModal,
   PredictRedeemModal,
+  usePredictWallet,
 } from "@liberfi.io/ui-predict";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
 import { cn } from "@liberfi.io/ui";
@@ -157,6 +158,12 @@ function PortfolioContent() {
   const solanaAddr = solanaWallet?.address ?? "";
   const evmAddr = evmWallet?.address ?? "";
 
+  // Smart-money PNL is indexed by the on-chain Polymarket wallet (the deposit
+  // wallet, or the legacy Gnosis Safe), never the connected EOA. Resolve it via
+  // the Polymarket setup status so the summary cards query the same wallet that
+  // actually holds the user's positions; passing the raw EOA returns no PNL.
+  const { polymarketWalletAddress } = usePredictWallet();
+
   const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
     kalshi_user: solanaAddr || undefined,
     polymarket_user: evmAddr || undefined,
@@ -187,7 +194,7 @@ function PortfolioContent() {
       </div>
 
       {/* Summary panels — total value / performance & bias / yield & risk */}
-      <PortfolioSummary wallet={evmAddr} />
+      <PortfolioSummary wallet={polymarketWalletAddress ?? ""} />
 
       {/* Tab + list section: fill remaining viewport on mobile, flex-fill on tablet+ */}
       <div className="flex h-[calc(100dvh-var(--scaffold-header-height)-var(--scaffold-footer-height))] flex-col sm:h-auto sm:min-h-0 sm:flex-1">
@@ -233,8 +240,9 @@ const SUMMARY_GRID = "mb-10 grid shrink-0 grid-cols-1 gap-6 lg:grid-cols-3";
 
 function PortfolioSummary({ wallet }: { wallet: string }) {
   const { t } = useTranslation();
-  // Panels are driven by the connected Polymarket (EVM) wallet via the
-  // ChainStream smart-money PNL endpoint; Kalshi is not represented here.
+  // Panels are driven by the resolved on-chain Polymarket wallet (deposit wallet
+  // or legacy Safe, not the EOA) via the ChainStream smart-money PNL endpoint;
+  // Kalshi is not represented here.
   const { data, isError } = useWalletPnl(wallet || undefined);
 
   // Until the connected EVM wallet resolves (or the query is in flight) show the
