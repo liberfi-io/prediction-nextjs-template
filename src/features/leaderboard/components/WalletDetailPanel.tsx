@@ -50,6 +50,7 @@ import {
 import type {
   LeaderboardInterval,
   PositionSortField,
+  PositionStatus,
   SortOrder,
   WalletActivity,
   WalletPnlSummary,
@@ -61,16 +62,22 @@ import {
   TotalValueCard,
   YieldRiskCard,
 } from "./SummaryCards";
-import { WalletDetailSkeleton } from "./skeletons";
+import { PositionsTableSkeleton, WalletDetailSkeleton } from "./skeletons";
 
-type DetailTab = "all" | "open" | "settled" | "activity";
+type DetailTab = "open" | "settled" | "activity";
+
+/** Maps a positions tab to the backend `status` lifecycle filter. */
+const TAB_STATUS: Record<"open" | "settled", PositionStatus> = {
+  open: "holding",
+  settled: "settled",
+};
 
 /** Estimated list row height (px) for the virtualizer's first paint. */
 const ROW_ESTIMATE = 64;
 
 /** Position table grid template (desktop). */
 const TABLE_GRID =
-  "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_minmax(90px,1fr)_88px_88px_78px_62px]";
+  "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_96px_88px_88px_78px_62px]";
 
 export function WalletDetailPanel({
   wallet,
@@ -199,6 +206,45 @@ function WalletTabs({
   const { t } = useTranslation();
   const [tab, setTab] = useState<DetailTab>("open");
   const [query, setQuery] = useState("");
+  const sectionRef = useRef<HTMLElement>(null);
+  const repinScrollRef = useRef(false);
+
+  // Switching tabs swaps the list body for a shorter loading / short list, so
+  // the single-scroll panel's content height collapses. The browser then
+  // clamps the now out-of-range scroll position — on mobile, where the stacked
+  // header + cards are taller than the viewport, it drops all the way to the
+  // top and the tab bar + new list fall below the fold ("tabs disappear").
+  // Flag a user-initiated switch and re-pin the scroll afterwards in
+  // `useLayoutEffect`.
+  const selectTab = (key: DetailTab) => {
+    if (key !== tab) repinScrollRef.current = true;
+    setTab(key);
+  };
+
+  // After the new tab's body commits, pin the scroll so the tab bar stays as
+  // high as the (possibly shorter) content allows, overriding the browser's
+  // collapse-time scroll clamp. When the content fits without scrolling the
+  // target is 0 (no-op), so this never disturbs short / desktop layouts. Re-pin
+  // on the next frame too, since the body height settles a frame after commit.
+  useLayoutEffect(() => {
+    if (!repinScrollRef.current) return;
+    repinScrollRef.current = false;
+    const scroller = scrollRef.current;
+    const section = sectionRef.current;
+    if (!scroller || !section) return;
+    const pin = () => {
+      const sectionTop =
+        section.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop;
+      const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+      const target = Math.min(sectionTop, maxScroll);
+      if (Math.abs(scroller.scrollTop - target) > 1) scroller.scrollTo({ top: target });
+    };
+    pin();
+    const raf = requestAnimationFrame(pin);
+    return () => cancelAnimationFrame(raf);
+  }, [tab]);
   // Single active sort column; `null` = unsorted (backend default order), which
   // is the initial state. Mirrors the ui-tokens Sortable interaction
   // (undefined → desc → asc → undefined).
@@ -207,24 +253,22 @@ function WalletTabs({
     order: SortOrder;
   } | null>(null);
 
-  const settledCount = Math.max(0, summary.tokenCount - summary.openPositionCount);
-
   const tabs: { key: DetailTab; label: string; count?: number }[] = [
     { key: "open", label: t("extend.leaderboard.detail.tabs.open"), count: summary.openPositionCount },
-    { key: "settled", label: t("extend.leaderboard.detail.tabs.settled"), count: settledCount },
+    { key: "settled", label: t("extend.leaderboard.detail.tabs.settled") },
     { key: "activity", label: t("extend.leaderboard.tabs.activity") },
   ];
 
   return (
-    <section className="flex flex-col">
+    <section ref={sectionRef} className="flex flex-col">
       <div className="sticky top-0 z-10 -mx-px bg-[#0a0a0b]/95 pb-2 pt-1 backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800/50">
+        <div className="flex flex-col gap-2 border-b border-zinc-800/50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex gap-0 overflow-x-auto">
             {tabs.map((tb) => (
               <button
                 key={tb.key}
                 type="button"
-                onClick={() => setTab(tb.key)}
+                onClick={() => selectTab(tb.key)}
                 className={cn(
                   "cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-all",
                   tab === tb.key
@@ -240,12 +284,14 @@ function WalletTabs({
             ))}
           </div>
           {tab !== "activity" && (
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("extend.leaderboard.detail.searchMarkets")}
-              className="mb-1.5 min-w-[140px] flex-1 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-1.5 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-zinc-700 sm:max-w-[220px]"
-            />
+            <div className="max-sm:px-2 sm:contents">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("extend.leaderboard.detail.searchMarkets")}
+                className="mb-1.5 w-full rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-1.5 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-zinc-700 sm:w-auto sm:min-w-[140px] sm:max-w-[220px] sm:flex-1"
+              />
+            </div>
           )}
         </div>
       </div>
@@ -328,7 +374,7 @@ function PositionsTable({
   scrollRef,
 }: {
   wallet: string;
-  tab: "all" | "open" | "settled";
+  tab: "open" | "settled";
   query: string;
   sort: { field: PositionSortField; order: SortOrder } | null;
   onSort: (s: { field: PositionSortField; order: SortOrder } | null) => void;
@@ -344,7 +390,7 @@ function PositionsTable({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useWalletPositions(wallet, sort?.field, sort?.order, interval, tag);
+  } = useWalletPositions(wallet, sort?.field, sort?.order, interval, tag, TAB_STATUS[tab]);
 
   // Cycle a column through desc → asc → unsorted (ui-tokens Sortable contract).
   const handleSort =
@@ -354,14 +400,13 @@ function PositionsTable({
   const sortFor = (field: PositionSortField): SortOrder | undefined =>
     sort?.field === field ? sort.order : undefined;
 
+  // The backend already filters by lifecycle status (holding / settled); only
+  // the local market-question search is applied client-side.
   const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
   const q = query.trim().toLowerCase();
-  const rows = allTokens.filter((tk) => {
-    if (tab === "open" && tk.openQuantity <= 0) return false;
-    if (tab === "settled" && tk.openQuantity > 0) return false;
-    if (q && !(tk.marketQuestion || "").toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const rows = q
+    ? allTokens.filter((tk) => (tk.marketQuestion || "").toLowerCase().includes(q))
+    : allTokens;
 
   const count = rows.length + (hasNextPage ? 1 : 0);
   const { wrapRef, virtualizer, scrollMargin } = useWindowList(scrollRef, count, [
@@ -385,7 +430,7 @@ function PositionsTable({
   // not-yet-cached order (placeholder data from the previous sort would
   // otherwise linger, making the switch feel unresponsive). Pagination keeps
   // the same query key, so it never trips this.
-  if (isLoading || isPlaceholderData) return <RowsSkeleton header />;
+  if (isLoading || isPlaceholderData) return <PositionsTableSkeleton />;
   if (rows.length === 0) {
     return (
       <EmptyBlock
@@ -460,7 +505,11 @@ function PositionsTable({
 }
 
 function positionStatus(p: WalletTokenPnl): "open" | "won" | "lost" {
-  if (p.openQuantity > 0) return "open";
+  // Prefer the upstream lifecycle status; fall back to open_quantity on older
+  // backends that don't yet emit `status`. Only chain-resolved ("settled") or
+  // fully-closed positions get a won/lost verdict.
+  const open = p.status ? p.status === "holding" : p.openQuantity > 0;
+  if (open) return "open";
   return p.realizedPnl >= 0 ? "won" : "lost";
 }
 
@@ -653,7 +702,7 @@ function ActivityList({
     }
   }, [virtualItems, activities.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading) return <RowsSkeleton />;
+  if (isLoading) return <ActivityRowsSkeleton />;
   if (activities.length === 0) {
     return <EmptyBlock message={t("extend.leaderboard.noActivity")} />;
   }
@@ -744,42 +793,22 @@ function ActivityRow({ activity, last }: { activity: WalletActivity; last: boole
 // ---------------------------------------------------------------------------
 
 /**
- * Row placeholders shown while a tab's list loads (or while the positions sort
- * switches to a not-yet-cached order). Mirrors the real rows: avatar + two-line
- * market title + right-aligned values. With `header`, also renders the
- * positions table's column-header bar and multi-cell numeric columns so the
- * sort-loading state lines up with the live table.
+ * Activity list placeholder shown while the activity tab loads. Mirrors the
+ * real {@link ActivityRow}: a market thumbnail, a two-line market/meta block
+ * and a right-aligned amount.
  */
-function RowsSkeleton({ rows = 6, header = false }: { rows?: number; header?: boolean }) {
+function ActivityRowsSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20">
-      {header && (
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 px-3 py-2.5">
-          <div className="h-3 w-16 animate-pulse rounded bg-zinc-800/50" />
-          <div className="hidden items-center gap-4 sm:flex">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-3 w-12 animate-pulse rounded bg-zinc-800/50" />
-            ))}
-          </div>
-        </div>
-      )}
       <div className="divide-y divide-zinc-800/40">
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center gap-2.5 px-3 py-3">
+          <div key={i} className="flex items-center gap-3 px-3 py-3">
             <div className="size-[34px] shrink-0 animate-pulse rounded-md bg-zinc-800/50" />
             <div className="min-w-0 flex-1">
               <div className="mb-1.5 h-3.5 w-2/3 animate-pulse rounded bg-zinc-800/50" />
-              <div className="h-3 w-1/3 animate-pulse rounded bg-zinc-800/50" />
+              <div className="h-3 w-2/5 animate-pulse rounded bg-zinc-800/50" />
             </div>
-            {header ? (
-              <div className="hidden items-center gap-4 sm:flex">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <div key={j} className="h-3.5 w-12 animate-pulse rounded bg-zinc-800/50" />
-                ))}
-              </div>
-            ) : (
-              <div className="h-4 w-16 animate-pulse rounded bg-zinc-800/50" />
-            )}
+            <div className="h-4 w-16 shrink-0 animate-pulse rounded bg-zinc-800/50" />
           </div>
         ))}
       </div>

@@ -15,6 +15,7 @@ import { num } from "../format";
 import type {
   LeaderboardInterval,
   PositionSortField,
+  PositionStatus,
   SmartLeaderboard,
   SmartWalletEntry,
   SortOrder,
@@ -106,8 +107,9 @@ interface WalletPnlSummaryDto {
   loss_count: number;
   win_rate: string;
   profit_factor: string;
-  settlement_ratio: string;
-  settlement_win_rate: string;
+  // Omitted by the backend when there is no on-chain settlement yet.
+  settlement_ratio?: string | null;
+  settlement_win_rate?: string | null;
   avg_initial_cost: string;
   avg_holding_seconds: string;
   avg_entry_count: string;
@@ -131,6 +133,9 @@ interface WalletTokenPnlDto {
   market_question: string;
   outcome: string;
   tags?: string[] | null;
+  status?: string;
+  market_resolved?: number;
+  winning_outcome?: string;
   open_quantity: string;
   cost_basis: string;
   avg_entry_price: string;
@@ -222,6 +227,16 @@ interface WalletActivitiesDto {
 // Adapters: transport DTO → domain
 // ---------------------------------------------------------------------------
 
+/**
+ * Parse a numeric field that the backend omits (null/undefined) when it has no
+ * value yet. Returns `null` for absence — distinct from a real 0 — so the UI
+ * can render "—" instead of a misleading 0%.
+ */
+function numOrNull(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  return num(value);
+}
+
 function adaptEntry(d: SmartWalletEntryDto): SmartWalletEntry {
   return {
     rank: d.rank,
@@ -301,8 +316,8 @@ function adaptSummary(d: WalletPnlSummaryDto): WalletPnlSummary {
     lossCount: d.loss_count,
     winRate: num(d.win_rate),
     profitFactor: num(d.profit_factor),
-    settlementRatio: num(d.settlement_ratio),
-    settlementWinRate: num(d.settlement_win_rate),
+    settlementRatio: numOrNull(d.settlement_ratio),
+    settlementWinRate: numOrNull(d.settlement_win_rate),
     avgInitialCost: num(d.avg_initial_cost),
     avgHoldingSeconds: num(d.avg_holding_seconds),
     avgEntryCount: num(d.avg_entry_count),
@@ -328,6 +343,9 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     marketQuestion: d.market_question,
     outcome: d.outcome,
     tags: d.tags ?? [],
+    status: d.status as WalletTokenPnl["status"],
+    marketResolved: d.market_resolved,
+    winningOutcome: d.winning_outcome,
     openQuantity: num(d.open_quantity),
     costBasis: num(d.cost_basis),
     avgEntryPrice: num(d.avg_entry_price),
@@ -436,6 +454,7 @@ export const walletPositionsQueryKey = (
   order?: SortOrder,
   interval?: LeaderboardInterval,
   tag?: string | null,
+  status?: PositionStatus,
 ) =>
   [
     "leaderboard",
@@ -445,6 +464,7 @@ export const walletPositionsQueryKey = (
     order ?? "default",
     interval ?? "all",
     tag || "all",
+    status ?? "all",
   ] as const;
 
 export const walletActivitiesQueryKey = (
@@ -538,6 +558,7 @@ export async function fetchWalletPositions(
   opts: {
     sortBy?: PositionSortField;
     order?: SortOrder;
+    status?: PositionStatus;
     limit?: number;
     cursor?: string;
     lang?: string;
@@ -551,6 +572,7 @@ export async function fetchWalletPositions(
   if (opts.interval) params.set("interval", opts.interval);
   if (opts.sortBy) params.set("sort_by", opts.sortBy);
   if (opts.order) params.set("order", opts.order);
+  if (opts.status) params.set("status", opts.status);
   if (opts.limit) params.set("limit", String(opts.limit));
   if (opts.cursor) params.set("cursor", opts.cursor);
   return getJson<WalletPositionsDto>(

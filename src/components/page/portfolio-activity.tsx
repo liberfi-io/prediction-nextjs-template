@@ -29,11 +29,19 @@ import { cn, toast, PolymarketIcon, KalshiIcon } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
+import { Shimmer } from "./portfolio-skeleton";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
 /** Fixed scroll height used when panels are embedded (non flex-fill) layouts. */
 export const ACTIVITY_LIST_HEIGHT = 600;
+
+/**
+ * Temporarily hide the source (Polymarket / Kalshi) badge shown in the row
+ * subtitle of the positions / orders / history lists. Kept as a flag (not
+ * removed) so it can be re-enabled by flipping this back to `true`.
+ */
+const SHOW_SOURCE_BADGE = false;
 
 // ---------------------------------------------------------------------------
 // Positions panel
@@ -329,17 +337,21 @@ function PositionRow({ position }: { position: PredictPosition }) {
                 {formatShares(position.size)}
                 {t("predict.trade.sharesUnit")}
               </span>
-              <span className="text-zinc-600">&bull;</span>
-              <span className="inline-flex items-center gap-1">
-                {source === "kalshi" ? (
-                  <KalshiIcon width={36} height={12} />
-                ) : (
-                  <>
-                    <PolymarketIcon width={16} height={16} />
-                    <span className="text-zinc-400">Polymarket</span>
-                  </>
-                )}
-              </span>
+              {SHOW_SOURCE_BADGE && (
+                <>
+                  <span className="text-zinc-600">&bull;</span>
+                  <span className="inline-flex items-center gap-1">
+                    {source === "kalshi" ? (
+                      <KalshiIcon width={36} height={12} />
+                    ) : (
+                      <>
+                        <PolymarketIcon width={16} height={16} />
+                        <span className="text-zinc-400">Polymarket</span>
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -712,16 +724,18 @@ function OrderRow({
               {order.outcome ?? "—"}
             </span>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-            {source === "kalshi" ? (
-              <KalshiIcon width={36} height={12} />
-            ) : (
-              <>
-                <PolymarketIcon width={14} height={14} />
-                <span>Polymarket</span>
-              </>
-            )}
-          </div>
+          {SHOW_SOURCE_BADGE && (
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              {source === "kalshi" ? (
+                <KalshiIcon width={36} height={12} />
+              ) : (
+                <>
+                  <PolymarketIcon width={14} height={14} />
+                  <span>Polymarket</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Side + Outcome */}
@@ -1011,18 +1025,20 @@ function TradeRow({
                 {marketQuestion}
               </span>
             )}
-            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="inline-flex items-center gap-1">
-                {source === "kalshi" ? (
-                  <KalshiIcon width={36} height={12} />
-                ) : (
-                  <>
-                    <PolymarketIcon width={14} height={14} />
-                    <span className="text-zinc-500">Polymarket</span>
-                  </>
-                )}
-              </span>
-            </div>
+            {SHOW_SOURCE_BADGE && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <span className="inline-flex items-center gap-1">
+                  {source === "kalshi" ? (
+                    <KalshiIcon width={36} height={12} />
+                  ) : (
+                    <>
+                      <PolymarketIcon width={14} height={14} />
+                      <span className="text-zinc-500">Polymarket</span>
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1229,21 +1245,6 @@ export function PanelSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-export function Shimmer({ delay = 0, style }: { delay?: number; style: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background:
-          "linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)",
-        backgroundSize: "200% 100%",
-        animation: `pf-shimmer 1.8s ease-in-out infinite ${delay}ms`,
-        borderRadius: 6,
-        ...style,
-      }}
-    />
   );
 }
 

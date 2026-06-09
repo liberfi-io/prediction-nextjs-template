@@ -245,11 +245,17 @@ export function YieldRiskCard({
     },
     {
       label: t("extend.leaderboard.detail.settlementWinRate"),
-      value: formatRate(summary.settlementWinRate),
+      value:
+        summary.settlementWinRate == null
+          ? EMPTY_VALUE
+          : formatRate(summary.settlementWinRate),
     },
     {
       label: t("extend.leaderboard.detail.settledRatio"),
-      value: formatRate(summary.settlementRatio),
+      value:
+        summary.settlementRatio == null
+          ? EMPTY_VALUE
+          : formatRate(summary.settlementRatio),
     },
   ];
 

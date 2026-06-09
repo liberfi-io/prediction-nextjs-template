@@ -15,6 +15,8 @@ import {
 } from "@liberfi.io/ui-predict";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
 import { cn } from "@liberfi.io/ui";
+import { useAsyncModal } from "@liberfi.io/ui-scaffold";
+import { FUND_WALLET_MODAL_ID, type FundWalletParams } from "../FundWalletModal";
 import { useWalletPnl } from "../../features/leaderboard/data/queries";
 import {
   PerformanceBiasCard,
@@ -30,8 +32,8 @@ import {
   PositionsPanel,
   OrdersPanel,
   TradesPanel,
-  Shimmer,
 } from "./portfolio-activity";
+import { PortfolioSkeleton } from "./portfolio-skeleton";
 
 type PortfolioTab = "positions" | "orders" | "history";
 
@@ -54,94 +56,13 @@ export function PredictPortfolioPage() {
 
   return (
     <div className="bg-zinc-950/50 sm:h-[calc(100vh-var(--header-height))] sm:min-h-0 sm:overflow-hidden">
-      <div className="mx-auto h-full max-w-[1200px] px-4 pt-6 sm:flex sm:flex-col sm:px-6 sm:pt-8 lg:px-8">
+      <div className="mx-auto h-full max-w-[1200px] px-2 pt-3 sm:flex sm:flex-col sm:px-6 sm:pt-8 lg:px-8">
         {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
       <PredictSellModal />
       <PredictRedeemModal />
     </div>
-  );
-}
-
-function PortfolioSkeleton() {
-  const { t } = useTranslation();
-  return (
-    <>
-      <style>{`@keyframes pf-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-
-      {/* Title */}
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {t("extend.portfolio.title")}
-        </h1>
-      </div>
-
-      {/* Summary panels — same 3-col grid as PortfolioContent */}
-      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <TotalValueCardSkeleton />
-        <PerformanceBiasCardSkeleton />
-        <YieldRiskCardSkeleton />
-      </div>
-
-      {/* Tabs — matches actual tab bar */}
-      <div style={{ borderBottom: "1px solid rgba(39,39,42,0.5)" }}>
-        <div className="flex gap-0">
-          {[72, 88, 96].map((w, i) => (
-            <div key={i} style={{ padding: "10px 16px" }}>
-              <Shimmer delay={i * 100 + 300} style={{ height: 14, width: w }} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Position rows shimmer */}
-      <div
-        className="mt-4"
-        style={{
-          borderRadius: 12,
-          border: "1px solid rgba(39,39,42,0.3)",
-          background: "rgba(24,24,27,0.2)",
-          overflow: "hidden",
-        }}
-      >
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            style={{ borderBottom: i < 3 ? "1px solid rgba(39,39,42,0.3)" : "none" }}
-          >
-            {/* Desktop row shimmer */}
-            <div className="hidden lg:flex items-center gap-3" style={{ padding: "16px 20px" }}>
-              <Shimmer delay={i * 120 + 400} style={{ height: 44, width: 44, borderRadius: 8, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "70%" : "55%", marginBottom: 8 }} />
-                <Shimmer delay={i * 120 + 500} style={{ height: 10, width: i % 2 === 0 ? "45%" : "35%" }} />
-              </div>
-              <Shimmer delay={i * 120 + 480} style={{ height: 14, width: 80, flexShrink: 0 }} />
-              <Shimmer delay={i * 120 + 520} style={{ height: 20, width: 72, flexShrink: 0 }} />
-              <Shimmer delay={i * 120 + 560} style={{ height: 36, width: 64, borderRadius: 8, flexShrink: 0 }} />
-            </div>
-            {/* Compact row shimmer (tablet + mobile) */}
-            <div className="lg:hidden" style={{ padding: "12px 16px" }}>
-              <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
-                <Shimmer delay={i * 120 + 400} style={{ height: 40, width: 40, borderRadius: 8, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Shimmer delay={i * 120 + 450} style={{ height: 14, width: i % 2 === 0 ? "80%" : "65%", marginBottom: 6 }} />
-                  <Shimmer delay={i * 120 + 500} style={{ height: 10, width: "40%" }} />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Shimmer delay={i * 120 + 480} style={{ height: 12, width: 100 }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Shimmer delay={i * 120 + 520} style={{ height: 14, width: 60 }} />
-                  <Shimmer delay={i * 120 + 560} style={{ height: 28, width: 52, borderRadius: 8 }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
   );
 }
 
@@ -157,6 +78,17 @@ function PortfolioContent() {
   const evmWallet = useConnectedWallet(Chain.POLYGON);
   const solanaAddr = solanaWallet?.address ?? "";
   const evmAddr = evmWallet?.address ?? "";
+
+  // Open the shared FundWalletModal (mounted once in AppLayout). Default to the
+  // Polymarket (EVM) venue when connected — the portfolio is Polymarket-centric
+  // — otherwise fall back to the Kalshi (Solana) wallet.
+  const { onOpen: openFundWallet } =
+    useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
+  const fundWallet = (initialScreen: "deposit" | "withdraw") => {
+    void openFundWallet({
+      params: { initialScreen, initialWallet: evmAddr ? "evm" : "solana" },
+    });
+  };
 
   // Smart-money PNL is indexed by the on-chain Polymarket wallet (the deposit
   // wallet, or the legacy Gnosis Safe), never the connected EOA. Resolve it via
@@ -187,10 +119,37 @@ function PortfolioContent() {
   return (
     <div className="sm:flex sm:min-h-0 sm:flex-1 sm:flex-col">
       {/* Title row */}
-      <div className="mb-8 flex shrink-0 items-center justify-between">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           {t("extend.portfolio.title")}
         </h1>
+        {/* Deposit / withdraw — desktop only */}
+        <div className="hidden items-center gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={() => fundWallet("deposit")}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-bullish/25 bg-bullish/10 px-3.5 py-2 text-sm font-semibold text-bullish transition-colors hover:border-bullish/40 hover:bg-bullish/20"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {t("extend.predict.fundWallet.deposit")}
+          </button>
+          <button
+            type="button"
+            onClick={() => fundWallet("withdraw")}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/50 px-3.5 py-2 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {t("extend.predict.fundWallet.withdraw")}
+          </button>
+        </div>
       </div>
 
       {/* Summary panels — total value / performance & bias / yield & risk */}
@@ -236,7 +195,7 @@ function PortfolioContent() {
 // Summary panels (total value / performance & bias / yield & risk)
 // ---------------------------------------------------------------------------
 
-const SUMMARY_GRID = "mb-10 grid shrink-0 grid-cols-1 gap-6 lg:grid-cols-3";
+const SUMMARY_GRID = "mb-4 grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-3";
 
 function PortfolioSummary({ wallet }: { wallet: string }) {
   const { t } = useTranslation();
@@ -268,7 +227,7 @@ function PortfolioSummary({ wallet }: { wallet: string }) {
 
   return (
     <div className={SUMMARY_GRID}>
-      <TotalValueCard summary={data.summary} />
+      <TotalValueCard summary={data.summary} wallet={wallet} />
       <PerformanceBiasCard summary={data.summary} />
       <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
     </div>

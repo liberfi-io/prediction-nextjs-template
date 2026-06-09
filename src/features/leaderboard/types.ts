@@ -88,8 +88,13 @@ export interface WalletPnlSummary {
   lossCount: number;
   winRate: number;
   profitFactor: number;
-  settlementRatio: number;
-  settlementWinRate: number;
+  /**
+   * On-chain settlement ratio / win rate. `null` when the wallet has no
+   * RESOLVED settlement yet (upstream omits the field) — distinct from a real
+   * 0% rate. Render absence as "—", never 0%.
+   */
+  settlementRatio: number | null;
+  settlementWinRate: number | null;
   avgInitialCost: number;
   avgHoldingSeconds: number;
   avgEntryCount: number;
@@ -120,6 +125,9 @@ export interface LocalMarketRef {
   marketDescription?: string;
 }
 
+/** Position lifecycle status (upstream-computed). */
+export type PositionStatus = "holding" | "closed" | "settled";
+
 /** Per-position PNL row. Open positions have openQuantity > 0. */
 export interface WalletTokenPnl extends LocalMarketRef {
   tokenId: string;
@@ -130,6 +138,16 @@ export interface WalletTokenPnl extends LocalMarketRef {
   outcome: string;
   /** Category / product tags this position belongs to (e.g. worldcup_2026). */
   tags: string[];
+  /**
+   * Lifecycle status: "holding" (open_quantity > 0, unresolved), "closed"
+   * (sold out, unresolved), "settled" (market RESOLVED on-chain). Absent on
+   * older backends.
+   */
+  status?: PositionStatus;
+  /** 0 or 1 — whether the market has resolved on-chain. */
+  marketResolved?: number;
+  /** On-chain winning outcome name; empty until settled. */
+  winningOutcome?: string;
   openQuantity: number;
   costBasis: number;
   avgEntryPrice: number;

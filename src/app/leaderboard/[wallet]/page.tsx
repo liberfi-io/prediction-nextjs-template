@@ -30,6 +30,8 @@ async function WalletDetailContent({
   const queryClient = createServerQueryClient();
   const lang = mapToApiLang(await detectLanguage());
 
+  // Prefetch with the same scope tag the client hooks use so the SSR cache
+  // keys match the browser hooks and hydration applies.
   await Promise.race([
     Promise.all([
       prefetchWalletPnl(queryClient, wallet, lang, interval, tag),

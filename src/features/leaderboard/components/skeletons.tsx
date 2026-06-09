@@ -10,6 +10,23 @@
 const cx = (...classes: string[]) => classes.join(" ");
 const PULSE = "animate-pulse bg-zinc-800/50";
 
+/** Right- (or center-) aligned placeholder bar used inside grid cells. */
+function Bar({
+  w,
+  h = "h-3.5",
+  center,
+}: {
+  w: string;
+  h?: string;
+  center?: boolean;
+}) {
+  return (
+    <div className={center ? "flex justify-center" : "flex justify-end"}>
+      <div className={cx(h, w, "rounded", PULSE)} />
+    </div>
+  );
+}
+
 /** Mirror of {@link SmartMoneyBoard}'s `ROW_GRID` so header + rows align. */
 const BOARD_ROW_GRID =
   "grid grid-cols-[minmax(44px,0.35fr)_minmax(108px,1.2fr)_minmax(140px,1.15fr)_minmax(128px,1fr)_minmax(132px,1fr)_minmax(148px,1.2fr)_minmax(104px,0.85fr)] items-center gap-3";
@@ -137,27 +154,33 @@ function TradeBlockSkeleton() {
   );
 }
 
-/** Card 1 — TOTAL VALUE: 4 label/value rows. */
+/** Card 1 — TOTAL VALUE: 4 label/value rows + 7-day PNL sparkline block. */
 export function TotalValueCardSkeleton() {
   return (
     <CardShellSkeleton>
       <StatRowsSkeleton rows={4} />
+      {/* 7-day PNL chart placeholder (mirrors SevenDayPnlChart's loading box). */}
+      <div className="mt-4 border-t border-zinc-800/60 pt-3">
+        <div className={cx("mb-2 h-2.5 w-20 rounded", PULSE)} />
+        <div className={cx("h-24 rounded-lg", PULSE)} />
+      </div>
     </CardShellSkeleton>
   );
 }
 
-/** Card 2 — PERFORMANCE & BIAS: 9 label/value rows + best/worst trade blocks. */
+/** Card 2 — PERFORMANCE & BIAS: 9 label/value rows. */
 export function PerformanceBiasCardSkeleton() {
   return (
     <CardShellSkeleton>
       <StatRowsSkeleton rows={9} />
-      <TradeBlockSkeleton />
-      <TradeBlockSkeleton />
     </CardShellSkeleton>
   );
 }
 
-/** Card 3 — YIELD & RISK: 2-column metric grid + exposure bar + legend. */
+/**
+ * Card 3 — YIELD & RISK: 2-column metric grid + best/worst trade blocks +
+ * exposure bar + legend.
+ */
 export function YieldRiskCardSkeleton() {
   return (
     <CardShellSkeleton>
@@ -169,6 +192,8 @@ export function YieldRiskCardSkeleton() {
           </div>
         ))}
       </div>
+      <TradeBlockSkeleton />
+      <TradeBlockSkeleton />
       <div className="mt-4">
         <div className={cx("mb-1.5 h-2.5 w-20 rounded", PULSE)} />
         <div className={cx("h-2 w-full rounded-full", PULSE)} />
@@ -182,38 +207,63 @@ export function YieldRiskCardSkeleton() {
   );
 }
 
+/** Mirror of {@link WalletDetailPanel}'s positions `TABLE_GRID`. */
+const POSITIONS_GRID =
+  "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_96px_88px_88px_78px_62px]";
+/** Mirror of the positions table's mobile fixed min width. */
+const POSITIONS_MIN_W = "min-w-[920px] lg:min-w-0";
+
 /**
- * Positions table placeholder — mirrors the real bordered table: a column
- * header row plus rows of `avatar + two-line market title + right-aligned
- * numeric cells`.
+ * Positions table placeholder — mirrors the real 10-column grid table: a
+ * left-aligned market column header plus 9 center/right numeric columns, with
+ * the same horizontal-scroll behaviour (fixed min width below `lg`, fit to
+ * width at `lg`+). Used both as the default-tab body of
+ * {@link WalletDetailSkeleton} and as the positions tab's loading / sort
+ * placeholder inside the live panel.
  */
-function PositionsTableSkeleton({ rows = 6 }: { rows?: number }) {
+export function PositionsTableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/20">
-      {/* Column header */}
-      <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 px-3 py-2.5">
-        <div className={cx("h-3 w-16 rounded", PULSE)} />
-        <div className="hidden items-center gap-4 sm:flex">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className={cx("h-3 w-12 rounded", PULSE)} />
-          ))}
-        </div>
-      </div>
-      <div className="divide-y divide-zinc-800/40">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center gap-2.5 px-3 py-3">
-            <div className={cx("size-[34px] shrink-0 rounded-md", PULSE)} />
-            <div className="min-w-0 flex-1">
-              <div className={cx("mb-1.5 h-3.5 w-2/3 rounded", PULSE)} />
-              <div className={cx("h-3 w-1/3 rounded", PULSE)} />
-            </div>
-            <div className="hidden items-center gap-4 sm:flex">
-              {Array.from({ length: 5 }).map((_, j) => (
-                <div key={j} className={cx("h-3.5 w-12 rounded", PULSE)} />
-              ))}
-            </div>
+      <div className="overflow-x-auto lg:overflow-x-visible">
+        <div className={POSITIONS_MIN_W}>
+          {/* Column header (Market · Side · Shares · Avg→Now · Value · Total ·
+              Realized · Unrealized · Last active · Status) */}
+          <div className={cx("grid", POSITIONS_GRID, "items-center gap-1.5 border-b border-zinc-800/50 px-3 py-2.5")}>
+            <div className={cx("h-3 w-16 rounded", PULSE)} />
+            <Bar w="w-8" h="h-3" center />
+            <Bar w="w-10" h="h-3" />
+            <Bar w="w-12" h="h-3" />
+            <Bar w="w-10" h="h-3" />
+            <Bar w="w-12" h="h-3" />
+            <Bar w="w-14" h="h-3" />
+            <Bar w="w-14" h="h-3" />
+            <Bar w="w-12" h="h-3" />
+            <Bar w="w-10" h="h-3" />
           </div>
-        ))}
+          {/* Rows */}
+          <div className="divide-y divide-zinc-800/40">
+            {Array.from({ length: rows }).map((_, i) => (
+              <div key={i} className={cx("grid", POSITIONS_GRID, "items-center gap-1.5 px-3 py-3")}>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className={cx("size-[34px] shrink-0 rounded-md", PULSE)} />
+                  <div className="min-w-0 flex-1">
+                    <div className={cx("mb-1.5 h-3.5 w-2/3 rounded", PULSE)} />
+                    <div className={cx("h-3 w-1/3 rounded", PULSE)} />
+                  </div>
+                </div>
+                <Bar w="w-9" h="h-4" center />
+                <Bar w="w-10" />
+                <Bar w="w-14" h="h-3" />
+                <Bar w="w-12" />
+                <Bar w="w-12" />
+                <Bar w="w-12" />
+                <Bar w="w-12" />
+                <Bar w="w-12" h="h-3" />
+                <Bar w="w-10" h="h-4" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -238,16 +288,16 @@ export function WalletDetailSkeleton({ onBack }: { onBack?: () => void }) {
         <PerformanceBiasCardSkeleton />
         <YieldRiskCardSkeleton />
       </div>
-      {/* Tabs bar (tab pills + search input) */}
+      {/* Tabs bar (3 tab pills: holding / settled / activity + search input) */}
       <div className="flex items-center justify-between gap-2 border-b border-zinc-800/50 pb-2">
         <div className="flex gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={cx("h-5 w-16 rounded", PULSE)} />
           ))}
         </div>
         <div className={cx("h-7 w-[140px] rounded-lg sm:w-[200px]", PULSE)} />
       </div>
-      {/* Default tab is the positions table */}
+      {/* Default tab is the positions (holding) table */}
       <PositionsTableSkeleton />
     </div>
   );

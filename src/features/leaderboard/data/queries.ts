@@ -20,6 +20,7 @@ import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
 import type {
   LeaderboardInterval,
   PositionSortField,
+  PositionStatus,
   SortOrder,
 } from "../types";
 import {
@@ -124,14 +125,19 @@ export function useWalletPositions(
   order?: SortOrder,
   interval?: LeaderboardInterval,
   tag?: string | null,
+  status?: PositionStatus,
 ) {
   const lang = useApiLang();
   return useInfiniteQuery({
-    queryKey: [...walletPositionsQueryKey(wallet ?? "", sortBy, order, interval, tag), lang],
+    queryKey: [
+      ...walletPositionsQueryKey(wallet ?? "", sortBy, order, interval, tag, status),
+      lang,
+    ],
     queryFn: ({ pageParam }) =>
       fetchWalletPositions(CLIENT_BASE, wallet as string, {
         sortBy,
         order,
+        status,
         limit: POSITIONS_PAGE_SIZE,
         cursor: pageParam,
         lang,
