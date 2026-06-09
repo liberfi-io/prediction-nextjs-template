@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Classifica",
       "subtitle": "Smart Money Coppa del Mondo",
+      "scopes": { "all": "Tutto", "worldcup": "Coppa del Mondo" },
       "interval": { "all": "Tutto", "7d": "7G" },
       "col": { "winRate": "tasso di vincita", "markets": "mercati" },
       "selectWallet": "Seleziona un wallet per vedere i dettagli",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Costo iniziale medio",
         "avgHoldTime": "Tempo medio di detenzione",
         "avgScaleIn": "Incremento medio",
+        "bestTrade": "Miglior trade",
         "worstTrade": "Trade peggiore",
         "winRate": "Tasso di vincita",
         "profitFactor": "Fattore di profitto",

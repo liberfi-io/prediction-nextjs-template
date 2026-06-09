@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Classificação",
       "subtitle": "Smart Money da Copa",
+      "scopes": { "all": "Tudo", "worldcup": "Copa" },
       "interval": { "all": "Tudo", "7d": "7D" },
       "col": { "winRate": "taxa de acerto", "markets": "mercados" },
       "selectWallet": "Selecione uma carteira para ver os detalhes",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Custo inicial médio",
         "avgHoldTime": "Tempo médio de retenção",
         "avgScaleIn": "Reforço médio",
+        "bestTrade": "Melhor negociação",
         "worstTrade": "Pior negociação",
         "winRate": "Taxa de acerto",
         "profitFactor": "Fator de lucro",

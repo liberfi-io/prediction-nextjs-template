@@ -15,9 +15,6 @@ const BOARD_ROW_GRID =
   "grid grid-cols-[44px_minmax(120px,1fr)_120px_104px_104px_116px_72px] items-center gap-3";
 /** Mirror of {@link SmartMoneyBoard}'s `TABLE_MIN_W`. */
 const BOARD_TABLE_MIN_W = "min-w-[820px] md:min-w-0";
-/** Mirror of {@link SmartMoneyBoard}'s `HERO_BG`. */
-const HERO_BG =
-  "radial-gradient(130% 150% at 12% 0%, rgba(199,255,46,0.13), transparent 52%), linear-gradient(180deg, #0e1109 0%, #0a0a0b 100%)";
 
 /** A single board row placeholder (mirrors the 7-column table row). */
 function BoardRowSkeleton({ last }: { last?: boolean }) {
@@ -62,44 +59,14 @@ function BoardRowSkeleton({ last }: { last?: boolean }) {
   );
 }
 
-/** Top-3 podium placeholder (mirrors the fixed-height podium cards). */
-export function PodiumSkeleton() {
-  // [side, champion, side] heights mirror the real card heights.
-  const cards = [
-    { w: "w-[156px] sm:w-[240px]", h: "h-[228px] sm:h-[268px]", emblem: 76 },
-    { w: "w-[180px] sm:w-[268px]", h: "h-[256px] sm:h-[304px]", emblem: 96 },
-    { w: "w-[156px] sm:w-[240px]", h: "h-[228px] sm:h-[268px]", emblem: 76 },
-  ];
-  return (
-    <div className="flex items-end justify-center gap-3 px-2 sm:gap-4">
-      {cards.map((c, i) => (
-        <div
-          key={i}
-          className={cx(
-            "flex flex-col items-center gap-3 rounded-2xl border border-zinc-800/40 bg-zinc-900/40 px-4 pb-[18px] pt-[22px]",
-            c.w,
-            c.h,
-          )}
-        >
-          <div className={cx("h-5 w-16 rounded-full", PULSE)} />
-          <div className={cx("rounded-full", PULSE)} style={{ width: c.emblem, height: c.emblem }} />
-          <div className={cx("h-3.5 w-20 rounded", PULSE)} />
-          <div className={cx("h-6 w-24 rounded", PULSE)} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /**
- * Board table skeleton (the hero + podium are rendered separately). Mirrors the
- * real {@link BoardTable}: a screen-filling bounded box with a 7-column header
- * fixed on top and column-aligned rows below; horizontally scrollable on narrow
- * screens.
+ * Board table skeleton. Mirrors the real {@link BoardTable}: a screen-filling
+ * bounded box with a 7-column header fixed on top and column-aligned rows
+ * below; horizontally scrollable on narrow screens.
  */
 export function BoardRowsSkeleton({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="flex h-[calc(100dvh-152px-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20 sm:h-[calc(100dvh-96px)]">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20">
       <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
         <div className={cx(BOARD_TABLE_MIN_W, "flex min-h-0 flex-1 flex-col")}>
           {/* Column header */}
@@ -113,7 +80,7 @@ export function BoardRowsSkeleton({ rows = 10 }: { rows?: number }) {
             <div className={cx("ml-auto h-3 w-12 rounded", PULSE)} />
           </div>
           {/* Rows */}
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden pb-4">
             {Array.from({ length: rows }).map((_, i) => (
               <BoardRowSkeleton key={i} last={i === rows - 1} />
             ))}
@@ -278,40 +245,32 @@ export function WalletDetailSkeleton({ onBack }: { onBack?: () => void }) {
 /** Full page skeleton used as the route Suspense fallback. */
 export function LeaderboardSkeleton() {
   return (
-    <>
-      {/* Fixed secondary menu — single visible tab (Smart Money) */}
-      <div className="fixed inset-x-0 top-12 z-30 border-b border-zinc-800/60 bg-[#0a0a0b]/95">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+      {/* Secondary nav is full-width; its content aligns with the table wrapper. */}
+      <div className="shrink-0 border-b border-zinc-800/60 bg-[#0a0a0b]/95">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
           <div className={cx("h-8 w-28 rounded-lg", PULSE)} />
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-4 pt-[60px] sm:px-6 lg:px-10 xl:px-12">
-        {/* Hero: gradient surface, title + scoped tag + subtitle, interval toggle */}
-        <div
-          className="relative overflow-hidden rounded-2xl border border-zinc-800/60 px-4 pb-5 pt-5 sm:px-6 sm:pb-6"
-          style={{ background: HERO_BG }}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2">
-                <div className={cx("h-7 w-40 rounded", PULSE)} />
-                <div className={cx("h-5 w-24 rounded-full", PULSE)} />
-              </div>
-              <div className={cx("h-4 w-48 rounded", PULSE)} />
-            </div>
-            <div className="flex items-center gap-1 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-1">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className={cx("h-6 w-12 rounded-lg", PULSE)} />
-              ))}
-            </div>
+      <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 flex-col px-4 sm:px-6 lg:px-10 xl:px-12">
+        {/* Scope chips + interval switch mirror the live two-line mobile layout. */}
+        <div className="flex shrink-0 flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-x-1.5 pl-1 lg:gap-x-2">
+            <div className={cx("h-8 w-14 rounded-2xl", PULSE)} />
+            <div className={cx("h-8 w-20 rounded-2xl", PULSE)} />
           </div>
-          <div className="mt-6">
-            <PodiumSkeleton />
+          <div className="flex w-fit items-center gap-1 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-1 lg:shrink-0">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={cx("h-6 w-12 rounded-lg", PULSE)} />
+            ))}
           </div>
         </div>
-        <BoardRowsSkeleton />
+
+        <div className="flex min-h-0 w-full flex-1 pb-4">
+          <BoardRowsSkeleton />
+        </div>
       </div>
-    </>
+    </div>
   );
 }

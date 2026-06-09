@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "리더보드",
       "subtitle": "월드컵 스마트 머니",
+      "scopes": { "all": "전체", "worldcup": "월드컵" },
       "interval": { "all": "전체", "7d": "7일" },
       "col": { "winRate": "승률", "markets": "마켓" },
       "selectWallet": "지갑을 선택하면 상세 정보가 표시됩니다",
@@ -84,6 +85,7 @@
         "avgInitialCost": "평균 초기 비용",
         "avgHoldTime": "평균 보유 시간",
         "avgScaleIn": "평균 추가 매수",
+        "bestTrade": "베스트 트레이드",
         "worstTrade": "워스트 트레이드",
         "winRate": "승률",
         "profitFactor": "수익 팩터",

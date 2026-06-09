@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Classement",
       "subtitle": "Smart Money Coupe du Monde",
+      "scopes": { "all": "Tout", "worldcup": "Coupe du Monde" },
       "interval": { "all": "Tout", "7d": "7J" },
       "col": { "winRate": "taux de réussite", "markets": "marchés" },
       "selectWallet": "Sélectionnez un portefeuille pour voir les détails",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Coût initial moyen",
         "avgHoldTime": "Durée moy. de détention",
         "avgScaleIn": "Renforcement moyen",
+        "bestTrade": "Meilleure transaction",
         "worstTrade": "Pire trade",
         "winRate": "Taux de réussite",
         "profitFactor": "Facteur de profit",

@@ -20,6 +20,7 @@ import type {
   SortOrder,
   WalletActivitiesPage,
   WalletActivity,
+  WalletDailyPnlDetail,
   WalletDailyPnl,
   WalletPnlDetail,
   WalletPnlSummary,
@@ -158,18 +159,28 @@ interface WalletTokenPnlDto {
 
 interface WalletDailyPnlDto {
   day: string;
-  realized_pnl: string;
+  realized_pnl?: string;
+  realizedPnl?: string;
   volume: string;
-  win_count: number;
-  loss_count: number;
-  activity_count: number;
+  win_count?: number;
+  winCount?: number;
+  loss_count?: number;
+  lossCount?: number;
+  activity_count?: number;
+  activityCount?: number;
 }
 
 interface WalletPnlDto {
   wallet: string;
   tag?: string;
   summary: WalletPnlSummaryDto;
-  daily_pnls: WalletDailyPnlDto[] | null;
+}
+
+interface WalletDailyPnlResponseDto {
+  wallet: string;
+  tag?: string;
+  daily_pnls?: WalletDailyPnlDto[] | null;
+  dailyPnls?: WalletDailyPnlDto[] | null;
 }
 
 interface WalletPositionsDto {
@@ -343,20 +354,30 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
   };
 }
 
-function adaptWalletPnl(d: WalletPnlDto): WalletPnlDetail {
-  const dailyPnls: WalletDailyPnl[] = (d.daily_pnls ?? []).map((p) => ({
+function adaptDailyPnl(p: WalletDailyPnlDto): WalletDailyPnl {
+  return {
     day: p.day,
-    realizedPnl: num(p.realized_pnl),
+    realizedPnl: num(p.realized_pnl ?? p.realizedPnl),
     volume: num(p.volume),
-    winCount: p.win_count,
-    lossCount: p.loss_count,
-    activityCount: p.activity_count,
-  }));
+    winCount: p.win_count ?? p.winCount ?? 0,
+    lossCount: p.loss_count ?? p.lossCount ?? 0,
+    activityCount: p.activity_count ?? p.activityCount ?? 0,
+  };
+}
+
+function adaptWalletPnl(d: WalletPnlDto): WalletPnlDetail {
   return {
     wallet: d.wallet,
     tag: d.tag ?? "",
     summary: adaptSummary(d.summary),
-    dailyPnls,
+  };
+}
+
+function adaptWalletDailyPnl(d: WalletDailyPnlResponseDto): WalletDailyPnlDetail {
+  return {
+    wallet: d.wallet,
+    tag: d.tag ?? "",
+    dailyPnls: (d.daily_pnls ?? d.dailyPnls ?? []).map(adaptDailyPnl),
   };
 }
 
@@ -394,11 +415,14 @@ function adaptActivity(d: WalletActivityDto): WalletActivity {
 // Query keys
 // ---------------------------------------------------------------------------
 
-export const leaderboardQueryKey = (interval: LeaderboardInterval) =>
-  ["leaderboard", "smart-money", interval] as const;
+export const leaderboardQueryKey = (interval: LeaderboardInterval, tag?: string | null) =>
+  ["leaderboard", "smart-money", interval, tag || "all"] as const;
 
 export const walletPnlQueryKey = (wallet: string) =>
   ["leaderboard", "wallet-pnl", wallet] as const;
+
+export const walletDailyPnlQueryKey = (wallet: string) =>
+  ["leaderboard", "wallet-daily-pnl", wallet] as const;
 
 export const walletPositionsQueryKey = (
   wallet: string,
@@ -439,16 +463,17 @@ async function getJson<T>(baseUrl: string, path: string, lang?: string): Promise
  * data under `worldcup_2026` (the legacy `worldcup` tag returns an empty list).
  * Override via `NEXT_PUBLIC_PREDICT_LEADERBOARD_TAG` for other deployments.
  */
-const LEADERBOARD_TAG = process.env.NEXT_PUBLIC_PREDICT_LEADERBOARD_TAG ?? "worldcup_2026";
+export const LEADERBOARD_TAG = process.env.NEXT_PUBLIC_PREDICT_LEADERBOARD_TAG ?? "worldcup_2026";
 
 /** Fetch + adapt the smart-money leaderboard for a time window. */
 export async function fetchSmartLeaderboard(
   baseUrl: string,
   interval: LeaderboardInterval,
-  opts: { limit?: number; lang?: string } = {},
+  opts: { limit?: number; lang?: string; tag?: string | null } = {},
 ): Promise<SmartLeaderboard> {
   const params = new URLSearchParams({ interval });
-  if (LEADERBOARD_TAG) params.set("tag", LEADERBOARD_TAG);
+  const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
+  if (tag) params.set("tag", tag);
   if (opts.limit) params.set("limit", String(opts.limit));
   return getJson<SmartLeaderboardDto>(
     baseUrl,
@@ -461,13 +486,34 @@ export async function fetchSmartLeaderboard(
 export async function fetchWalletPnl(
   baseUrl: string,
   wallet: string,
-  opts: { lang?: string } = {},
+  opts: { lang?: string; tag?: string | null } = {},
 ): Promise<WalletPnlDetail> {
+  const params = new URLSearchParams();
+  const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
+  if (tag) params.set("tag", tag);
+  const qs = params.toString();
   return getJson<WalletPnlDto>(
     baseUrl,
-    `wallets/${encodeURIComponent(wallet)}/pnl`,
+    `wallets/${encodeURIComponent(wallet)}/pnl${qs ? `?${qs}` : ""}`,
     opts.lang,
   ).then(adaptWalletPnl);
+}
+
+/** Fetch + adapt a wallet's 7-day daily PNL chart series. */
+export async function fetchWalletDailyPnl(
+  baseUrl: string,
+  wallet: string,
+  opts: { lang?: string; tag?: string | null } = {},
+): Promise<WalletDailyPnlDetail> {
+  const params = new URLSearchParams();
+  const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
+  if (tag) params.set("tag", tag);
+  const qs = params.toString();
+  return getJson<WalletDailyPnlResponseDto>(
+    baseUrl,
+    `wallets/${encodeURIComponent(wallet)}/pnl/daily${qs ? `?${qs}` : ""}`,
+    opts.lang,
+  ).then(adaptWalletDailyPnl);
 }
 
 /** Fetch + adapt a page of a wallet's token positions (sorted / paginated). */

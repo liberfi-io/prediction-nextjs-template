@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Bảng xếp hạng",
       "subtitle": "Smart Money World Cup",
+      "scopes": { "all": "Tất cả", "worldcup": "World Cup" },
       "interval": { "all": "Tất cả", "7d": "7N" },
       "col": { "winRate": "tỷ lệ thắng", "markets": "thị trường" },
       "selectWallet": "Chọn một ví để xem chi tiết",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Chi phí ban đầu TB",
         "avgHoldTime": "Thời gian nắm giữ TB",
         "avgScaleIn": "Mua thêm TB",
+        "bestTrade": "Giao dịch tốt nhất",
         "worstTrade": "Giao dịch tệ nhất",
         "winRate": "Tỷ lệ thắng",
         "profitFactor": "Hệ số lợi nhuận",

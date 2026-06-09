@@ -10,9 +10,10 @@
  *
  * The whole panel scrolls as one surface; the active tab's list is virtualized
  * against that scroll surface via `scrollMargin` so the cards scroll away
- * naturally on mobile while long lists stay cheap. Summary + daily come from
- * {@link useWalletPnl}; positions from the paginated {@link useWalletPositions};
- * activities from {@link useWalletActivities}. All formatting goes through
+ * naturally on mobile while long lists stay cheap. Summary comes from
+ * {@link useWalletPnl}; the chart uses /pnl/daily; positions come from the
+ * paginated {@link useWalletPositions}; activities from
+ * {@link useWalletActivities}. All formatting goes through
  * `../format`.
  */
 
@@ -98,7 +99,7 @@ export function WalletDetailPanel({
         <div className="flex flex-col gap-4 pb-4">
           <WalletHeader wallet={wallet} summary={data.summary} onBack={onBack} />
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <TotalValueCard summary={data.summary} />
+            <TotalValueCard summary={data.summary} wallet={wallet} />
             <PerformanceBiasCard summary={data.summary} />
             <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
           </div>
@@ -132,7 +133,7 @@ function WalletHeader({
           onClick={onBack}
           aria-label={t("extend.leaderboard.back")}
           title={t("extend.leaderboard.back")}
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-800/60 text-zinc-300 transition-colors hover:bg-zinc-800/60 hover:text-white"
+          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-zinc-800/60 hover:text-white"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="m15 18-6-6 6-6" />

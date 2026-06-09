@@ -28,6 +28,7 @@
       "scopedTag": "2026 世界盃",
       "discover": "發現",
       "views": { "smartMoney": "聰明錢", "liveFeed": "即時動態" },
+      "scopes": { "all": "全部", "worldcup": "世界盃" },
       "liveFeed": {
         "comingSoon": "即時動態即將上線",
         "description": "聰明錢的即時交易將在這裡推送。"
@@ -107,6 +108,7 @@
         "avgInitialCost": "平均初始成本",
         "avgHoldTime": "平均持倉時間",
         "avgScaleIn": "平均加倉次數",
+        "bestTrade": "最佳交易",
         "worstTrade": "最差交易",
         "winRate": "勝率",
         "profitFactor": "盈利因子",

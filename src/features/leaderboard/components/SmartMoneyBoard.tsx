@@ -3,12 +3,10 @@
 /**
  * Smart Money leaderboard board.
  *
- * Composes a gradient hero (title + scoped tag + interval toggle) wrapping the
- * {@link Top3Podium}, followed by a virtualized multi-column table of ranked
- * wallets. The board flows naturally in the document so the whole page scrolls
- * as one: the hero + podium scroll away and the table fills the viewport. The
- * table virtualizes against the surrounding scroll container (the scaffold
- * content area) rather than an inner scrollbar.
+ * Renders the virtualized multi-column table of ranked wallets. The board flows
+ * naturally in the document so the whole page scrolls as one; the table
+ * virtualizes against the surrounding scroll container (the scaffold content
+ * area) rather than an inner scrollbar.
  *
  * Layout / cell composition follows the product mock; the visual language
  * (zinc surfaces, bullish accent) follows the app theme. The table is fully
@@ -33,10 +31,8 @@ import {
   shortAddress,
 } from "../format";
 import type { LeaderboardInterval, SmartWalletEntry } from "../types";
-import { BoardRowsSkeleton, PodiumSkeleton } from "./skeletons";
-import { Top3Podium } from "./Top3Podium";
+import { BoardRowsSkeleton } from "./skeletons";
 
-const INTERVALS: LeaderboardInterval[] = ["1d", "7d", "30d", "all"];
 /** Estimated row height (px) for the virtualizer's first paint. */
 const ROW_ESTIMATE = 60;
 
@@ -50,96 +46,32 @@ const ROW_GRID =
 /** Min table width that forces all columns; relaxes from `md` up. */
 const TABLE_MIN_W = "min-w-[820px] md:min-w-0";
 
-/** Hero gradient: soft bullish glow over the dark surface. */
-const HERO_BG =
-  "radial-gradient(130% 150% at 12% 0%, rgba(199,255,46,0.13), transparent 52%), linear-gradient(180deg, #0e1109 0%, #0a0a0b 100%)";
-
 export function SmartMoneyBoard({
   interval,
-  selectedInterval,
+  tag,
   pending = false,
-  onIntervalChange,
   selectedWallet,
   onSelect,
 }: {
   /** Committed window driving the data query + column labels. */
   interval: LeaderboardInterval;
-  /** Optimistically selected window for the toggle highlight (defaults to `interval`). */
-  selectedInterval?: LeaderboardInterval;
+  /** Product tag for scoped results; `null` requests the unscoped board. */
+  tag?: string | null;
   /** True while a window switch navigation is in flight: forces the skeleton. */
   pending?: boolean;
-  onIntervalChange: (interval: LeaderboardInterval) => void;
   selectedWallet?: string;
   onSelect: (wallet: string) => void;
 }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useSmartMoneyBoard(interval);
+  const { data, isLoading, isError } = useSmartMoneyBoard(interval, tag);
 
   // While switching windows the board re-prefetches on the server, so surface a
   // skeleton for that pending phase too — not just the initial query load.
   const loading = isLoading || pending;
-  const activeInterval = selectedInterval ?? interval;
   const entries = data?.entries ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Hero: title + scoped tag + interval toggle on a gradient surface */}
-      <div
-        className="relative overflow-hidden rounded-2xl border border-zinc-800/60 px-4 pb-5 pt-5 sm:px-6 sm:pb-6"
-        style={{ background: HERO_BG }}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-                {t("extend.leaderboard.title")}
-              </h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-bullish/30 bg-bullish/[0.07] px-2.5 py-0.5 text-[11px] font-medium text-bullish">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                  <path d="M4 22h16" />
-                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-                </svg>
-                {t("extend.leaderboard.scopedTag")}
-              </span>
-            </div>
-            <p className="text-sm text-zinc-400">{t("extend.leaderboard.subtitle")}</p>
-          </div>
-
-          <div className="flex items-center gap-1 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-1 backdrop-blur">
-            {INTERVALS.map((iv) => (
-              <button
-                key={iv}
-                type="button"
-                onClick={() => onIntervalChange(iv)}
-                className={cn(
-                  "cursor-pointer rounded-lg px-3 py-1 text-xs font-semibold transition-colors",
-                  activeInterval === iv
-                    ? "bg-bullish/15 text-bullish"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
-                )}
-              >
-                {t(`extend.leaderboard.interval.${iv}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Podium lives on the hero gradient */}
-        {loading ? (
-          <div className="mt-6">
-            <PodiumSkeleton />
-          </div>
-        ) : !isError && entries.length > 0 ? (
-          <div className="mt-6">
-            <Top3Podium entries={entries} selectedWallet={selectedWallet} onSelect={onSelect} />
-          </div>
-        ) : null}
-      </div>
-
+    <div className="flex min-h-0 w-full flex-1">
       {loading ? (
         <BoardRowsSkeleton />
       ) : isError ? (
@@ -235,7 +167,7 @@ function BoardTable({
     : t("extend.leaderboard.col.vol");
 
   return (
-    <div className="flex h-[calc(100dvh-152px-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20 sm:h-[calc(100dvh-96px)]">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20">
       {/* Single bounded box: the column header is a fixed top section, rows scroll
           vertically inside, and on narrow screens the whole thing scrolls
           horizontally so every column stays reachable. The box height fills the
@@ -286,7 +218,7 @@ function BoardTable({
 
           {/* Row scroll viewport — fills the box below the header; rows virtualize
               against it. */}
-          <div ref={scrollRef} className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
+          <div ref={scrollRef} className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
             <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map((vItem) => {
                 const entry = rows[vItem.index];
@@ -449,7 +381,7 @@ function RankBadge({ position }: { position: number }) {
 
 function BoardEmpty({ message }: { message: string }) {
   return (
-    <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 rounded-xl border border-zinc-800/40 bg-zinc-900/20">
+    <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-2 rounded-xl border border-zinc-800/40 bg-zinc-900/20 pb-4">
       <svg
         viewBox="0 0 24 24"
         width={32}

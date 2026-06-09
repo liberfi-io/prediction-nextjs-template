@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Рейтинг",
       "subtitle": "Smart Money Чемпионата мира",
+      "scopes": { "all": "Все", "worldcup": "ЧМ" },
       "interval": { "all": "Всё время", "7d": "7д" },
       "col": { "winRate": "винрейт", "markets": "рынки" },
       "selectWallet": "Выберите кошелёк, чтобы увидеть детали",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Ср. начальная стоимость",
         "avgHoldTime": "Ср. время удержания",
         "avgScaleIn": "Ср. докупка",
+        "bestTrade": "Лучшая сделка",
         "worstTrade": "Худшая сделка",
         "winRate": "Винрейт",
         "profitFactor": "Профит-фактор",

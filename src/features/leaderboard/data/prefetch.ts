@@ -12,9 +12,12 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { LeaderboardInterval } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
+  LEADERBOARD_TAG,
   fetchSmartLeaderboard,
+  fetchWalletDailyPnl,
   fetchWalletPnl,
   leaderboardQueryKey,
+  walletDailyPnlQueryKey,
   walletPnlQueryKey,
 } from "./client";
 
@@ -26,15 +29,17 @@ export async function prefetchSmartLeaderboard(
   queryClient: QueryClient,
   interval: LeaderboardInterval,
   lang: string,
+  tag?: string | null,
 ): Promise<void> {
   const base = process.env.PREDICT_URL;
   if (!base) return;
   await queryClient.prefetchQuery({
-    queryKey: [...leaderboardQueryKey(interval), lang],
+    queryKey: [...leaderboardQueryKey(interval, tag), lang],
     queryFn: () =>
       fetchSmartLeaderboard(base, interval, {
         limit: LEADERBOARD_PAGE_SIZE,
         lang,
+        tag,
       }),
   });
 }
@@ -49,6 +54,21 @@ export async function prefetchWalletPnl(
   if (!base || !wallet) return;
   await queryClient.prefetchQuery({
     queryKey: [...walletPnlQueryKey(wallet), lang],
-    queryFn: () => fetchWalletPnl(base, wallet, { lang }),
+    queryFn: () => fetchWalletPnl(base, wallet, { lang, tag: LEADERBOARD_TAG }),
+  });
+}
+
+/** Server-side prefetch of a single wallet's daily PNL chart series. */
+export async function prefetchWalletDailyPnl(
+  queryClient: QueryClient,
+  wallet: string,
+  lang: string,
+): Promise<void> {
+  const base = process.env.PREDICT_URL;
+  if (!base || !wallet) return;
+  await queryClient.prefetchQuery({
+    queryKey: [...walletDailyPnlQueryKey(wallet), lang],
+    queryFn: () =>
+      fetchWalletDailyPnl(base, wallet, { lang, tag: LEADERBOARD_TAG }),
   });
 }

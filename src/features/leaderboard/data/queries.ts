@@ -24,12 +24,15 @@ import type {
 } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
+  LEADERBOARD_TAG,
   fetchSmartLeaderboard,
   fetchWalletActivities,
+  fetchWalletDailyPnl,
   fetchWalletPnl,
   fetchWalletPositions,
   leaderboardQueryKey,
   walletActivitiesQueryKey,
+  walletDailyPnlQueryKey,
   walletPnlQueryKey,
   walletPositionsQueryKey,
 } from "./client";
@@ -51,14 +54,15 @@ function useApiLang(): string {
 }
 
 /** Fetch the smart-money leaderboard for a time window (no short polling). */
-export function useSmartMoneyBoard(interval: LeaderboardInterval) {
+export function useSmartMoneyBoard(interval: LeaderboardInterval, tag?: string | null) {
   const lang = useApiLang();
   return useQuery({
-    queryKey: [...leaderboardQueryKey(interval), lang],
+    queryKey: [...leaderboardQueryKey(interval, tag), lang],
     queryFn: () =>
       fetchSmartLeaderboard(CLIENT_BASE, interval, {
         limit: LEADERBOARD_PAGE_SIZE,
         lang,
+        tag,
       }),
     staleTime: WALLET_STALE_MS,
   });
@@ -69,7 +73,26 @@ export function useWalletPnl(wallet: string | undefined) {
   const lang = useApiLang();
   return useQuery({
     queryKey: [...walletPnlQueryKey(wallet ?? ""), lang],
-    queryFn: () => fetchWalletPnl(CLIENT_BASE, wallet as string, { lang }),
+    queryFn: () =>
+      fetchWalletPnl(CLIENT_BASE, wallet as string, {
+        lang,
+        tag: LEADERBOARD_TAG,
+      }),
+    enabled: Boolean(wallet),
+    staleTime: WALLET_STALE_MS,
+  });
+}
+
+/** Fetch a selected wallet's 7-day daily PNL chart series. */
+export function useWalletDailyPnl(wallet: string | undefined) {
+  const lang = useApiLang();
+  return useQuery({
+    queryKey: [...walletDailyPnlQueryKey(wallet ?? ""), lang],
+    queryFn: () =>
+      fetchWalletDailyPnl(CLIENT_BASE, wallet as string, {
+        lang,
+        tag: LEADERBOARD_TAG,
+      }),
     enabled: Boolean(wallet),
     staleTime: WALLET_STALE_MS,
   });

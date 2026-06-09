@@ -27,6 +27,7 @@
       "scopedTag": "2026 世界杯",
       "discover": "发现",
       "views": { "smartMoney": "聪明钱", "liveFeed": "实时动态" },
+      "scopes": { "all": "全部", "worldcup": "世界杯" },
       "liveFeed": {
         "comingSoon": "实时动态即将上线",
         "description": "聪明钱的实时交易将在这里推送。"
@@ -106,6 +107,7 @@
         "avgInitialCost": "平均初始成本",
         "avgHoldTime": "平均持倉時間",
         "avgScaleIn": "平均加倉次數",
+        "bestTrade": "最佳交易",
         "worstTrade": "最差交易",
         "winRate": "勝率",
         "profitFactor": "盈利因子",

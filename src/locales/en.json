@@ -28,6 +28,7 @@
       "scopedTag": "FIFA World Cup 2026",
       "discover": "Discover",
       "views": { "smartMoney": "Smart Money", "liveFeed": "Smart Live Feed" },
+      "scopes": { "all": "All", "worldcup": "World Cup" },
       "liveFeed": {
         "comingSoon": "Smart Live Feed is coming soon",
         "description": "Real-time smart-money trades will stream here."
@@ -107,6 +108,7 @@
         "avgInitialCost": "Avg Initial Cost",
         "avgHoldTime": "Avg Hold Time",
         "avgScaleIn": "Avg Scale-In",
+        "bestTrade": "Best Trade",
         "worstTrade": "Worst Trade",
         "winRate": "Win Rate",
         "profitFactor": "Profit Factor",

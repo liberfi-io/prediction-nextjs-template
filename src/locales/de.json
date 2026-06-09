@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Bestenliste",
       "subtitle": "WM Smart Money",
+      "scopes": { "all": "Gesamt", "worldcup": "WM" },
       "interval": { "all": "Gesamt", "7d": "7T" },
       "col": { "winRate": "Trefferquote", "markets": "Märkte" },
       "selectWallet": "Wähle eine Wallet, um Details zu sehen",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Ø Anfangskosten",
         "avgHoldTime": "Ø Haltedauer",
         "avgScaleIn": "Ø Nachkauf",
+        "bestTrade": "Bester Trade",
         "worstTrade": "Schlechtester Trade",
         "winRate": "Gewinnrate",
         "profitFactor": "Profit-Faktor",

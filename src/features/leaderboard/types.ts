@@ -161,16 +161,21 @@ export interface WalletDailyPnl {
   activityCount: number;
 }
 
+/** Wallet 7-day daily PNL trend. */
+export interface WalletDailyPnlDetail {
+  wallet: string;
+  tag: string;
+  dailyPnls: WalletDailyPnl[];
+}
+
 /**
- * Wallet PNL detail: the aggregate summary plus the 7-day daily series. Token
- * positions are served separately by the paginated /positions endpoint
- * ({@link WalletPositionsPage}).
+ * Wallet PNL detail: the aggregate summary. Daily series and token positions
+ * are served separately by /pnl/daily and /positions.
  */
 export interface WalletPnlDetail {
   wallet: string;
   tag: string;
   summary: WalletPnlSummary;
-  dailyPnls: WalletDailyPnl[];
 }
 
 /** Token-position sort fields supported by the /positions endpoint. */

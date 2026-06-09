@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "Clasificación",
       "subtitle": "Smart Money del Mundial",
+      "scopes": { "all": "Todo", "worldcup": "Mundial" },
       "interval": { "all": "Todo", "7d": "7D" },
       "col": { "winRate": "tasa de acierto", "markets": "mercados" },
       "selectWallet": "Selecciona una billetera para ver los detalles",
@@ -84,6 +85,7 @@
         "avgInitialCost": "Costo inicial prom.",
         "avgHoldTime": "Tiempo de tenencia prom.",
         "avgScaleIn": "Incremento prom.",
+        "bestTrade": "Mejor operación",
         "worstTrade": "Peor operación",
         "winRate": "Tasa de acierto",
         "profitFactor": "Factor de ganancia",

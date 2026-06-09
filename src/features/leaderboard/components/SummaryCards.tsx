@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
-import { useWalletPositions } from "../data/queries";
+import { useWalletDailyPnl, useWalletPositions } from "../data/queries";
 import {
   formatPercent,
   formatRate,
@@ -20,14 +20,21 @@ import {
   formatUsd,
   pnlColorClass,
 } from "../format";
-import type { WalletPnlSummary, WalletTokenPnl } from "../types";
+import type { WalletDailyPnl, WalletPnlSummary, WalletTokenPnl } from "../types";
 
 // ---------------------------------------------------------------------------
 // Card 1 — TOTAL VALUE
 // ---------------------------------------------------------------------------
 
-export function TotalValueCard({ summary }: { summary: WalletPnlSummary }) {
+export function TotalValueCard({
+  summary,
+  wallet,
+}: {
+  summary: WalletPnlSummary;
+  wallet?: string;
+}) {
   const { t } = useTranslation();
+  const { data, isError, isLoading } = useWalletDailyPnl(wallet);
 
   return (
     <Card title={t("extend.leaderboard.detail.totalValue")}>
@@ -68,6 +75,14 @@ export function TotalValueCard({ summary }: { summary: WalletPnlSummary }) {
           }
         />
       </div>
+      {wallet && (
+        <SevenDayPnlChart
+          dailyPnls={data?.dailyPnls ?? []}
+          isError={isError}
+          isLoading={isLoading}
+          label={t("extend.leaderboard.detail.sevenDayPnl")}
+        />
+      )}
     </Card>
   );
 }
@@ -155,40 +170,6 @@ export function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) 
           </div>
         ))}
       </div>
-
-      {summary.bestTradeMarketQuestion && (
-        <div className="mt-3 border-t border-zinc-800/60 pt-3">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-            {t("extend.leaderboard.detail.bestTrade")}
-          </div>
-          <EventTitleLink
-            slug={summary.bestTradeEventSlug}
-            className="line-clamp-1 text-xs text-zinc-300"
-          >
-            {summary.bestTradeMarketQuestion}
-          </EventTitleLink>
-          <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(summary.bestTradePnl))}>
-            {formatSignedUsd(summary.bestTradePnl)}
-          </div>
-        </div>
-      )}
-
-      {summary.worstTradeMarketQuestion && (
-        <div className="mt-3 border-t border-zinc-800/60 pt-3">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-            {t("extend.leaderboard.detail.worstTrade")}
-          </div>
-          <EventTitleLink
-            slug={summary.worstTradeEventSlug}
-            className="line-clamp-1 text-xs text-zinc-300"
-          >
-            {summary.worstTradeMarketQuestion}
-          </EventTitleLink>
-          <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(summary.worstTradePnl))}>
-            {formatSignedUsd(summary.worstTradePnl)}
-          </div>
-        </div>
-      )}
     </Card>
   );
 }
@@ -249,6 +230,19 @@ export function YieldRiskCard({
         ))}
       </div>
 
+      <TradeHighlight
+        label={t("extend.leaderboard.detail.bestTrade")}
+        marketQuestion={summary.bestTradeMarketQuestion}
+        eventSlug={summary.bestTradeEventSlug}
+        pnl={summary.bestTradePnl}
+      />
+      <TradeHighlight
+        label={t("extend.leaderboard.detail.worstTrade")}
+        marketQuestion={summary.worstTradeMarketQuestion}
+        eventSlug={summary.worstTradeEventSlug}
+        pnl={summary.worstTradePnl}
+      />
+
       {exposure.length > 0 && (
         <div className="mt-4">
           <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -283,6 +277,164 @@ export function YieldRiskCard({
       )}
     </Card>
   );
+}
+
+function SevenDayPnlChart({
+  dailyPnls,
+  isError,
+  isLoading,
+  label,
+}: {
+  dailyPnls: WalletDailyPnl[];
+  isError: boolean;
+  isLoading: boolean;
+  label: string;
+}) {
+  const points = useMemo(() => buildChartPoints(dailyPnls), [dailyPnls]);
+  const lastPnl = dailyPnls.at(-1)?.realizedPnl ?? 0;
+  const stroke = lastPnl > 0 ? "stroke-bullish" : lastPnl < 0 ? "stroke-bearish" : "stroke-zinc-400";
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 border-t border-zinc-800/60 pt-3">
+        <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+          {label}
+        </div>
+        <div className="h-24 animate-pulse rounded-lg bg-zinc-800/40" />
+      </div>
+    );
+  }
+
+  if (isError || points.items.length === 0) {
+    return null;
+  }
+
+  const zeroY = points.zeroY;
+
+  return (
+    <div className="mt-4 border-t border-zinc-800/60 pt-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+          {label}
+        </div>
+        <div className={cn("text-xs font-semibold tabular-nums", pnlColorClass(lastPnl))}>
+          {formatSignedUsd(lastPnl)}
+        </div>
+      </div>
+      <svg
+        viewBox="0 0 100 92"
+        role="img"
+        aria-label={label}
+        className="h-24 w-full overflow-visible"
+        preserveAspectRatio="none"
+      >
+        <line
+          x1="0"
+          x2="100"
+          y1={zeroY}
+          y2={zeroY}
+          className="stroke-zinc-800"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={points.path}
+          fill="none"
+          className={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {points.items.map((point) => (
+          <circle
+            key={point.day}
+            cx={point.x}
+            cy={point.y}
+            r="1.6"
+            className={cn("fill-zinc-950", stroke)}
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          >
+            <title>
+              {point.day} {formatSignedUsd(point.realizedPnl)}
+            </title>
+          </circle>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function TradeHighlight({
+  label,
+  marketQuestion,
+  eventSlug,
+  pnl,
+}: {
+  label: string;
+  marketQuestion?: string;
+  eventSlug?: string;
+  pnl: number;
+}) {
+  if (!marketQuestion) return null;
+
+  return (
+    <div className="mt-3 border-t border-zinc-800/60 pt-3">
+      <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+        {label}
+      </div>
+      <EventTitleLink
+        slug={eventSlug}
+        className="line-clamp-1 text-xs text-zinc-300"
+      >
+        {marketQuestion}
+      </EventTitleLink>
+      <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(pnl))}>
+        {formatSignedUsd(pnl)}
+      </div>
+    </div>
+  );
+}
+
+function buildChartPoints(dailyPnls: WalletDailyPnl[]): {
+  items: (WalletDailyPnl & { x: number; y: number })[];
+  path: string;
+  zeroY: number;
+} {
+  const values = dailyPnls.map((p) => p.realizedPnl);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const top = 8;
+  const height = 76;
+  const items = dailyPnls.map((p, i) => {
+    const x = dailyPnls.length === 1 ? 50 : (i / (dailyPnls.length - 1)) * 100;
+    const y = top + ((max - p.realizedPnl) / range) * height;
+    return { ...p, x, y };
+  });
+  const zeroY = top + ((max - 0) / range) * height;
+  return {
+    items,
+    path: smoothPath(items),
+    zeroY,
+  };
+}
+
+function smoothPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1];
+    const cur = points[i];
+    const midX = (prev.x + cur.x) / 2;
+    const midY = (prev.y + cur.y) / 2;
+    path += ` Q ${prev.x} ${prev.y} ${midX} ${midY}`;
+  }
+  const last = points[points.length - 1];
+  path += ` T ${last.x} ${last.y}`;
+  return path;
 }
 
 const EXPOSURE_COLORS = [

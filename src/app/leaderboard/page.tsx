@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { LeaderboardPage } from "src/features/leaderboard/components/LeaderboardPage";
 import { LeaderboardSkeleton } from "src/features/leaderboard/components/skeletons";
+import { LEADERBOARD_TAG } from "src/features/leaderboard/data/client";
 import { prefetchSmartLeaderboard } from "src/features/leaderboard/data/prefetch";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { detectLanguage } from "src/i18n/detectLanguage";
@@ -13,6 +14,10 @@ const PREFETCH_TIMEOUT_MS = 3000;
 const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
 /** Must match {@link LeaderboardPage}'s `DEFAULT_INTERVAL`. */
 const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
+/** Must match {@link LeaderboardPage}'s `DEFAULT_SCOPE`. */
+const DEFAULT_SCOPE: LeaderboardScope = "worldcup";
+
+type LeaderboardScope = "all" | "worldcup";
 
 /**
  * Resolve the board interval from the URL search param, mirroring the client
@@ -25,6 +30,11 @@ function parseInterval(value: string | string[] | undefined): LeaderboardInterva
     : DEFAULT_INTERVAL;
 }
 
+function parseScope(value: string | string[] | undefined): LeaderboardScope {
+  const v = Array.isArray(value) ? value[0] : value;
+  return v === "all" ? "all" : DEFAULT_SCOPE;
+}
+
 /**
  * SSR-prefetches the smart-money leaderboard for the URL-selected interval
  * (bounded by a 3s race so a slow backend never blocks the shell) and hydrates
@@ -32,12 +42,19 @@ function parseInterval(value: string | string[] | undefined): LeaderboardInterva
  * client query hits the hydrated cache instead of refetching. While this
  * awaits, the parent Suspense streams the leaderboard skeleton.
  */
-async function LeaderboardContent({ interval }: { interval: LeaderboardInterval }) {
+async function LeaderboardContent({
+  interval,
+  scope,
+}: {
+  interval: LeaderboardInterval;
+  scope: LeaderboardScope;
+}) {
   const queryClient = createServerQueryClient();
   const lang = mapToApiLang(await detectLanguage());
+  const tag = scope === "worldcup" ? LEADERBOARD_TAG : null;
 
   await Promise.race([
-    prefetchSmartLeaderboard(queryClient, interval, lang),
+    prefetchSmartLeaderboard(queryClient, interval, lang, tag),
     new Promise<void>((_, reject) =>
       setTimeout(() => reject(new Error("prefetch timeout")), PREFETCH_TIMEOUT_MS),
     ),
@@ -61,10 +78,12 @@ export default async function Page({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const interval = parseInterval((await searchParams).interval);
+  const params = await searchParams;
+  const interval = parseInterval(params.interval);
+  const scope = parseScope(params.scope);
   return (
     <Suspense fallback={<LeaderboardSkeleton />}>
-      <LeaderboardContent interval={interval} />
+      <LeaderboardContent interval={interval} scope={scope} />
     </Suspense>
   );
 }

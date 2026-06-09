@@ -25,6 +25,7 @@
     "leaderboard": {
       "title": "กระดานผู้นำ",
       "subtitle": "Smart Money ฟุตบอลโลก",
+      "scopes": { "all": "ทั้งหมด", "worldcup": "ฟุตบอลโลก" },
       "interval": { "all": "ทั้งหมด", "7d": "7 วัน" },
       "col": { "winRate": "อัตราชนะ", "markets": "ตลาด" },
       "selectWallet": "เลือกกระเป๋าเพื่อดูรายละเอียด",
@@ -84,6 +85,7 @@
         "avgInitialCost": "ต้นทุนเริ่มต้นเฉลี่ย",
         "avgHoldTime": "เวลาถือครองเฉลี่ย",
         "avgScaleIn": "การเพิ่มสถานะเฉลี่ย",
+        "bestTrade": "เทรดดีที่สุด",
         "worstTrade": "เทรดแย่สุด",
         "winRate": "อัตราชนะ",
         "profitFactor": "ค่าปัจจัยกำไร",
