@@ -110,7 +110,7 @@
         "avgScaleIn": "平均加倉次數",
         "bestTrade": "最佳交易",
         "worstTrade": "最差交易",
-        "winRate": "勝率",
+        "winRate": "交易勝率",
         "profitFactor": "盈利因子",
         "settlementWinRate": "結算勝率",
         "settledRatio": "結算比例",

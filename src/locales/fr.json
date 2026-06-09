@@ -110,7 +110,7 @@
         "avgScaleIn": "Renforcement moyen",
         "bestTrade": "Meilleure transaction",
         "worstTrade": "Pire trade",
-        "winRate": "Taux de réussite",
+        "winRate": "Taux de réussite des trades",
         "profitFactor": "Facteur de profit",
         "settlementWinRate": "Taux de réussite au règlement",
         "settledRatio": "Ratio réglé",

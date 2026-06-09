@@ -26,6 +26,7 @@ import {
   type RefObject,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, Sortable } from "@liberfi.io/ui";
 import { CopyInline } from "../../../components/CopyButton";
@@ -37,10 +38,12 @@ import {
 } from "../data/queries";
 import {
   formatPercent,
+  formatAgeMs,
   formatPrice,
   formatRelativeTime,
   formatSignedUsd,
   formatUsd,
+  parseTimestampMs,
   pnlColorClass,
   shortAddress,
 } from "../format";
@@ -162,12 +165,18 @@ function WalletHeader({
           <div className="mt-0.5 text-xs text-zinc-500">
             {summary.marketCount} {t("extend.leaderboard.col.markets")} ·{" "}
             {t("extend.leaderboard.detail.lastActive")}{" "}
-            {formatRelativeTime(summary.lastActivityTs)}
+            <WalletLastActiveAge ts={summary.lastActivityTs} />
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function WalletLastActiveAge({ ts }: { ts?: string | number | null }) {
+  const timestampMs = parseTimestampMs(ts);
+  const ageMs = useTickAge(timestampMs ?? Date.now());
+  return timestampMs == null ? "N/A" : formatAgeMs(ageMs);
 }
 
 // ---------------------------------------------------------------------------

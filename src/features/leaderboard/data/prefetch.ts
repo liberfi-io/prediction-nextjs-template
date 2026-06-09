@@ -12,7 +12,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { LeaderboardInterval } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
-  LEADERBOARD_TAG,
   fetchSmartLeaderboard,
   fetchWalletDailyPnl,
   fetchWalletPnl,
@@ -49,12 +48,14 @@ export async function prefetchWalletPnl(
   queryClient: QueryClient,
   wallet: string,
   lang: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
 ): Promise<void> {
   const base = process.env.PREDICT_URL;
   if (!base || !wallet) return;
   await queryClient.prefetchQuery({
-    queryKey: [...walletPnlQueryKey(wallet), lang],
-    queryFn: () => fetchWalletPnl(base, wallet, { lang, tag: LEADERBOARD_TAG }),
+    queryKey: [...walletPnlQueryKey(wallet, interval, tag), lang],
+    queryFn: () => fetchWalletPnl(base, wallet, { lang, interval, tag }),
   });
 }
 
@@ -63,12 +64,14 @@ export async function prefetchWalletDailyPnl(
   queryClient: QueryClient,
   wallet: string,
   lang: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
 ): Promise<void> {
   const base = process.env.PREDICT_URL;
   if (!base || !wallet) return;
   await queryClient.prefetchQuery({
-    queryKey: [...walletDailyPnlQueryKey(wallet), lang],
+    queryKey: [...walletDailyPnlQueryKey(wallet, interval, tag), lang],
     queryFn: () =>
-      fetchWalletDailyPnl(base, wallet, { lang, tag: LEADERBOARD_TAG }),
+      fetchWalletDailyPnl(base, wallet, { lang, interval, tag }),
   });
 }

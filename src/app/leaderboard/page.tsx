@@ -3,37 +3,18 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { LeaderboardPage } from "src/features/leaderboard/components/LeaderboardPage";
 import { LeaderboardSkeleton } from "src/features/leaderboard/components/skeletons";
 import { prefetchSmartLeaderboard } from "src/features/leaderboard/data/prefetch";
+import {
+  leaderboardTagForScope,
+  parseInterval,
+  parseScope,
+  type LeaderboardScope,
+} from "src/features/leaderboard/routeParams";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 import type { LeaderboardInterval } from "src/features/leaderboard/types";
 
 const PREFETCH_TIMEOUT_MS = 3000;
-const WORLDCUP_SCOPE = "worldcup_2026";
-
-const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
-/** Must match {@link LeaderboardPage}'s `DEFAULT_INTERVAL`. */
-const DEFAULT_INTERVAL: LeaderboardInterval = "all";
-/** Must match {@link LeaderboardPage}'s `DEFAULT_SCOPE`. */
-const DEFAULT_SCOPE: LeaderboardScope = "all";
-
-type LeaderboardScope = "all" | typeof WORLDCUP_SCOPE;
-
-/**
- * Resolve the board interval from the URL search param, mirroring the client
- * parser so SSR prefetch and the first client query agree on the cache key.
- */
-function parseInterval(value: string | string[] | undefined): LeaderboardInterval {
-  const v = Array.isArray(value) ? value[0] : value;
-  return v && INTERVALS.has(v as LeaderboardInterval)
-    ? (v as LeaderboardInterval)
-    : DEFAULT_INTERVAL;
-}
-
-function parseScope(value: string | string[] | undefined): LeaderboardScope {
-  const v = Array.isArray(value) ? value[0] : value;
-  return v === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : DEFAULT_SCOPE;
-}
 
 /**
  * SSR-prefetches the smart-money leaderboard for the URL-selected interval
@@ -51,7 +32,7 @@ async function LeaderboardContent({
 }) {
   const queryClient = createServerQueryClient();
   const lang = mapToApiLang(await detectLanguage());
-  const tag = scope === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : null;
+  const tag = leaderboardTagForScope(scope);
 
   await Promise.race([
     prefetchSmartLeaderboard(queryClient, interval, lang, tag),
@@ -68,10 +49,8 @@ async function LeaderboardContent({
 }
 
 /**
- * Smart Money Leaderboard route. The time window (`?interval=`) and selected
- * wallet (`?wallet=`) live in the URL: the interval drives the SSR prefetch
- * (read here) while the wallet is read client-side in {@link LeaderboardPage}.
- * Wrapped in Suspense because the page reads search params.
+ * Smart Money Leaderboard route. The time window (`?interval=`) drives the SSR
+ * prefetch. Wallet detail lives at `/leaderboard/[wallet]`.
  */
 export default async function Page({
   searchParams,

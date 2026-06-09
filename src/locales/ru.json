@@ -110,7 +110,7 @@
         "avgScaleIn": "Ср. докупка",
         "bestTrade": "Лучшая сделка",
         "worstTrade": "Худшая сделка",
-        "winRate": "Винрейт",
+        "winRate": "Винрейт сделок",
         "profitFactor": "Профит-фактор",
         "settlementWinRate": "Винрейт при расчёте",
         "settledRatio": "Доля расчётов",

@@ -110,7 +110,7 @@
         "avgScaleIn": "Avg Scale-In",
         "bestTrade": "Best Trade",
         "worstTrade": "Worst Trade",
-        "winRate": "Win Rate",
+        "winRate": "Trading Win Rate",
         "profitFactor": "Profit Factor",
         "settlementWinRate": "Settlement Win Rate",
         "settledRatio": "Settled Ratio",

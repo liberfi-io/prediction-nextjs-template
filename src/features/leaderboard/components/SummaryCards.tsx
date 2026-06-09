@@ -27,6 +27,8 @@ import type {
   WalletTokenPnl,
 } from "../types";
 
+const EMPTY_VALUE = "N/A";
+
 // ---------------------------------------------------------------------------
 // Card 1 — TOTAL VALUE
 // ---------------------------------------------------------------------------
@@ -159,13 +161,17 @@ export function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) 
       label: t("extend.leaderboard.detail.avgScaleIn"),
       value: (
         <span className="text-white">
-          {summary.avgEntryCount > 0 ? summary.avgEntryCount.toFixed(2) : "—"}
+          {summary.avgEntryCount > 0 ? summary.avgEntryCount.toFixed(2) : EMPTY_VALUE}
         </span>
       ),
     },
     {
       label: t("extend.leaderboard.detail.lastActive"),
-      value: <span className="text-white">{formatRelativeTime(summary.lastActivityTs)}</span>,
+      value: (
+        <span className="text-white">
+          {summary.lastActivityTs ? formatRelativeTime(summary.lastActivityTs) : EMPTY_VALUE}
+        </span>
+      ),
     },
   ];
 
@@ -216,7 +222,7 @@ export function YieldRiskCard({
     },
     {
       label: t("extend.leaderboard.detail.profitFactor"),
-      value: summary.profitFactor > 0 ? summary.profitFactor.toFixed(2) : "—",
+      value: summary.profitFactor > 0 ? summary.profitFactor.toFixed(2) : EMPTY_VALUE,
     },
     {
       label: t("extend.leaderboard.detail.settlementWinRate"),

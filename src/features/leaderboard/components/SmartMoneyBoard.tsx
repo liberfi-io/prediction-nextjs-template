@@ -53,8 +53,8 @@ export function SmartMoneyBoard({
   interval,
   tag,
   pending = false,
-  selectedWallet,
   onSelect,
+  onPrefetch,
 }: {
   /** Committed window driving the data query + column labels. */
   interval: LeaderboardInterval;
@@ -62,8 +62,8 @@ export function SmartMoneyBoard({
   tag?: string | null;
   /** True while a window switch navigation is in flight: forces the skeleton. */
   pending?: boolean;
-  selectedWallet?: string;
   onSelect: (wallet: string) => void;
+  onPrefetch?: (wallet: string) => void;
 }) {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useSmartMoneyBoard(interval, tag);
@@ -85,8 +85,8 @@ export function SmartMoneyBoard({
         <BoardTable
           entries={entries}
           interval={interval}
-          selectedWallet={selectedWallet}
           onSelect={onSelect}
+          onPrefetch={onPrefetch}
         />
       )}
     </div>
@@ -124,13 +124,13 @@ function sortValue(entry: SmartWalletEntry, field: SortField, interval: Leaderbo
 function BoardTable({
   entries,
   interval,
-  selectedWallet,
   onSelect,
+  onPrefetch,
 }: {
   entries: SmartWalletEntry[];
   interval: LeaderboardInterval;
-  selectedWallet?: string;
   onSelect: (wallet: string) => void;
+  onPrefetch?: (wallet: string) => void;
 }) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -159,8 +159,6 @@ function BoardTable({
   });
   const virtualItems = virtualizer.getVirtualItems();
   const waitingForVirtualRows = rows.length > 0 && virtualItems.length === 0;
-
-  const selected = selectedWallet?.toLowerCase();
 
   const windowShort =
     interval === "all" ? null : t(`extend.leaderboard.intervalShort.${interval}`);
@@ -242,9 +240,9 @@ function BoardTable({
                         entry={entry}
                         position={vItem.index + 1}
                         interval={interval}
-                        active={selected === entry.wallet.toLowerCase()}
                         last={vItem.index === rows.length - 1}
                         onSelect={onSelect}
+                        onPrefetch={onPrefetch}
                       />
                     </div>
                   );
@@ -268,16 +266,16 @@ const BoardRow = memo(function BoardRow({
   entry,
   position,
   interval,
-  active,
   last,
   onSelect,
+  onPrefetch,
 }: {
   entry: SmartWalletEntry;
   position: number;
   interval: LeaderboardInterval;
-  active: boolean;
   last: boolean;
   onSelect: (wallet: string) => void;
+  onPrefetch?: (wallet: string) => void;
 }) {
   const { t } = useTranslation();
   const vol = intervalVolume(entry, interval);
@@ -286,6 +284,7 @@ const BoardRow = memo(function BoardRow({
     <div
       role="button"
       tabIndex={0}
+      onMouseEnter={() => onPrefetch?.(entry.wallet)}
       onClick={() => onSelect(entry.wallet)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -293,12 +292,11 @@ const BoardRow = memo(function BoardRow({
           onSelect(entry.wallet);
         }
       }}
-      aria-current={active ? "true" : undefined}
       className={cn(
         ROW_GRID,
         "group w-full cursor-pointer px-3 py-3 text-left outline-none transition-colors focus-visible:bg-zinc-800/40",
         !last && "border-b border-zinc-800/40",
-        active ? "bg-bullish/[0.06]" : "hover:bg-zinc-800/30",
+        "hover:bg-zinc-800/30",
       )}
     >
       {/* Rank — follows the displayed row position, not the data's rank. */}

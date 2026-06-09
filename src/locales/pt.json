@@ -110,7 +110,7 @@
         "avgScaleIn": "Reforço médio",
         "bestTrade": "Melhor negociação",
         "worstTrade": "Pior negociação",
-        "winRate": "Taxa de acerto",
+        "winRate": "Taxa de acerto de trading",
         "profitFactor": "Fator de lucro",
         "settlementWinRate": "Taxa de acerto na liquidação",
         "settledRatio": "Proporção liquidada",

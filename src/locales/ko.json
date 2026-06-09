@@ -110,7 +110,7 @@
         "avgScaleIn": "평균 추가 매수",
         "bestTrade": "베스트 트레이드",
         "worstTrade": "워스트 트레이드",
-        "winRate": "승률",
+        "winRate": "거래 승률",
         "profitFactor": "수익 팩터",
         "settlementWinRate": "정산 승률",
         "settledRatio": "정산 비율",

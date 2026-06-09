@@ -110,7 +110,7 @@
         "avgScaleIn": "平均ナンピン回数",
         "bestTrade": "ベストトレード",
         "worstTrade": "最悪の取引",
-        "winRate": "勝率",
+        "winRate": "取引勝率",
         "profitFactor": "プロフィットファクター",
         "settlementWinRate": "決済勝率",
         "settledRatio": "決済率",

@@ -110,7 +110,7 @@
         "avgScaleIn": "Incremento prom.",
         "bestTrade": "Mejor operación",
         "worstTrade": "Peor operación",
-        "winRate": "Tasa de acierto",
+        "winRate": "Tasa de acierto de trading",
         "profitFactor": "Factor de ganancia",
         "settlementWinRate": "Tasa de acierto al liquidar",
         "settledRatio": "Ratio liquidado",

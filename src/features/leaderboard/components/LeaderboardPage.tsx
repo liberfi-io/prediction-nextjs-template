@@ -6,31 +6,35 @@
  * Top-level sub-tabs switch between "Smart Money" (the ranked board with scope
  * and interval controls + virtualized table) and "Smart Live Feed" (a follow-up
  * placeholder). Across all breakpoints the board is a single list; selecting a
- * wallet opens the {@link WalletDetailPanel} as a full-screen slide-over with a
- * back button.
+ * wallet navigates to `/leaderboard/[wallet]`.
  *
- * Selection (`?wallet=`), time window (`?interval=`) and the active sub-tab
- * (`?view=`) all live in the URL so the state is shareable and survives the
- * browser back button.
+ * Time window (`?interval=`), scope (`?scope=`) and the active sub-tab
+ * (`?view=`) live in the URL so the state is shareable and survives the
+ * browser back button. Wallet selection is path-based.
  */
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
+import {
+  buildLeaderboardSearch,
+  DEFAULT_INTERVAL,
+  DEFAULT_SCOPE,
+  INTERVAL_OPTIONS,
+  leaderboardTagForScope,
+  parseInterval,
+  parseScope,
+  SCOPES,
+  WORLDCUP_SCOPE,
+  type LeaderboardScope,
+  type LeaderboardView,
+} from "../routeParams";
 import type { LeaderboardInterval } from "../types";
 import { SmartLiveFeed } from "./SmartLiveFeed";
 import { SmartMoneyBoard } from "./SmartMoneyBoard";
-import { WalletDetailPanel } from "./WalletDetailPanel";
 
-type LeaderboardView = "smart-money" | "live-feed";
-const WORLDCUP_SCOPE = "worldcup_2026";
-type LeaderboardScope = "all" | typeof WORLDCUP_SCOPE;
-
-const INTERVAL_OPTIONS: LeaderboardInterval[] = ["1d", "7d", "30d", "all"];
-const INTERVALS = new Set<LeaderboardInterval>(INTERVAL_OPTIONS);
 const VIEWS: LeaderboardView[] = ["smart-money", "live-feed"];
-const SCOPES: LeaderboardScope[] = ["all", WORLDCUP_SCOPE];
 
 /**
  * Smart Live Feed is not built yet — hide its tab (and ignore `?view=live-feed`)
@@ -41,23 +45,8 @@ const VISIBLE_VIEWS: LeaderboardView[] = ENABLE_LIVE_FEED
   ? VIEWS
   : VIEWS.filter((v) => v !== "live-feed");
 
-/** Default time window when none is set in the URL. */
-const DEFAULT_INTERVAL: LeaderboardInterval = "all";
-/** Default smart-money scope when none is set in the URL. */
-const DEFAULT_SCOPE: LeaderboardScope = "all";
-
-function parseInterval(value: string | null): LeaderboardInterval {
-  return value && INTERVALS.has(value as LeaderboardInterval)
-    ? (value as LeaderboardInterval)
-    : DEFAULT_INTERVAL;
-}
-
 function parseView(value: string | null): LeaderboardView {
   return value === "live-feed" && ENABLE_LIVE_FEED ? "live-feed" : "smart-money";
-}
-
-function parseScope(value: string | null): LeaderboardScope {
-  return value === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : DEFAULT_SCOPE;
 }
 
 export function LeaderboardPage() {
@@ -68,7 +57,6 @@ export function LeaderboardPage() {
   const interval = parseInterval(searchParams.get("interval"));
   const view = parseView(searchParams.get("view"));
   const scope = parseScope(searchParams.get("scope"));
-  const selectedWallet = searchParams.get("wallet") ?? undefined;
 
   // Switching the interval is a soft navigation (the server re-prefetches the
   // board for the new window), so we wrap it in a transition to drive a loading
@@ -86,7 +74,6 @@ export function LeaderboardPage() {
   const updateParams = useCallback(
     (
       next: {
-        wallet?: string | null;
         interval?: LeaderboardInterval;
         view?: LeaderboardView;
         scope?: LeaderboardScope;
@@ -106,10 +93,6 @@ export function LeaderboardPage() {
         if (next.scope === DEFAULT_SCOPE) params.delete("scope");
         else params.set("scope", next.scope);
       }
-      if ("wallet" in next) {
-        if (next.wallet) params.set("wallet", next.wallet);
-        else params.delete("wallet");
-      }
       const qs = params.toString();
       const url = qs ? `/leaderboard?${qs}` : "/leaderboard";
       if (replace) router.replace(url, { scroll: false });
@@ -119,14 +102,27 @@ export function LeaderboardPage() {
   );
 
   const handleSelect = useCallback(
-    (wallet: string) => updateParams({ wallet }),
-    [updateParams],
+    (wallet: string) => {
+      const qs = buildLeaderboardSearch({ interval, scope });
+      router.push(`/leaderboard/${encodeURIComponent(wallet)}${qs}`, {
+        scroll: false,
+      });
+    },
+    [interval, router, scope],
+  );
+
+  const handlePrefetch = useCallback(
+    (wallet: string) => {
+      const qs = buildLeaderboardSearch({ interval, scope });
+      router.prefetch(`/leaderboard/${encodeURIComponent(wallet)}${qs}`);
+    },
+    [interval, router, scope],
   );
 
   const handleScope = useCallback(
     (next: LeaderboardScope) => {
       setPendingScope(next);
-      startTransition(() => updateParams({ scope: next, wallet: null }, true));
+      startTransition(() => updateParams({ scope: next }, true));
     },
     [updateParams],
   );
@@ -137,82 +133,61 @@ export function LeaderboardPage() {
   const handleInterval = useCallback(
     (next: LeaderboardInterval) => {
       setPendingInterval(next);
-      startTransition(() => updateParams({ interval: next, wallet: null }, true));
+      startTransition(() => updateParams({ interval: next }, true));
     },
     [updateParams],
   );
 
   // Switching sub-tab clears any open wallet detail.
   const handleView = useCallback(
-    (next: LeaderboardView) => updateParams({ view: next, wallet: null }, true),
+    (next: LeaderboardView) => updateParams({ view: next }, true),
     [updateParams],
   );
 
-  const handleCloseDetail = useCallback(
-    () => updateParams({ wallet: null }),
-    [updateParams],
-  );
-
-  // The detail only shows on the Smart Money view.
-  const detailOpen = view === "smart-money" && Boolean(selectedWallet);
   const activeScope = pendingScope ?? scope;
-  const leaderboardTag = scope === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : null;
+  const leaderboardTag = leaderboardTagForScope(scope);
 
   const boardProps = useMemo(
     () => ({
       interval,
       tag: leaderboardTag,
       pending: isPending,
-      selectedWallet,
       onSelect: handleSelect,
+      onPrefetch: handlePrefetch,
     }),
     [
       interval,
       leaderboardTag,
       isPending,
-      selectedWallet,
       handleSelect,
+      handlePrefetch,
     ],
   );
 
   return (
-    <div
-      className={cn(
-        "w-full",
-        detailOpen
-          ? "h-full pt-3"
-          : "flex h-full min-h-0 flex-col overflow-hidden",
-      )}
-    >
-      {!detailOpen && (
-        <div className="shrink-0 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
-          <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
-            {VISIBLE_VIEWS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => handleView(v)}
-                className={cn(
-                  "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                  view === v
-                    ? "bg-bullish/15 text-bullish"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
-                )}
-              >
-                {t(`extend.leaderboard.views.${v === "smart-money" ? "smartMoney" : "liveFeed"}`)}
-              </button>
-            ))}
-          </div>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
+          {VISIBLE_VIEWS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => handleView(v)}
+              className={cn(
+                "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                view === v
+                  ? "bg-bullish/15 text-bullish"
+                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
+              )}
+            >
+              {t(`extend.leaderboard.views.${v === "smart-money" ? "smartMoney" : "liveFeed"}`)}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
-      <div
-        className={cn(
-          "mx-auto flex w-full max-w-[1280px] min-h-0 flex-1 flex-col px-4 sm:px-6 lg:px-10 xl:px-12",
-          detailOpen && "pt-3",
-        )}
-      >
-        {!detailOpen && view === "smart-money" && (
+      <div className="mx-auto flex w-full max-w-[1280px] min-h-0 flex-1 flex-col px-4 sm:px-6 lg:px-10 xl:px-12">
+        {view === "smart-money" && (
           <div className="flex shrink-0 flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-x-1.5 pl-1 lg:w-full lg:gap-x-2">
@@ -278,16 +253,6 @@ export function LeaderboardPage() {
         {view !== "smart-money" ? (
           <div className="min-h-0 flex-1">
             <SmartLiveFeed />
-          </div>
-        ) : detailOpen && selectedWallet ? (
-          <div className="h-[calc(100dvh-116px-env(safe-area-inset-bottom))] sm:h-[calc(100dvh-60px)]">
-            <WalletDetailPanel
-              key={selectedWallet}
-              wallet={selectedWallet}
-              interval={interval}
-              tag={leaderboardTag}
-              onBack={handleCloseDetail}
-            />
           </div>
         ) : (
           <div className="flex min-h-0 w-full flex-1 pb-4">
