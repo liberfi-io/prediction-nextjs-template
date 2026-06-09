@@ -16,6 +16,7 @@ import {
   useWithdrawStatusQuery,
   usePolymarketDepositAddresses,
   usePolymarketSupportedAssets,
+  useDeployPolymarketDepositWallet,
   usePredictClient,
   type ProviderSource,
 } from "@liberfi.io/react-predict";
@@ -52,8 +53,11 @@ import { useWallets, type EvmWalletAdapter } from "@liberfi.io/wallet-connector"
 import {
   deploySafe,
   executeSafe,
+  executeDepositWalletBatch,
   buildAllApprovalTxns,
+  buildAllDepositApprovalCalls,
   buildTransferCalldata,
+  buildDepositTransferCall,
   pollTransaction,
   POLYMARKET_CONTRACTS,
   type PolymarketRelayConfig,
@@ -124,27 +128,11 @@ function FundWalletContent({
     params?.initialWallet ?? "solana",
   );
 
-  const goMain = useCallback(() => setScreen("main"), []);
-
   switch (screen) {
     case "deposit":
-      return (
-        <DepositScreen
-          selectedWallet={selectedWallet}
-          onSelectWallet={setSelectedWallet}
-          onBack={goMain}
-          onClose={onClose}
-        />
-      );
+      return <DepositScreen selectedWallet={selectedWallet} onClose={onClose} />;
     case "withdraw":
-      return (
-        <WithdrawScreen
-          selectedWallet={selectedWallet}
-          onSelectWallet={setSelectedWallet}
-          onBack={goMain}
-          onClose={onClose}
-        />
-      );
+      return <WithdrawScreen selectedWallet={selectedWallet} onClose={onClose} />;
     default:
       return (
         <MainScreen
@@ -355,7 +343,9 @@ function MainScreen({
     kalshiKycVerified,
     kalshiKycUrl,
     polymarketSetupVerified,
-    polymarketSafeDeployed,
+    polymarketWalletKind,
+    polymarketWalletDeployed,
+    polymarketDepositWalletAddress,
     polymarketTokenApproved,
     evmAddress,
   } = usePredictWallet();
@@ -365,11 +355,14 @@ function MainScreen({
 
   const wallets = useWallets();
   const queryClient = useQueryClient();
+  const deployDepositWallet = useDeployPolymarketDepositWallet(evmAddress);
 
   const relayConfig: PolymarketRelayConfig = useMemo(
     () => ({ signProxyUrl: "/predict-api/api/v1/polymarket/sign" }),
     [],
   );
+
+  const isDepositWallet = polymarketWalletKind === "deposit";
 
   const handleDeployAndApprove = useCallback(async () => {
     const evmWallet = wallets.find(
@@ -390,7 +383,40 @@ function MainScreen({
       transport: custom(provider),
     });
 
-    if (!polymarketSafeDeployed) {
+    if (isDepositWallet) {
+      // Deposit wallet path: gasless server-side WALLET-CREATE (no signature),
+      // then a single WALLET batch granting pUSD + CTF approvals.
+      let depositWalletAddress = polymarketDepositWalletAddress;
+      if (!polymarketWalletDeployed) {
+        const deployResult = await deployDepositWallet.mutateAsync(evmAddress);
+        depositWalletAddress =
+          deployResult.deposit_wallet_address ?? depositWalletAddress;
+      }
+      if (!depositWalletAddress) {
+        throw new Error("deposit wallet address unavailable");
+      }
+
+      if (!polymarketTokenApproved) {
+        const approvalCalls = buildAllDepositApprovalCalls();
+        const approveResult = await executeDepositWalletBatch(
+          walletClient,
+          depositWalletAddress as Hex,
+          approvalCalls,
+          relayConfig,
+        );
+        if (approveResult.transactionID) {
+          await pollTransaction(relayConfig, approveResult.transactionID);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: polymarketSetupQueryKey(evmAddress),
+      });
+      return;
+    }
+
+    // Legacy Safe path (signatureType=2, USDC.e, V1 exchanges).
+    if (!polymarketWalletDeployed) {
       const deployResult = await deploySafe(walletClient, relayConfig);
       if (deployResult.transactionID) {
         await pollTransaction(relayConfig, deployResult.transactionID);
@@ -408,7 +434,17 @@ function MainScreen({
     queryClient.invalidateQueries({
       queryKey: polymarketSetupQueryKey(evmAddress),
     });
-  }, [wallets, evmAddress, polymarketSafeDeployed, polymarketTokenApproved, relayConfig, queryClient]);
+  }, [
+    wallets,
+    evmAddress,
+    isDepositWallet,
+    polymarketWalletDeployed,
+    polymarketDepositWalletAddress,
+    polymarketTokenApproved,
+    deployDepositWallet,
+    relayConfig,
+    queryClient,
+  ]);
 
   const isSolana = selectedWallet === "solana";
   const balance = isSolana ? kalshiUsdcBalance : polymarketUsdcBalance;
@@ -434,7 +470,8 @@ function MainScreen({
             isOpen={isSetupModalOpen}
             onClose={() => setIsSetupModalOpen(false)}
             evmAddress={evmAddress}
-            safeDeployed={polymarketSafeDeployed}
+            walletKind={polymarketWalletKind}
+            safeDeployed={polymarketWalletDeployed}
             tokenApproved={polymarketTokenApproved}
             onDeployAndApprove={handleDeployAndApprove}
           />
@@ -1026,13 +1063,9 @@ function ExternalLinkIcon() {
 
 function DepositScreen({
   selectedWallet,
-  onSelectWallet,
-  onBack,
   onClose,
 }: {
   selectedWallet: WalletSource;
-  onSelectWallet: (w: WalletSource) => void;
-  onBack: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -1041,6 +1074,7 @@ function DepositScreen({
     kalshiUsdcBalance,
     polymarketUsdcBalance,
     polymarketSafeAddress,
+    polymarketWalletAddress,
   } = usePredictWallet();
 
   const isSolana = selectedWallet === "solana";
@@ -1049,12 +1083,9 @@ function DepositScreen({
     <div>
       <ModalHeader
         title={t("extend.predict.fundWallet.depositTitle")}
-        onBack={onBack}
         onClose={onClose}
       />
       <div className="px-5 pb-5 space-y-4">
-        <WalletSelector selected={selectedWallet} onSelect={onSelectWallet} />
-
         {isSolana ? (
           <KalshiDepositBody
             solanaAddress={solanaAddress}
@@ -1062,7 +1093,9 @@ function DepositScreen({
           />
         ) : (
           <PolymarketDepositBody
-            polymarketSafeAddress={polymarketSafeAddress}
+            polymarketSafeAddress={
+              polymarketWalletAddress ?? polymarketSafeAddress
+            }
             balance={polymarketUsdcBalance}
           />
         )}
@@ -1079,13 +1112,9 @@ const POLYMARKET_MIN_WITHDRAW_USD = 2;
 
 function WithdrawScreen({
   selectedWallet,
-  onSelectWallet,
-  onBack,
   onClose,
 }: {
   selectedWallet: WalletSource;
-  onSelectWallet: (w: WalletSource) => void;
-  onBack: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -1095,9 +1124,12 @@ function WithdrawScreen({
     kalshiUsdcBalance,
     polymarketUsdcBalance,
     polymarketSafeAddress,
+    polymarketWalletKind,
+    polymarketWalletAddress,
   } = usePredictWallet();
 
   const isSolana = selectedWallet === "solana";
+  const isDepositWallet = polymarketWalletKind === "deposit";
   const fromAddress = isSolana ? solanaAddress : evmAddress;
   const balance = isSolana ? kalshiUsdcBalance : polymarketUsdcBalance;
   const chainName = isSolana ? "Solana" : "Polygon";
@@ -1197,12 +1229,15 @@ function WithdrawScreen({
         toast.success(t("extend.predict.fundWallet.txSubmitted"));
         setTxHash(submitResult.tx_hash);
       } else {
-        if (!evmAddress || !polymarketSafeAddress)
+        const funderAddress = isDepositWallet
+          ? polymarketWalletAddress
+          : polymarketSafeAddress;
+        if (!evmAddress || !funderAddress)
           throw new Error("wallet_not_connected");
 
         const { deposit_address } =
           await predictClient.preparePolymarketWithdraw({
-            safe_address: polymarketSafeAddress,
+            safe_address: funderAddress,
             to: destination.trim(),
           });
 
@@ -1222,19 +1257,28 @@ function WithdrawScreen({
         });
 
         const amountSmallest = parseUnits(String(parsedAmount), 6);
-        const transferTx = {
-          to: POLYMARKET_CONTRACTS.USDC_E,
-          data: buildTransferCalldata(
+
+        let result;
+        if (isDepositWallet) {
+          // Deposit wallet: move pUSD out via a signed WALLET batch transfer.
+          const transferCall = buildDepositTransferCall(
             deposit_address as Hex,
             amountSmallest,
-          ),
-        };
-
-        const result = await executeSafe(
-          walletClient,
-          [transferTx],
-          relayConfig,
-        );
+          );
+          result = await executeDepositWalletBatch(
+            walletClient,
+            funderAddress as Hex,
+            [transferCall],
+            relayConfig,
+          );
+        } else {
+          // Legacy Safe: move USDC.e out via a Safe transaction.
+          const transferTx = {
+            to: POLYMARKET_CONTRACTS.USDC_E,
+            data: buildTransferCalldata(deposit_address as Hex, amountSmallest),
+          };
+          result = await executeSafe(walletClient, [transferTx], relayConfig);
+        }
 
         if (result.transactionID) {
           toast.success(t("extend.predict.fundWallet.txSubmitted"));
@@ -1258,9 +1302,11 @@ function WithdrawScreen({
     destination,
     parsedAmount,
     isSolana,
+    isDepositWallet,
     solanaWallet,
     evmAddress,
     polymarketSafeAddress,
+    polymarketWalletAddress,
     buildMutation,
     submitMutation,
     predictClient,
@@ -1275,10 +1321,8 @@ function WithdrawScreen({
 
   return (
     <div>
-      <ModalHeader title={t("extend.predict.fundWallet.withdrawTitle")} onBack={onBack} onClose={onClose} />
+      <ModalHeader title={t("extend.predict.fundWallet.withdrawTitle")} onClose={onClose} />
       <div className="px-5 pb-5 space-y-4">
-        <WalletSelector selected={selectedWallet} onSelect={onSelectWallet} />
-
         {/* Info banner */}
         <div className="bg-amber-500/5 border border-amber-500/20 rounded-[10px] px-3 py-2.5">
           <p className="text-xs text-amber-300 leading-relaxed">

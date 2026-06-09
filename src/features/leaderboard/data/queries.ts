@@ -17,15 +17,21 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@liberfi.io/i18n";
 import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
-import type { LeaderboardInterval } from "../types";
+import type {
+  LeaderboardInterval,
+  PositionSortField,
+  SortOrder,
+} from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
   fetchSmartLeaderboard,
   fetchWalletActivities,
   fetchWalletPnl,
+  fetchWalletPositions,
   leaderboardQueryKey,
   walletActivitiesQueryKey,
   walletPnlQueryKey,
+  walletPositionsQueryKey,
 } from "./client";
 
 /** Browser-side API prefix (rewritten by Next.js to `PREDICT_URL`). */
@@ -35,6 +41,8 @@ const CLIENT_BASE = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
 const WALLET_STALE_MS = 60_000;
 /** Activities page size. */
 const ACTIVITIES_PAGE_SIZE = 30;
+/** Positions page size. */
+const POSITIONS_PAGE_SIZE = 50;
 
 /** Backend `?lang=` value for the active UI language. */
 function useApiLang(): string {
@@ -64,6 +72,41 @@ export function useWalletPnl(wallet: string | undefined) {
     queryFn: () => fetchWalletPnl(CLIENT_BASE, wallet as string, { lang }),
     enabled: Boolean(wallet),
     staleTime: WALLET_STALE_MS,
+  });
+}
+
+/**
+ * Infinite, cursor-paginated token positions for a wallet (POSITIONS tabs).
+ * Server-sorted by `sortBy`/`order` when provided; omitting both leaves the
+ * backend's default order (the UI default — "unsorted"). The sort is part of
+ * the query key so a sort change starts a fresh paginated query.
+ *
+ * `placeholderData` is explicitly opted out of the global keep-previous-data
+ * default: on a sort change we WANT the query to enter the pending state so the
+ * table can show its skeleton (otherwise the stale rows linger and the switch
+ * feels unresponsive).
+ */
+export function useWalletPositions(
+  wallet: string | undefined,
+  sortBy?: PositionSortField,
+  order?: SortOrder,
+) {
+  const lang = useApiLang();
+  return useInfiniteQuery({
+    queryKey: [...walletPositionsQueryKey(wallet ?? "", sortBy, order), lang],
+    queryFn: ({ pageParam }) =>
+      fetchWalletPositions(CLIENT_BASE, wallet as string, {
+        sortBy,
+        order,
+        limit: POSITIONS_PAGE_SIZE,
+        cursor: pageParam,
+        lang,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor || undefined,
+    enabled: Boolean(wallet),
+    staleTime: WALLET_STALE_MS,
+    placeholderData: undefined,
   });
 }
 

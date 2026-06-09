@@ -127,16 +127,8 @@ export function LeaderboardPage() {
     [updateParams],
   );
 
-  // The detail overlay only exists on the Smart Money view.
-  const overlayOpen = view === "smart-money" && Boolean(selectedWallet);
-  useEffect(() => {
-    if (!overlayOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [overlayOpen]);
+  // The detail only shows on the Smart Money view.
+  const detailOpen = view === "smart-money" && Boolean(selectedWallet);
 
   const boardProps = useMemo(
     () => ({
@@ -153,60 +145,58 @@ export function LeaderboardPage() {
   return (
     <>
       {/* Fixed secondary menu (Discover): pinned just below the 48px app header
-          so it stays put while the page scrolls. */}
-      <div className="fixed inset-x-0 top-12 z-30 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1">
-            {VISIBLE_VIEWS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => handleView(v)}
-                className={cn(
-                  "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                  view === v
-                    ? "bg-bullish/15 text-bullish"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
-                )}
-              >
-                {t(`extend.leaderboard.views.${v === "smart-money" ? "smartMoney" : "liveFeed"}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content flows in the page; pt clears the fixed secondary menu. No bottom
-          padding: the board box is sized to fill the screen left after the hero
-          scrolls away, so it must reach the viewport bottom for its header to rest
-          right under the fixed bars. */}
-      <div className="mx-auto max-w-[1280px] px-4 pt-[60px] sm:px-6 lg:px-8">
-        {view === "smart-money" ? <SmartMoneyBoard {...boardProps} /> : <SmartLiveFeed />}
-      </div>
-
-      {/* Detail: full-screen slide-over on every breakpoint */}
-      {overlayOpen && selectedWallet && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60" onClick={handleCloseDetail} />
-          <div className="absolute inset-0 flex flex-col bg-[#0a0a0b] animate-in slide-in-from-right duration-200">
-            <div className="flex shrink-0 items-center gap-3 border-b border-zinc-800/60 px-4 py-3">
-              <button
-                type="button"
-                onClick={handleCloseDetail}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800/60 hover:text-white"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-                {t("extend.leaderboard.back")}
-              </button>
-            </div>
-            <div className="mx-auto flex min-h-0 w-full max-w-[900px] flex-1 flex-col px-4 py-4 sm:px-6">
-              <WalletDetailPanel key={selectedWallet} wallet={selectedWallet} />
+          so it stays put while the page scrolls. Hidden on the wallet detail —
+          the detail has its own back button instead. */}
+      {!detailOpen && (
+        <div className="fixed inset-x-0 top-12 z-30 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
+          <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
+            <div className="flex items-center gap-1">
+              {VISIBLE_VIEWS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleView(v)}
+                  className={cn(
+                    "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                    view === v
+                      ? "bg-bullish/15 text-bullish"
+                      : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
+                  )}
+                >
+                  {t(`extend.leaderboard.views.${v === "smart-money" ? "smartMoney" : "liveFeed"}`)}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       )}
+
+      {/* Content flows in the page within the global layout (Scaffold header /
+          footer stay visible). For the board, pt clears the fixed secondary
+          menu; on the wallet detail the menu is hidden, so only a small top gap
+          is needed and the detail box fills the screen left under the app header
+          (no secondary nav to subtract) and scrolls internally, with its own
+          back button (left of the avatar). */}
+      <div
+        className={cn(
+          "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 xl:px-12",
+          detailOpen ? "pt-3" : "pt-[60px]",
+        )}
+      >
+        {view !== "smart-money" ? (
+          <SmartLiveFeed />
+        ) : detailOpen && selectedWallet ? (
+          <div className="h-[calc(100dvh-116px-env(safe-area-inset-bottom))] sm:h-[calc(100dvh-60px)]">
+            <WalletDetailPanel
+              key={selectedWallet}
+              wallet={selectedWallet}
+              onBack={handleCloseDetail}
+            />
+          </div>
+        ) : (
+          <SmartMoneyBoard {...boardProps} />
+        )}
+      </div>
     </>
   );
 }

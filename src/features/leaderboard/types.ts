@@ -96,21 +96,40 @@ export interface WalletPnlSummary {
   bestTradeMarketQuestion?: string;
   bestTradeOutcome?: string;
   bestTradePnl: number;
+  /** Local-enriched event slug for the best trade's market; links to event detail when present. */
+  bestTradeEventSlug?: string;
   worstTradeMarketQuestion?: string;
   worstTradeOutcome?: string;
   worstTradePnl: number;
+  /** Local-enriched event slug for the worst trade's market; links to event detail when present. */
+  worstTradeEventSlug?: string;
   lastActivityTs?: string;
   stateQuality?: string;
 }
 
+/**
+ * Best-effort local event/market enrichment attached to positions & activities
+ * by prediction-server. All fields are optional: they are absent when the
+ * referenced market/event is not indexed locally. Title/description are
+ * localized to the request language (English fallback).
+ */
+export interface LocalMarketRef {
+  eventTitle?: string;
+  eventImageUrl?: string;
+  marketImageUrl?: string;
+  marketDescription?: string;
+}
+
 /** Per-position PNL row. Open positions have openQuantity > 0. */
-export interface WalletTokenPnl {
+export interface WalletTokenPnl extends LocalMarketRef {
   tokenId: string;
   conditionId: string;
   eventSlug?: string;
   marketId?: string;
   marketQuestion: string;
   outcome: string;
+  /** Category / product tags this position belongs to (e.g. worldcup_2026). */
+  tags: string[];
   openQuantity: number;
   costBasis: number;
   avgEntryPrice: number;
@@ -142,20 +161,38 @@ export interface WalletDailyPnl {
   activityCount: number;
 }
 
-/** Full wallet PNL detail, with positions split into open / closed. */
+/**
+ * Wallet PNL detail: the aggregate summary plus the 7-day daily series. Token
+ * positions are served separately by the paginated /positions endpoint
+ * ({@link WalletPositionsPage}).
+ */
 export interface WalletPnlDetail {
   wallet: string;
   tag: string;
   summary: WalletPnlSummary;
-  /** Open positions (openQuantity > 0), sorted by current value desc. */
-  positions: WalletTokenPnl[];
-  /** Closed positions (openQuantity == 0), sorted by total PNL desc. */
-  closed: WalletTokenPnl[];
   dailyPnls: WalletDailyPnl[];
 }
 
+/** Token-position sort fields supported by the /positions endpoint. */
+export type PositionSortField =
+  | "totalPnl"
+  | "realizedPnl"
+  | "unrealizedPnl"
+  | "lastActive";
+
+/** Sort direction. */
+export type SortOrder = "asc" | "desc";
+
+/** A page of a wallet's token positions (cursor-paginated, server-sorted). */
+export interface WalletPositionsPage {
+  cursor?: string;
+  sortBy: string;
+  order: string;
+  tokens: WalletTokenPnl[];
+}
+
 /** One buy / sell / redeem trade activity. */
-export interface WalletActivity {
+export interface WalletActivity extends LocalMarketRef {
   activityId?: string;
   wallet: string;
   type: string;

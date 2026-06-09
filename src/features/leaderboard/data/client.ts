@@ -14,13 +14,16 @@
 import { num } from "../format";
 import type {
   LeaderboardInterval,
+  PositionSortField,
   SmartLeaderboard,
   SmartWalletEntry,
+  SortOrder,
   WalletActivitiesPage,
   WalletActivity,
   WalletDailyPnl,
   WalletPnlDetail,
   WalletPnlSummary,
+  WalletPositionsPage,
   WalletTokenPnl,
 } from "../types";
 
@@ -110,9 +113,11 @@ interface WalletPnlSummaryDto {
   best_trade_market_question?: string;
   best_trade_outcome?: string;
   best_trade_pnl?: string;
+  best_trade_event_slug?: string;
   worst_trade_market_question?: string;
   worst_trade_outcome?: string;
   worst_trade_pnl?: string;
+  worst_trade_event_slug?: string;
   last_activity_ts?: string;
   state_quality?: string;
 }
@@ -124,6 +129,7 @@ interface WalletTokenPnlDto {
   market_id?: string;
   market_question: string;
   outcome: string;
+  tags?: string[] | null;
   open_quantity: string;
   cost_basis: string;
   avg_entry_price: string;
@@ -143,6 +149,11 @@ interface WalletTokenPnlDto {
   first_activity_ts?: string;
   last_activity_ts?: string;
   state_quality?: string;
+  // Best-effort local enrichment (see LocalMarketRef).
+  event_title?: string;
+  event_image_url?: string;
+  market_image_url?: string;
+  market_description?: string;
 }
 
 interface WalletDailyPnlDto {
@@ -157,10 +168,18 @@ interface WalletDailyPnlDto {
 interface WalletPnlDto {
   wallet: string;
   tag?: string;
-  cursor?: string;
   summary: WalletPnlSummaryDto;
-  tokens: WalletTokenPnlDto[] | null;
   daily_pnls: WalletDailyPnlDto[] | null;
+}
+
+interface WalletPositionsDto {
+  wallet: string;
+  tag?: string;
+  cursor?: string;
+  limit?: number;
+  sort_by?: string;
+  order?: string;
+  tokens: WalletTokenPnlDto[] | null;
 }
 
 interface WalletActivityDto {
@@ -176,6 +195,11 @@ interface WalletActivityDto {
   token_id?: string;
   event_slug?: string;
   activity_ts?: string;
+  // Best-effort local enrichment (see LocalMarketRef).
+  event_title?: string;
+  event_image_url?: string;
+  market_image_url?: string;
+  market_description?: string;
 }
 
 interface WalletActivitiesDto {
@@ -274,9 +298,11 @@ function adaptSummary(d: WalletPnlSummaryDto): WalletPnlSummary {
     bestTradeMarketQuestion: d.best_trade_market_question,
     bestTradeOutcome: d.best_trade_outcome,
     bestTradePnl: num(d.best_trade_pnl),
+    bestTradeEventSlug: d.best_trade_event_slug,
     worstTradeMarketQuestion: d.worst_trade_market_question,
     worstTradeOutcome: d.worst_trade_outcome,
     worstTradePnl: num(d.worst_trade_pnl),
+    worstTradeEventSlug: d.worst_trade_event_slug,
     lastActivityTs: d.last_activity_ts,
     stateQuality: d.state_quality,
   };
@@ -290,6 +316,7 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     marketId: d.market_id,
     marketQuestion: d.market_question,
     outcome: d.outcome,
+    tags: d.tags ?? [],
     openQuantity: num(d.open_quantity),
     costBasis: num(d.cost_basis),
     avgEntryPrice: num(d.avg_entry_price),
@@ -309,17 +336,14 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     firstActivityTs: d.first_activity_ts,
     lastActivityTs: d.last_activity_ts,
     stateQuality: d.state_quality,
+    eventTitle: d.event_title,
+    eventImageUrl: d.event_image_url,
+    marketImageUrl: d.market_image_url,
+    marketDescription: d.market_description,
   };
 }
 
 function adaptWalletPnl(d: WalletPnlDto): WalletPnlDetail {
-  const tokens = (d.tokens ?? []).map(adaptToken);
-  const positions = tokens
-    .filter((t) => t.openQuantity > 0)
-    .sort((a, b) => b.currentValue - a.currentValue);
-  const closed = tokens
-    .filter((t) => t.openQuantity <= 0)
-    .sort((a, b) => b.totalPnl - a.totalPnl);
   const dailyPnls: WalletDailyPnl[] = (d.daily_pnls ?? []).map((p) => ({
     day: p.day,
     realizedPnl: num(p.realized_pnl),
@@ -332,9 +356,16 @@ function adaptWalletPnl(d: WalletPnlDto): WalletPnlDetail {
     wallet: d.wallet,
     tag: d.tag ?? "",
     summary: adaptSummary(d.summary),
-    positions,
-    closed,
     dailyPnls,
+  };
+}
+
+function adaptPositions(d: WalletPositionsDto): WalletPositionsPage {
+  return {
+    cursor: d.cursor,
+    sortBy: d.sort_by ?? "totalPnl",
+    order: d.order ?? "desc",
+    tokens: (d.tokens ?? []).map(adaptToken),
   };
 }
 
@@ -352,6 +383,10 @@ function adaptActivity(d: WalletActivityDto): WalletActivity {
     tokenId: d.token_id,
     eventSlug: d.event_slug,
     activityTs: d.activity_ts,
+    eventTitle: d.event_title,
+    eventImageUrl: d.event_image_url,
+    marketImageUrl: d.market_image_url,
+    marketDescription: d.market_description,
   };
 }
 
@@ -364,6 +399,19 @@ export const leaderboardQueryKey = (interval: LeaderboardInterval) =>
 
 export const walletPnlQueryKey = (wallet: string) =>
   ["leaderboard", "wallet-pnl", wallet] as const;
+
+export const walletPositionsQueryKey = (
+  wallet: string,
+  sortBy?: PositionSortField,
+  order?: SortOrder,
+) =>
+  [
+    "leaderboard",
+    "wallet-positions",
+    wallet,
+    sortBy ?? "default",
+    order ?? "default",
+  ] as const;
 
 export const walletActivitiesQueryKey = (wallet: string) =>
   ["leaderboard", "wallet-activities", wallet] as const;
@@ -420,6 +468,31 @@ export async function fetchWalletPnl(
     `wallets/${encodeURIComponent(wallet)}/pnl`,
     opts.lang,
   ).then(adaptWalletPnl);
+}
+
+/** Fetch + adapt a page of a wallet's token positions (sorted / paginated). */
+export async function fetchWalletPositions(
+  baseUrl: string,
+  wallet: string,
+  opts: {
+    sortBy?: PositionSortField;
+    order?: SortOrder;
+    limit?: number;
+    cursor?: string;
+    lang?: string;
+  } = {},
+): Promise<WalletPositionsPage> {
+  const params = new URLSearchParams();
+  if (LEADERBOARD_TAG) params.set("tag", LEADERBOARD_TAG);
+  if (opts.sortBy) params.set("sort_by", opts.sortBy);
+  if (opts.order) params.set("order", opts.order);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  return getJson<WalletPositionsDto>(
+    baseUrl,
+    `wallets/${encodeURIComponent(wallet)}/positions?${params.toString()}`,
+    opts.lang,
+  ).then(adaptPositions);
 }
 
 /** Fetch + adapt a wallet's recent trade activities. */

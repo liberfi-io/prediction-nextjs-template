@@ -18,7 +18,10 @@ import {
   hashTypedData,
   encodeFunctionData,
   size,
+  concat,
   concatHex,
+  pad,
+  toHex,
   zeroAddress,
   hexToBigInt,
   createPublicClient,
@@ -541,4 +544,281 @@ export function buildTransferCalldata(to: Hex, amount: bigint): Hex {
     functionName: "transfer",
     args: [to, amount],
   });
+}
+
+// ===========================================================================
+// Deposit wallet (CLOB V2 / POLY_1271)
+// ===========================================================================
+//
+// New users without a Safe are onboarded to a per-user ERC-1967 deposit wallet
+// (collateral = pUSD, V2 exchanges). Deployment is gasless and performed by the
+// prediction-server (WALLET-CREATE, no user signature). Approvals and
+// withdrawals are submitted as a signed `WALLET` batch from the deposit wallet.
+//
+// Constants mirror @polymarket/builder-relayer-client (POL config) and
+// @polymarket/clob-client-v2 (MATIC config) on Polygon mainnet.
+
+/** Deposit wallet factory (deploys per-user ERC-1967 proxies via CREATE2). */
+export const DEPOSIT_WALLET_FACTORY: Hex =
+  "0x00000000000Fb5C9ADea0298D729A0CB3823Cc07";
+/** Beacon used by the latest BeaconProxy deposit wallet clones. */
+export const DEPOSIT_WALLET_BEACON: Hex =
+  "0x7A18EDfe055488A3128f01F563e5B479D92ffc3a";
+/** UUPS implementation used by older deposit wallet clones. */
+export const DEPOSIT_WALLET_IMPLEMENTATION: Hex =
+  "0x58CA52ebe0DadfdF531Cde7062e76746de4Db1eB";
+
+const DEPOSIT_WALLET_DOMAIN_NAME = "DepositWallet";
+const DEPOSIT_WALLET_DOMAIN_VERSION = "1";
+
+/** keccak256("BEACON()")[:4]. */
+const FACTORY_BEACON_SELECTOR: Hex = "0x49493a4d";
+
+/** Polymarket CLOB V2 contract addresses (pUSD collateral + V2 exchanges). */
+export const POLYMARKET_V2_CONTRACTS = {
+  PUSD: "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB" as Hex,
+  CTF: "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045" as Hex,
+  CTF_EXCHANGE_V2: "0xE111180000d2663C0091e4f400237545B87B996B" as Hex,
+  NEG_RISK_EXCHANGE_V2: "0xe2222d279d744050d28e00520010520000310F59" as Hex,
+  NEG_RISK_ADAPTER: "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296" as Hex,
+} as const;
+
+// --- Solady LibClone ERC-1967 init-code constants (from derive.js) ----------
+
+const ERC1967_CONST1: Hex =
+  "0xcc3735a920a3ca505d382bbc545af43d6000803e6038573d6000fd5b3d6000f3";
+const ERC1967_CONST2: Hex =
+  "0x5155f3363d3d373d3d363d7f360894a13ba1a3210667c828492db98dca3e2076";
+const ERC1967_PREFIX = 0x61003d3d8160233d3973n;
+
+const ERC1967_BEACON_CONST1: Hex =
+  "0xb3582b35133d50545afa5036515af43d6000803e604d573d6000fd5b3d6000f3";
+const ERC1967_BEACON_CONST2: Hex =
+  "0x1b60e01b36527fa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6c";
+const ERC1967_BEACON_CONST3: Hex =
+  "0x60195155f3363d3d373d3d363d602036600436635c60da";
+const ERC1967_BEACON_PREFIX = 0x6100523d8160233d3973n;
+
+function depositWalletArgs(owner: Hex): Hex {
+  const walletId = pad(owner, { dir: "left", size: 32 });
+  return encodeAbiParameters(
+    [{ type: "address" }, { type: "bytes32" }],
+    [DEPOSIT_WALLET_FACTORY, walletId],
+  );
+}
+
+function initCodeHashErc1967(implementation: Hex, args: Hex): Hex {
+  const n = BigInt((args.length - 2) / 2);
+  const combined = ERC1967_PREFIX + (n << 56n);
+  return keccak256(
+    concat([
+      toHex(combined, { size: 10 }),
+      implementation,
+      "0x6009",
+      ERC1967_CONST2,
+      ERC1967_CONST1,
+      args,
+    ]),
+  );
+}
+
+function initCodeHashErc1967Beacon(beacon: Hex, args: Hex): Hex {
+  const n = BigInt((args.length - 2) / 2);
+  const combined = ERC1967_BEACON_PREFIX + (n << 56n);
+  return keccak256(
+    concat([
+      toHex(combined, { size: 10 }),
+      beacon,
+      ERC1967_BEACON_CONST3,
+      ERC1967_BEACON_CONST2,
+      ERC1967_BEACON_CONST1,
+      args,
+    ]),
+  );
+}
+
+/** Deterministic UUPS deposit wallet address. */
+export function deriveUupsDepositWallet(owner: Hex): Hex {
+  const args = depositWalletArgs(owner);
+  return getCreate2Address({
+    from: DEPOSIT_WALLET_FACTORY,
+    salt: keccak256(args),
+    bytecodeHash: initCodeHashErc1967(DEPOSIT_WALLET_IMPLEMENTATION, args),
+  });
+}
+
+/** Deterministic BeaconProxy deposit wallet address. */
+export function deriveBeaconDepositWallet(owner: Hex): Hex {
+  const args = depositWalletArgs(owner);
+  return getCreate2Address({
+    from: DEPOSIT_WALLET_FACTORY,
+    salt: keccak256(args),
+    bytecodeHash: initCodeHashErc1967Beacon(DEPOSIT_WALLET_BEACON, args),
+  });
+}
+
+async function getFactoryBeacon(): Promise<Hex> {
+  const client = getPublicClient();
+  try {
+    const { data } = await client.call({
+      to: DEPOSIT_WALLET_FACTORY,
+      data: FACTORY_BEACON_SELECTOR,
+    });
+    if (!data || data.length < 66) return zeroAddress;
+    return ("0x" + data.slice(-40)) as Hex;
+  } catch {
+    return zeroAddress;
+  }
+}
+
+/**
+ * Resolve the active deposit wallet address for an owner EOA. Mirrors
+ * RelayClient.deriveDepositWalletAddress(): UUPS unless the factory exposes a
+ * beacon and the UUPS address is not yet deployed (then BeaconProxy).
+ */
+export async function deriveDepositWallet(owner: Hex): Promise<Hex> {
+  const uups = deriveUupsDepositWallet(owner);
+  const beacon = await getFactoryBeacon();
+  if (beacon.toLowerCase() === zeroAddress) return uups;
+
+  const client = getPublicClient();
+  const code = await client.getCode({ address: uups });
+  if (code && code !== "0x") return uups;
+
+  return deriveBeaconDepositWallet(owner);
+}
+
+const WALLET_BATCH_DEADLINE_SECONDS = 3600;
+
+interface DepositWalletCall {
+  target: Hex;
+  value: string;
+  data: Hex;
+}
+
+async function getWalletNonce(
+  config: PolymarketRelayConfig,
+  owner: Hex,
+): Promise<string> {
+  const path = `/nonce?address=${owner}&type=WALLET`;
+  const resp = await relayerFetch(config, "GET", path);
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Relayer nonce error ${resp.status}: ${text}`);
+  }
+  const data: { nonce: string } = await resp.json();
+  return data.nonce;
+}
+
+/**
+ * Execute a batch of calls from the deposit wallet via the Polymarket Relayer.
+ *
+ * Builds the `DepositWallet` `Batch` EIP-712 message, signs it with the owner's
+ * wallet, and submits a `WALLET` request through the HMAC sign proxy.
+ */
+export async function executeDepositWalletBatch(
+  walletClient: WalletClient,
+  depositWalletAddress: Hex,
+  calls: DepositWalletCall[],
+  config: PolymarketRelayConfig,
+): Promise<RelayerSubmitResponse> {
+  const [account] = await walletClient.getAddresses();
+  if (!account) throw new Error("No account in WalletClient");
+
+  const nonce = await getWalletNonce(config, account);
+  const deadline = String(
+    Math.floor(Date.now() / 1000) + WALLET_BATCH_DEADLINE_SECONDS,
+  );
+
+  const signature = await walletClient.signTypedData({
+    account,
+    domain: {
+      name: DEPOSIT_WALLET_DOMAIN_NAME,
+      version: DEPOSIT_WALLET_DOMAIN_VERSION,
+      chainId: BigInt(POLYGON_CHAIN_ID),
+      verifyingContract: depositWalletAddress,
+    },
+    types: {
+      Call: [
+        { name: "target", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "data", type: "bytes" },
+      ],
+      Batch: [
+        { name: "wallet", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+        { name: "calls", type: "Call[]" },
+      ],
+    },
+    primaryType: "Batch",
+    message: {
+      wallet: depositWalletAddress,
+      nonce: BigInt(nonce),
+      deadline: BigInt(deadline),
+      calls: calls.map((c) => ({
+        target: c.target,
+        value: BigInt(c.value),
+        data: c.data,
+      })),
+    },
+  });
+
+  const request = {
+    type: "WALLET",
+    from: account,
+    to: DEPOSIT_WALLET_FACTORY,
+    nonce,
+    signature,
+    depositWalletParams: {
+      depositWallet: depositWalletAddress,
+      deadline,
+      calls,
+    },
+  };
+
+  return submitTransaction(config, JSON.stringify(request));
+}
+
+/**
+ * Returns the deposit-wallet trading approvals as WALLET-batch calls:
+ * - pUSD approve → CTF, CTF Exchange V2, NegRisk CTF Exchange V2, NegRisk Adapter
+ * - CTF setApprovalForAll → CTF Exchange V2, NegRisk CTF Exchange V2, NegRisk Adapter
+ */
+export function buildAllDepositApprovalCalls(): DepositWalletCall[] {
+  const { PUSD, CTF, CTF_EXCHANGE_V2, NEG_RISK_EXCHANGE_V2, NEG_RISK_ADAPTER } =
+    POLYMARKET_V2_CONTRACTS;
+
+  const erc20 = (spender: Hex): DepositWalletCall => ({
+    target: PUSD,
+    value: "0",
+    data: buildApproveCalldata(spender),
+  });
+  const erc1155 = (operator: Hex): DepositWalletCall => ({
+    target: CTF,
+    value: "0",
+    data: buildSetApprovalForAllCalldata(operator),
+  });
+
+  return [
+    erc20(CTF),
+    erc20(CTF_EXCHANGE_V2),
+    erc20(NEG_RISK_EXCHANGE_V2),
+    erc20(NEG_RISK_ADAPTER),
+    erc1155(CTF_EXCHANGE_V2),
+    erc1155(NEG_RISK_EXCHANGE_V2),
+    erc1155(NEG_RISK_ADAPTER),
+  ];
+}
+
+/** Build a pUSD transfer WALLET-batch call (deposit wallet withdrawal). */
+export function buildDepositTransferCall(
+  to: Hex,
+  amount: bigint,
+): DepositWalletCall {
+  return {
+    target: POLYMARKET_V2_CONTRACTS.PUSD,
+    value: "0",
+    data: buildTransferCalldata(to, amount),
+  };
 }

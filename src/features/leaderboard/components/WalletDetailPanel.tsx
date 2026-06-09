@@ -1,74 +1,107 @@
 "use client";
 
 /**
- * Wallet detail — right detail column of the Smart Money master-detail layout.
+ * Wallet detail — the right detail column of the Smart Money master-detail
+ * layout (full-screen slide-over on mobile).
  *
- * Composes the wallet header, an OVERVIEW hero, a PERFORMANCE grid, a
- * collapsible YIELD & RISK panel, and the POSITIONS / CLOSED / ACTIVITY tabs.
- * The panel fills its column height: the stats block stays pinned while only
- * the active tab's list scrolls. All three lists are virtualized (the ACTIVITY
- * tab additionally fetches more pages as the user scrolls to the bottom).
+ * Layout mirrors a portfolio profile page: a wallet header, three summary
+ * cards (TOTAL VALUE with a daily sparkline, PERFORMANCE & BIAS, YIELD & RISK
+ * with a category exposure bar) and the POSITIONS / SETTLED / ACTIVITY tabs.
  *
- * Data comes from {@link useWalletPnl} and {@link useWalletActivities}; all
- * numeric formatting goes through `../format`. The panel is remounted (keyed by
- * wallet) by the parent on selection change so a switch always shows its own
- * loading skeleton.
+ * The whole panel scrolls as one surface; the active tab's list is virtualized
+ * against that scroll surface via `scrollMargin` so the cards scroll away
+ * naturally on mobile while long lists stay cheap. Summary + daily come from
+ * {@link useWalletPnl}; positions from the paginated {@link useWalletPositions};
+ * activities from {@link useWalletActivities}. All formatting goes through
+ * `../format`.
  */
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
+import Link from "next/link";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn } from "@liberfi.io/ui";
+import { cn, Sortable } from "@liberfi.io/ui";
 import { CopyInline } from "../../../components/CopyButton";
 import { GradientAvatar } from "../../../components/GradientAvatar";
-import { useWalletActivities, useWalletPnl } from "../data/queries";
 import {
-  formatHoldingTime,
+  useWalletActivities,
+  useWalletPnl,
+  useWalletPositions,
+} from "../data/queries";
+import {
   formatPercent,
   formatPrice,
   formatRate,
+  formatRelativeTime,
   formatSignedUsd,
   formatUsd,
   pnlColorClass,
   shortAddress,
 } from "../format";
 import type {
+  PositionSortField,
+  SortOrder,
   WalletActivity,
-  WalletPnlDetail,
   WalletPnlSummary,
   WalletTokenPnl,
 } from "../types";
-import { DetailRowsSkeleton, WalletDetailSkeleton } from "./skeletons";
+import { WalletDetailSkeleton } from "./skeletons";
 
-type DetailTab = "positions" | "closed" | "activity";
+type DetailTab = "all" | "open" | "settled" | "activity";
 
 /** Estimated list row height (px) for the virtualizer's first paint. */
 const ROW_ESTIMATE = 64;
 
-export function WalletDetailPanel({ wallet }: { wallet: string }) {
+/** Position table grid template (desktop). */
+const TABLE_GRID =
+  "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_minmax(90px,1fr)_88px_88px_78px_62px]";
+
+export function WalletDetailPanel({
+  wallet,
+  onBack,
+}: {
+  wallet: string;
+  onBack?: () => void;
+}) {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useWalletPnl(wallet);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  if (isLoading) return <WalletDetailSkeleton />;
+  if (isLoading) return <WalletDetailSkeleton onBack={onBack} />;
 
   if (isError || !data) {
     return (
       <div className="flex h-full flex-col gap-4">
-        <WalletHeader wallet={wallet} />
+        <WalletHeader wallet={wallet} onBack={onBack} />
         <EmptyBlock message={t("extend.leaderboard.loadError")} fill />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex shrink-0 flex-col gap-4">
-        <WalletHeader wallet={wallet} summary={data.summary} />
-        <WalletOverview summary={data.summary} />
-        <WalletPerformance summary={data.summary} />
-        <YieldRiskPanel summary={data.summary} />
+    <div className="flex h-full flex-col">
+      <div
+        ref={scrollRef}
+        className="relative flex-1 overflow-y-auto"
+      >
+        <div className="flex flex-col gap-4 pb-4">
+          <WalletHeader wallet={wallet} summary={data.summary} onBack={onBack} />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <TotalValueCard summary={data.summary} />
+            <PerformanceBiasCard summary={data.summary} />
+            <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
+          </div>
+          <WalletTabs wallet={wallet} summary={data.summary} scrollRef={scrollRef} />
+        </div>
       </div>
-      <WalletPositionsTabs wallet={wallet} detail={data} />
     </div>
   );
 }
@@ -80,15 +113,30 @@ export function WalletDetailPanel({ wallet }: { wallet: string }) {
 function WalletHeader({
   wallet,
   summary,
+  onBack,
 }: {
   wallet: string;
   summary?: WalletPnlSummary;
+  onBack?: () => void;
 }) {
   const { t } = useTranslation();
 
   return (
     <div className="flex items-center gap-3">
-      <GradientAvatar seed={wallet} size={48} className="!rounded-xl" />
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label={t("extend.leaderboard.back")}
+          title={t("extend.leaderboard.back")}
+          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-800/60 text-zinc-300 transition-colors hover:bg-zinc-800/60 hover:text-white"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+      <GradientAvatar seed={wallet} size={44} className="!rounded-xl" />
       <div className="min-w-0">
         <CopyInline value={wallet} title={t("extend.leaderboard.copy")} size={14}>
           <span className="truncate font-mono text-base font-semibold text-white">
@@ -98,7 +146,8 @@ function WalletHeader({
         {summary && (
           <div className="mt-0.5 text-xs text-zinc-500">
             {summary.marketCount} {t("extend.leaderboard.col.markets")} ·{" "}
-            {formatRate(summary.winRate)} {t("extend.leaderboard.col.winRate")}
+            {t("extend.leaderboard.detail.lastActive")}{" "}
+            {formatRelativeTime(summary.lastActivityTs)}
           </div>
         )}
       </div>
@@ -107,432 +156,792 @@ function WalletHeader({
 }
 
 // ---------------------------------------------------------------------------
-// Overview (hero)
+// Card 1 — TOTAL VALUE
 // ---------------------------------------------------------------------------
 
-function WalletOverview({ summary }: { summary: WalletPnlSummary }) {
+function TotalValueCard({ summary }: { summary: WalletPnlSummary }) {
   const { t } = useTranslation();
+
   return (
-    <section>
-      <SectionTitle>{t("extend.leaderboard.overview.title")}</SectionTitle>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <HeroCard label={t("extend.leaderboard.overview.totalValue")}>
-          <span className="text-xl font-bold text-white">
-            {formatUsd(summary.currentValue)}
-          </span>
-        </HeroCard>
-        <HeroCard label={t("extend.leaderboard.overview.totalPnl")}>
-          <span className={cn("text-xl font-bold", pnlColorClass(summary.totalPnl))}>
-            {formatSignedUsd(summary.totalPnl)}
-          </span>
-          <span className={cn("ml-1.5 text-sm font-medium", pnlColorClass(summary.totalPnl))}>
-            {formatPercent(summary.totalPnlRatio)}
-          </span>
-        </HeroCard>
-        <HeroCard
-          label={t("extend.leaderboard.overview.sevenDayPnl")}
-          className="col-span-2 sm:col-span-1"
-        >
-          <span className={cn("text-xl font-bold", pnlColorClass(summary.sevenDayRealizedPnl))}>
-            {formatSignedUsd(summary.sevenDayRealizedPnl)}
-          </span>
-        </HeroCard>
+    <Card title={t("extend.leaderboard.detail.totalValue")}>
+      <div className="space-y-2">
+        <MiniStat
+          label={t("extend.leaderboard.detail.netValue")}
+          value={
+            <span className="text-base font-bold text-white">
+              {formatUsd(summary.currentValue)}
+            </span>
+          }
+        />
+        <MiniStat
+          label={t("extend.leaderboard.detail.todayPnl")}
+          value={
+            <span className={pnlColorClass(summary.todayRealizedPnl)}>
+              {formatSignedUsd(summary.todayRealizedPnl)}
+            </span>
+          }
+        />
+        <MiniStat
+          label={t("extend.leaderboard.detail.sevenDayPnl")}
+          value={
+            <span className={pnlColorClass(summary.sevenDayRealizedPnl)}>
+              {formatSignedUsd(summary.sevenDayRealizedPnl)}
+            </span>
+          }
+        />
+        <MiniStat
+          label={t("extend.leaderboard.detail.totalPnl")}
+          value={
+            <span className={cn("inline-flex items-baseline gap-4", pnlColorClass(summary.totalPnl))}>
+              <span className="text-xs font-medium">
+                {formatPercent(summary.totalPnlRatio)}
+              </span>
+              <span>{formatSignedUsd(summary.totalPnl)}</span>
+            </span>
+          }
+        />
       </div>
-    </section>
+    </Card>
   );
 }
 
-function HeroCard({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
+function MiniStat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-zinc-800/50 bg-zinc-900/40 p-4",
-        className,
-      )}
-    >
-      <div className="mb-1.5 text-xs font-medium text-zinc-500">{label}</div>
-      <div className="flex items-baseline">{children}</div>
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-xs text-zinc-500">{label}</span>
+      <span className="text-sm font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Performance grid
+// Card 2 — PERFORMANCE & BIAS
 // ---------------------------------------------------------------------------
 
-function WalletPerformance({ summary }: { summary: WalletPnlSummary }) {
+function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) {
   const { t } = useTranslation();
 
-  const metrics: { label: string; value: string; color?: string }[] = [
+  const rows: { label: string; value: React.ReactNode }[] = [
     {
-      label: t("extend.leaderboard.perf.sevenDayVolume"),
-      value: formatUsd(summary.sevenDayVolume),
+      label: t("extend.leaderboard.detail.txs"),
+      value: (
+        <span className="tabular-nums text-white">
+          <span className="text-bullish">{summary.winCount}</span>
+          <span className="text-zinc-600"> / </span>
+          <span className="text-bearish">{summary.lossCount}</span>
+        </span>
+      ),
     },
     {
-      label: t("extend.leaderboard.perf.realizedPnl"),
-      value: formatSignedUsd(summary.realizedPnl),
-      color: pnlColorClass(summary.realizedPnl),
+      label: t("extend.leaderboard.detail.todayVol"),
+      value: <span className="text-white">{formatUsd(summary.todayVolume)}</span>,
     },
     {
-      label: t("extend.leaderboard.perf.unrealizedPnl"),
-      value: formatSignedUsd(summary.unrealizedPnl),
-      color: pnlColorClass(summary.unrealizedPnl),
+      label: t("extend.leaderboard.detail.vol7d"),
+      value: <span className="text-white">{formatUsd(summary.sevenDayVolume)}</span>,
     },
     {
-      label: t("extend.leaderboard.perf.markets"),
-      value: String(summary.marketCount),
+      label: t("extend.leaderboard.detail.realizedPnl"),
+      value: (
+        <span className={pnlColorClass(summary.realizedPnl)}>
+          {formatSignedUsd(summary.realizedPnl)}
+        </span>
+      ),
     },
     {
-      label: t("extend.leaderboard.perf.avgInitialCost"),
-      value: formatUsd(summary.avgInitialCost),
+      label: t("extend.leaderboard.detail.currentPnl"),
+      value: (
+        <span className={pnlColorClass(summary.unrealizedPnl)}>
+          {formatSignedUsd(summary.unrealizedPnl)}
+        </span>
+      ),
     },
     {
-      label: t("extend.leaderboard.perf.avgHoldTime"),
-      value: formatHoldingTime(summary.avgHoldingSeconds),
+      label: t("extend.leaderboard.detail.marketCount"),
+      value: <span className="text-white">{summary.marketCount}</span>,
     },
     {
-      label: t("extend.leaderboard.perf.bestTrade"),
-      value: formatSignedUsd(summary.bestTradePnl),
-      color: pnlColorClass(summary.bestTradePnl),
+      label: t("extend.leaderboard.detail.avgInitialCost"),
+      value: <span className="text-white">{formatUsd(summary.avgInitialCost)}</span>,
     },
     {
-      label: t("extend.leaderboard.perf.worstTrade"),
-      value: formatSignedUsd(summary.worstTradePnl),
-      color: pnlColorClass(summary.worstTradePnl),
+      label: t("extend.leaderboard.detail.avgScaleIn"),
+      value: (
+        <span className="text-white">
+          {summary.avgEntryCount > 0 ? summary.avgEntryCount.toFixed(2) : "—"}
+        </span>
+      ),
+    },
+    {
+      label: t("extend.leaderboard.detail.lastActive"),
+      value: <span className="text-white">{formatRelativeTime(summary.lastActivityTs)}</span>,
     },
   ];
 
   return (
-    <section>
-      <SectionTitle>{t("extend.leaderboard.perf.title")}</SectionTitle>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {metrics.map((m) => (
-          <div
-            key={m.label}
-            className="rounded-xl border border-zinc-800/40 bg-zinc-900/30 p-3"
+    <Card title={t("extend.leaderboard.detail.performanceBias")}>
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-2">
+            <span className="text-xs text-zinc-500">{r.label}</span>
+            <span className="text-sm font-semibold tabular-nums">{r.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {summary.bestTradeMarketQuestion && (
+        <div className="mt-3 border-t border-zinc-800/60 pt-3">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+            {t("extend.leaderboard.detail.bestTrade")}
+          </div>
+          <EventTitleLink
+            slug={summary.bestTradeEventSlug}
+            className="line-clamp-1 text-xs text-zinc-300"
           >
+            {summary.bestTradeMarketQuestion}
+          </EventTitleLink>
+          <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(summary.bestTradePnl))}>
+            {formatSignedUsd(summary.bestTradePnl)}
+          </div>
+        </div>
+      )}
+
+      {summary.worstTradeMarketQuestion && (
+        <div className="mt-3 border-t border-zinc-800/60 pt-3">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+            {t("extend.leaderboard.detail.worstTrade")}
+          </div>
+          <EventTitleLink
+            slug={summary.worstTradeEventSlug}
+            className="line-clamp-1 text-xs text-zinc-300"
+          >
+            {summary.worstTradeMarketQuestion}
+          </EventTitleLink>
+          <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(summary.worstTradePnl))}>
+            {formatSignedUsd(summary.worstTradePnl)}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card 3 — YIELD & RISK
+// ---------------------------------------------------------------------------
+
+function YieldRiskCard({
+  summary,
+  wallet,
+  tag,
+}: {
+  summary: WalletPnlSummary;
+  wallet: string;
+  tag: string;
+}) {
+  const { t } = useTranslation();
+  // Pull the first positions page just to compute the exposure mix; the tab
+  // body fetches/manages the full paginated list separately.
+  const { data } = useWalletPositions(wallet);
+  const exposure = useMemo(
+    () => buildExposure(data?.pages.flatMap((p) => p.tokens) ?? [], tag),
+    [data, tag],
+  );
+
+  const metrics: { label: string; value: string }[] = [
+    {
+      label: t("extend.leaderboard.detail.winRate"),
+      value: formatRate(summary.winRate),
+    },
+    {
+      label: t("extend.leaderboard.detail.profitFactor"),
+      value: summary.profitFactor > 0 ? summary.profitFactor.toFixed(2) : "—",
+    },
+    {
+      label: t("extend.leaderboard.detail.settlementWinRate"),
+      value: formatRate(summary.settlementWinRate),
+    },
+    {
+      label: t("extend.leaderboard.detail.settledRatio"),
+      value: formatRate(summary.settlementRatio),
+    },
+  ];
+
+  return (
+    <Card title={t("extend.leaderboard.detail.yieldRisk")}>
+      <div className="grid grid-cols-2 gap-3">
+        {metrics.map((m) => (
+          <div key={m.label}>
             <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
               {m.label}
             </div>
-            <div className={cn("text-sm font-semibold tabular-nums text-white", m.color)}>
+            <div className="text-sm font-semibold tabular-nums text-white">
               {m.value}
             </div>
           </div>
         ))}
       </div>
-    </section>
-  );
-}
 
-// ---------------------------------------------------------------------------
-// Yield & Risk (collapsible)
-// ---------------------------------------------------------------------------
-
-function YieldRiskPanel({ summary }: { summary: WalletPnlSummary }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-
-  const metrics: { label: string; value: string }[] = [
-    {
-      label: t("extend.leaderboard.yieldRisk.profitFactor"),
-      value: summary.profitFactor > 0 ? summary.profitFactor.toFixed(2) : "—",
-    },
-    {
-      label: t("extend.leaderboard.yieldRisk.settlementWinRate"),
-      value: formatRate(summary.settlementWinRate),
-    },
-    {
-      label: t("extend.leaderboard.yieldRisk.settlementRatio"),
-      value: formatRate(summary.settlementRatio),
-    },
-    {
-      label: t("extend.leaderboard.yieldRisk.avgEntryCount"),
-      value: summary.avgEntryCount > 0 ? summary.avgEntryCount.toFixed(1) : "—",
-    },
-  ];
-
-  return (
-    <section className="rounded-xl border border-zinc-800/40 bg-zinc-900/20">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left"
-      >
-        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-          {t("extend.leaderboard.yieldRisk.title")}
-        </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={cn("text-zinc-500 transition-transform", open && "rotate-180")}
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-4">
-          {metrics.map((m) => (
-            <div key={m.label}>
-              <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                {m.label}
-              </div>
-              <div className="text-sm font-semibold tabular-nums text-white">
-                {m.value}
-              </div>
-            </div>
-          ))}
+      {exposure.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+            {t("extend.leaderboard.detail.exposure")}
+          </div>
+          <div className="flex h-2 overflow-hidden rounded-full bg-zinc-800/60">
+            {exposure.map((e, i) => (
+              <div
+                key={e.label}
+                className={EXPOSURE_COLORS[i % EXPOSURE_COLORS.length]}
+                style={{ width: `${(e.ratio * 100).toFixed(1)}%` }}
+              />
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {exposure.map((e, i) => (
+              <span key={e.label} className="flex items-center gap-1 text-[11px] text-zinc-400">
+                <span
+                  className={cn(
+                    "size-2 rounded-sm",
+                    EXPOSURE_COLORS[i % EXPOSURE_COLORS.length],
+                  )}
+                />
+                <span className="max-w-[90px] truncate">{e.label}</span>
+                <span className="tabular-nums text-zinc-500">
+                  {(e.ratio * 100).toFixed(1)}%
+                </span>
+              </span>
+            ))}
+          </div>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
+const EXPOSURE_COLORS = [
+  "bg-emerald-500",
+  "bg-sky-500",
+  "bg-amber-500",
+  "bg-fuchsia-500",
+];
+
+/**
+ * Aggregate position value by category tag (excluding the product tag and
+ * opaque numeric ids). Returns the top categories by value share.
+ */
+function buildExposure(
+  tokens: WalletTokenPnl[],
+  productTag: string,
+): { label: string; ratio: number }[] {
+  const byTag = new Map<string, number>();
+  let total = 0;
+  for (const tk of tokens) {
+    const value = Math.max(0, tk.currentValue);
+    if (value <= 0) continue;
+    const cats = tk.tags.filter(
+      (tag) => tag && tag !== productTag && !/^\d+$/.test(tag),
+    );
+    if (cats.length === 0) continue;
+    const cat = cats[0];
+    byTag.set(cat, (byTag.get(cat) ?? 0) + value);
+    total += value;
+  }
+  if (total <= 0) return [];
+  const sorted = [...byTag.entries()].sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 3);
+  const rest = sorted.slice(3).reduce((s, [, v]) => s + v, 0);
+  const out = top.map(([label, v]) => ({ label, ratio: v / total }));
+  if (rest > 0) out.push({ label: "Others", ratio: rest / total });
+  return out;
+}
+
 // ---------------------------------------------------------------------------
-// Positions / Closed / Activity tabs
+// Tabs + table
 // ---------------------------------------------------------------------------
 
-function WalletPositionsTabs({
+function WalletTabs({
   wallet,
-  detail,
+  summary,
+  scrollRef,
 }: {
   wallet: string;
-  detail: WalletPnlDetail;
+  summary: WalletPnlSummary;
+  scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<DetailTab>("positions");
+  const [tab, setTab] = useState<DetailTab>("all");
+  const [query, setQuery] = useState("");
+  // Single active sort column; `null` = unsorted (backend default order), which
+  // is the initial state. Mirrors the ui-tokens Sortable interaction
+  // (undefined → desc → asc → undefined).
+  const [sort, setSort] = useState<{
+    field: PositionSortField;
+    order: SortOrder;
+  } | null>(null);
+
+  const settledCount = Math.max(0, summary.tokenCount - summary.openPositionCount);
 
   const tabs: { key: DetailTab; label: string; count?: number }[] = [
-    {
-      key: "positions",
-      label: t("extend.leaderboard.tabs.positions"),
-      count: detail.positions.length,
-    },
-    {
-      key: "closed",
-      label: t("extend.leaderboard.tabs.closed"),
-      count: detail.closed.length,
-    },
+    { key: "all", label: t("extend.leaderboard.detail.tabs.all"), count: summary.tokenCount },
+    { key: "open", label: t("extend.leaderboard.detail.tabs.open"), count: summary.openPositionCount },
+    { key: "settled", label: t("extend.leaderboard.detail.tabs.settled"), count: settledCount },
     { key: "activity", label: t("extend.leaderboard.tabs.activity") },
   ];
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-zinc-800/50">
-        <div className="flex gap-0">
-          {tabs.map((tb) => (
-            <button
-              key={tb.key}
-              type="button"
-              onClick={() => setTab(tb.key)}
-              className={cn(
-                "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
-                tab === tb.key
-                  ? "border-bullish text-bullish"
-                  : "border-transparent text-zinc-400 hover:text-zinc-300",
-              )}
-            >
-              {tb.label}
-              {tb.count != null && tb.count > 0 && (
-                <span className="ml-1 text-zinc-500">({tb.count})</span>
-              )}
-            </button>
-          ))}
+    <section className="flex flex-col">
+      <div className="sticky top-0 z-10 -mx-px bg-[#0a0a0b]/95 pb-2 pt-1 backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800/50">
+          <div className="flex gap-0 overflow-x-auto">
+            {tabs.map((tb) => (
+              <button
+                key={tb.key}
+                type="button"
+                onClick={() => setTab(tb.key)}
+                className={cn(
+                  "cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-all",
+                  tab === tb.key
+                    ? "border-bullish text-bullish"
+                    : "border-transparent text-zinc-400 hover:text-zinc-300",
+                )}
+              >
+                {tb.label}
+                {tb.count != null && tb.count > 0 && (
+                  <span className="ml-1 text-zinc-500">({tb.count})</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {tab !== "activity" && (
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("extend.leaderboard.detail.searchMarkets")}
+              className="mb-1.5 min-w-[140px] flex-1 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-3 py-1.5 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-zinc-700 sm:max-w-[220px]"
+            />
+          )}
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col pt-3">
-        {tab === "positions" && (
-          <PositionsList positions={detail.positions} open />
+
+      <div className="pt-3">
+        {tab === "activity" ? (
+          <ActivityList wallet={wallet} query={query} scrollRef={scrollRef} />
+        ) : (
+          <PositionsTable
+            wallet={wallet}
+            tab={tab}
+            query={query}
+            sort={sort}
+            onSort={setSort}
+            scrollRef={scrollRef}
+          />
         )}
-        {tab === "closed" && <PositionsList positions={detail.closed} />}
-        {tab === "activity" && <ActivityList wallet={wallet} />}
       </div>
     </section>
   );
 }
 
-function PositionsList({
-  positions,
-  open = false,
-}: {
-  positions: WalletTokenPnl[];
-  open?: boolean;
-}) {
-  const { t } = useTranslation();
-  const parentRef = useRef<HTMLDivElement>(null);
+/**
+ * Window-style virtualizer bound to the panel's scroll surface. Tracks the
+ * list wrapper's offset within the scroll element as `scrollMargin`.
+ */
+function useWindowList(
+  scrollRef: RefObject<HTMLElement>,
+  count: number,
+  deps: unknown[],
+) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const wrap = wrapRef.current;
+      const scroller = scrollRef.current;
+      if (!wrap || !scroller) return;
+      const offset =
+        wrap.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop;
+      setScrollMargin((prev) => (Math.abs(prev - offset) > 1 ? offset : prev));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
   const virtualizer = useVirtualizer({
-    count: positions.length,
-    getScrollElement: () => parentRef.current,
+    count,
+    getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_ESTIMATE,
     overscan: 8,
+    scrollMargin,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
 
-  if (positions.length === 0) {
+  return { wrapRef, virtualizer, scrollMargin };
+}
+
+function PositionsTable({
+  wallet,
+  tab,
+  query,
+  sort,
+  onSort,
+  scrollRef,
+}: {
+  wallet: string;
+  tab: "all" | "open" | "settled";
+  query: string;
+  sort: { field: PositionSortField; order: SortOrder } | null;
+  onSort: (s: { field: PositionSortField; order: SortOrder } | null) => void;
+  scrollRef: RefObject<HTMLDivElement>;
+}) {
+  const { t } = useTranslation();
+  const {
+    data,
+    isLoading,
+    isPlaceholderData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useWalletPositions(wallet, sort?.field, sort?.order);
+
+  // Cycle a column through desc → asc → unsorted (ui-tokens Sortable contract).
+  const handleSort =
+    (field: PositionSortField) => (dir: "asc" | "desc" | undefined) => {
+      onSort(dir ? { field, order: dir } : null);
+    };
+  const sortFor = (field: PositionSortField): SortOrder | undefined =>
+    sort?.field === field ? sort.order : undefined;
+
+  const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
+  const q = query.trim().toLowerCase();
+  const rows = allTokens.filter((tk) => {
+    if (tab === "open" && tk.openQuantity <= 0) return false;
+    if (tab === "settled" && tk.openQuantity > 0) return false;
+    if (q && !(tk.marketQuestion || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const count = rows.length + (hasNextPage ? 1 : 0);
+  const { wrapRef, virtualizer, scrollMargin } = useWindowList(scrollRef, count, [
+    rows.length,
+    hasNextPage,
+    tab,
+    sort?.field,
+    sort?.order,
+  ]);
+  const virtualItems = virtualizer.getVirtualItems();
+
+  useEffect(() => {
+    const last = virtualItems[virtualItems.length - 1];
+    if (!last) return;
+    if (last.index >= rows.length - 1 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Show the skeleton both on first load and whenever the sort switches to a
+  // not-yet-cached order (placeholder data from the previous sort would
+  // otherwise linger, making the switch feel unresponsive). Pagination keeps
+  // the same query key, so it never trips this.
+  if (isLoading || isPlaceholderData) return <RowsSkeleton header />;
+  if (rows.length === 0) {
     return (
       <EmptyBlock
-        fill
-        message={t(
-          open ? "extend.leaderboard.noPositions" : "extend.leaderboard.noClosed",
-        )}
+        message={t(q ? "extend.leaderboard.detail.noResults" : "extend.leaderboard.noPositions")}
       />
     );
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-zinc-800/40 bg-zinc-900/20"
-    >
-      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-        {virtualizer.getVirtualItems().map((vItem) => {
-          const p = positions[vItem.index];
-          return (
-            <div
-              key={p.tokenId}
-              ref={virtualizer.measureElement}
-              data-index={vItem.index}
-              className="absolute left-0 top-0 w-full"
-              style={{ transform: `translateY(${vItem.start}px)` }}
-            >
-              <PositionRow
-                position={p}
-                open={open}
-                last={vItem.index === positions.length - 1}
-              />
-            </div>
-          );
-        })}
+    <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/20">
+      <div className="overflow-x-auto lg:overflow-x-visible">
+        <div className="min-w-[920px] lg:min-w-0">
+          {/* Column header — same column layout across breakpoints. On desktop
+              (lg+) the table shrinks to fit the available width; below lg it keeps
+              a fixed min width and the box scrolls horizontally. */}
+          <div className={cn("grid", TABLE_GRID, "items-center gap-1.5 border-b border-zinc-800/50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500")}>
+            <span>{t("extend.leaderboard.detail.colMarket")}</span>
+            <span className="text-center">{t("extend.leaderboard.detail.colSide")}</span>
+            <span className="text-right">{t("extend.leaderboard.detail.colShares")}</span>
+            <span className="text-right">{t("extend.leaderboard.detail.colAvgNow")}</span>
+            <span className="text-right">{t("extend.leaderboard.detail.colValue")}</span>
+            <span className="flex justify-end">
+              <Sortable sort={sortFor("totalPnl")} onSortChange={handleSort("totalPnl")}>
+                {t("extend.leaderboard.detail.colTotalPnl")}
+              </Sortable>
+            </span>
+            <span className="flex justify-end">
+              <Sortable sort={sortFor("realizedPnl")} onSortChange={handleSort("realizedPnl")}>
+                {t("extend.leaderboard.detail.colRealizedPnl")}
+              </Sortable>
+            </span>
+            <span className="flex justify-end">
+              <Sortable sort={sortFor("unrealizedPnl")} onSortChange={handleSort("unrealizedPnl")}>
+                {t("extend.leaderboard.detail.colUnrealizedPnl")}
+              </Sortable>
+            </span>
+            <span className="flex justify-end">
+              <Sortable sort={sortFor("lastActive")} onSortChange={handleSort("lastActive")}>
+                {t("extend.leaderboard.detail.colLastActive")}
+              </Sortable>
+            </span>
+            <span className="text-right">{t("extend.leaderboard.detail.colStatus")}</span>
+          </div>
+
+          <div ref={wrapRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualItems.map((vItem) => {
+              const isLoaderRow = vItem.index >= rows.length;
+              const p = rows[vItem.index];
+              return (
+                <div
+                  key={isLoaderRow ? "loader" : p.tokenId}
+                  ref={virtualizer.measureElement}
+                  data-index={vItem.index}
+                  className="absolute left-0 top-0 w-full"
+                  style={{ transform: `translateY(${vItem.start - scrollMargin}px)` }}
+                >
+                  {isLoaderRow ? (
+                    <div className="flex items-center justify-center px-4 py-4 text-xs text-zinc-500">
+                      {t("extend.leaderboard.loading")}
+                    </div>
+                  ) : (
+                    <PositionRow position={p} last={vItem.index === rows.length - 1} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function PositionRow({
-  position,
-  open,
-  last,
+function positionStatus(p: WalletTokenPnl): "open" | "won" | "lost" {
+  if (p.openQuantity > 0) return "open";
+  return p.realizedPnl >= 0 ? "won" : "lost";
+}
+
+/**
+ * Relative "time since" that re-renders every second so the value keeps
+ * ticking live while the wallet detail stays open.
+ */
+function LiveRelativeTime({
+  ts,
+  className,
 }: {
-  position: WalletTokenPnl;
-  open: boolean;
-  last: boolean;
+  ts?: string | number | null;
+  className?: string;
+}) {
+  const [, tick] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <span className={className}>{formatRelativeTime(ts)}</span>;
+}
+
+/**
+ * Market / event thumbnail. Renders the locally-enriched image URL when
+ * prediction-server resolved one; otherwise falls back to a deterministic
+ * gradient seeded by the market identifier (so the same market always looks the
+ * same). Broken image URLs degrade to the same gradient.
+ */
+function MarketAvatar({
+  src,
+  seed,
+  size = 32,
+  className,
+}: {
+  src?: string;
+  seed?: string;
+  size?: number;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className={cn("flex-shrink-0 rounded-lg bg-zinc-800 object-cover", className)}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return <GradientAvatar seed={seed} size={size} className={className} />;
+}
+
+/**
+ * Subtitle shown under a position's market question: the locally-enriched
+ * (localized) event title when available, otherwise the de-slugified event
+ * slug as a best-effort label.
+ */
+function positionSubtitle(position: WalletTokenPnl): string {
+  if (position.eventTitle) return position.eventTitle;
+  if (position.eventSlug) return position.eventSlug.replace(/-/g, " ");
+  return "";
+}
+
+/**
+ * Wraps a market title in a link to its event detail page when the
+ * locally-enriched event slug is available; otherwise renders plain text.
+ * Smart-money data is Polymarket-sourced, so the route is always the
+ * `/polymarket/{slug}` display path. `stopPropagation` keeps the link from
+ * triggering any enclosing row-level click handlers.
+ */
+function EventTitleLink({
+  slug,
+  className,
+  children,
+}: {
+  slug?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!slug) {
+    return <span className={className}>{children}</span>;
+  }
+  return (
+    <Link
+      href={`/polymarket/${slug}`}
+      prefetch={false}
+      onClick={(e) => e.stopPropagation()}
+      className={cn(className, "transition-colors hover:text-white hover:underline")}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function PositionRow({ position, last }: { position: WalletTokenPnl; last: boolean }) {
+  const { t } = useTranslation();
+  const status = positionStatus(position);
+  const statusMeta = {
+    open: { label: t("extend.leaderboard.detail.status.open"), cls: "bg-zinc-700/40 text-zinc-300" },
+    won: { label: t("extend.leaderboard.detail.status.won"), cls: "bg-bullish/15 text-bullish" },
+    lost: { label: t("extend.leaderboard.detail.status.lost"), cls: "bg-bearish/15 text-bearish" },
+  }[status];
+
+  const sideMeta =
+    position.outcome.toLowerCase() === "no"
+      ? "bg-bearish/10 text-bearish"
+      : "bg-bullish/10 text-bullish";
+
+  return (
+    <div className={cn("px-3 py-3", !last && "border-b border-zinc-800/40")}>
+      <div className={cn("grid", TABLE_GRID, "items-center gap-1.5")}>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <MarketAvatar
+            src={position.marketImageUrl || position.eventImageUrl}
+            seed={position.conditionId || position.tokenId || position.eventSlug}
+            size={34}
+          />
+          <div className="min-w-0">
+            <EventTitleLink
+              slug={position.eventSlug}
+              className="line-clamp-1 text-sm font-medium text-zinc-100"
+            >
+              {position.marketQuestion || "—"}
+            </EventTitleLink>
+            {positionSubtitle(position) && (
+              <div className="line-clamp-1 text-[11px] uppercase tracking-wide text-zinc-600">
+                {positionSubtitle(position)}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="text-center">
+          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", sideMeta)}>
+            {position.outcome || "—"}
+          </span>
+        </div>
+        <div className="text-right text-sm tabular-nums text-zinc-300">
+          {position.openQuantity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+        </div>
+        <div className="text-right text-xs tabular-nums text-zinc-400">
+          {formatPrice(position.avgEntryPrice)}
+          <span className="text-zinc-600"> → </span>
+          {formatPrice(position.lastPrice)}
+        </div>
+        <div className="text-right text-sm font-semibold tabular-nums text-white">
+          {formatUsd(position.currentValue)}
+        </div>
+        <div className={cn("text-right text-sm font-semibold tabular-nums", pnlColorClass(position.totalPnl))}>
+          {formatSignedUsd(position.totalPnl)}
+          <div className="text-[11px] font-medium">{formatPercent(position.totalPnlRatio)}</div>
+        </div>
+        <div className={cn("text-right text-sm tabular-nums", pnlColorClass(position.realizedPnl))}>
+          {formatSignedUsd(position.realizedPnl)}
+        </div>
+        <div className={cn("text-right text-sm tabular-nums", pnlColorClass(position.unrealizedPnl))}>
+          {formatSignedUsd(position.unrealizedPnl)}
+        </div>
+        <LiveRelativeTime
+          ts={position.lastActivityTs}
+          className="text-right text-xs tabular-nums text-zinc-400"
+        />
+        <div className="text-right">
+          <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", statusMeta.cls)}>
+            {statusMeta.label}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Activity tab
+// ---------------------------------------------------------------------------
+
+function ActivityList({
+  wallet,
+  query,
+  scrollRef,
+}: {
+  wallet: string;
+  query: string;
+  scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3 px-4 py-3",
-        !last && "border-b border-zinc-800/40",
-      )}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="line-clamp-1 text-sm font-medium text-zinc-100">
-          {position.marketQuestion || "—"}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
-          {position.outcome && (
-            <span className="rounded bg-zinc-800/60 px-1.5 py-0.5 font-medium text-zinc-300">
-              {position.outcome}
-            </span>
-          )}
-          {open ? (
-            <span>
-              {t("extend.leaderboard.pos.avgEntry")} {formatPrice(position.avgEntryPrice)}
-              {" · "}
-              {t("extend.leaderboard.pos.last")} {formatPrice(position.lastPrice)}
-            </span>
-          ) : (
-            <span>
-              {t("extend.leaderboard.pos.avgEntry")} {formatPrice(position.avgEntryPrice)}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        {open ? (
-          <>
-            <div className="text-sm font-semibold tabular-nums text-white">
-              {formatUsd(position.currentValue)}
-            </div>
-            <div className={cn("mt-0.5 text-xs font-medium tabular-nums", pnlColorClass(position.totalPnl))}>
-              {formatSignedUsd(position.totalPnl)}
-            </div>
-          </>
-        ) : (
-          <div className={cn("text-sm font-semibold tabular-nums", pnlColorClass(position.realizedPnl))}>
-            {formatSignedUsd(position.realizedPnl)}
-          </div>
-        )}
-      </div>
-    </div>
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useWalletActivities(wallet);
+
+  const q = query.trim().toLowerCase();
+  const activities = (data?.pages.flatMap((p) => p.activities) ?? []).filter(
+    (a) => !q || (a.marketQuestion || "").toLowerCase().includes(q),
   );
-}
 
-function ActivityList({ wallet }: { wallet: string }) {
-  const { t } = useTranslation();
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useWalletActivities(wallet);
-
-  const activities = data?.pages.flatMap((p) => p.activities) ?? [];
-
-  // Append one extra "loader" row when more pages exist so the infinite fetch
-  // trigger lives inside the virtualized list.
   const count = activities.length + (hasNextPage ? 1 : 0);
-
-  const parentRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useVirtualizer({
-    count,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_ESTIMATE,
-    overscan: 8,
-    measureElement: (el) => el.getBoundingClientRect().height,
-  });
-
+  const { wrapRef, virtualizer, scrollMargin } = useWindowList(scrollRef, count, [
+    activities.length,
+    hasNextPage,
+  ]);
   const virtualItems = virtualizer.getVirtualItems();
 
-  // Fetch the next page once the loader row (last index) scrolls into view.
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1];
     if (!last) return;
-    if (
-      last.index >= activities.length - 1 &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
+    if (last.index >= activities.length - 1 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [virtualItems, activities.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading) return <DetailRowsSkeleton />;
-
+  if (isLoading) return <RowsSkeleton />;
   if (activities.length === 0) {
-    return <EmptyBlock fill message={t("extend.leaderboard.noActivity")} />;
+    return <EmptyBlock message={t("extend.leaderboard.noActivity")} />;
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-zinc-800/40 bg-zinc-900/20"
-    >
-      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+    <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/20">
+      <div ref={wrapRef} className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualItems.map((vItem) => {
           const isLoaderRow = vItem.index >= activities.length;
           const a = activities[vItem.index];
@@ -542,7 +951,7 @@ function ActivityList({ wallet }: { wallet: string }) {
               ref={virtualizer.measureElement}
               data-index={vItem.index}
               className="absolute left-0 top-0 w-full"
-              style={{ transform: `translateY(${vItem.start}px)` }}
+              style={{ transform: `translateY(${vItem.start - scrollMargin}px)` }}
             >
               {isLoaderRow ? (
                 <div className="flex items-center justify-center px-4 py-4 text-xs text-zinc-500">
@@ -559,16 +968,12 @@ function ActivityList({ wallet }: { wallet: string }) {
   );
 }
 
-/** Localized label + colour for a trade activity type (buy / sell / redeem). */
 type ActivityTypeLabelKey =
   | "extend.leaderboard.activity.buy"
   | "extend.leaderboard.activity.sell"
   | "extend.leaderboard.activity.redeem";
 
-function activityTypeMeta(type: string): {
-  key: ActivityTypeLabelKey;
-  className: string;
-} {
+function activityTypeMeta(type: string): { key: ActivityTypeLabelKey; className: string } {
   const lower = type.toLowerCase();
   if (lower === "sell") {
     return { key: "extend.leaderboard.activity.sell", className: "bg-bearish/10 text-bearish" };
@@ -584,23 +989,27 @@ function ActivityRow({ activity, last }: { activity: WalletActivity; last: boole
   const meta = activityTypeMeta(activity.type);
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 px-4 py-3",
-        !last && "border-b border-zinc-800/40",
-      )}
-    >
+    <div className={cn("flex items-center gap-3 px-3 py-3", !last && "border-b border-zinc-800/40")}>
+      <MarketAvatar
+        src={activity.marketImageUrl || activity.eventImageUrl}
+        seed={activity.conditionId || activity.tokenId || activity.eventSlug}
+        size={34}
+      />
       <div className="min-w-0 flex-1">
-        <div className="line-clamp-1 text-sm font-medium text-zinc-100">
+        <EventTitleLink
+          slug={activity.eventSlug}
+          className="line-clamp-1 text-sm font-medium text-zinc-100"
+        >
           {activity.marketQuestion || activity.outcome || "—"}
-        </div>
+        </EventTitleLink>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
           <span className={cn("rounded px-1.5 py-0.5 font-medium", meta.className)}>
             {t(meta.key)}
           </span>
           {activity.outcome && <span className="text-zinc-400">{activity.outcome}</span>}
-          <span>
-            {formatPrice(activity.price)} · {activity.quantity.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          <span className="tabular-nums">
+            {formatPrice(activity.price)} ·{" "}
+            {activity.quantity.toLocaleString("en-US", { maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>
@@ -615,11 +1024,58 @@ function ActivityRow({ activity, last }: { activity: WalletActivity; last: boole
 // Shared bits
 // ---------------------------------------------------------------------------
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+    <div className="rounded-xl border border-zinc-800/50 bg-zinc-900/40 p-4">
+      <h3 className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+        {title}
+      </h3>
       {children}
-    </h3>
+    </div>
+  );
+}
+
+/**
+ * Row placeholders shown while a tab's list loads (or while the positions sort
+ * switches to a not-yet-cached order). Mirrors the real rows: avatar + two-line
+ * market title + right-aligned values. With `header`, also renders the
+ * positions table's column-header bar and multi-cell numeric columns so the
+ * sort-loading state lines up with the live table.
+ */
+function RowsSkeleton({ rows = 6, header = false }: { rows?: number; header?: boolean }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-zinc-800/40 bg-zinc-900/20">
+      {header && (
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-800/50 px-3 py-2.5">
+          <div className="h-3 w-16 animate-pulse rounded bg-zinc-800/50" />
+          <div className="hidden items-center gap-4 sm:flex">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-3 w-12 animate-pulse rounded bg-zinc-800/50" />
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="divide-y divide-zinc-800/40">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2.5 px-3 py-3">
+            <div className="size-[34px] shrink-0 animate-pulse rounded-md bg-zinc-800/50" />
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 h-3.5 w-2/3 animate-pulse rounded bg-zinc-800/50" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-zinc-800/50" />
+            </div>
+            {header ? (
+              <div className="hidden items-center gap-4 sm:flex">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div key={j} className="h-3.5 w-12 animate-pulse rounded bg-zinc-800/50" />
+                ))}
+              </div>
+            ) : (
+              <div className="h-4 w-16 animate-pulse rounded bg-zinc-800/50" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
