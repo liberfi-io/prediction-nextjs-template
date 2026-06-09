@@ -14,6 +14,9 @@ importers:
       '@heroui/theme':
         specifier: ^2.4.26
         version: 2.4.26(tailwindcss@4.2.2)
+      '@liberfi.io/hooks':
+        specifier: ^0.1.229
+        version: 0.1.229(react@18.3.1)
       '@liberfi.io/i18n':
         specifier: ^0.1.234
         version: 0.1.234(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)

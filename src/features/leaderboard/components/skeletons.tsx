@@ -12,9 +12,9 @@ const PULSE = "animate-pulse bg-zinc-800/50";
 
 /** Mirror of {@link SmartMoneyBoard}'s `ROW_GRID` so header + rows align. */
 const BOARD_ROW_GRID =
-  "grid grid-cols-[44px_minmax(120px,1fr)_120px_104px_104px_116px_72px] items-center gap-3";
+  "grid grid-cols-[minmax(44px,0.35fr)_minmax(108px,1.2fr)_minmax(140px,1.15fr)_minmax(128px,1fr)_minmax(132px,1fr)_minmax(148px,1.2fr)_minmax(104px,0.85fr)] items-center gap-3";
 /** Mirror of {@link SmartMoneyBoard}'s `TABLE_MIN_W`. */
-const BOARD_TABLE_MIN_W = "min-w-[820px] md:min-w-0";
+const BOARD_TABLE_MIN_W = "w-full min-w-[908px]";
 
 /** A single board row placeholder (mirrors the 7-column table row). */
 function BoardRowSkeleton({ last }: { last?: boolean }) {
@@ -87,6 +87,17 @@ export function BoardRowsSkeleton({ rows = 10 }: { rows?: number }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Rows-only skeleton for the board body when the column header is already visible. */
+export function BoardBodySkeleton({ rows = 10 }: { rows?: number }) {
+  return (
+    <div className="min-h-0 flex-1 overflow-hidden pb-4">
+      {Array.from({ length: rows }).map((_, i) => (
+        <BoardRowSkeleton key={i} last={i === rows - 1} />
+      ))}
     </div>
   );
 }

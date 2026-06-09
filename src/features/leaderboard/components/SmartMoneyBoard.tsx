@@ -15,6 +15,7 @@
 
 import { memo, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, Sortable } from "@liberfi.io/ui";
 import { CopyInline } from "../../../components/CopyButton";
@@ -23,28 +24,30 @@ import { useSmartMoneyBoard } from "../data/queries";
 import {
   formatPercent,
   formatRate,
-  formatRelativeTime,
+  formatAgeMs,
   formatSignedUsd,
   formatUsd,
   intervalVolume,
+  parseTimestampMs,
   pnlColorClass,
   shortAddress,
 } from "../format";
 import type { LeaderboardInterval, SmartWalletEntry } from "../types";
-import { BoardRowsSkeleton } from "./skeletons";
+import { BoardBodySkeleton, BoardRowsSkeleton } from "./skeletons";
 
 /** Estimated row height (px) for the virtualizer's first paint. */
 const ROW_ESTIMATE = 60;
 
 /**
- * Shared grid template so header + rows stay column-aligned. All seven columns
- * render at every breakpoint; on narrow screens the table scrolls horizontally
- * inside its wrapper (see {@link BoardTable}'s `overflow-x-auto` + `min-w`).
+ * Shared grid template so header + rows stay column-aligned. Every column has
+ * a practical minimum width; above the minimum table width, columns grow by
+ * their fr ratios so wide screens use the available space evenly.
  */
 const ROW_GRID =
-  "grid grid-cols-[44px_minmax(120px,1fr)_120px_104px_104px_116px_72px] items-center gap-3";
-/** Min table width that forces all columns; relaxes from `md` up. */
-const TABLE_MIN_W = "min-w-[820px] md:min-w-0";
+  "grid grid-cols-[minmax(44px,0.35fr)_minmax(108px,1.2fr)_minmax(140px,1.15fr)_minmax(128px,1fr)_minmax(132px,1fr)_minmax(148px,1.2fr)_minmax(104px,0.85fr)] items-center gap-3";
+/** Minimum table width; narrower viewports scroll horizontally. */
+const TABLE_MIN_W = "w-full min-w-[908px]";
+const DESC_ONLY_SORT = ["desc"] as const;
 
 export function SmartMoneyBoard({
   interval,
@@ -91,7 +94,7 @@ export function SmartMoneyBoard({
 }
 
 /**
- * Sortable columns. The "Vol / Txs" column exposes two independent sorts:
+ * Descending-only sortable columns. The "Vol / Txs" column exposes two independent sorts:
  * `vol` (traded volume) and `txs` (transaction count).
  */
 type SortField = "netPnl" | "winRate" | "balance" | "vol" | "txs" | "lastTrade";
@@ -132,12 +135,12 @@ function BoardTable({
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Front-end sorting: one active column at a time, cycling desc → asc → none
-  // (matches the shared Sortable). `null` falls back to the backend rank order.
-  const [sort, setSort] = useState<{ field: SortField; dir: "asc" | "desc" } | null>(null);
+  // Front-end sorting: one active column at a time, cycling desc → none.
+  // `null` falls back to the backend rank order.
+  const [sort, setSort] = useState<{ field: SortField; dir: "desc" } | null>(null);
   const sortDirFor = (field: SortField) => (sort?.field === field ? sort.dir : undefined);
   const onSortChange = (field: SortField) => (dir?: "asc" | "desc") =>
-    setSort(dir ? { field, dir } : null);
+    setSort(dir === "desc" ? { field, dir } : null);
 
   const rows = useMemo(() => {
     if (!sort) return entries;
@@ -154,6 +157,8 @@ function BoardTable({
     overscan: 8,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
+  const virtualItems = virtualizer.getVirtualItems();
+  const waitingForVirtualRows = rows.length > 0 && virtualItems.length === 0;
 
   const selected = selectedWallet?.toLowerCase();
 
@@ -186,31 +191,31 @@ function BoardTable({
             <span className="text-center">#</span>
             <span>{t("extend.leaderboard.col.trader")}</span>
             <span className="flex justify-end text-right">
-              <Sortable sort={sortDirFor("netPnl")} onSortChange={onSortChange("netPnl")}>
+              <Sortable sort={sortDirFor("netPnl")} onSortChange={onSortChange("netPnl")} directions={DESC_ONLY_SORT}>
                 {netPnlLabel}
               </Sortable>
             </span>
             <span className="flex justify-end text-right">
-              <Sortable sort={sortDirFor("winRate")} onSortChange={onSortChange("winRate")}>
+              <Sortable sort={sortDirFor("winRate")} onSortChange={onSortChange("winRate")} directions={DESC_ONLY_SORT}>
                 {t("extend.leaderboard.col.winRate")}
               </Sortable>
             </span>
             <span className="flex justify-end text-right">
-              <Sortable sort={sortDirFor("balance")} onSortChange={onSortChange("balance")}>
+              <Sortable sort={sortDirFor("balance")} onSortChange={onSortChange("balance")} directions={DESC_ONLY_SORT}>
                 {t("extend.leaderboard.col.balance")}
               </Sortable>
             </span>
             <span className="flex items-center justify-end gap-1 text-right">
-              <Sortable sort={sortDirFor("vol")} onSortChange={onSortChange("vol")}>
+              <Sortable sort={sortDirFor("vol")} onSortChange={onSortChange("vol")} directions={DESC_ONLY_SORT}>
                 {volLabel}
               </Sortable>
               <span className="text-zinc-700">/</span>
-              <Sortable sort={sortDirFor("txs")} onSortChange={onSortChange("txs")}>
+              <Sortable sort={sortDirFor("txs")} onSortChange={onSortChange("txs")} directions={DESC_ONLY_SORT}>
                 {t("extend.leaderboard.col.txs")}
               </Sortable>
             </span>
             <span className="flex justify-end text-right">
-              <Sortable sort={sortDirFor("lastTrade")} onSortChange={onSortChange("lastTrade")}>
+              <Sortable sort={sortDirFor("lastTrade")} onSortChange={onSortChange("lastTrade")} directions={DESC_ONLY_SORT}>
                 {t("extend.leaderboard.col.lastTrade")}
               </Sortable>
             </span>
@@ -219,29 +224,33 @@ function BoardTable({
           {/* Row scroll viewport — fills the box below the header; rows virtualize
               against it. */}
           <div ref={scrollRef} className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
-            <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-              {virtualizer.getVirtualItems().map((vItem) => {
-                const entry = rows[vItem.index];
-                return (
-                  <div
-                    key={entry.wallet}
-                    ref={virtualizer.measureElement}
-                    data-index={vItem.index}
-                    className="absolute left-0 top-0 w-full"
-                    style={{ transform: `translateY(${vItem.start}px)` }}
-                  >
-                    <BoardRow
-                      entry={entry}
-                      position={vItem.index + 1}
-                      interval={interval}
-                      active={selected === entry.wallet.toLowerCase()}
-                      last={vItem.index === rows.length - 1}
-                      onSelect={onSelect}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            {waitingForVirtualRows ? (
+              <BoardBodySkeleton rows={Math.min(rows.length, 10)} />
+            ) : (
+              <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+                {virtualItems.map((vItem) => {
+                  const entry = rows[vItem.index];
+                  return (
+                    <div
+                      key={entry.wallet}
+                      ref={virtualizer.measureElement}
+                      data-index={vItem.index}
+                      className="absolute left-0 top-0 w-full"
+                      style={{ transform: `translateY(${vItem.start}px)` }}
+                    >
+                      <BoardRow
+                        entry={entry}
+                        position={vItem.index + 1}
+                        interval={interval}
+                        active={selected === entry.wallet.toLowerCase()}
+                        last={vItem.index === rows.length - 1}
+                        onSelect={onSelect}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -347,11 +356,17 @@ const BoardRow = memo(function BoardRow({
 
       {/* Last trade */}
       <div className="text-right text-xs tabular-nums text-zinc-500">
-        {formatRelativeTime(entry.lastActivityTs)}
+        <LastTradeAge ts={entry.lastActivityTs} />
       </div>
     </div>
   );
 });
+
+function LastTradeAge({ ts }: { ts: string | number | null | undefined }) {
+  const timestampMs = parseTimestampMs(ts);
+  const ageMs = useTickAge(timestampMs ?? Date.now());
+  return timestampMs == null ? "—" : formatAgeMs(ageMs);
+}
 
 /** Gold / silver / bronze medal styles for the top-3 positions. */
 const MEDALS: Record<1 | 2 | 3, { gradient: string; shadow: string; text: string }> = {

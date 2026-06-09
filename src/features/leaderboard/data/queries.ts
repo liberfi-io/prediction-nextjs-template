@@ -24,7 +24,6 @@ import type {
 } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
-  LEADERBOARD_TAG,
   fetchSmartLeaderboard,
   fetchWalletActivities,
   fetchWalletDailyPnl,
@@ -69,29 +68,39 @@ export function useSmartMoneyBoard(interval: LeaderboardInterval, tag?: string |
 }
 
 /** Fetch a selected wallet's full PNL detail. */
-export function useWalletPnl(wallet: string | undefined) {
+export function useWalletPnl(
+  wallet: string | undefined,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) {
   const lang = useApiLang();
   return useQuery({
-    queryKey: [...walletPnlQueryKey(wallet ?? ""), lang],
+    queryKey: [...walletPnlQueryKey(wallet ?? "", interval, tag), lang],
     queryFn: () =>
       fetchWalletPnl(CLIENT_BASE, wallet as string, {
         lang,
-        tag: LEADERBOARD_TAG,
+        interval,
+        tag,
       }),
     enabled: Boolean(wallet),
     staleTime: WALLET_STALE_MS,
   });
 }
 
-/** Fetch a selected wallet's 7-day daily PNL chart series. */
-export function useWalletDailyPnl(wallet: string | undefined) {
+/** Fetch a selected wallet's daily PNL chart series. */
+export function useWalletDailyPnl(
+  wallet: string | undefined,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) {
   const lang = useApiLang();
   return useQuery({
-    queryKey: [...walletDailyPnlQueryKey(wallet ?? ""), lang],
+    queryKey: [...walletDailyPnlQueryKey(wallet ?? "", interval, tag), lang],
     queryFn: () =>
       fetchWalletDailyPnl(CLIENT_BASE, wallet as string, {
         lang,
-        tag: LEADERBOARD_TAG,
+        interval,
+        tag,
       }),
     enabled: Boolean(wallet),
     staleTime: WALLET_STALE_MS,
@@ -113,10 +122,12 @@ export function useWalletPositions(
   wallet: string | undefined,
   sortBy?: PositionSortField,
   order?: SortOrder,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
 ) {
   const lang = useApiLang();
   return useInfiniteQuery({
-    queryKey: [...walletPositionsQueryKey(wallet ?? "", sortBy, order), lang],
+    queryKey: [...walletPositionsQueryKey(wallet ?? "", sortBy, order, interval, tag), lang],
     queryFn: ({ pageParam }) =>
       fetchWalletPositions(CLIENT_BASE, wallet as string, {
         sortBy,
@@ -124,6 +135,8 @@ export function useWalletPositions(
         limit: POSITIONS_PAGE_SIZE,
         cursor: pageParam,
         lang,
+        interval,
+        tag,
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor || undefined,
@@ -137,15 +150,21 @@ export function useWalletPositions(
  * Infinite, cursor-paginated trade activities for a wallet (ACTIVITY tab).
  * Each page forwards the opaque cursor returned by the previous page.
  */
-export function useWalletActivities(wallet: string | undefined) {
+export function useWalletActivities(
+  wallet: string | undefined,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) {
   const lang = useApiLang();
   return useInfiniteQuery({
-    queryKey: [...walletActivitiesQueryKey(wallet ?? ""), lang],
+    queryKey: [...walletActivitiesQueryKey(wallet ?? "", interval, tag), lang],
     queryFn: ({ pageParam }) =>
       fetchWalletActivities(CLIENT_BASE, wallet as string, {
         limit: ACTIVITIES_PAGE_SIZE,
         cursor: pageParam,
         lang,
+        interval,
+        tag,
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor || undefined,

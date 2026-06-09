@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { LeaderboardPage } from "src/features/leaderboard/components/LeaderboardPage";
 import { LeaderboardSkeleton } from "src/features/leaderboard/components/skeletons";
-import { LEADERBOARD_TAG } from "src/features/leaderboard/data/client";
 import { prefetchSmartLeaderboard } from "src/features/leaderboard/data/prefetch";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { detectLanguage } from "src/i18n/detectLanguage";
@@ -10,14 +9,15 @@ import { mapToApiLang } from "src/i18n/locales";
 import type { LeaderboardInterval } from "src/features/leaderboard/types";
 
 const PREFETCH_TIMEOUT_MS = 3000;
+const WORLDCUP_SCOPE = "worldcup_2026";
 
 const INTERVALS = new Set<LeaderboardInterval>(["1d", "7d", "30d", "all"]);
 /** Must match {@link LeaderboardPage}'s `DEFAULT_INTERVAL`. */
-const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
+const DEFAULT_INTERVAL: LeaderboardInterval = "all";
 /** Must match {@link LeaderboardPage}'s `DEFAULT_SCOPE`. */
-const DEFAULT_SCOPE: LeaderboardScope = "worldcup";
+const DEFAULT_SCOPE: LeaderboardScope = "all";
 
-type LeaderboardScope = "all" | "worldcup";
+type LeaderboardScope = "all" | typeof WORLDCUP_SCOPE;
 
 /**
  * Resolve the board interval from the URL search param, mirroring the client
@@ -32,7 +32,7 @@ function parseInterval(value: string | string[] | undefined): LeaderboardInterva
 
 function parseScope(value: string | string[] | undefined): LeaderboardScope {
   const v = Array.isArray(value) ? value[0] : value;
-  return v === "all" ? "all" : DEFAULT_SCOPE;
+  return v === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : DEFAULT_SCOPE;
 }
 
 /**
@@ -51,7 +51,7 @@ async function LeaderboardContent({
 }) {
   const queryClient = createServerQueryClient();
   const lang = mapToApiLang(await detectLanguage());
-  const tag = scope === "worldcup" ? LEADERBOARD_TAG : null;
+  const tag = scope === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : null;
 
   await Promise.race([
     prefetchSmartLeaderboard(queryClient, interval, lang, tag),

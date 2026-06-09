@@ -19,18 +19,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type { LeaderboardInterval } from "../types";
-import { LEADERBOARD_TAG } from "../data/client";
 import { SmartLiveFeed } from "./SmartLiveFeed";
 import { SmartMoneyBoard } from "./SmartMoneyBoard";
 import { WalletDetailPanel } from "./WalletDetailPanel";
 
 type LeaderboardView = "smart-money" | "live-feed";
-type LeaderboardScope = "all" | "worldcup";
+const WORLDCUP_SCOPE = "worldcup_2026";
+type LeaderboardScope = "all" | typeof WORLDCUP_SCOPE;
 
 const INTERVAL_OPTIONS: LeaderboardInterval[] = ["1d", "7d", "30d", "all"];
 const INTERVALS = new Set<LeaderboardInterval>(INTERVAL_OPTIONS);
 const VIEWS: LeaderboardView[] = ["smart-money", "live-feed"];
-const SCOPES: LeaderboardScope[] = ["all", "worldcup"];
+const SCOPES: LeaderboardScope[] = ["all", WORLDCUP_SCOPE];
 
 /**
  * Smart Live Feed is not built yet — hide its tab (and ignore `?view=live-feed`)
@@ -42,9 +42,9 @@ const VISIBLE_VIEWS: LeaderboardView[] = ENABLE_LIVE_FEED
   : VIEWS.filter((v) => v !== "live-feed");
 
 /** Default time window when none is set in the URL. */
-const DEFAULT_INTERVAL: LeaderboardInterval = "7d";
+const DEFAULT_INTERVAL: LeaderboardInterval = "all";
 /** Default smart-money scope when none is set in the URL. */
-const DEFAULT_SCOPE: LeaderboardScope = "worldcup";
+const DEFAULT_SCOPE: LeaderboardScope = "all";
 
 function parseInterval(value: string | null): LeaderboardInterval {
   return value && INTERVALS.has(value as LeaderboardInterval)
@@ -57,7 +57,7 @@ function parseView(value: string | null): LeaderboardView {
 }
 
 function parseScope(value: string | null): LeaderboardScope {
-  return value === "all" ? "all" : DEFAULT_SCOPE;
+  return value === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : DEFAULT_SCOPE;
 }
 
 export function LeaderboardPage() {
@@ -156,7 +156,7 @@ export function LeaderboardPage() {
   // The detail only shows on the Smart Money view.
   const detailOpen = view === "smart-money" && Boolean(selectedWallet);
   const activeScope = pendingScope ?? scope;
-  const leaderboardTag = scope === "worldcup" ? LEADERBOARD_TAG : null;
+  const leaderboardTag = scope === WORLDCUP_SCOPE ? WORLDCUP_SCOPE : null;
 
   const boardProps = useMemo(
     () => ({
@@ -228,7 +228,7 @@ export function LeaderboardPage() {
                         : "border-border/80 text-neutral-500 hover:bg-primary/10 hover:text-primary",
                     )}
                   >
-                    {s === "worldcup" && (
+                    {s === WORLDCUP_SCOPE && (
                       <svg
                         width="13"
                         height="13"
@@ -248,7 +248,7 @@ export function LeaderboardPage() {
                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
                       </svg>
                     )}
-                    {s === "worldcup"
+                    {s === WORLDCUP_SCOPE
                       ? t("extend.leaderboard.scopedTag")
                       : t("extend.leaderboard.scopes.all")}
                   </button>
@@ -284,6 +284,8 @@ export function LeaderboardPage() {
             <WalletDetailPanel
               key={selectedWallet}
               wallet={selectedWallet}
+              interval={interval}
+              tag={leaderboardTag}
               onBack={handleCloseDetail}
             />
           </div>

@@ -418,16 +418,24 @@ function adaptActivity(d: WalletActivityDto): WalletActivity {
 export const leaderboardQueryKey = (interval: LeaderboardInterval, tag?: string | null) =>
   ["leaderboard", "smart-money", interval, tag || "all"] as const;
 
-export const walletPnlQueryKey = (wallet: string) =>
-  ["leaderboard", "wallet-pnl", wallet] as const;
+export const walletPnlQueryKey = (
+  wallet: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) => ["leaderboard", "wallet-pnl", wallet, interval ?? "all", tag || "all"] as const;
 
-export const walletDailyPnlQueryKey = (wallet: string) =>
-  ["leaderboard", "wallet-daily-pnl", wallet] as const;
+export const walletDailyPnlQueryKey = (
+  wallet: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) => ["leaderboard", "wallet-daily-pnl", wallet, interval ?? "all", tag || "all"] as const;
 
 export const walletPositionsQueryKey = (
   wallet: string,
   sortBy?: PositionSortField,
   order?: SortOrder,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
 ) =>
   [
     "leaderboard",
@@ -435,10 +443,15 @@ export const walletPositionsQueryKey = (
     wallet,
     sortBy ?? "default",
     order ?? "default",
+    interval ?? "all",
+    tag || "all",
   ] as const;
 
-export const walletActivitiesQueryKey = (wallet: string) =>
-  ["leaderboard", "wallet-activities", wallet] as const;
+export const walletActivitiesQueryKey = (
+  wallet: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) => ["leaderboard", "wallet-activities", wallet, interval ?? "all", tag || "all"] as const;
 
 // ---------------------------------------------------------------------------
 // Fetchers
@@ -486,11 +499,12 @@ export async function fetchSmartLeaderboard(
 export async function fetchWalletPnl(
   baseUrl: string,
   wallet: string,
-  opts: { lang?: string; tag?: string | null } = {},
+  opts: { lang?: string; interval?: LeaderboardInterval; tag?: string | null } = {},
 ): Promise<WalletPnlDetail> {
   const params = new URLSearchParams();
   const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
   if (tag) params.set("tag", tag);
+  if (opts.interval) params.set("interval", opts.interval);
   const qs = params.toString();
   return getJson<WalletPnlDto>(
     baseUrl,
@@ -503,11 +517,12 @@ export async function fetchWalletPnl(
 export async function fetchWalletDailyPnl(
   baseUrl: string,
   wallet: string,
-  opts: { lang?: string; tag?: string | null } = {},
+  opts: { lang?: string; interval?: LeaderboardInterval; tag?: string | null } = {},
 ): Promise<WalletDailyPnlDetail> {
   const params = new URLSearchParams();
   const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
   if (tag) params.set("tag", tag);
+  if (opts.interval) params.set("interval", opts.interval);
   const qs = params.toString();
   return getJson<WalletDailyPnlResponseDto>(
     baseUrl,
@@ -526,10 +541,14 @@ export async function fetchWalletPositions(
     limit?: number;
     cursor?: string;
     lang?: string;
+    interval?: LeaderboardInterval;
+    tag?: string | null;
   } = {},
 ): Promise<WalletPositionsPage> {
   const params = new URLSearchParams();
-  if (LEADERBOARD_TAG) params.set("tag", LEADERBOARD_TAG);
+  const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
+  if (tag) params.set("tag", tag);
+  if (opts.interval) params.set("interval", opts.interval);
   if (opts.sortBy) params.set("sort_by", opts.sortBy);
   if (opts.order) params.set("order", opts.order);
   if (opts.limit) params.set("limit", String(opts.limit));
@@ -545,9 +564,18 @@ export async function fetchWalletPositions(
 export async function fetchWalletActivities(
   baseUrl: string,
   wallet: string,
-  opts: { limit?: number; cursor?: string; lang?: string } = {},
+  opts: {
+    limit?: number;
+    cursor?: string;
+    lang?: string;
+    interval?: LeaderboardInterval;
+    tag?: string | null;
+  } = {},
 ): Promise<WalletActivitiesPage> {
   const params = new URLSearchParams();
+  const tag = opts.tag === undefined ? LEADERBOARD_TAG : opts.tag;
+  if (tag) params.set("tag", tag);
+  if (opts.interval) params.set("interval", opts.interval);
   if (opts.limit) params.set("limit", String(opts.limit));
   if (opts.cursor) params.set("cursor", opts.cursor);
   const qs = params.toString();

@@ -125,6 +125,11 @@ for (const [code, bundle] of Object.entries(i18nResources)) {
 const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
 
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
+
+function navPathname(href: string): string {
+  return href.split("?")[0] || "/";
+}
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
   {
@@ -145,7 +150,8 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
   { key: "matches", href: "/matches", icon: <ZapFastIcon width={20} height={20} /> },
   {
     key: "leaderboard",
-    href: "/leaderboard",
+    href: LEADERBOARD_NAV_HREF,
+    match: "/leaderboard",
     icon: (
       <svg
         width={20}
@@ -286,7 +292,7 @@ function PageShell({ children }: PropsWithChildren) {
 
   useEffect(() => {
     navItemsConfig.forEach((item) => {
-      if (item.href !== pathname) {
+      if (navPathname(item.href) !== pathname) {
         router.prefetch(item.href);
       }
     });
@@ -355,21 +361,23 @@ function PageShell({ children }: PropsWithChildren) {
                   {navItems
                     .filter((item) => item.key !== "matches")
                     .map((item) => {
-                    const active =
-                      item.href === "/"
-                        ? !navItemsConfig.some(
-                            (other) => other.href !== "/" && pathname.startsWith(other.href),
-                          )
-                        : pathname.startsWith(item.href);
-                    return (
-                      <NavTab
-                        key={item.key}
-                        item={item}
-                        active={active}
-                        onNavigate={onNavigate}
-                      />
-                    );
-                  })}
+                      const itemPathname = navPathname(item.href);
+                      const active =
+                        itemPathname === "/"
+                          ? !navItemsConfig.some((other) => {
+                              const otherPathname = navPathname(other.href);
+                              return otherPathname !== "/" && pathname.startsWith(otherPathname);
+                            })
+                          : pathname.startsWith(itemPathname);
+                      return (
+                        <NavTab
+                          key={item.key}
+                          item={item}
+                          active={active}
+                          onNavigate={onNavigate}
+                        />
+                      );
+                    })}
                 </div>
               </div>
 

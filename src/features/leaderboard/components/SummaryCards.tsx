@@ -20,7 +20,12 @@ import {
   formatUsd,
   pnlColorClass,
 } from "../format";
-import type { WalletDailyPnl, WalletPnlSummary, WalletTokenPnl } from "../types";
+import type {
+  LeaderboardInterval,
+  WalletDailyPnl,
+  WalletPnlSummary,
+  WalletTokenPnl,
+} from "../types";
 
 // ---------------------------------------------------------------------------
 // Card 1 — TOTAL VALUE
@@ -29,12 +34,16 @@ import type { WalletDailyPnl, WalletPnlSummary, WalletTokenPnl } from "../types"
 export function TotalValueCard({
   summary,
   wallet,
+  interval,
+  tag,
 }: {
   summary: WalletPnlSummary;
   wallet?: string;
+  interval?: LeaderboardInterval;
+  tag?: string | null;
 }) {
   const { t } = useTranslation();
-  const { data, isError, isLoading } = useWalletDailyPnl(wallet);
+  const { data, isError, isLoading } = useWalletDailyPnl(wallet, interval, tag);
 
   return (
     <Card title={t("extend.leaderboard.detail.totalValue")}>
@@ -181,16 +190,20 @@ export function PerformanceBiasCard({ summary }: { summary: WalletPnlSummary }) 
 export function YieldRiskCard({
   summary,
   wallet,
+  interval,
+  requestTag,
   tag,
 }: {
   summary: WalletPnlSummary;
   wallet: string;
+  interval?: LeaderboardInterval;
+  requestTag?: string | null;
   tag: string;
 }) {
   const { t } = useTranslation();
   // Pull the first positions page just to compute the exposure mix; the tab
   // body fetches/manages the full paginated list separately.
-  const { data } = useWalletPositions(wallet);
+  const { data } = useWalletPositions(wallet, undefined, undefined, interval, requestTag);
   const exposure = useMemo(
     () => buildExposure(data?.pages.flatMap((p) => p.tokens) ?? [], tag),
     [data, tag],

@@ -45,6 +45,7 @@ import {
   shortAddress,
 } from "../format";
 import type {
+  LeaderboardInterval,
   PositionSortField,
   SortOrder,
   WalletActivity,
@@ -70,13 +71,17 @@ const TABLE_GRID =
 
 export function WalletDetailPanel({
   wallet,
+  interval,
+  tag,
   onBack,
 }: {
   wallet: string;
+  interval: LeaderboardInterval;
+  tag?: string | null;
   onBack?: () => void;
 }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useWalletPnl(wallet);
+  const { data, isLoading, isError } = useWalletPnl(wallet, interval, tag);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) return <WalletDetailSkeleton onBack={onBack} />;
@@ -99,11 +104,17 @@ export function WalletDetailPanel({
         <div className="flex flex-col gap-4 pb-4">
           <WalletHeader wallet={wallet} summary={data.summary} onBack={onBack} />
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <TotalValueCard summary={data.summary} wallet={wallet} />
+            <TotalValueCard summary={data.summary} wallet={wallet} interval={interval} tag={tag} />
             <PerformanceBiasCard summary={data.summary} />
-            <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
+            <YieldRiskCard summary={data.summary} wallet={wallet} interval={interval} requestTag={tag} tag={data.tag} />
           </div>
-          <WalletTabs wallet={wallet} summary={data.summary} scrollRef={scrollRef} />
+          <WalletTabs
+            wallet={wallet}
+            summary={data.summary}
+            interval={interval}
+            tag={tag}
+            scrollRef={scrollRef}
+          />
         </div>
       </div>
     </div>
@@ -166,10 +177,14 @@ function WalletHeader({
 function WalletTabs({
   wallet,
   summary,
+  interval,
+  tag,
   scrollRef,
 }: {
   wallet: string;
   summary: WalletPnlSummary;
+  interval: LeaderboardInterval;
+  tag?: string | null;
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
@@ -229,7 +244,13 @@ function WalletTabs({
 
       <div className="pt-3">
         {tab === "activity" ? (
-          <ActivityList wallet={wallet} query={query} scrollRef={scrollRef} />
+          <ActivityList
+            wallet={wallet}
+            query={query}
+            interval={interval}
+            tag={tag}
+            scrollRef={scrollRef}
+          />
         ) : (
           <PositionsTable
             wallet={wallet}
@@ -237,6 +258,8 @@ function WalletTabs({
             query={query}
             sort={sort}
             onSort={setSort}
+            interval={interval}
+            tag={tag}
             scrollRef={scrollRef}
           />
         )}
@@ -292,6 +315,8 @@ function PositionsTable({
   query,
   sort,
   onSort,
+  interval,
+  tag,
   scrollRef,
 }: {
   wallet: string;
@@ -299,6 +324,8 @@ function PositionsTable({
   query: string;
   sort: { field: PositionSortField; order: SortOrder } | null;
   onSort: (s: { field: PositionSortField; order: SortOrder } | null) => void;
+  interval: LeaderboardInterval;
+  tag?: string | null;
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
@@ -309,7 +336,7 @@ function PositionsTable({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useWalletPositions(wallet, sort?.field, sort?.order);
+  } = useWalletPositions(wallet, sort?.field, sort?.order, interval, tag);
 
   // Cycle a column through desc → asc → unsorted (ui-tokens Sortable contract).
   const handleSort =
@@ -584,15 +611,19 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
 function ActivityList({
   wallet,
   query,
+  interval,
+  tag,
   scrollRef,
 }: {
   wallet: string;
   query: string;
+  interval: LeaderboardInterval;
+  tag?: string | null;
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useWalletActivities(wallet);
+    useWalletActivities(wallet, interval, tag);
 
   const q = query.trim().toLowerCase();
   const activities = (data?.pages.flatMap((p) => p.activities) ?? []).filter(

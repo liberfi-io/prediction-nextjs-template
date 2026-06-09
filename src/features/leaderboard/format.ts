@@ -73,13 +73,9 @@ export function formatHoldingTime(seconds: number): string {
   return `${minutes}m`;
 }
 
-/** `10m` / `2h` / `3d` / `5w` — compact "time since" from an ISO/epoch timestamp. */
-export function formatRelativeTime(ts: string | number | null | undefined): string {
-  if (ts == null || ts === "") return "—";
-  const ms = typeof ts === "number" ? ts : Date.parse(String(ts));
-  if (!Number.isFinite(ms)) return "—";
-  const diff = Math.max(0, Date.now() - ms);
-  const sec = Math.floor(diff / 1000);
+/** `10m` / `2h` / `3d` / `5w` — compact "time since" from an elapsed duration. */
+export function formatAgeMs(ageMs: number): string {
+  const sec = Math.floor(Math.max(0, ageMs) / 1000);
   if (sec < 60) return `${sec}s`;
   const min = Math.floor(sec / 60);
   if (min < 60) return `${min}m`;
@@ -92,6 +88,23 @@ export function formatRelativeTime(ts: string | number | null | undefined): stri
   const months = Math.floor(days / 30);
   if (months < 12) return `${months}mo`;
   return `${Math.floor(days / 365)}y`;
+}
+
+/** Timestamp parser accepting epoch milliseconds, numeric strings, or ISO dates. */
+export function parseTimestampMs(ts: string | number | null | undefined): number | null {
+  if (ts == null || ts === "") return null;
+  if (typeof ts === "number") return Number.isFinite(ts) ? ts : null;
+  const numeric = Number(ts);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsed = Date.parse(String(ts));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** `10m` / `2h` / `3d` / `5w` — compact "time since" from an ISO/epoch timestamp. */
+export function formatRelativeTime(ts: string | number | null | undefined): string {
+  const ms = parseTimestampMs(ts);
+  if (ms == null) return "—";
+  return formatAgeMs(Date.now() - ms);
 }
 
 /** `0x1234…cdef` — short EVM address. */

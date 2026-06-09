@@ -14,6 +14,7 @@
   "dependencies": {
     "@heroui/react": "^2.8.10",
     "@heroui/theme": "^2.4.26",
+    "@liberfi.io/hooks": "^0.1.229",
     "@liberfi.io/i18n": "^0.1.234",
     "@liberfi.io/react-predict": "^0.3.35",
     "@liberfi.io/types": "^0.4.37",
