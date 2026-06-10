@@ -12,6 +12,7 @@ import {
   TradesPanel,
   type ActivityTab,
 } from "./portfolio-activity";
+import { ENABLE_KALSHI } from "../../libs/featureFlags";
 
 /**
  * Embeddable portfolio activity (positions / open orders / trade history).
@@ -44,7 +45,7 @@ export function PortfolioActivitySection({
 
   const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti(
     {
-      kalshi_user: solanaAddr || undefined,
+      kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
       polymarket_user: evmAddr || undefined,
     },
     { enabled: isAuthenticated && Boolean(solanaAddr || evmAddr) },

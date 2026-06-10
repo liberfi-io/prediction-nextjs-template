@@ -30,6 +30,7 @@ import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
 import { Shimmer } from "./portfolio-skeleton";
+import { ENABLE_KALSHI } from "../../libs/featureFlags";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -577,7 +578,7 @@ export function OrdersPanel({
   const credentialsReady = !!polymarketGetHeaders;
   const { data, isLoading: queryLoading } = useOrdersMulti(
     {
-      kalshi_user: solanaAddr || undefined,
+      kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
       polymarket_user: evmAddr || undefined,
     },
     { getHeaders: polymarketGetHeaders },
@@ -876,7 +877,7 @@ export function TradesPanel({
     hasNextPage: hasMore,
     isFetchingNextPage: isFetchingMore,
   } = useInfiniteTradesMulti({
-    kalshi_user: solanaAddr || undefined,
+    kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
     polymarket_user: evmAddr || undefined,
     limit: 50,
   });

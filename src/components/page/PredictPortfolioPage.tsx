@@ -14,6 +14,7 @@ import {
   usePredictWallet,
 } from "@liberfi.io/ui-predict";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
+import { ENABLE_KALSHI } from "../../libs/featureFlags";
 import { cn } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { FUND_WALLET_MODAL_ID, type FundWalletParams } from "../FundWalletModal";
@@ -97,7 +98,7 @@ function PortfolioContent() {
   const { polymarketWalletAddress } = usePredictWallet();
 
   const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
-    kalshi_user: solanaAddr || undefined,
+    kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
     polymarket_user: evmAddr || undefined,
   });
 

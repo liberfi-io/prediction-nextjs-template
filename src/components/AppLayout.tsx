@@ -345,7 +345,7 @@ function PageShell({ children }: PropsWithChildren) {
   );
 
   return (
-    <PredictWalletProvider enabled>
+    <PredictWalletProvider enabled enableKalshi={ENABLE_KALSHI}>
       <PredictWsConnector />
       <Suspense fallback={null}>
         <ReferralCapture />
@@ -1127,7 +1127,7 @@ function PredictAccountControl() {
   const { isMobile } = useScreen();
 
   const { data: positionsData } = usePositionsMulti({
-    kalshi_user: solanaAddress || undefined,
+    kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
     polymarket_user: evmAddress || undefined,
   });
 
