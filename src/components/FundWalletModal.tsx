@@ -38,6 +38,8 @@ import {
   PolygonIcon,
   EthereumIcon,
   BinanceIcon,
+  BaseIcon,
+  TronIcon,
   TokenIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -695,10 +697,14 @@ function chainIcon(key: DepositChainKey, size = 14): ReactNode {
       return <SolanaIcon width={size} height={size} />;
     case "ethereum":
       return <EthereumIcon width={size} height={size} />;
+    case "base":
+      return <BaseIcon width={size} height={size} />;
     case "polygon":
       return <PolygonIcon width={size} height={size} />;
     case "bnb":
       return <BinanceIcon width={size} height={size} />;
+    case "tron":
+      return <TronIcon width={size} height={size} />;
   }
 }
 
@@ -953,7 +959,9 @@ function PolymarketDepositBody({
     selectedChain && depositAddresses
       ? selectedChain.bridgeField === "svm"
         ? depositAddresses.svm
-        : depositAddresses.evm
+        : selectedChain.bridgeField === "tron"
+          ? depositAddresses.tron
+          : depositAddresses.evm
       : undefined;
 
   const chainAssets = useMemo(() => {
@@ -1103,6 +1111,8 @@ function SupportedTokenIcon({ symbol }: { symbol: string }) {
       return <PolygonIcon width={12} height={12} />;
     case "BNB":
       return <BinanceIcon width={12} height={12} />;
+    case "TRX":
+      return <TronIcon width={12} height={12} />;
     default:
       return <TokenIcon symbol={upper} size={12} />;
   }

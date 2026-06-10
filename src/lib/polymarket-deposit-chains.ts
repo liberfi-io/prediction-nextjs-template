@@ -17,9 +17,15 @@
  * for what the bridge actually accepts).
  */
 
-export type DepositChainKey = "solana" | "ethereum" | "polygon" | "bnb";
+export type DepositChainKey =
+  | "solana"
+  | "ethereum"
+  | "base"
+  | "polygon"
+  | "bnb"
+  | "tron";
 
-export type BridgeAddressField = "evm" | "svm";
+export type BridgeAddressField = "evm" | "svm" | "tron";
 
 export interface DepositChainConfig {
   key: DepositChainKey;
@@ -67,6 +73,15 @@ export const DEPOSIT_CHAINS: Record<DepositChainKey, DepositChainConfig> = {
     explorerName: "Etherscan",
     buildExplorerUrl: (addr) => `https://etherscan.io/address/${addr}`,
   },
+  base: {
+    key: "base",
+    chainId: "8453",
+    label: "Base",
+    bridgeField: "evm",
+    nativeSymbol: "ETH",
+    explorerName: "Basescan",
+    buildExplorerUrl: (addr) => `https://basescan.org/address/${addr}`,
+  },
   polygon: {
     key: "polygon",
     chainId: "137",
@@ -85,6 +100,20 @@ export const DEPOSIT_CHAINS: Record<DepositChainKey, DepositChainConfig> = {
     explorerName: "BscScan",
     buildExplorerUrl: (addr) => `https://bscscan.com/address/${addr}`,
   },
+  tron: {
+    key: "tron",
+    /**
+     * Polymarket Bridge uses its own internal numeric ID for Tron — confirmed
+     * empirically from `/supported-assets` (Tron = `"728126428"`). The bridge
+     * only accepts USDT (TRC20) on Tron, with a higher minimum deposit.
+     */
+    chainId: "728126428",
+    label: "Tron",
+    bridgeField: "tron",
+    nativeSymbol: "TRX",
+    explorerName: "Tronscan",
+    buildExplorerUrl: (addr) => `https://tronscan.org/#/address/${addr}`,
+  },
 };
 
 /**
@@ -94,6 +123,8 @@ export const DEPOSIT_CHAINS: Record<DepositChainKey, DepositChainConfig> = {
 export const DEPOSIT_CHAIN_ORDER: DepositChainKey[] = [
   "solana",
   "ethereum",
+  "base",
   "polygon",
   "bnb",
+  "tron",
 ];
