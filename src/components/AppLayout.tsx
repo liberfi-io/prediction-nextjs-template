@@ -67,7 +67,6 @@ import {
   ZapFastIcon,
   UserIcon,
   LogoIcon,
-  MiniLogoIcon,
   cn,
   UsdcIcon,
   PolymarketIcon,
@@ -122,7 +121,9 @@ for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
 
-const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
+const NoPrefetchLink: LinkComponentType = (props) => (
+  <Link prefetch={false} {...props} />
+);
 
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
@@ -147,7 +148,11 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
     ),
   },
   { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
-  { key: "matches", href: "/matches", icon: <ZapFastIcon width={20} height={20} /> },
+  {
+    key: "matches",
+    href: "/matches",
+    icon: <ZapFastIcon width={20} height={20} />,
+  },
   {
     key: "leaderboard",
     href: LEADERBOARD_NAV_HREF,
@@ -173,7 +178,11 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
       </svg>
     ),
   },
-  { key: "portfolio", href: "/portfolio", icon: <UserIcon width={20} height={20} /> },
+  {
+    key: "portfolio",
+    href: "/portfolio",
+    icon: <UserIcon width={20} height={20} />,
+  },
   {
     key: "referral",
     href: "/referral",
@@ -203,7 +212,10 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
 // Root
 // ---------------------------------------------------------------------------
 
-export function AppLayout({ children, locale }: PropsWithChildren<{ locale: LocaleCode }>) {
+export function AppLayout({
+  children,
+  locale,
+}: PropsWithChildren<{ locale: LocaleCode }>) {
   const localeApplied = useRef(false);
   if (!localeApplied.current) {
     if (i18n.language !== locale) {
@@ -241,7 +253,7 @@ export function AppLayout({ children, locale }: PropsWithChildren<{ locale: Loca
 function ServiceProviders({ children }: PropsWithChildren) {
   const predictClient = useMemo(
     () => new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL),
-    [],
+    []
   );
 
   // Live WebSocket client for orderbook/price/trade subscriptions. Falls back
@@ -275,7 +287,7 @@ function PageShell({ children }: PropsWithChildren) {
         ...item,
         label: t(`extend.nav.${item.key}`) as string,
       })),
-    [t],
+    [t]
   );
 
   // Mobile footer: hide matches / portfolio / referral and place worldcup
@@ -302,7 +314,7 @@ function PageShell({ children }: PropsWithChildren) {
     (href: string) => {
       router.push(href);
     },
-    [router],
+    [router]
   );
 
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
@@ -312,7 +324,7 @@ function PageShell({ children }: PropsWithChildren) {
     (event: PredictEvent) => {
       router.prefetch(predictEventHref(event));
     },
-    [router],
+    [router]
   );
 
   const searchModalParams = useMemo(
@@ -321,7 +333,7 @@ function PageShell({ children }: PropsWithChildren) {
       LinkComponent: NoPrefetchLink,
       onHover: handlePredictHover,
     }),
-    [handlePredictHover],
+    [handlePredictHover]
   );
 
   const handleSelectEvent = useCallback(
@@ -329,7 +341,7 @@ function PageShell({ children }: PropsWithChildren) {
       router.push(predictEventHref(event));
       closePredictSearch();
     },
-    [router, closePredictSearch],
+    [router, closePredictSearch]
   );
 
   return (
@@ -354,7 +366,7 @@ function PageShell({ children }: PropsWithChildren) {
             >
               {/* Left: Logo + desktop nav tabs */}
               <div className="shrink-0 flex items-center gap-1">
-                <Logo icon={<LogoIcon />} miniIcon={<MiniLogoIcon />} />
+                <Logo icon={<LogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
                   {/* Hide "matches" (跨平台匹配) in the desktop header only;
                       the route/module and mobile footer entry stay intact. */}
@@ -366,7 +378,10 @@ function PageShell({ children }: PropsWithChildren) {
                         itemPathname === "/"
                           ? !navItemsConfig.some((other) => {
                               const otherPathname = navPathname(other.href);
-                              return otherPathname !== "/" && pathname.startsWith(otherPathname);
+                              return (
+                                otherPathname !== "/" &&
+                                pathname.startsWith(otherPathname)
+                              );
                             })
                           : pathname.startsWith(itemPathname);
                       return (
@@ -394,7 +409,9 @@ function PageShell({ children }: PropsWithChildren) {
               <div className="shrink-0 ml-auto flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => openPredictSearch({ params: searchModalParams })}
+                  onClick={() =>
+                    openPredictSearch({ params: searchModalParams })
+                  }
                   aria-label="Search"
                   className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-sm font-medium transition-colors border bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-800 hover:text-white cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 >
@@ -443,7 +460,7 @@ function NavTab({
         item.key === "worldcup" && "relative",
         active
           ? "text-[#c7ff2e]"
-          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
+          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40"
       )}
       onClick={handlePress}
       aria-label={item.label}
@@ -548,7 +565,7 @@ function WalletMenuRow({
         "flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-[10px] transition-colors text-zinc-300",
         disabled
           ? "opacity-60 cursor-default"
-          : "cursor-pointer hover:bg-[rgba(39,39,42,0.5)] hover:text-white",
+          : "cursor-pointer hover:bg-[rgba(39,39,42,0.5)] hover:text-white"
       )}
     >
       <RowIconChip>{icon}</RowIconChip>
@@ -600,7 +617,7 @@ function WalletEntry({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     },
-    [address],
+    [address]
   );
 
   return (
@@ -623,11 +640,29 @@ function WalletEntry({
                 onClick={handleCopy}
               >
                 {copied ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                     <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                   </svg>
@@ -643,7 +678,16 @@ function WalletEntry({
             </span>
             {status === "verified" && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-bullish/15 text-bullish">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 {t(`extend.predict.${kind}.verified`)}
@@ -657,7 +701,16 @@ function WalletEntry({
             )}
             {status === "unverified" && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -678,7 +731,9 @@ function WalletEntry({
             value={`$${formatUsdc(balance ?? 0)}`}
           />
           <WalletInfoRow
-            icon={<ChartLineIcon width={14} height={14} className="text-bullish" />}
+            icon={
+              <ChartLineIcon width={14} height={14} className="text-bullish" />
+            }
             label={t("extend.predict.account.positions")}
             value={`$${formatCents(positionsCents)}`}
           />
@@ -737,9 +792,7 @@ function LanguageMenuItem() {
         <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
           <TranslateIcon width={14} height={14} />
         </div>
-        <span className="flex-1 text-left">
-          {t("extend.header.language")}
-        </span>
+        <span className="flex-1 text-left">{t("extend.header.language")}</span>
         {current && (
           <span className="text-xs text-zinc-500">{current.displayName}</span>
         )}
@@ -754,7 +807,7 @@ function LanguageMenuItem() {
           strokeLinejoin="round"
           className={cn(
             "text-zinc-500 transition-transform",
-            expanded && "rotate-180",
+            expanded && "rotate-180"
           )}
         >
           <polyline points="6 9 12 15 18 9" />
@@ -777,7 +830,7 @@ function LanguageMenuItem() {
                   "w-full flex items-center justify-between pl-12 pr-3 py-2 rounded-[10px] text-sm transition-colors cursor-pointer",
                   selected
                     ? "bg-[#c7ff2e]/[0.08] text-[#c7ff2e]"
-                    : "text-zinc-400 hover:text-white hover:bg-[rgba(39,39,42,0.5)]",
+                    : "text-zinc-400 hover:text-white hover:bg-[rgba(39,39,42,0.5)]"
                 )}
               >
                 {lang.displayName}
@@ -919,47 +972,54 @@ function BalanceDropdownContent({
           since the single remaining venue (Polymarket) already shows its own
           balance / positions rows above. */}
       {ENABLE_KALSHI && (
-      <div style={{ borderTop: "1px solid rgba(39,39,42,1)" }} className="p-2">
-        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
-              <UsdcIcon width={14} height={14} />
+        <div
+          style={{ borderTop: "1px solid rgba(39,39,42,1)" }}
+          className="p-2"
+        >
+          <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
+                <UsdcIcon width={14} height={14} />
+              </div>
+              <span className="text-sm text-zinc-300">
+                {t("extend.predict.account.totalAvailableBalance")}
+              </span>
             </div>
-            <span className="text-sm text-zinc-300">
-              {t("extend.predict.account.totalAvailableBalance")}
+            <span className="text-sm font-medium text-zinc-100 tabular-nums">
+              {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
             </span>
           </div>
-          <span className="text-sm font-medium text-zinc-100 tabular-nums">
-            {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
-              <ChartLineIcon width={14} height={14} className="text-bullish" />
+          <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
+                <ChartLineIcon
+                  width={14}
+                  height={14}
+                  className="text-bullish"
+                />
+              </div>
+              <span className="text-sm text-zinc-300">
+                {t("extend.predict.account.totalPositions")}
+              </span>
             </div>
-            <span className="text-sm text-zinc-300">
-              {t("extend.predict.account.totalPositions")}
+            <span className="text-sm font-medium text-zinc-100 tabular-nums">
+              ${formatCents(positionsCents)}
             </span>
           </div>
-          <span className="text-sm font-medium text-zinc-100 tabular-nums">
-            ${formatCents(positionsCents)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
-              <CoinsIcon width={14} height={14} />
+          <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
+                <CoinsIcon width={14} height={14} />
+              </div>
+              <span className="text-sm text-zinc-300 font-medium">
+                {t("extend.predict.account.portfolioTotal")}
+              </span>
             </div>
-            <span className="text-sm text-zinc-300 font-medium">
-              {t("extend.predict.account.portfolioTotal")}
+            <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
+              {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
             </span>
           </div>
-          <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
-            {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
-          </span>
         </div>
-      </div>
       )}
 
       {/* Settings — currently just the language switcher. */}
@@ -986,7 +1046,16 @@ function BalanceDropdownContent({
           className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-[10px] transition-colors cursor-pointer text-zinc-300 hover:bg-[rgba(39,39,42,0.5)] hover:text-white"
         >
           <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="20 12 20 22 4 22 4 12" />
               <rect x="2" y="7" width="20" height="5" />
               <line x1="12" y1="22" x2="12" y2="7" />
@@ -1002,7 +1071,16 @@ function BalanceDropdownContent({
           className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-[10px] transition-colors cursor-pointer text-red-400 hover:bg-red-500/10"
         >
           <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-red-500/10">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
@@ -1129,7 +1207,7 @@ function PredictAccountControl() {
 
   const relayConfig: PolymarketRelayConfig = useMemo(
     () => ({ signProxyUrl: "/predict-api/api/v1/polymarket/sign" }),
-    [],
+    []
   );
 
   const handleDeployAndApprove = useCallback(async () => {
@@ -1142,7 +1220,7 @@ function PredictAccountControl() {
     }
 
     const evmWallet = wallets.find(
-      (w) => w.chainNamespace === "EVM" && w.isConnected,
+      (w) => w.chainNamespace === "EVM" && w.isConnected
     ) as EvmWalletAdapter | undefined;
     if (!evmWallet || !evmAddress) {
       throw new Error("EVM wallet not connected");
@@ -1178,7 +1256,7 @@ function PredictAccountControl() {
           walletClient,
           depositWalletAddress as Hex,
           approvalCalls,
-          relayConfig,
+          relayConfig
         );
         if (approveResult.transactionID) {
           await pollTransaction(relayConfig, approveResult.transactionID);
@@ -1204,7 +1282,7 @@ function PredictAccountControl() {
       const approveResult = await executeSafe(
         walletClient,
         approvalTxns,
-        relayConfig,
+        relayConfig
       );
       if (approveResult.transactionID) {
         await pollTransaction(relayConfig, approveResult.transactionID);
@@ -1252,7 +1330,7 @@ function PredictAccountControl() {
       setIsOpen(false);
       router.push(href);
     },
-    [router],
+    [router]
   );
 
   useEffect(() => {
@@ -1353,15 +1431,32 @@ function PredictAccountControl() {
         </div>
         <div className="w-px h-4 bg-zinc-700/40" />
         <div className="flex items-center gap-1.5" title="Positions Value">
-          <ChartLineIcon width={16} height={16} className="text-bullish" aria-hidden="true" />
+          <ChartLineIcon
+            width={16}
+            height={16}
+            className="text-bullish"
+            aria-hidden="true"
+          />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
             ${formatCents(positionsCents)}
           </span>
         </div>
         {!isMobile && (
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
         )}
       </button>
 
@@ -1393,13 +1488,13 @@ function PredictAccountControl() {
           <div
             className={cn(
               "absolute inset-0 bg-black/60",
-              drawerClosing ? "animate-backdrop-out" : "animate-backdrop-in",
+              drawerClosing ? "animate-backdrop-out" : "animate-backdrop-in"
             )}
           />
           <div
             className={cn(
               "relative h-full w-80 max-w-[85vw] flex flex-col",
-              drawerClosing ? "animate-drawer-out" : "animate-drawer-in",
+              drawerClosing ? "animate-drawer-out" : "animate-drawer-in"
             )}
             style={{
               borderLeft: "1px solid rgba(39,39,42,1)",
@@ -1421,7 +1516,16 @@ function PredictAccountControl() {
                 aria-label="Close"
                 className="p-1.5 rounded-[10px] text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
