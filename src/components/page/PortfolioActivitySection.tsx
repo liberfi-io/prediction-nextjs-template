@@ -6,6 +6,7 @@ import { Chain } from "@liberfi.io/types";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
 import { cn, EmptyIcon, SignInIcon } from "@liberfi.io/ui";
 import { useAuth, useConnectedWallet } from "@liberfi.io/wallet-connector";
+import { PredictSellModal, PredictRedeemModal } from "@liberfi.io/ui-predict";
 import {
   PositionsPanel,
   OrdersPanel,
@@ -109,6 +110,12 @@ export function PortfolioActivitySection({
           )}
         </div>
       )}
+
+      {/* Sell / Redeem modals triggered by the embedded positions list. Mounted
+          here so the action buttons work wherever this section is embedded
+          (e.g. the World Cup detail page, which doesn't use EventDetailPage). */}
+      <PredictSellModal />
+      <PredictRedeemModal />
     </div>
   );
 }
