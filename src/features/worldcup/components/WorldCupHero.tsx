@@ -44,7 +44,11 @@ const SEGMENTS = [
     const days =
       (new Date(MILESTONES[i + 1].iso).getTime() - new Date(m.iso).getTime()) /
       DAY_MS;
-    return { flex: Math.pow(days, RIGHT_BOOST_EXPONENT) };
+    // Round to 4 decimals so the inline `flex` shorthand survives the browser's
+    // CSSOM normalization (it serializes flex-grow to 6 significant figures).
+    // Without this the long float (e.g. 2.846626597125765) gets rounded by the
+    // browser to 2.84663, causing a SSR hydration style mismatch.
+    return { flex: Math.round(Math.pow(days, RIGHT_BOOST_EXPONENT) * 1e4) / 1e4 };
   }),
   { width: 80 },
 ] as const;
