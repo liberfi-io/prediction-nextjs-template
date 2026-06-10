@@ -485,6 +485,8 @@
     "signIn": "登入",
     "signOut": "登出"
   },
+  "predict.orderBook.expand": "展開",
+  "predict.orderBook.collapse": "收合",
   "predict.comments.title": "評論",
   "predict.comments.empty": "暫無評論",
   "predict.comments.loading": "載入評論中…",

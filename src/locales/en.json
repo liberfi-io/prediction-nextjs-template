@@ -485,6 +485,8 @@
     "signIn": "Sign In",
     "signOut": "Sign Out"
   },
+  "predict.orderBook.expand": "Expand",
+  "predict.orderBook.collapse": "Collapse",
   "predict.comments.title": "Comments",
   "predict.comments.empty": "No comments yet",
   "predict.comments.loading": "Loading comments…",
