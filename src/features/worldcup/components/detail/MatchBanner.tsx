@@ -76,16 +76,14 @@ export function MatchBanner({ match }: { match: WcMatch }) {
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-[12px] border border-zinc-800 bg-zinc-900/40 px-4 py-3">
-      {/* Home */}
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <TeamFlag team={match.home} size={32} />
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-zinc-100">
-            {teamName(match.home.code)}
-          </div>
-          <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-            {homeProb}%
-          </div>
+      {/* Home — flag / name / win rate stacked vertically */}
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+        <TeamFlag team={match.home} size={40} />
+        <div className="w-full truncate text-sm font-semibold text-zinc-100">
+          {teamName(match.home.code)}
+        </div>
+        <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
+          {homeProb}%
         </div>
       </div>
 
@@ -111,17 +109,15 @@ export function MatchBanner({ match }: { match: WcMatch }) {
         <span className="text-[10px] tabular-nums text-zinc-500">{kickoff}</span>
       </div>
 
-      {/* Away */}
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2.5 text-right">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-zinc-100">
-            {teamName(match.away.code)}
-          </div>
-          <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-            {awayProb}%
-          </div>
+      {/* Away — flag / name / win rate stacked vertically */}
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+        <TeamFlag team={match.away} size={40} />
+        <div className="w-full truncate text-sm font-semibold text-zinc-100">
+          {teamName(match.away.code)}
         </div>
-        <TeamFlag team={match.away} size={32} />
+        <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
+          {awayProb}%
+        </div>
       </div>
     </div>
   );

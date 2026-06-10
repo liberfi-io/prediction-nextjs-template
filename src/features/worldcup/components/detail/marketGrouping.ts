@@ -180,18 +180,31 @@ function buildSingle(
   };
 }
 
+/** Strip a leading "<prefix>: " qualifier, e.g. "Exact Score: 2-0" → "2-0". */
+function stripLabelPrefix(label: string): string {
+  const idx = label.indexOf(": ");
+  return idx >= 0 ? label.slice(idx + 2).trim() : label;
+}
+
 /** A flat list group (exact score / halftime) sorted by probability desc. */
 function buildList(
   key: string,
   type: SportsMarketType,
   markets: PredictMarket[],
 ): MarketGroup {
+  // Exact-score options carry an "Exact Score: " prefix (e.g.
+  // "Exact Score: 2-0"); drop it so only the scoreline shows everywhere it is
+  // surfaced (panel buttons, chart legend, trade form title).
+  const stripPrefix = type === "soccer_exact_score";
   const options = markets
-    .map((m): MarketOption => ({
-      market: m,
-      label: marketLabel(m),
-      sort: yesPrice(m),
-    }))
+    .map((m): MarketOption => {
+      const raw = marketLabel(m);
+      return {
+        market: m,
+        label: stripPrefix ? stripLabelPrefix(raw) : raw,
+        sort: yesPrice(m),
+      };
+    })
     .sort((a, b) => b.sort - a.sort);
   return { key, type, type_label: type, options, volume: sumVolume(markets) };
 }

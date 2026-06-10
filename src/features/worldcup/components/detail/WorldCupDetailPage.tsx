@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
-import type { ProviderSource } from "@liberfi.io/react-predict";
+import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
   EventMarketDetailWidget,
@@ -19,7 +19,7 @@ import {
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
-import { DetailHeader } from "./DetailHeader";
+import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
 import { MatchBanner } from "./MatchBanner";
 import { MatchCenterTabs } from "./MatchCenterTabs";
 import { MarketsPanel } from "./MarketsPanel";
@@ -46,6 +46,22 @@ function teamHint(match?: WcMatch): TeamHint | undefined {
     homeKeys: keys(match.home.name, match.home.code, match.home.nameZh),
     awayKeys: keys(match.away.name, match.away.code, match.away.nameZh),
   };
+}
+
+/**
+ * Shallow-clone a market with its display label replaced by the already-cleaned
+ * Markets-panel option label (e.g. "Draw" instead of Polymarket's verbose
+ * "Draw (Mexico vs. South Africa)"). Both the chart legend / selector
+ * (`outcomes[0].label ?? question`) and the trade form title
+ * (`yesSubTitle` = `outcomes[0].label`) read from these fields. Only the first
+ * outcome's label is touched; prices, slug, ids and outcome ordering (which the
+ * trade/order-book logic keys off by index) stay intact.
+ */
+function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
+  const outcomes = market.outcomes?.length
+    ? [{ ...market.outcomes[0], label }, ...market.outcomes.slice(1)]
+    : market.outcomes;
+  return { ...market, question: label, outcomes };
 }
 
 export function WorldCupDetailPage({ id }: { id: string }) {
@@ -76,7 +92,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const [selectedSlug, setSelectedSlug] = useState("");
   const [outcome, setOutcome] = useState<TradeOutcome>("yes");
   const [side, setSide] = useState<TradeSide>("buy");
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // Mobile-only UI state
   const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
@@ -161,18 +177,48 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const groupLabel = selectedGroup
     ? t(`extend.worldcup.detail.markets.type.${selectedGroup.type_label}`)
     : "";
+
+  // Display label for one option in the selected group, matching the Markets
+  // panel trigger text: "<group> (<option>)" when the group has multiple
+  // options (e.g. "Moneyline (Draw)"), else just the group label. Exact-score
+  // markets are the exception — the score itself (e.g. "1-0") is the label, with
+  // no "Exact Score" prefix.
+  const optionDisplayLabel = (optionLabel: string) => {
+    if (!selectedGroup) return groupLabel;
+    if (selectedGroup.type === "soccer_exact_score") return optionLabel;
+    return selectedGroup.options.length > 1
+      ? `${groupLabel} (${optionLabel})`
+      : groupLabel;
+  };
+
   const selectedLabel =
     selectedGroup && selection
-      ? selectedGroup.options.length > 1
-        ? `${groupLabel} (${selection.option.label})`
-        : groupLabel
+      ? optionDisplayLabel(selection.option.label)
       : event.title;
 
   // The chart plots every market in the selected group (e.g. 3 moneyline lines,
   // or the single totals line), reusing EventPriceChart's multi-market support.
+  // The chart legend / market selector derive their label from
+  // `market.outcomes[0].label ?? market.question`. Override those fields so each
+  // line reads like the Markets panel trigger ("Moneyline (Draw)") instead of
+  // Polymarket's verbose "Draw (Mexico vs. South Africa)". Cloning is shallow;
+  // the order book keeps using the original `selectedMarket`.
   const chartEvent = selectedGroup
-    ? { ...event, markets: selectedGroup.options.map((o) => o.market) }
+    ? {
+        ...event,
+        markets: selectedGroup.options.map((o) =>
+          withCleanLabel(o.market, optionDisplayLabel(o.label)),
+        ),
+      }
     : event;
+
+  // Trade form title mirrors the selected trigger text ("Buy Yes · Moneyline
+  // (Draw)"). Order book / mobile trade bar keep the original market so their
+  // own outcome rendering is untouched.
+  const tradeMarket =
+    selectedMarket && selection
+      ? withCleanLabel(selectedMarket, selectedLabel)
+      : selectedMarket;
 
   // -------------------------------------------------------------------------
   // Mobile layout: single column with one flat tab row (order book + match
@@ -186,9 +232,11 @@ export function WorldCupDetailPage({ id }: { id: string }) {
       <div className="flex w-full flex-col gap-4 pb-4">
         <DetailHeader
           event={event}
+          market={selectedMarket}
           selectedLabel={selectedLabel}
           panelOpen={marketsSheetOpen}
           onTogglePanel={() => setMarketsSheetOpen((v) => !v)}
+          showInfoButtons={false}
         />
 
         {match && <MatchBanner match={match} />}
@@ -244,6 +292,28 @@ export function WorldCupDetailPage({ id }: { id: string }) {
             mobileTab === "history") && (
             <PortfolioActivitySection activeTab={mobileTab} hideTabs />
           )}
+
+          {mobileTab === "rules" && (
+            <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40">
+              <RulesContent
+                title={t("extend.worldcup.detail.info.rules")}
+                text={selectedMarket?.description || event.description || ""}
+                emptyLabel={t("extend.worldcup.detail.info.empty")}
+              />
+            </div>
+          )}
+
+          {mobileTab === "ref" && (
+            <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40">
+              <RefContent
+                title={t("extend.worldcup.detail.info.ref")}
+                sourceLabel={t("extend.worldcup.detail.info.resolutionSource")}
+                sources={event.settlement_sources ?? []}
+                provider={event.source}
+                emptyLabel={t("extend.worldcup.detail.info.empty")}
+              />
+            </div>
+          )}
         </div>
 
         {/* Sticky buy/sell action bar */}
@@ -279,7 +349,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           >
             <TradePanel
               event={event}
-              market={selectedMarket}
+              market={tradeMarket ?? selectedMarket}
               outcome={outcome}
               side={side}
               onSideChange={setSide}
@@ -300,42 +370,41 @@ export function WorldCupDetailPage({ id }: { id: string }) {
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <DetailHeader
           event={event}
+          market={selectedMarket}
           selectedLabel={selectedLabel}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((v) => !v)}
-        />
-
-        {/* Markets | CENTER — stretched so Markets matches the CENTER height */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-          {/* Markets switcher panel — equal height to CENTER, scrolls inside */}
-          {panelOpen && (
+          onClose={() => setPanelOpen(false)}
+          popoverContent={
             <MarketsPanel
               cats={cats}
               activeCategory={activeCategory}
               selectedSlug={selectedSlug}
               onSelect={handleSelect}
               onClose={() => setPanelOpen(false)}
-              className="w-full shrink-0 lg:w-[320px]"
+              className="max-h-[70vh]"
             />
-          )}
+          }
+        />
 
-          {/* CENTER: banner above an equal-height row of chart | match-center */}
+        {/* CENTER: (score + chart) column beside the (widened) match-center column */}
+        <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
+          {/* Column 1: score banner above the price chart */}
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             {match && <MatchBanner match={match} />}
-            <div className="flex flex-col gap-4 xl:h-[460px] xl:flex-row xl:items-stretch">
-              <EventPriceChart
-                className="min-w-0 flex-1"
-                fillHeight
-                event={chartEvent}
-                volume={event.volume ?? undefined}
-              />
-
-              <MatchCenterTabs
-                match={match ?? null}
-                className="w-full shrink-0 xl:w-[360px]"
-              />
-            </div>
+            <EventPriceChart
+              className="min-w-0 flex-1"
+              fillHeight
+              event={chartEvent}
+              volume={event.volume ?? undefined}
+            />
           </div>
+
+          {/* Column 2: match center, widened */}
+          <MatchCenterTabs
+            match={match ?? null}
+            className="w-full shrink-0 xl:w-[440px]"
+          />
         </div>
 
         {/* Activity spans Markets + CENTER width — full multi-source portfolio activity */}
@@ -348,7 +417,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
             <TradePanel
               event={event}
-              market={selectedMarket}
+              market={tradeMarket ?? selectedMarket}
               outcome={outcome}
               side={side}
               onSideChange={setSide}
@@ -379,11 +448,14 @@ type MobileTabKey =
   | "comments"
   | "positions"
   | "orders"
-  | "history";
+  | "history"
+  | "rules"
+  | "ref";
 
 // Mobile flattens what desktop shows as nested tabs into a single tab row:
 // order book + the match-center sub-tabs (center/news/comments) + the activity
-// sub-tabs (positions/orders/history). Labels reuse existing i18n keys.
+// sub-tabs (positions/orders/history) + the header info popovers (rules/ref,
+// which desktop keeps as buttons). Labels reuse existing i18n keys.
 const MOBILE_TABS = [
   { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
   { key: "center", labelKey: "extend.worldcup.detail.tab.center" },
@@ -392,4 +464,6 @@ const MOBILE_TABS = [
   { key: "positions", labelKey: "extend.portfolio.positions" },
   { key: "orders", labelKey: "extend.portfolio.openOrders" },
   { key: "history", labelKey: "extend.portfolio.tradeHistory" },
+  { key: "rules", labelKey: "extend.worldcup.detail.info.rules" },
+  { key: "ref", labelKey: "extend.worldcup.detail.info.ref" },
 ] as const satisfies readonly { key: MobileTabKey; labelKey: string }[];

@@ -412,6 +412,12 @@
           "volume": "成交量",
           "oi": "未平倉"
         },
+        "info": {
+          "rules": "規則",
+          "ref": "Ref",
+          "resolutionSource": "判定來源",
+          "empty": "暫無資訊"
+        },
         "banner": {
           "beginsIn": "距開賽",
           "started": "已開賽",

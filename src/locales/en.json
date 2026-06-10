@@ -412,6 +412,12 @@
           "volume": "Volume",
           "oi": "Open interest"
         },
+        "info": {
+          "rules": "Rules",
+          "ref": "Ref",
+          "resolutionSource": "Resolution source",
+          "empty": "No information available"
+        },
         "banner": {
           "beginsIn": "Begins in",
           "started": "Kicked off",
