@@ -462,17 +462,18 @@ function TradeHighlight({
 }) {
   if (!marketQuestion) return null;
 
+  // TEMP: best/worst-trade event linking is disabled. The backend slug
+  // enrichment (markets.question full table scan) was blocking /pnl, so it is
+  // turned off server-side; show the question text only, no link. Re-enable the
+  // EventTitleLink (and pass eventSlug) once the backend index/enrichment lands.
+  void eventSlug;
+
   return (
     <div className="mt-3 border-t border-zinc-800/60 pt-3">
       <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
         {label}
       </div>
-      <EventTitleLink
-        slug={eventSlug}
-        className="line-clamp-1 text-xs text-zinc-300"
-      >
-        {marketQuestion}
-      </EventTitleLink>
+      <span className="line-clamp-1 text-xs text-zinc-300">{marketQuestion}</span>
       <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(pnl))}>
         {formatSignedUsd(pnl)}
       </div>

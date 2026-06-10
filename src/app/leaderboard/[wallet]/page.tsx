@@ -32,6 +32,8 @@ async function WalletDetailContent({
 
   // Prefetch with the same scope tag the client hooks use so the SSR cache
   // keys match the browser hooks and hydration applies.
+  const prefetchStart = Date.now();
+  let prefetchOutcome = "ok";
   await Promise.race([
     Promise.all([
       prefetchWalletPnl(queryClient, wallet, lang, interval, tag),
@@ -40,7 +42,16 @@ async function WalletDetailContent({
     new Promise<void>((_, reject) =>
       setTimeout(() => reject(new Error("prefetch timeout")), PREFETCH_TIMEOUT_MS),
     ),
-  ]).catch(() => {});
+  ]).catch((err) => {
+    prefetchOutcome = err instanceof Error ? err.message : "error";
+  });
+  // `[predict-ssr]` lines surface in the Vercel function logs: they show how
+  // long the wallet-detail SSR prefetch took and whether it hit the timeout.
+  console.info(
+    `[predict-ssr] wallet-detail prefetch outcome=${prefetchOutcome} ms=${
+      Date.now() - prefetchStart
+    } wallet=${wallet} interval=${interval} tag=${tag ?? ""}`,
+  );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

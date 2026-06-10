@@ -481,13 +481,35 @@ async function getJson<T>(baseUrl: string, path: string, lang?: string): Promise
   const sep = path.includes("?") ? "&" : "?";
   const suffix =
     lang && lang !== "en" ? `${sep}lang=${encodeURIComponent(lang)}` : "";
-  const res = await fetch(`${baseUrl}/api/v1/prediction/${path}${suffix}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`prediction ${path} request failed: ${res.status}`);
+  // `[predict-fetch]` lines are greppable end-to-end: on SSR they land in the
+  // Vercel function logs, in the browser in the dev console. `side` and the
+  // elapsed time pinpoint whether latency is server- or client-side.
+  const side = typeof window === "undefined" ? "ssr" : "client";
+  const url = `${baseUrl}/api/v1/prediction/${path}${suffix}`;
+  const start = Date.now();
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    const ms = Date.now() - start;
+    if (!res.ok) {
+      console.warn(
+        `[predict-fetch] side=${side} status=${res.status} ms=${ms} path=${path}`,
+      );
+      throw new Error(`prediction ${path} request failed: ${res.status}`);
+    }
+    const json = (await res.json()) as T;
+    console.info(
+      `[predict-fetch] side=${side} status=${res.status} ms=${Date.now() - start} path=${path}`,
+    );
+    return json;
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("request failed")) throw err;
+    console.warn(
+      `[predict-fetch] side=${side} status=ERR ms=${Date.now() - start} path=${path} err=${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+    throw err;
   }
-  return (await res.json()) as T;
 }
 
 /**
