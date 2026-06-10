@@ -3,13 +3,16 @@
 import { useMemo, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
+import { useRealtimeOrderbook, pickBestAsk } from "@liberfi.io/react-predict";
 import { formatVolume } from "../util";
 import {
   type CategorizedMarkets,
   type MarketCategory,
   type MarketGroup,
   type MarketOption,
+  findSelection,
   yesPrice,
+  yesAskPrice,
 } from "./marketGrouping";
 
 type SortKey = "default" | "odds" | "volume" | "liquidity";
@@ -42,6 +45,27 @@ export function MarketsPanel({
   const [sort, setSort] = useState<SortKey>("default");
   const [activeOnly, setActiveOnly] = useState(false);
   const [category, setCategory] = useState<MarketCategory>(activeCategory);
+
+  // The selected market also has a live order book on screen; subscribe to its
+  // YES book so the panel's displayed price for that market tracks the order
+  // book's best ask in real time (the 30s event poll only refreshes the static
+  // snapshot, which drifts from the live WS book).
+  const selectedMarket = useMemo(
+    () => (selectedSlug ? findSelection(cats, selectedSlug)?.option.market : undefined),
+    [cats, selectedSlug],
+  );
+  const { data: liveOrderbook } = useRealtimeOrderbook(
+    {
+      slug: selectedMarket?.slug ?? "",
+      source: selectedMarket?.source ?? "polymarket",
+      outcome: "yes",
+    },
+    { enabled: Boolean(selectedMarket) && selectedMarket?.status === "open" },
+  );
+  const liveSelectedPrice = useMemo(() => {
+    const ask = pickBestAsk(liveOrderbook, "yes");
+    return ask != null && ask > 0 ? ask : null;
+  }, [liveOrderbook]);
 
   const categoryTabs = useMemo(
     () =>
@@ -171,6 +195,7 @@ export function MarketsPanel({
             group={group}
             options={sortOptions(group.options)}
             selectedSlug={selectedSlug}
+            liveSelectedPrice={liveSelectedPrice}
             onSelect={onSelect}
             label={t(`extend.worldcup.detail.markets.type.${group.type_label}`)}
           />
@@ -184,12 +209,15 @@ function GroupRow({
   group,
   options,
   selectedSlug,
+  liveSelectedPrice,
   onSelect,
   label,
 }: {
   group: MarketGroup;
   options: MarketOption[];
   selectedSlug: string;
+  /** Live YES best-ask (0–1) for the currently selected market, if any. */
+  liveSelectedPrice: number | null;
   onSelect: (slug: string) => void;
   label: string;
 }) {
@@ -198,10 +226,16 @@ function GroupRow({
   if (options.length === 0) return null;
 
   // The probability shown on the right is the selected option's (or the first
-  // option's) YES price, mirroring future.news.
+  // option's) YES best-ask, so it lines up with the order book. For the active
+  // market that also drives the on-screen order book, prefer its live best ask.
   const active =
     options.find((o) => o.market.slug === selectedSlug) ?? options[0];
-  const prob = Math.round(yesPrice(active.market) * 100);
+  const isActiveSelected = active.market.slug === selectedSlug;
+  const priceUnit =
+    isActiveSelected && liveSelectedPrice != null
+      ? liveSelectedPrice
+      : yesAskPrice(active.market);
+  const prob = Math.round(priceUnit * 100);
   const single = options.length === 1;
 
   return (

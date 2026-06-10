@@ -88,6 +88,16 @@ export function yesPrice(m: PredictMarket): number {
   return m.outcomes?.[0]?.price ?? m.outcomes?.[0]?.best_ask ?? 0;
 }
 
+/**
+ * YES (primary) outcome best ask in [0,1] — the price you pay to buy a YES
+ * share. Used for the Markets panel's displayed price so it lines up with the
+ * order book's best-ask line (the static snapshot; the live order book is
+ * layered on top for the selected market).
+ */
+export function yesAskPrice(m: PredictMarket): number {
+  return m.outcomes?.[0]?.best_ask ?? m.outcomes?.[0]?.price ?? 0;
+}
+
 /** Strip the trailing " (...)" qualifier Polymarket appends to group titles. */
 function cleanTitle(raw: string): string {
   const idx = raw.indexOf(" (");
