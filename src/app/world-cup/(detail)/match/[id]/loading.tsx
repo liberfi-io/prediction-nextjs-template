@@ -12,8 +12,11 @@ export default function Loading() {
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
       {/* LEFT BLOCK: header + center row + activity */}
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        {/* Header */}
-        <div className={`h-16 ${BLOCK}`} />
+        {/* Header: back button + content */}
+        <div className="flex items-center gap-3">
+          <div className={`size-10 shrink-0 ${BLOCK}`} />
+          <div className={`h-16 flex-1 ${BLOCK}`} />
+        </div>
 
         {/* Center row: (banner + chart) column beside the match-center column */}
         <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">

@@ -27,6 +27,7 @@ export function DetailHeader({
   onTogglePanel,
   popoverContent,
   onClose,
+  onBack,
   showInfoButtons = true,
 }: {
   event: PredictEvent;
@@ -36,6 +37,8 @@ export function DetailHeader({
   onTogglePanel: () => void;
   popoverContent?: ReactNode;
   onClose?: () => void;
+  /** Navigate back to the previous page; renders a back button left of the avatar. */
+  onBack?: () => void;
   /**
    * Show the Rules / Ref info popover buttons next to the stats. Desktop keeps
    * them in the header; mobile sets this `false` and surfaces the same content
@@ -92,6 +95,29 @@ export function DetailHeader({
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={t("extend.worldcup.detail.back")}
+              title={t("extend.worldcup.detail.back")}
+              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-zinc-800/60 hover:text-white"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          )}
           {event.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

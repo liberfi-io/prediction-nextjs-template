@@ -236,6 +236,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           selectedLabel={selectedLabel}
           panelOpen={marketsSheetOpen}
           onTogglePanel={() => setMarketsSheetOpen((v) => !v)}
+          onBack={() => router.back()}
           showInfoButtons={false}
         />
 
@@ -376,6 +377,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((v) => !v)}
           onClose={() => setPanelOpen(false)}
+          onBack={() => router.back()}
           popoverContent={
             <MarketsPanel
               cats={cats}
