@@ -860,7 +860,6 @@ function KalshiDepositBody({
           {t("extend.predict.fundWallet.currentBalance")}
         </span>
         <div className="flex items-center gap-1.5">
-          <UsdcIcon width={14} height={14} />
           <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
             ${formatUsdc(balance ?? 0)}
           </span>
@@ -1051,7 +1050,6 @@ function PolymarketDepositBody({
           {t("extend.predict.fundWallet.currentBalance")}
         </span>
         <div className="flex items-center gap-1.5">
-          <UsdcIcon width={14} height={14} />
           <span className="text-sm font-medium text-[#c7ff2e] tabular-nums">
             ${formatUsdc(balance ?? 0)}
           </span>

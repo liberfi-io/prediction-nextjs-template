@@ -68,7 +68,7 @@ import {
   UserIcon,
   LogoIcon,
   cn,
-  UsdcIcon,
+  DollarIcon,
   PolymarketIcon,
   KalshiIcon,
   SolanaIcon,
@@ -728,7 +728,7 @@ function WalletEntry({
       {status === "verified" ? (
         <>
           <WalletInfoRow
-            icon={<UsdcIcon width={14} height={14} />}
+            icon={<DollarIcon width={14} height={14} />}
             label={t("extend.predict.account.availableBalance")}
             value={`$${formatUsdc(balance ?? 0)}`}
           />
@@ -981,7 +981,7 @@ function BalanceDropdownContent({
           <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
             <div className="flex items-center gap-2.5">
               <div className="flex items-center justify-center w-7 h-7 rounded-[10px] bg-zinc-800">
-                <UsdcIcon width={14} height={14} />
+                <DollarIcon width={14} height={14} />
               </div>
               <span className="text-sm text-zinc-300">
                 {t("extend.predict.account.totalAvailableBalance")}
@@ -1426,7 +1426,7 @@ function PredictAccountControl() {
         className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 rounded-[10px] transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <div className="flex items-center gap-1.5" title="Cash Balance">
-          <UsdcIcon width={16} height={16} aria-hidden="true" />
+          <DollarIcon width={16} height={16} aria-hidden="true" />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
             {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
           </span>
