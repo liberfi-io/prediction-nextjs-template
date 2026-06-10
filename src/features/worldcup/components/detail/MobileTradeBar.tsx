@@ -3,7 +3,11 @@
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type { PredictMarket } from "@liberfi.io/react-predict";
-import { pickBestAsk, useRealtimeOrderbook } from "@liberfi.io/react-predict";
+import {
+  pickBestAsk,
+  useOrderbook,
+  useRealtimeOrderbook,
+} from "@liberfi.io/react-predict";
 import type { TradeOutcome } from "@liberfi.io/ui-predict";
 
 /** Static fallback price for an outcome before the live orderbook arrives. */
@@ -42,13 +46,17 @@ export function MobileTradeBar({
   const { t } = useTranslation();
   const isOpen = market.status === "open";
 
-  const { data: orderbook } = useRealtimeOrderbook(
-    { slug: market.slug, source: market.source },
+  const { data: yesOrderbook } = useRealtimeOrderbook(
+    { slug: market.slug, source: market.source, outcome: "yes" },
     { enabled: isOpen },
   );
+  const { data: noOrderbook } = useOrderbook(
+    { slug: market.slug, source: market.source, outcome: "no" },
+    { enabled: false, refetchInterval: false },
+  );
 
-  const yesPrice = pickBestAsk(orderbook, "yes") ?? staticAsk(market, "yes");
-  const noPrice = pickBestAsk(orderbook, "no") ?? staticAsk(market, "no");
+  const yesPrice = pickBestAsk(yesOrderbook, "yes") ?? staticAsk(market, "yes");
+  const noPrice = pickBestAsk(noOrderbook, "no") ?? staticAsk(market, "no");
 
   const yesLabel = market.outcomes[0]?.label ?? t("extend.worldcup.detail.trade.yes");
   const noLabel = market.outcomes[1]?.label ?? t("extend.worldcup.detail.trade.no");

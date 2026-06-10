@@ -21,6 +21,7 @@ export function TradePanel({
   outcome,
   side,
   onSideChange,
+  onOutcomeChange,
   onInsufficientBalance,
 }: {
   event: PredictEvent;
@@ -28,6 +29,7 @@ export function TradePanel({
   outcome: TradeOutcome;
   side: TradeSide;
   onSideChange: (side: TradeSide) => void;
+  onOutcomeChange: (outcome: TradeOutcome) => void;
   onInsufficientBalance?: (source: ProviderSource) => void;
 }) {
   const { t } = useTranslation();
@@ -48,6 +50,7 @@ export function TradePanel({
           event={event}
           market={market}
           initialOutcome={outcome}
+          onOutcomeChange={onOutcomeChange}
         />
       ) : (
         <TradeFormWidget
@@ -55,6 +58,7 @@ export function TradePanel({
           event={event}
           market={market}
           initialOutcome={outcome}
+          onOutcomeChange={onOutcomeChange}
           onInsufficientBalance={onInsufficientBalance}
         />
       )}

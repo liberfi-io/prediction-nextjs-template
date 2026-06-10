@@ -353,6 +353,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
               outcome={outcome}
               side={side}
               onSideChange={setSide}
+              onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
             />
           </BottomSheet>
@@ -421,6 +422,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
               outcome={outcome}
               side={side}
               onSideChange={setSide}
+              onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
             />
           </div>
