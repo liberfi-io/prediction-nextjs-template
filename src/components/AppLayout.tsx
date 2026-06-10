@@ -101,6 +101,7 @@ import {
   FUND_WALLET_MODAL_ID,
   type FundWalletParams,
 } from "./FundWalletModal";
+import { SetupWalletModal } from "./SetupWalletModal";
 import { ReceiveOutlinedIcon } from "./icons/ReceiveOutlinedIcon";
 import { SendOutlinedIcon } from "./icons/SendOutlinedIcon";
 import {
@@ -430,6 +431,7 @@ function PageShell({ children }: PropsWithChildren) {
         {children}
       </Scaffold>
       <FundWalletModal />
+      <SetupWalletModal />
     </PredictWalletProvider>
   );
 }

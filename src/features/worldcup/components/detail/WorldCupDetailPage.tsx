@@ -8,6 +8,7 @@ import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
   EventMarketDetailWidget,
+  usePredictWallet,
   type TradeOutcome,
   type TradeSide,
 } from "@liberfi.io/ui-predict";
@@ -16,6 +17,7 @@ import {
   FUND_WALLET_MODAL_ID,
   type FundWalletParams,
 } from "src/components/FundWalletModal";
+import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
@@ -70,6 +72,8 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
+  const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
+  const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
@@ -126,7 +130,18 @@ export function WorldCupDetailPage({ id }: { id: string }) {
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {
-      toast.error(t("predict.trade.insufficientBalance"));
+      // Polymarket account not yet set up → open the same setup modal as the
+      // header balance dropdown, not a deposit/balance flow.
+      if (src === "polymarket" && !polymarketSetupVerified) {
+        void openSetupWallet();
+        return;
+      }
+      // Kalshi unverified → let the fund modal surface the KYC prompt; suppress
+      // the misleading "insufficient balance" toast in that case.
+      const needsPrerequisite = src === "kalshi" && !kalshiKycVerified;
+      if (!needsPrerequisite) {
+        toast.error(t("predict.trade.insufficientBalance"));
+      }
       openFundWallet({
         params: {
           initialScreen: "deposit",
@@ -134,8 +149,19 @@ export function WorldCupDetailPage({ id }: { id: string }) {
         },
       });
     },
-    [openFundWallet, t],
+    [
+      openFundWallet,
+      openSetupWallet,
+      t,
+      polymarketSetupVerified,
+      kalshiKycVerified,
+    ],
   );
+
+  // Open the shared Polymarket account setup modal (same as the header).
+  const handleSetupRequired = useCallback(() => {
+    void openSetupWallet();
+  }, [openSetupWallet]);
 
   // Open the mobile trade action sheet pre-selected to a tapped outcome (buy).
   const handleMobileTradePick = useCallback((oc: TradeOutcome) => {
@@ -356,6 +382,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
               onSideChange={setSide}
               onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
+              onSetupRequired={handleSetupRequired}
             />
           </BottomSheet>
         )}
@@ -426,6 +453,7 @@ export function WorldCupDetailPage({ id }: { id: string }) {
               onSideChange={setSide}
               onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
+              onSetupRequired={handleSetupRequired}
             />
           </div>
 

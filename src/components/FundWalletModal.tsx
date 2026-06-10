@@ -130,7 +130,41 @@ function FundWalletContent({
   onClose: () => void;
   params?: FundWalletParams;
 }) {
-  const [screen, setScreen] = useState<Screen>(params?.initialScreen ?? "main");
+  const {
+    kalshiKycVerified,
+    kalshiKycLoading,
+    polymarketSetupVerified,
+    polymarketSetupLoading,
+  } = usePredictWallet();
+
+  // Never jump straight to the deposit screen before the venue prerequisite is
+  // satisfied: Kalshi requires KYC, Polymarket requires the account (deposit /
+  // Safe wallet) to be deployed + approved. When the prerequisite is unmet we
+  // land on the main screen instead so its gate surfaces the verify / setup
+  // prompt first. The loading guard avoids forcing the main screen while the
+  // status is still resolving (which would strand a fully-set-up user).
+  const resolveInitialScreen = useCallback(
+    (p?: FundWalletParams): Screen => {
+      const requested = p?.initialScreen ?? "main";
+      if (requested !== "deposit") return requested;
+      const wallet = p?.initialWallet ?? "solana";
+      const loading =
+        wallet === "evm" ? polymarketSetupLoading : kalshiKycLoading;
+      const verified =
+        wallet === "evm" ? polymarketSetupVerified : kalshiKycVerified;
+      return !loading && !verified ? "main" : requested;
+    },
+    [
+      polymarketSetupLoading,
+      polymarketSetupVerified,
+      kalshiKycLoading,
+      kalshiKycVerified,
+    ],
+  );
+
+  const [screen, setScreen] = useState<Screen>(() =>
+    resolveInitialScreen(params),
+  );
   const [selectedWallet, setSelectedWallet] = useState<WalletSource>(
     params?.initialWallet ?? "solana",
   );
@@ -142,11 +176,11 @@ function FundWalletContent({
   const wasOpen = useRef(isOpen);
   useEffect(() => {
     if (isOpen && !wasOpen.current) {
-      setScreen(params?.initialScreen ?? "main");
+      setScreen(resolveInitialScreen(params));
       setSelectedWallet(params?.initialWallet ?? "solana");
     }
     wasOpen.current = isOpen;
-  }, [isOpen, params]);
+  }, [isOpen, params, resolveInitialScreen]);
 
   switch (screen) {
     case "deposit":

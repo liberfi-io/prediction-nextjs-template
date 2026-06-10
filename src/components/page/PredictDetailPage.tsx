@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast } from "@liberfi.io/ui";
 import { Chain } from "@liberfi.io/types";
-import { EventDetailPage } from "@liberfi.io/ui-predict";
+import { EventDetailPage, usePredictWallet } from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { useSimilarEvents } from "@liberfi.io/react-predict";
 import type { ProviderSource } from "@liberfi.io/react-predict";
@@ -14,6 +14,7 @@ import {
   FUND_WALLET_MODAL_ID,
   type FundWalletParams,
 } from "../FundWalletModal";
+import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
 
@@ -22,9 +23,11 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   const { t } = useTranslation();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
+  const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
 
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
+  const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
 
   const walletAddress =
     source === "kalshi"
@@ -49,7 +52,18 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {
-      toast.error(t("predict.trade.insufficientBalance"));
+      // Polymarket account not yet set up → open the same setup modal as the
+      // header balance dropdown, not a deposit/balance flow.
+      if (src === "polymarket" && !polymarketSetupVerified) {
+        void openSetupWallet();
+        return;
+      }
+      // Kalshi unverified → let the fund modal surface the KYC prompt; suppress
+      // the misleading "insufficient balance" toast in that case.
+      const needsPrerequisite = src === "kalshi" && !kalshiKycVerified;
+      if (!needsPrerequisite) {
+        toast.error(t("predict.trade.insufficientBalance"));
+      }
       openFundWallet({
         params: {
           initialScreen: "deposit",
@@ -57,8 +71,19 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
         },
       });
     },
-    [openFundWallet, t],
+    [
+      openFundWallet,
+      openSetupWallet,
+      t,
+      polymarketSetupVerified,
+      kalshiKycVerified,
+    ],
   );
+
+  // Open the shared Polymarket account setup modal (same as the header).
+  const handleSetupRequired = useCallback(() => {
+    void openSetupWallet();
+  }, [openSetupWallet]);
 
   return (
     <div className={cn("w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto")}>
@@ -73,6 +98,7 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
             <EventActivitySection event={event} walletAddress={addr} />
           )}
           onInsufficientBalance={handleInsufficientBalance}
+          onSetupRequired={handleSetupRequired}
         />
       </div>
     </div>
