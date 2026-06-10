@@ -333,6 +333,8 @@ function PageShell({ children }: PropsWithChildren) {
       getEventHref: (event: PredictEvent) => predictEventHref(event),
       LinkComponent: NoPrefetchLink,
       onHover: handlePredictHover,
+      // When Kalshi is disabled, restrict search to Polymarket events only.
+      source: ENABLE_KALSHI ? undefined : ("polymarket" as const),
     }),
     [handlePredictHover]
   );
