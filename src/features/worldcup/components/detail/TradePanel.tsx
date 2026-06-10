@@ -37,10 +37,18 @@ export function TradePanel({
   return (
     <div>
       <div className="mb-3 flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/60 p-0.5">
-        <BuySellTab active={side === "buy"} onClick={() => onSideChange("buy")}>
+        <BuySellTab
+          tone="bullish"
+          active={side === "buy"}
+          onClick={() => onSideChange("buy")}
+        >
           {t("extend.worldcup.detail.trade.buy")}
         </BuySellTab>
-        <BuySellTab active={side === "sell"} onClick={() => onSideChange("sell")}>
+        <BuySellTab
+          tone="bearish"
+          active={side === "sell"}
+          onClick={() => onSideChange("sell")}
+        >
           {t("extend.worldcup.detail.trade.sell")}
         </BuySellTab>
       </div>
@@ -68,10 +76,12 @@ export function TradePanel({
 
 function BuySellTab({
   active,
+  tone,
   onClick,
   children,
 }: {
   active: boolean;
+  tone: "bullish" | "bearish";
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -81,7 +91,11 @@ function BuySellTab({
       onClick={onClick}
       className={cn(
         "flex-1 rounded-[8px] py-1.5 text-sm font-medium transition-colors cursor-pointer",
-        active ? "bg-zinc-800 text-[#c7ff2e]" : "text-zinc-400 hover:text-zinc-200",
+        active
+          ? tone === "bearish"
+            ? "bg-zinc-800 text-bearish"
+            : "bg-zinc-800 text-bullish"
+          : "text-zinc-400 hover:text-zinc-200",
       )}
     >
       {children}
