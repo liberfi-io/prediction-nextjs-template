@@ -95,12 +95,30 @@ function PortfolioContent() {
   // wallet, or the legacy Gnosis Safe), never the connected EOA. Resolve it via
   // the Polymarket setup status so the summary cards query the same wallet that
   // actually holds the user's positions; passing the raw EOA returns no PNL.
-  const { polymarketWalletAddress } = usePredictWallet();
+  const { polymarketWalletAddress, polymarketWalletKind } = usePredictWallet();
 
   const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
     kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
     polymarket_user: evmAddr || undefined,
   });
+
+  // Address audit: the PNL summary cards query ChainStream with the resolved
+  // on-chain Polymarket wallet (deposit wallet / legacy Safe), while the
+  // positions list queries with the connected EOA. Logged together so the two
+  // can be compared against the upstream `chainstream upstream request` URL in
+  // the server logs.
+  useEffect(() => {
+    console.info(
+      "[portfolio-pnl-addr]",
+      JSON.stringify({
+        eoaEvm: evmAddr || null,
+        eoaSolana: solanaAddr || null,
+        polymarketWalletKind: polymarketWalletKind ?? null,
+        pnlWallet: polymarketWalletAddress ?? null,
+        positionsPolymarketUser: evmAddr || null,
+      }),
+    );
+  }, [evmAddr, solanaAddr, polymarketWalletKind, polymarketWalletAddress]);
 
   const allPositions = positionsData?.positions ?? [];
   const positionsCount = allPositions.length;
