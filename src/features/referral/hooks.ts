@@ -86,11 +86,11 @@ export function useBindReferral() {
   return useMutation<
     BindReferralResponse,
     Error,
-    { invite_code: string; eoa: string; safe_address?: string }
+    { invite_code: string; user_address: string; safe_address?: string }
   >({
     mutationFn: (params) => referralApi.bind(params),
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: referralKeys.inviteCode(vars.eoa) });
+      queryClient.invalidateQueries({ queryKey: referralKeys.inviteCode(vars.user_address) });
     },
   });
 }

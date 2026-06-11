@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useAuth } from "@liberfi.io/wallet-connector";
 import { usePredictWallet } from "@liberfi.io/ui-predict";
-import { truncateAddress } from "@liberfi.io/utils";
+import { truncateAddress, formatDecimalCompactNumber } from "@liberfi.io/utils";
 import { cn, useScreen } from "@liberfi.io/ui";
 import {
   useClaimRebate,
@@ -24,7 +24,7 @@ import {
   useRebateTrades,
   useReferralConfig,
 } from "../hooks";
-import { formatMicroUsd } from "../api";
+import { formatMicroUsd, microToUsd } from "../api";
 
 const CARD_STYLE: React.CSSProperties = {
   border: "1px solid rgba(39,39,42,1)",
@@ -33,6 +33,11 @@ const CARD_STYLE: React.CSSProperties = {
 };
 
 const ACCENT = "#c7ff2e";
+
+// Rebate amounts are tiny USDC values; show full precision (USDC is 6dp) instead
+// of the 4-significant-digit compaction of formatAmountInUsd. ROUND_DOWN on a
+// <=6dp value is lossless; pad defaults to false so trailing zeros are trimmed.
+const REBATE_USD_FORMAT = { prefix: "$", short: false, precision: 6 } as const;
 
 function buildInviteLink(code: string): string {
   if (typeof window === "undefined") return `?invite=${code}`;
@@ -121,12 +126,12 @@ export function ReferralPage() {
           <div className="flex flex-col gap-3 lg:flex-row">
             <RewardCard
               label={tr("extend.referral.totalReward", "Total Rewards")}
-              value={formatMicroUsd(profile?.total_amount)}
+              value={formatDecimalCompactNumber(microToUsd(profile?.total_amount), REBATE_USD_FORMAT)}
             />
             <PendingRewardCard
               label={tr("extend.referral.pendingReward", "Claimable")}
-              value={formatMicroUsd(profile?.free_amount)}
-              lockedValue={formatMicroUsd(profile?.lock_amount)}
+              value={formatDecimalCompactNumber(microToUsd(profile?.free_amount), REBATE_USD_FORMAT)}
+              lockedValue={formatDecimalCompactNumber(microToUsd(profile?.lock_amount), REBATE_USD_FORMAT)}
               lockedLabel={tr("extend.referral.locked", "Locked")}
               canClaim={Boolean(profile?.can_claim)}
               claiming={claim.isPending}
@@ -139,7 +144,7 @@ export function ReferralPage() {
             />
             <RewardCard
               label={tr("extend.referral.claimedReward", "Claimed")}
-              value={formatMicroUsd(profile?.claimed_amount)}
+              value={formatDecimalCompactNumber(microToUsd(profile?.claimed_amount), REBATE_USD_FORMAT)}
             />
           </div>
 
@@ -298,7 +303,7 @@ function InviteesList({
   tr,
 }: {
   rows: {
-    invitee_eoa: string;
+    invitee_user_address: string;
     invite_code: string;
     joined_at: string;
     total_trade_amount: number;
@@ -321,17 +326,17 @@ function InviteesList({
       </div>
       {rows.map((r) => (
         <div
-          key={r.invitee_eoa}
+          key={r.invitee_user_address}
           className="flex items-center justify-between px-4 py-3 text-sm hover:bg-[rgba(39,39,42,0.4)]"
         >
           <span className="w-[180px] shrink-0 font-medium text-zinc-200">
-            {truncateAddress(r.invitee_eoa)}
+            {truncateAddress(r.invitee_user_address)}
           </span>
           <span className="flex-1 text-right tabular-nums text-zinc-300">
             {formatMicroUsd(r.total_trade_amount)}
           </span>
           <span className="flex-1 text-right tabular-nums" style={{ color: ACCENT }}>
-            {formatMicroUsd(r.total_rebate_amount)}
+            {formatDecimalCompactNumber(microToUsd(r.total_rebate_amount), REBATE_USD_FORMAT)}
           </span>
           <span className="w-[120px] shrink-0 text-right text-xs text-zinc-500">
             {formatDate(r.joined_at)}
@@ -347,7 +352,7 @@ function TradesList({
   tr,
 }: {
   rows: {
-    invitee_eoa: string;
+    invitee_user_address: string;
     source_trade_id: string;
     trade_amount: number;
     rebate_amount: number;
@@ -373,13 +378,13 @@ function TradesList({
           className="flex items-center justify-between px-4 py-3 text-sm hover:bg-[rgba(39,39,42,0.4)]"
         >
           <span className="w-[180px] shrink-0 font-medium text-zinc-200">
-            {truncateAddress(r.invitee_eoa)}
+            {truncateAddress(r.invitee_user_address)}
           </span>
           <span className="flex-1 text-right tabular-nums text-zinc-300">
             {formatMicroUsd(r.trade_amount)}
           </span>
           <span className="flex-1 text-right tabular-nums" style={{ color: ACCENT }}>
-            {formatMicroUsd(r.rebate_amount)}
+            {formatDecimalCompactNumber(microToUsd(r.rebate_amount), REBATE_USD_FORMAT)}
           </span>
           <span className="w-[120px] shrink-0 text-right text-xs text-zinc-500">
             {formatDate(r.created_at)}

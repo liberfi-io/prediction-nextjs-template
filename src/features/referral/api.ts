@@ -38,7 +38,7 @@ export interface RebateProfile {
 
 /** GET /referral/invitees — one downstream user with aggregated totals. */
 export interface InviteeSummary {
-  invitee_eoa: string;
+  invitee_user_address: string;
   invite_code: string;
   joined_at: string;
   total_trade_amount: number;
@@ -47,19 +47,25 @@ export interface InviteeSummary {
 
 /** GET /referral/trades — one per-fill rebate detail. */
 export interface RebateTradeItem {
-  invitee_eoa: string;
+  invitee_user_address: string;
   source: string;
   source_trade_id: string;
   trade_amount: number;
   rebate_amount: number;
   status: string;
   created_at: string;
+  // Optional display enrichment (nil when the market isn't synced locally).
+  event_id?: number;
+  event_title?: string;
+  market_id?: number;
+  market_question?: string;
+  outcome?: string;
 }
 
 /** POST /referral/bind */
 export interface BindReferralResponse {
   bound: boolean;
-  inviter_eoa?: string;
+  inviter_user_address?: string;
   has_bound_inviter: boolean;
 }
 
@@ -105,33 +111,36 @@ export const referralApi = {
 
   inviteCode: (eoa: string, signal?: AbortSignal) =>
     getJSON<InviteCodeResponse>(
-      `${REFERRAL_BASE}/invite_code?eoa=${encodeURIComponent(eoa)}`,
+      `${REFERRAL_BASE}/invite_code?user_address=${encodeURIComponent(eoa)}`,
       signal,
     ),
 
   profile: (eoa: string, signal?: AbortSignal) =>
     getJSON<RebateProfile>(
-      `${REFERRAL_BASE}/profile?eoa=${encodeURIComponent(eoa)}`,
+      `${REFERRAL_BASE}/profile?user_address=${encodeURIComponent(eoa)}`,
       signal,
     ),
 
   invitees: (eoa: string, page: number, pageSize: number, signal?: AbortSignal) =>
     getJSON<InviteeSummary[]>(
-      `${REFERRAL_BASE}/invitees?eoa=${encodeURIComponent(eoa)}&page=${page}&page_size=${pageSize}`,
+      `${REFERRAL_BASE}/invitees?user_address=${encodeURIComponent(eoa)}&page=${page}&page_size=${pageSize}`,
       signal,
     ),
 
   trades: (eoa: string, page: number, pageSize: number, signal?: AbortSignal) =>
     getJSON<RebateTradeItem[]>(
-      `${REFERRAL_BASE}/trades?eoa=${encodeURIComponent(eoa)}&page=${page}&page_size=${pageSize}`,
+      `${REFERRAL_BASE}/trades?user_address=${encodeURIComponent(eoa)}&page=${page}&page_size=${pageSize}`,
       signal,
     ),
 
-  bind: (params: { invite_code: string; eoa: string; safe_address?: string }) =>
+  bind: (params: { invite_code: string; user_address: string; safe_address?: string }) =>
     postJSON<BindReferralResponse>(`${REFERRAL_BASE}/bind`, params),
 
   claim: (eoa: string) =>
-    postJSON<ClaimResponse>(`${REFERRAL_BASE}/claim?eoa=${encodeURIComponent(eoa)}`, { eoa }),
+    postJSON<ClaimResponse>(
+      `${REFERRAL_BASE}/claim?user_address=${encodeURIComponent(eoa)}`,
+      { user_address: eoa },
+    ),
 };
 
 /** Convert integer USDC micro-units to a number of dollars. */

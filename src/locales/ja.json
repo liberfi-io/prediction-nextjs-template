@@ -136,7 +136,7 @@
       "title": "リファラル報酬",
       "signInPrompt": "ログインしてリファラル報酬を確認しましょう。",
       "commissionRate": "コミッション率",
-      "commissionHint": "招待したユーザーの取引ごとに、ビルダー手数料の一部を獲得できます。",
+      "commissionHint": "招待したユーザーの取引ごとに、報酬の一部を獲得できます。",
       "totalReward": "総報酬",
       "pendingReward": "受取可能",
       "claimedReward": "受取済み",

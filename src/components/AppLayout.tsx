@@ -113,7 +113,6 @@ import {
   pollTransaction,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
-import { LanguageButton } from "./LanguageButton";
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
@@ -408,7 +407,9 @@ function PageShell({ children }: PropsWithChildren) {
                 />
               </div>
 
-              {/* Right: search icon (tablet/mobile) + language + account control */}
+              {/* Right: search icon (tablet/mobile) + account control. The
+                  language switcher lives inside the account/balance dropdown
+                  (LanguageMenuItem), so it is intentionally not duplicated here. */}
               <div className="shrink-0 ml-auto flex items-center gap-2">
                 <button
                   type="button"
@@ -420,9 +421,6 @@ function PageShell({ children }: PropsWithChildren) {
                 >
                   <SearchIcon width={14} height={14} />
                 </button>
-                <div className="hidden sm:block">
-                  <LanguageButton />
-                </div>
                 <PredictAccountControl />
               </div>
             </div>

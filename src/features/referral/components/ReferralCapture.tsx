@@ -57,7 +57,7 @@ export function ReferralCapture() {
     attemptedRef.current = code;
 
     bind
-      .mutateAsync({ invite_code: code, eoa: evmAddress })
+      .mutateAsync({ invite_code: code, user_address: evmAddress })
       .then((res) => {
         // Bound now, or already had an inviter — either way stop tracking it.
         if (res.bound || res.has_bound_inviter) {

@@ -136,7 +136,7 @@
       "title": "返佣獎勵",
       "signInPrompt": "登入以查看您的返佣獎勵。",
       "commissionRate": "返佣比例",
-      "commissionHint": "您邀請的用戶每筆交易，您都能分得一部分 builder 手續費。",
+      "commissionHint": "您邀請的用戶每筆交易，您都能分得獎勵。",
       "totalReward": "總獎勵",
       "pendingReward": "可領取",
       "claimedReward": "已領取",

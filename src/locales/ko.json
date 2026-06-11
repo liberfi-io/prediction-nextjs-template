@@ -136,7 +136,7 @@
       "title": "리퍼럴 보상",
       "signInPrompt": "로그인하여 리퍼럴 보상을 확인하세요.",
       "commissionRate": "커미션 비율",
-      "commissionHint": "초대한 사용자의 모든 거래에서 빌더 수수료의 일부를 받습니다.",
+      "commissionHint": "초대한 사용자의 모든 거래에서 보상의 일부를 받습니다.",
       "totalReward": "총 보상",
       "pendingReward": "수령 가능",
       "claimedReward": "수령 완료",
