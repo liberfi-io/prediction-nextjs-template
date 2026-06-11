@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
@@ -10,6 +10,7 @@ import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
 import { formatKickoff, formatVolume } from "../util";
 import { SportsWidget } from "./SportsWidget";
+import { LiveStreamPanel } from "./LiveStreamPanel";
 
 type PillColors = { bg: string; text: string; shadow: string };
 
@@ -246,6 +247,13 @@ function MatchCardImpl({
   const awayScore = match.liveScore?.away ?? 0;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
+  // PoC: hard-wire the multi-source live-stream panel onto the opener
+  // (Mexico vs South Africa). Its live button toggles a card-bottom expansion
+  // on both desktop and mobile, independent of the SportsWidget plumbing.
+  const isStreamMatch =
+    match.home.code === "MEX" && match.away.code === "RSA";
+  const [streamOpen, setStreamOpen] = useState(false);
+
   const homeColors = teamColors(match.home.color);
   const awayColors = teamColors(match.away.color);
   const drawLabel = t("extend.worldcup.draw");
@@ -334,18 +342,30 @@ function MatchCardImpl({
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <HeaderMeta match={match} />
         <div className="flex shrink-0 items-center gap-1.5">
-          {/* Desktop: selects the pinned right-rail widget. */}
-          {renderLiveButton({
-            highlighted: activeLive,
-            onClick: () => onLive?.(match),
-            className: "hidden lg:flex",
-          })}
-          {/* Mobile: toggles this card's inline expanding widget. */}
-          {renderLiveButton({
-            highlighted: widgetOpen,
-            onClick: () => onToggleWidget?.(match),
-            className: "flex lg:hidden",
-          })}
+          {isStreamMatch ? (
+            // PoC opener: one live button that expands the multi-source stream
+            // panel under the card on every breakpoint.
+            renderLiveButton({
+              highlighted: streamOpen,
+              onClick: () => setStreamOpen((v) => !v),
+              className: "flex",
+            })
+          ) : (
+            <>
+              {/* Desktop: selects the pinned right-rail widget. */}
+              {renderLiveButton({
+                highlighted: activeLive,
+                onClick: () => onLive?.(match),
+                className: "hidden lg:flex",
+              })}
+              {/* Mobile: toggles this card's inline expanding widget. */}
+              {renderLiveButton({
+                highlighted: widgetOpen,
+                onClick: () => onToggleWidget?.(match),
+                className: "flex lg:hidden",
+              })}
+            </>
+          )}
           {viewPill}
         </div>
       </div>
@@ -366,24 +386,47 @@ function MatchCardImpl({
         <div className="grid grid-cols-3 gap-2">{moneylineCol(true)}</div>
       </div>
 
+      {/* ---------- PoC opener: multi-source live stream, expands under the card (all breakpoints) ---------- */}
+      {isStreamMatch && (
+        <AnimatePresence initial={false}>
+          {streamOpen && (
+            <motion.div
+              key="live-stream"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="overflow-hidden"
+              onClick={stop}
+            >
+              <div className="px-3 pb-3 sm:px-4">
+                <LiveStreamPanel />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+
       {/* ---------- Mobile (< lg): inline live widget, expands under the card ---------- */}
-      <AnimatePresence initial={false}>
-        {widgetOpen && (
-          <motion.div
-            key="live-widget"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="overflow-hidden lg:hidden"
-            onClick={stop}
-          >
-            <div className="px-3 pb-3">
-              <SportsWidget match={match} className="h-[360px]" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!isStreamMatch && (
+        <AnimatePresence initial={false}>
+          {widgetOpen && (
+            <motion.div
+              key="live-widget"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="overflow-hidden lg:hidden"
+              onClick={stop}
+            >
+              <div className="px-3 pb-3">
+                <SportsWidget match={match} className="h-[360px]" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
