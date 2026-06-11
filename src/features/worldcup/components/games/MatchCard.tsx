@@ -250,8 +250,10 @@ function MatchCardImpl({
   // PoC: hard-wire the multi-source live-stream panel onto the opener
   // (Mexico vs South Africa). Its live button toggles a card-bottom expansion
   // on both desktop and mobile, independent of the SportsWidget plumbing.
-  const isStreamMatch =
-    match.home.code === "MEX" && match.away.code === "RSA";
+  //
+  // Disabled until proper development. Re-enable by restoring the opener check:
+  //   match.home.code === "MEX" && match.away.code === "RSA"
+  const isStreamMatch = false;
   const [streamOpen, setStreamOpen] = useState(false);
 
   const homeColors = teamColors(match.home.color);
