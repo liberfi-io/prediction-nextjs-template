@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
 import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
@@ -35,6 +35,7 @@ import {
   findSelection,
   type TeamHint,
 } from "./marketGrouping";
+import { resolveMarketDeepLink } from "./deepLink";
 
 /** Shared FIFA logo used for every event avatar on the World Cup detail page. */
 const FIFA_AVATAR = "/worldcup/fifa.webp";
@@ -68,6 +69,7 @@ function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
 
 export function WorldCupDetailPage({ id }: { id: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
@@ -102,6 +104,10 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
   const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTabKey>("orderbook");
+  const deepLinkAppliedRef = useRef(false);
+
+  const deepLinkMarket = searchParams.get("market")?.trim() || null;
+  const deepLinkOutcome = searchParams.get("outcome")?.trim() || null;
 
   // Resolve the active selection, falling back to the first open market.
   const selection = useMemo(() => {
@@ -113,6 +119,41 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   useEffect(() => {
     if (!selectedSlug && selection) setSelectedSlug(selection.option.market.slug);
   }, [selectedSlug, selection]);
+
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    if (!deepLinkMarket) return;
+    if (!match) return;
+
+    const hasOptions = [
+      ...cats.gameLines,
+      ...cats.exactScore,
+      ...cats.halftime,
+    ].some((group) => group.options.length > 0);
+    if (!hasOptions) return;
+
+    const resolved = resolveMarketDeepLink({
+      cats,
+      match,
+      marketCode: deepLinkMarket,
+      outcomeCode: deepLinkOutcome,
+    });
+
+    deepLinkAppliedRef.current = true;
+    if (!resolved) return;
+
+    setSelectedSlug(resolved.marketSlug);
+    setOutcome(resolved.outcome);
+    setSide("buy");
+  }, [cats, deepLinkMarket, deepLinkOutcome, match]);
+
+  useEffect(() => {
+    if (!deepLinkMarket || match || deepLinkAppliedRef.current) return;
+    const timeout = window.setTimeout(() => {
+      deepLinkAppliedRef.current = true;
+    }, 1500);
+    return () => window.clearTimeout(timeout);
+  }, [deepLinkMarket, match]);
 
   const handleSelect = useCallback((slug: string) => {
     setSelectedSlug(slug);

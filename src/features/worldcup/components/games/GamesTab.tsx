@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
@@ -18,6 +18,41 @@ type GroupBy = "stage" | "time";
 // Temporarily hide finished matches from the list (M1 Mexico vs South Africa,
 // M2 Korea Rep. vs Czechia). Remove ids here to bring them back.
 const HIDDEN_MATCH_IDS = new Set<string>(["M1", "M2"]);
+
+function nearestScrollContainer(el: HTMLElement): HTMLElement | null {
+  let current = el.parentElement;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const scrollable =
+      /(auto|scroll)/.test(style.overflowY) &&
+      current.scrollHeight > current.clientHeight;
+    if (scrollable) return current;
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function scrollMatchIntoView(matchId: string): void {
+  const el = document.getElementById(`match-${matchId}`);
+  if (!el) return;
+  const container = nearestScrollContainer(el);
+  if (!container) {
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    return;
+  }
+
+  const elRect = el.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const delta =
+    elRect.top -
+    containerRect.top -
+    container.clientHeight / 2 +
+    elRect.height / 2;
+  container.scrollTo({
+    top: container.scrollTop + delta,
+    behavior: "smooth",
+  });
+}
 
 function Toggle({
   active,
@@ -47,9 +82,12 @@ function Toggle({
 export function GamesTab() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const lang = i18n.language || "en";
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("time");
+  const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
+  const scrolledTargetRef = useRef<string | null>(null);
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: rawMatches = [], isPending } = useWorldcupMatches();
@@ -61,6 +99,11 @@ export function GamesTab() {
     (slug: string) => router.push(`/world-cup/match/${slug}`),
     [router]
   );
+
+  const anchorTarget = useMemo(() => {
+    const target = searchParams.get("match") || searchParams.get("anchor");
+    return target?.trim() || null;
+  }, [searchParams]);
 
   // First in-progress match in list order (the one both layouts default to when
   // multiple games are live at the same time).
@@ -100,6 +143,33 @@ export function GamesTab() {
     setOpenWidgetId(firstLiveMatch?.matchId ?? null);
   }, [matches.length, firstLiveMatch]);
 
+  useEffect(() => {
+    if (!anchorTarget || matches.length === 0) return;
+    if (scrolledTargetRef.current === anchorTarget) return;
+    const match = matches.find((m) => m.matchId === anchorTarget);
+    if (!match) return;
+
+    scrolledTargetRef.current = anchorTarget;
+    setHighlightedMatchId(anchorTarget);
+    window.requestAnimationFrame(() => {
+      scrollMatchIntoView(anchorTarget);
+    });
+    const settleTimeout = window.setTimeout(() => {
+      scrollMatchIntoView(anchorTarget);
+    }, 500);
+
+    const timeout = window.setTimeout(() => {
+      setHighlightedMatchId((current) =>
+        current === anchorTarget ? null : current,
+      );
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(settleTimeout);
+      window.clearTimeout(timeout);
+    };
+  }, [anchorTarget, matches]);
+
   const sections = useMemo(() => {
     if (groupBy === "time") {
       const byDay = new Map<string, typeof matches>();
@@ -125,7 +195,7 @@ export function GamesTab() {
         title: t("extend.worldcup.groupLabel", { code }),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
-  }, [matches, groupBy, t]);
+  }, [matches, groupBy, lang, t]);
 
   if (isPending) return <GamesSkeleton />;
 
@@ -193,6 +263,7 @@ export function GamesTab() {
                 match={m}
                 format={format}
                 activeLive={activeMatch?.matchId === m.matchId}
+                highlighted={highlightedMatchId === m.matchId}
                 widgetOpen={openWidgetId === m.matchId}
                 onOpen={onOpen}
                 onLive={setLiveMatch}

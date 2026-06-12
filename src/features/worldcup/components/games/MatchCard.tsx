@@ -224,6 +224,7 @@ function MatchCardImpl({
   match,
   format,
   activeLive = false,
+  highlighted = false,
   widgetOpen = false,
   onOpen,
   onLive,
@@ -233,6 +234,8 @@ function MatchCardImpl({
   format: OddsFormat;
   /** Desktop: this match is the one shown in the pinned right-rail widget. */
   activeLive?: boolean;
+  /** URL deep-link target highlight. */
+  highlighted?: boolean;
   /** Mobile: this card's inline live widget is expanded. */
   widgetOpen?: boolean;
   onOpen: (slug: string) => void;
@@ -334,11 +337,18 @@ function MatchCardImpl({
 
   return (
     <div
+      id={`match-${match.matchId}`}
+      data-match-id={match.matchId}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(match.slug)}
       onKeyDown={(e) => e.key === "Enter" && onOpen(match.slug)}
-      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors [content-visibility:auto] [contain-intrinsic-size:auto_140px] hover:border-[rgba(63,63,70,0.8)]"
+      className={cn(
+        "group cursor-pointer overflow-hidden rounded-[14px] border bg-[rgba(24,24,27,0.4)] transition-colors [content-visibility:auto] [contain-intrinsic-size:auto_140px] hover:border-[rgba(63,63,70,0.8)]",
+        highlighted
+          ? "border-[#c7ff2e]/70 shadow-[0_0_0_1px_rgba(199,255,46,0.35)]"
+          : "border-[rgba(39,39,42,0.6)]",
+      )}
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">

@@ -116,6 +116,7 @@ import {
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
+import { TelegramMiniAppBridge } from "../features/telegram-miniapp/components/TelegramMiniAppBridge";
 
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
@@ -351,6 +352,9 @@ function PageShell({ children }: PropsWithChildren) {
       <PredictWsConnector />
       <Suspense fallback={null}>
         <ReferralCapture />
+      </Suspense>
+      <Suspense fallback={null}>
+        <TelegramMiniAppBridge />
       </Suspense>
       <Scaffold
         pathname={pathname}

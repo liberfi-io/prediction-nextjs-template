@@ -50,13 +50,19 @@ function useApiLang(): string {
   return mapToApiLang(toSupportedLang(i18n.language));
 }
 
+interface WorldcupMatchesOptions {
+  enabled?: boolean;
+}
+
 /** Poll the worldcup matches list from the browser. */
-export function useWorldcupMatches() {
+export function useWorldcupMatches(options: WorldcupMatchesOptions = {}) {
   const lang = useApiLang();
+  const enabled = options.enabled ?? true;
   return useQuery({
     queryKey: [...WORLDCUP_MATCHES_QUERY_KEY, lang],
     queryFn: () => fetchWorldcupMatches(CLIENT_BASE, lang),
-    refetchInterval: POLL_INTERVAL_MS,
+    enabled,
+    refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS,
   });
 }
