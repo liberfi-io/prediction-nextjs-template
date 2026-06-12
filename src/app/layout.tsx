@@ -53,7 +53,11 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
 });
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const locale = await detectLanguage();
   await initServerI18n(locale);
   return (
@@ -64,11 +68,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       style={{ colorScheme: "dark" }}
       suppressHydrationWarning
     >
-        <body className={`${inter.className} ${dmSans.variable}`}>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+      <body className={`${inter.className} ${dmSans.variable}`}>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
         <AppLayout locale={locale}>{children}</AppLayout>
         {process.env.NODE_ENV === "production" && (
-          <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+          <GoogleAnalytics
+            GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+          />
         )}
       </body>
     </html>

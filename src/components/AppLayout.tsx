@@ -116,8 +116,6 @@ import {
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
-import { TelegramMiniAppBridge } from "../features/telegram-miniapp/components/TelegramMiniAppBridge";
-
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -148,7 +146,11 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
       </span>
     ),
   },
-  { key: "markets", href: "/", icon: <ChartLineIcon width={20} height={20} /> },
+  {
+    key: "markets",
+    href: "/events",
+    icon: <ChartLineIcon width={20} height={20} />,
+  },
   {
     key: "matches",
     href: "/matches",
@@ -254,7 +256,7 @@ export function AppLayout({
 function ServiceProviders({ children }: PropsWithChildren) {
   const predictClient = useMemo(
     () => new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL),
-    []
+    [],
   );
 
   // Live WebSocket client for orderbook/price/trade subscriptions. Falls back
@@ -288,7 +290,7 @@ function PageShell({ children }: PropsWithChildren) {
         ...item,
         label: t(`extend.nav.${item.key}`) as string,
       })),
-    [t]
+    [t],
   );
 
   // Mobile footer: hide matches / portfolio / referral and place worldcup
@@ -315,7 +317,7 @@ function PageShell({ children }: PropsWithChildren) {
     (href: string) => {
       router.push(href);
     },
-    [router]
+    [router],
   );
 
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
@@ -325,7 +327,7 @@ function PageShell({ children }: PropsWithChildren) {
     (event: PredictEvent) => {
       router.prefetch(predictEventHref(event));
     },
-    [router]
+    [router],
   );
 
   const searchModalParams = useMemo(
@@ -336,7 +338,7 @@ function PageShell({ children }: PropsWithChildren) {
       // When Kalshi is disabled, restrict search to Polymarket events only.
       source: ENABLE_KALSHI ? undefined : ("polymarket" as const),
     }),
-    [handlePredictHover]
+    [handlePredictHover],
   );
 
   const handleSelectEvent = useCallback(
@@ -344,7 +346,7 @@ function PageShell({ children }: PropsWithChildren) {
       router.push(predictEventHref(event));
       closePredictSearch();
     },
-    [router, closePredictSearch]
+    [router, closePredictSearch],
   );
 
   return (
@@ -352,9 +354,6 @@ function PageShell({ children }: PropsWithChildren) {
       <PredictWsConnector />
       <Suspense fallback={null}>
         <ReferralCapture />
-      </Suspense>
-      <Suspense fallback={null}>
-        <TelegramMiniAppBridge />
       </Suspense>
       <Scaffold
         pathname={pathname}
@@ -375,21 +374,12 @@ function PageShell({ children }: PropsWithChildren) {
                 <Logo icon={<LogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
                   {/* Hide "matches" (跨平台匹配) in the desktop header only;
-                      the route/module and mobile footer entry stay intact. */}
+                        the route/module and mobile footer entry stay intact. */}
                   {navItems
                     .filter((item) => item.key !== "matches")
                     .map((item) => {
                       const itemPathname = navPathname(item.href);
-                      const active =
-                        itemPathname === "/"
-                          ? !navItemsConfig.some((other) => {
-                              const otherPathname = navPathname(other.href);
-                              return (
-                                otherPathname !== "/" &&
-                                pathname.startsWith(otherPathname)
-                              );
-                            })
-                          : pathname.startsWith(itemPathname);
+                      const active = pathname.startsWith(itemPathname);
                       return (
                         <NavTab
                           key={item.key}
@@ -412,8 +402,8 @@ function PageShell({ children }: PropsWithChildren) {
               </div>
 
               {/* Right: search icon (tablet/mobile) + account control. The
-                  language switcher lives inside the account/balance dropdown
-                  (LanguageMenuItem), so it is intentionally not duplicated here. */}
+                    language switcher lives inside the account/balance dropdown
+                    (LanguageMenuItem), so it is intentionally not duplicated here. */}
               <div className="shrink-0 ml-auto flex items-center gap-2">
                 <button
                   type="button"
@@ -466,7 +456,7 @@ function NavTab({
         item.key === "worldcup" && "relative",
         active
           ? "text-[#c7ff2e]"
-          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40"
+          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
       )}
       onClick={handlePress}
       aria-label={item.label}
@@ -571,7 +561,7 @@ function WalletMenuRow({
         "flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-[10px] transition-colors text-zinc-300",
         disabled
           ? "opacity-60 cursor-default"
-          : "cursor-pointer hover:bg-[rgba(39,39,42,0.5)] hover:text-white"
+          : "cursor-pointer hover:bg-[rgba(39,39,42,0.5)] hover:text-white",
       )}
     >
       <RowIconChip>{icon}</RowIconChip>
@@ -623,7 +613,7 @@ function WalletEntry({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     },
-    [address]
+    [address],
   );
 
   return (
@@ -813,7 +803,7 @@ function LanguageMenuItem() {
           strokeLinejoin="round"
           className={cn(
             "text-zinc-500 transition-transform",
-            expanded && "rotate-180"
+            expanded && "rotate-180",
           )}
         >
           <polyline points="6 9 12 15 18 9" />
@@ -836,7 +826,7 @@ function LanguageMenuItem() {
                   "w-full flex items-center justify-between pl-12 pr-3 py-2 rounded-[10px] text-sm transition-colors cursor-pointer",
                   selected
                     ? "bg-[#c7ff2e]/[0.08] text-[#c7ff2e]"
-                    : "text-zinc-400 hover:text-white hover:bg-[rgba(39,39,42,0.5)]"
+                    : "text-zinc-400 hover:text-white hover:bg-[rgba(39,39,42,0.5)]",
                 )}
               >
                 {lang.displayName}
@@ -1213,7 +1203,7 @@ function PredictAccountControl() {
 
   const relayConfig: PolymarketRelayConfig = useMemo(
     () => ({ signProxyUrl: "/predict-api/api/v1/polymarket/sign" }),
-    []
+    [],
   );
 
   const handleDeployAndApprove = useCallback(async () => {
@@ -1226,7 +1216,7 @@ function PredictAccountControl() {
     }
 
     const evmWallet = wallets.find(
-      (w) => w.chainNamespace === "EVM" && w.isConnected
+      (w) => w.chainNamespace === "EVM" && w.isConnected,
     ) as EvmWalletAdapter | undefined;
     if (!evmWallet || !evmAddress) {
       throw new Error("EVM wallet not connected");
@@ -1262,7 +1252,7 @@ function PredictAccountControl() {
           walletClient,
           depositWalletAddress as Hex,
           approvalCalls,
-          relayConfig
+          relayConfig,
         );
         if (approveResult.transactionID) {
           await pollTransaction(relayConfig, approveResult.transactionID);
@@ -1288,7 +1278,7 @@ function PredictAccountControl() {
       const approveResult = await executeSafe(
         walletClient,
         approvalTxns,
-        relayConfig
+        relayConfig,
       );
       if (approveResult.transactionID) {
         await pollTransaction(relayConfig, approveResult.transactionID);
@@ -1336,7 +1326,7 @@ function PredictAccountControl() {
       setIsOpen(false);
       router.push(href);
     },
-    [router]
+    [router],
   );
 
   useEffect(() => {
@@ -1494,13 +1484,13 @@ function PredictAccountControl() {
           <div
             className={cn(
               "absolute inset-0 bg-black/60",
-              drawerClosing ? "animate-backdrop-out" : "animate-backdrop-in"
+              drawerClosing ? "animate-backdrop-out" : "animate-backdrop-in",
             )}
           />
           <div
             className={cn(
               "relative h-full w-80 max-w-[85vw] flex flex-col",
-              drawerClosing ? "animate-drawer-out" : "animate-drawer-in"
+              drawerClosing ? "animate-drawer-out" : "animate-drawer-in",
             )}
             style={{
               borderLeft: "1px solid rgba(39,39,42,1)",

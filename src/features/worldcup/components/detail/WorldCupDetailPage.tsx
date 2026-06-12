@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
 import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
@@ -67,9 +67,18 @@ function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
   return { ...market, question: label, outcomes };
 }
 
-export function WorldCupDetailPage({ id }: { id: string }) {
+export function WorldCupDetailPage({
+  id,
+  initialMarket = null,
+  initialOutcome = null,
+}: {
+  id: string;
+  /** Deep-link market short code from the entry URL (`?market=`). */
+  initialMarket?: string | null;
+  /** Deep-link outcome short code from the entry URL (`?outcome=`). */
+  initialOutcome?: string | null;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
@@ -106,8 +115,8 @@ export function WorldCupDetailPage({ id }: { id: string }) {
   const [mobileTab, setMobileTab] = useState<MobileTabKey>("orderbook");
   const deepLinkAppliedRef = useRef(false);
 
-  const deepLinkMarket = searchParams.get("market")?.trim() || null;
-  const deepLinkOutcome = searchParams.get("outcome")?.trim() || null;
+  const deepLinkMarket = initialMarket?.trim() || null;
+  const deepLinkOutcome = initialOutcome?.trim() || null;
 
   // Resolve the active selection, falling back to the first open market.
   const selection = useMemo(() => {

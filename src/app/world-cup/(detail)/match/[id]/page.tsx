@@ -10,6 +10,7 @@ import { mapToApiLang } from "src/i18n/locales";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ market?: string; outcome?: string }>;
 }
 
 const PREFETCH_TIMEOUT_MS = 3000;
@@ -20,8 +21,9 @@ const PREFETCH_TIMEOUT_MS = 3000;
  * banner / live widget), bounded by a 3s race so a slow backend never blocks
  * the shell, then hydrates and hands off to the client page.
  */
-export default async function Page({ params }: PageProps) {
+export default async function Page({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { market, outcome } = await searchParams;
   const lang = mapToApiLang(await detectLanguage());
 
   const queryClient = createServerQueryClient();
@@ -38,7 +40,11 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <WorldCupDetailPage id={id} />
+      <WorldCupDetailPage
+        id={id}
+        initialMarket={market ?? null}
+        initialOutcome={outcome ?? null}
+      />
     </HydrationBoundary>
   );
 }

@@ -63,6 +63,12 @@ export function expandTelegramWebApp(): void {
   getTelegramWebApp()?.expand?.();
 }
 
+export function peekTelegramStartParam(): string | null {
+  const webApp = getTelegramWebApp();
+  const unsafe = webApp?.initDataUnsafe ?? {};
+  return asString(unsafe.start_param) || readUrlStartParam();
+}
+
 export function readTelegramMiniAppContext(): TelegramMiniAppContext | null {
   const webApp = getTelegramWebApp();
   const urlStartParam = readUrlStartParam();
