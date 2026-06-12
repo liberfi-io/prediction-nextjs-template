@@ -15,6 +15,10 @@ import { SportsWidget } from "./SportsWidget";
 
 type GroupBy = "stage" | "time";
 
+// Temporarily hide finished matches from the list (M1 Mexico vs South Africa,
+// M2 Korea Rep. vs Czechia). Remove ids here to bring them back.
+const HIDDEN_MATCH_IDS = new Set<string>(["M1", "M2"]);
+
 function Toggle({
   active,
   onClick,
@@ -48,7 +52,11 @@ export function GamesTab() {
   const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
-  const { data: matches = [], isPending } = useWorldcupMatches();
+  const { data: rawMatches = [], isPending } = useWorldcupMatches();
+  const matches = useMemo(
+    () => rawMatches.filter((m) => !HIDDEN_MATCH_IDS.has(m.matchId)),
+    [rawMatches]
+  );
   const onOpen = useCallback(
     (slug: string) => router.push(`/world-cup/match/${slug}`),
     [router]
