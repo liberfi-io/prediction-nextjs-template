@@ -49,7 +49,7 @@ export function GamesTab() {
   const router = useRouter();
   const lang = i18n.language || "en";
   const [format] = useOddsFormat();
-  const [groupBy, setGroupBy] = useState<GroupBy>("stage");
+  const [groupBy, setGroupBy] = useState<GroupBy>("time");
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: rawMatches = [], isPending } = useWorldcupMatches();
