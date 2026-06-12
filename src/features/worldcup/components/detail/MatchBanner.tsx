@@ -66,6 +66,9 @@ export function MatchBanner({ match }: { match: WcMatch }) {
 
   const homeProb = Math.round(match.moneyline.home.price * 100);
   const awayProb = Math.round(match.moneyline.away.price * 100);
+  const homeScore = match.liveScore?.home ?? 0;
+  const awayScore = match.liveScore?.away ?? 0;
+  const showScore = match.status === "live" || match.status === "final";
   const teamName = (code: string) =>
     t("extend.worldcup.teamName." + code.toLowerCase());
 
@@ -83,13 +86,24 @@ export function MatchBanner({ match }: { match: WcMatch }) {
           {teamName(match.home.code)}
         </div>
         <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-          {homeProb}%
+          {showScore ? homeScore : `${homeProb}%`}
         </div>
       </div>
 
-      {/* Centre: countdown */}
+      {/* Centre: countdown / live state */}
       <div className="flex shrink-0 flex-col items-center gap-1">
-        {view.started ? (
+        {showScore ? (
+          <>
+            <span className="text-2xl font-black tabular-nums text-zinc-100">
+              {homeScore}-{awayScore}
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
+              {match.status === "final"
+                ? t("extend.worldcup.fullTime")
+                : match.livePeriod ?? t("extend.worldcup.live")}
+            </span>
+          </>
+        ) : view.started ? (
           <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
             {t("extend.worldcup.detail.banner.started")}
           </span>
@@ -116,7 +130,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
           {teamName(match.away.code)}
         </div>
         <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-          {awayProb}%
+          {showScore ? awayScore : `${awayProb}%`}
         </div>
       </div>
     </div>

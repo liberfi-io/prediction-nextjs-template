@@ -17,6 +17,7 @@ import type {
   WcFeedPage,
   WcGroup,
   WcMatch,
+  WcMatchLiveState,
   WcMatchStatus,
   WcMoneyline,
   WcOutcome,
@@ -67,6 +68,22 @@ export interface WcTeamInfoDto {
   abbreviation: string;
 }
 
+export interface WcMatchLiveStateDto {
+  match_id: string;
+  upstream_game_id?: string;
+  source: string;
+  league?: string;
+  sport?: string;
+  status: string;
+  score?: { home: number; away: number };
+  period?: string;
+  elapsed?: string;
+  live: boolean;
+  ended: boolean;
+  observed_at: string;
+  updated_at?: string;
+}
+
 export interface WcMatchDto {
   match_id: string;
   stage: string;
@@ -87,11 +104,24 @@ export interface WcMatchDto {
   liquidity?: number;
   markets: WcMarketDto[] | null;
   market_count: number;
+  live_state?: WcMatchLiveStateDto;
 }
 
 export interface WcMatchesResponseDto {
   matches: WcMatchDto[] | null;
 }
+
+export interface WorldcupMatchLiveUpdate {
+  type: "worldcup.match.live_update";
+  version: number;
+  match_id: string;
+  event_slug: string;
+  state: WcMatchLiveStateDto;
+}
+
+export type PredictEventWithWorldcupLive = PredictEvent & {
+  live_state?: WcMatchLiveStateDto;
+};
 
 // ---------------------------------------------------------------------------
 // Static supplements (fields the matches endpoint does not return)
@@ -281,6 +311,49 @@ function mapStatus(raw: string, kickoffMs: number): WcMatchStatus {
   }
 }
 
+export function adaptLiveState(dto?: WcMatchLiveStateDto): WcMatchLiveState | undefined {
+  if (!dto) return undefined;
+  return {
+    matchId: dto.match_id,
+    upstreamGameId: dto.upstream_game_id,
+    source: dto.source,
+    league: dto.league,
+    sport: dto.sport,
+    status: mapStatus(dto.status, 0),
+    score: dto.score,
+    period: dto.period,
+    elapsed: dto.elapsed,
+    live: dto.live,
+    ended: dto.ended,
+    observedAt: dto.observed_at,
+    updatedAt: dto.updated_at,
+  };
+}
+
+export function formatLivePeriod(state?: WcMatchLiveState): string | undefined {
+  if (!state) return undefined;
+  if (state.period && state.elapsed) return `${state.period} · ${state.elapsed}'`;
+  return state.period || (state.live ? "LIVE" : undefined);
+}
+
+export function applyLiveStateToMatch(match: WcMatch, state: WcMatchLiveState): WcMatch {
+  if (state.matchId !== match.matchId) return match;
+  if (match.liveState?.updatedAt && state.updatedAt) {
+    const current = Date.parse(match.liveState.updatedAt);
+    const incoming = Date.parse(state.updatedAt);
+    if (!Number.isNaN(current) && !Number.isNaN(incoming) && incoming < current) {
+      return match;
+    }
+  }
+  return {
+    ...match,
+    status: state.status,
+    liveScore: state.score,
+    livePeriod: formatLivePeriod(state),
+    liveState: state,
+  };
+}
+
 function adaptMatch(dto: WcMatchDto): WcMatch {
   const home = getTeam(dto.home_team.team_code);
   const away = getTeam(dto.away_team.team_code);
@@ -288,13 +361,14 @@ function adaptMatch(dto: WcMatchDto): WcMatch {
   const awayKeys = teamKeys(dto.away_team, away);
   const markets = dto.markets ?? [];
   const kickoffMs = Date.parse(dto.kickoff_at);
+  const liveState = adaptLiveState(dto.live_state);
 
-  return {
+  const match: WcMatch = {
     matchId: dto.match_id,
     stage: dto.stage,
     groupCode: dto.group_code || undefined,
     kickoffMs: Number.isNaN(kickoffMs) ? 0 : kickoffMs,
-    status: mapStatus(dto.status, kickoffMs),
+    status: liveState?.status ?? mapStatus(dto.status, kickoffMs),
     home,
     away,
     slug: dto.polymarket_slug,
@@ -306,7 +380,11 @@ function adaptMatch(dto: WcMatchDto): WcMatch {
     moneyline: buildMoneyline(markets, homeKeys, awayKeys, home, away),
     spread: buildSpread(markets, homeKeys, awayKeys, home, away),
     total: buildTotal(markets),
+    liveScore: liveState?.score,
+    livePeriod: formatLivePeriod(liveState),
+    liveState,
   };
+  return match;
 }
 
 /** Adapt the raw matches response into the local domain shape. */
@@ -362,8 +440,8 @@ export async function fetchWorldcupMatchEvent(
   baseUrl: string,
   slug: string,
   lang?: string,
-): Promise<PredictEvent> {
-  return getWorldcupJson<PredictEvent>(
+): Promise<PredictEventWithWorldcupLive> {
+  return getWorldcupJson<PredictEventWithWorldcupLive>(
     baseUrl,
     `matches/${encodeURIComponent(slug)}`,
     lang,
@@ -638,6 +716,7 @@ export interface WcBracketMatchDto {
   away_placeholder?: string;
   venue?: string;
   city?: string;
+  live_state?: WcMatchLiveStateDto;
 }
 
 export interface WcBracketResponseDto {

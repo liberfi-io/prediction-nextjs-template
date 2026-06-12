@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@liberfi.io/ui";
+import { applyLiveStateToMatch } from "../../data/client";
+import { useWorldcupLiveUpdates } from "../../data/live";
 import { useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -15,9 +17,8 @@ import { SportsWidget } from "./SportsWidget";
 
 type GroupBy = "stage" | "time";
 
-// Temporarily hide finished matches from the list (M1 Mexico vs South Africa,
-// M2 Korea Rep. vs Czechia). Remove ids here to bring them back.
-const HIDDEN_MATCH_IDS = new Set<string>(["M1", "M2"]);
+const FINISHED_MATCH_HIDE_DELAY_MS = 3 * 60 * 60 * 1000;
+const FALLBACK_MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
 
 function nearestScrollContainer(el: HTMLElement): HTMLElement | null {
   let current = el.parentElement;
@@ -79,6 +80,19 @@ function Toggle({
   );
 }
 
+function finalReferenceMs(match: WcMatch): number {
+  const liveEndedAt =
+    Date.parse(match.liveState?.updatedAt ?? "") ||
+    Date.parse(match.liveState?.observedAt ?? "");
+  if (!Number.isNaN(liveEndedAt) && liveEndedAt > 0) return liveEndedAt;
+  return match.kickoffMs + FALLBACK_MATCH_DURATION_MS;
+}
+
+function isHiddenFromTimeList(match: WcMatch, nowMs: number): boolean {
+  if (match.status !== "final") return false;
+  return nowMs - finalReferenceMs(match) > FINISHED_MATCH_HIDE_DELAY_MS;
+}
+
 export function GamesTab() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -87,13 +101,27 @@ export function GamesTab() {
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("time");
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const scrolledTargetRef = useRef<string | null>(null);
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: rawMatches = [], isPending } = useWorldcupMatches();
+  const liveStates = useWorldcupLiveUpdates();
   const matches = useMemo(
-    () => rawMatches.filter((m) => !HIDDEN_MATCH_IDS.has(m.matchId)),
-    [rawMatches]
+    () =>
+      rawMatches.map((m) => {
+        const liveState = liveStates[m.matchId];
+        return liveState ? applyLiveStateToMatch(m, liveState) : m;
+      }),
+    [rawMatches, liveStates]
+  );
+
+  const displayMatches = useMemo(
+    () =>
+      groupBy === "time"
+        ? matches.filter((m) => !isHiddenFromTimeList(m, nowMs))
+        : matches,
+    [matches, groupBy, nowMs]
   );
   const onOpen = useCallback(
     (slug: string) => router.push(`/world-cup/match/${slug}`),
@@ -108,8 +136,8 @@ export function GamesTab() {
   // First in-progress match in list order (the one both layouts default to when
   // multiple games are live at the same time).
   const firstLiveMatch = useMemo(
-    () => matches.find((m) => m.status === "live") ?? null,
-    [matches]
+    () => displayMatches.find((m) => m.status === "live") ?? null,
+    [displayMatches]
   );
 
   // Desktop right-rail: match shown in the pinned live widget (defaults to the
@@ -119,9 +147,9 @@ export function GamesTab() {
     () =>
       liveMatch ??
       firstLiveMatch ??
-      [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)[0] ??
+      [...displayMatches].sort((a, b) => a.kickoffMs - b.kickoffMs)[0] ??
       null,
-    [liveMatch, firstLiveMatch, matches]
+    [liveMatch, firstLiveMatch, displayMatches]
   );
 
   // Mobile (< lg): no pinned widget. The live button toggles an inline widget
@@ -138,15 +166,20 @@ export function GamesTab() {
   // polling refreshes don't reopen it.
   const defaultedRef = useRef(false);
   useEffect(() => {
-    if (defaultedRef.current || matches.length === 0) return;
+    if (defaultedRef.current || displayMatches.length === 0) return;
     defaultedRef.current = true;
     setOpenWidgetId(firstLiveMatch?.matchId ?? null);
-  }, [matches.length, firstLiveMatch]);
+  }, [displayMatches.length, firstLiveMatch]);
 
   useEffect(() => {
-    if (!anchorTarget || matches.length === 0) return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!anchorTarget || displayMatches.length === 0) return;
     if (scrolledTargetRef.current === anchorTarget) return;
-    const match = matches.find((m) => m.matchId === anchorTarget);
+    const match = displayMatches.find((m) => m.matchId === anchorTarget);
     if (!match) return;
 
     scrolledTargetRef.current = anchorTarget;
@@ -168,12 +201,12 @@ export function GamesTab() {
       window.clearTimeout(settleTimeout);
       window.clearTimeout(timeout);
     };
-  }, [anchorTarget, matches]);
+  }, [anchorTarget, displayMatches]);
 
   const sections = useMemo(() => {
     if (groupBy === "time") {
-      const byDay = new Map<string, typeof matches>();
-      for (const m of [...matches].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
+      const byDay = new Map<string, typeof displayMatches>();
+      for (const m of [...displayMatches].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
         const key = new Date(m.kickoffMs).toLocaleDateString(
           lang.startsWith("zh") ? "zh-CN" : "en-US",
           { weekday: "short", month: "short", day: "numeric" }
@@ -183,8 +216,8 @@ export function GamesTab() {
       }
       return [...byDay.entries()].map(([title, items]) => ({ title, items }));
     }
-    const byGroup = new Map<string, typeof matches>();
-    for (const m of matches) {
+    const byGroup = new Map<string, typeof displayMatches>();
+    for (const m of displayMatches) {
       const key = m.groupCode ?? "?";
       if (!byGroup.has(key)) byGroup.set(key, []);
       byGroup.get(key)!.push(m);
@@ -195,7 +228,7 @@ export function GamesTab() {
         title: t("extend.worldcup.groupLabel", { code }),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
-  }, [matches, groupBy, lang, t]);
+  }, [displayMatches, groupBy, lang, t]);
 
   if (isPending) return <GamesSkeleton />;
 

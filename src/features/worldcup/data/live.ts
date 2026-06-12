@@ -1,0 +1,105 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  adaptLiveState,
+  type WorldcupMatchLiveUpdate,
+} from "./client";
+import type { WcMatchLiveState } from "../types";
+
+const CHANNEL = "worldcup.matches";
+const DEFAULT_WS_URL = "ws://localhost:8003/connection/websocket?format=json";
+
+function centrifugoURL(): string | null {
+  return process.env.NEXT_PUBLIC_CENTRIFUGO_WS_URL || DEFAULT_WS_URL;
+}
+
+function send(ws: WebSocket, payload: unknown): void {
+  ws.send(`${JSON.stringify(payload)}\n`);
+}
+
+function isLiveUpdate(value: unknown): value is WorldcupMatchLiveUpdate {
+  const update = value as WorldcupMatchLiveUpdate;
+  return (
+    update?.type === "worldcup.match.live_update" &&
+    typeof update.match_id === "string" &&
+    typeof update.event_slug === "string" &&
+    Boolean(update.state)
+  );
+}
+
+function shouldReplace(
+  current: WcMatchLiveState | undefined,
+  incoming: WcMatchLiveState,
+): boolean {
+  if (!current?.updatedAt || !incoming.updatedAt) return true;
+  const currentMs = Date.parse(current.updatedAt);
+  const incomingMs = Date.parse(incoming.updatedAt);
+  if (Number.isNaN(currentMs) || Number.isNaN(incomingMs)) return true;
+  return incomingMs >= currentMs;
+}
+
+export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
+  const [states, setStates] = useState<Record<string, WcMatchLiveState>>({});
+
+  useEffect(() => {
+    const url = centrifugoURL();
+    if (!url || typeof WebSocket === "undefined") return;
+
+    let closed = false;
+    let reconnectTimer: number | undefined;
+    let ws: WebSocket | undefined;
+    let attempt = 0;
+
+    const applyUpdate = (update: WorldcupMatchLiveUpdate) => {
+      const state = adaptLiveState(update.state);
+      if (!state) return;
+      setStates((current) => {
+        const prev = current[state.matchId];
+        if (!shouldReplace(prev, state)) return current;
+        return { ...current, [state.matchId]: state };
+      });
+    };
+
+    const connect = () => {
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        attempt = 0;
+        if (!ws) return;
+        send(ws, { id: 1, connect: {} });
+      };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(String(event.data));
+          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
+            send(ws, { id: 2, subscribe: { channel: CHANNEL } });
+            return;
+          }
+          const data = msg.push?.pub?.data;
+          if (isLiveUpdate(data)) applyUpdate(data);
+        } catch {
+          // Ignore malformed realtime frames.
+        }
+      };
+      ws.onclose = () => {
+        if (closed) return;
+        const delay = Math.min(1000 * 2 ** attempt, 15000);
+        attempt += 1;
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
+      ws.onerror = () => {
+        ws?.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, []);
+
+  return states;
+}

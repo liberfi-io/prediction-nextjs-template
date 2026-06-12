@@ -19,6 +19,8 @@ import {
 } from "src/components/FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
+import { applyLiveStateToMatch } from "../../data/client";
+import { useWorldcupLiveUpdates } from "../../data/live";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
@@ -88,16 +90,19 @@ export function WorldCupDetailPage({
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
+  const liveStates = useWorldcupLiveUpdates();
   // Force every event avatar on this page — the header and the buy/sell trade
   // panel (which derives its icon from event.image_url) — to the FIFA logo.
   const event = useMemo(
     () => (rawEvent ? { ...rawEvent, image_url: FIFA_AVATAR } : rawEvent),
     [rawEvent],
   );
-  const match = useMemo(
-    () => matches.find((m) => m.slug === id),
-    [matches, id],
-  );
+  const match = useMemo(() => {
+    const found = matches.find((m) => m.slug === id);
+    if (!found) return undefined;
+    const liveState = liveStates[found.matchId];
+    return liveState ? applyLiveStateToMatch(found, liveState) : found;
+  }, [matches, liveStates, id]);
 
   const cats = useMemo(
     () => categorizeMarkets(event?.markets ?? [], teamHint(match)),

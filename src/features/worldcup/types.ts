@@ -19,6 +19,22 @@ export interface WcTeam {
 
 export type WcMatchStatus = "scheduled" | "live" | "final";
 
+export interface WcMatchLiveState {
+  matchId: string;
+  upstreamGameId?: string;
+  source: string;
+  league?: string;
+  sport?: string;
+  status: WcMatchStatus;
+  score?: { home: number; away: number };
+  period?: string;
+  elapsed?: string;
+  live: boolean;
+  ended: boolean;
+  observedAt: string;
+  updatedAt?: string;
+}
+
 export interface WcOutcome {
   /** English base label (Convention B). */
   label: string;
@@ -80,6 +96,7 @@ export interface WcMatch {
   liveScore?: { home: number; away: number };
   /** Live-only, e.g. "2nd · 67'". */
   livePeriod?: string;
+  liveState?: WcMatchLiveState;
 }
 
 export interface WcStandingRow {
