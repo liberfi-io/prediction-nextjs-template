@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import type { WcMatch } from "../../types";
 import { TeamFlag } from "../TeamFlag";
+import { formatLivePeriodLabel } from "../livePeriod";
 
 /** Two-digit zero-padded number. */
 function pad(n: number): string {
@@ -69,6 +70,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
   const showScore = match.status === "live" || match.status === "final";
+  const livePeriod = formatLivePeriodLabel(match, t);
   const teamName = (code: string) =>
     t("extend.worldcup.teamName." + code.toLowerCase());
 
@@ -85,9 +87,11 @@ export function MatchBanner({ match }: { match: WcMatch }) {
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
           {teamName(match.home.code)}
         </div>
-        <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-          {showScore ? homeScore : `${homeProb}%`}
-        </div>
+        {!showScore && (
+          <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
+            {homeProb}%
+          </div>
+        )}
       </div>
 
       {/* Centre: countdown / live state */}
@@ -100,7 +104,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
             <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
               {match.status === "final"
                 ? t("extend.worldcup.fullTime")
-                : match.livePeriod ?? t("extend.worldcup.live")}
+                : livePeriod ?? t("extend.worldcup.live")}
             </span>
           </>
         ) : view.started ? (
@@ -129,9 +133,11 @@ export function MatchBanner({ match }: { match: WcMatch }) {
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
           {teamName(match.away.code)}
         </div>
-        <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
-          {showScore ? awayScore : `${awayProb}%`}
-        </div>
+        {!showScore && (
+          <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
+            {awayProb}%
+          </div>
+        )}
       </div>
     </div>
   );

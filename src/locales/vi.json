@@ -470,6 +470,11 @@
             "other": "Khác"
           }
         }
+      },
+      "period": {
+        "firstHalf": "Hiệp 1",
+        "secondHalf": "Hiệp 2",
+        "halfTime": "Nghỉ giữa hiệp"
       }
     }
   },

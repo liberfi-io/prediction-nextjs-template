@@ -8,6 +8,7 @@ import type { WcMatch, WcTeam } from "../../types";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
+import { formatLivePeriodLabel } from "../livePeriod";
 import { formatKickoff, formatVolume } from "../util";
 import { SportsWidget } from "./SportsWidget";
 import { LiveStreamPanel } from "./LiveStreamPanel";
@@ -121,9 +122,9 @@ function Pill({
 }
 
 /**
- * Matchup grid: a 2-row [flag | name+score] grid so the home and away rows
- * align by column. The score sits inline right after the name (Polymarket
- * style), keeping the left section compact.
+ * Matchup grid: a 2-row [flag | name+score] grid so each team's own score sits
+ * close to the team identity. The full scoreline belongs in the header/detail
+ * surfaces, not repeated beside each team name.
  */
 function Matchup({
   match,
@@ -135,50 +136,66 @@ function Matchup({
   homeScore: number;
   awayScore: number;
   /**
-   * "compact" (desktop): the full scoreline sits inline after each name to keep
-   * the left column narrow. "full" (mobile): each team shows only its own
-   * score in a right-aligned column.
+   * "compact" (desktop) and "full" (mobile) share the same score placement;
+   * mobile uses slightly roomier vertical spacing.
    */
   mode?: "compact" | "full";
 }) {
   const { t: _t } = useTranslation();
   const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const showScore = (match.status === "live" || match.status === "final") && Boolean(match.liveScore);
   if (mode === "full") {
-    const row = (team: WcTeam, score: number) => (
-      <>
-        <TeamFlag team={team} size={28} />
+    const teamBlock = (team: WcTeam, side: "home" | "away") => (
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          side === "away" && "justify-end",
+        )}
+      >
+        {side === "home" && <TeamFlag team={team} size={28} />}
         <span className="truncate text-sm font-semibold text-zinc-100">
           {t("extend.worldcup.teamName." + team.code.toLowerCase())}
         </span>
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-300">
-          {score}
-        </span>
-      </>
+        {side === "away" && <TeamFlag team={team} size={28} />}
+      </div>
     );
+
     return (
-      <div className="grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-2.5">
-        {row(match.home, homeScore)}
-        {row(match.away, awayScore)}
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        {teamBlock(match.home, "home")}
+        <div className="flex min-w-[52px] justify-center">
+          <span className="text-sm font-black tabular-nums text-zinc-100">
+            {showScore ? `${homeScore}-${awayScore}` : "vs"}
+          </span>
+        </div>
+        {teamBlock(match.away, "away")}
       </div>
     );
   }
 
-  const score = `${homeScore}-${awayScore}`;
-  const row = (team: WcTeam) => (
+  const row = (team: WcTeam, score: number) => (
     <>
       <TeamFlag team={team} size={28} />
-      <div className="flex min-w-0 items-baseline gap-1.5">
+      <div className="flex min-w-0 items-baseline gap-2">
         <span className="truncate text-sm font-semibold text-zinc-100">
           {t("extend.worldcup.teamName." + team.code.toLowerCase())}
         </span>
-        <span className="shrink-0 text-xs tabular-nums text-zinc-500">{score}</span>
+        {showScore && (
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-300">
+            {score}
+          </span>
+        )}
       </div>
     </>
   );
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-2 self-center">
-      {row(match.home)}
-      {row(match.away)}
+    <div
+      className={cn(
+        "grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-2 self-center",
+      )}
+    >
+      {row(match.home, homeScore)}
+      {row(match.away, awayScore)}
     </div>
   );
 }
@@ -186,33 +203,12 @@ function Matchup({
 function HeaderMeta({ match }: { match: WcMatch }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
-  let lead: React.ReactNode;
-  if (match.status === "live") {
-    lead = (
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-[#f76816]">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f76816] opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#f76816]" />
-        </span>
-        {match.livePeriod ?? "LIVE"}
-      </span>
-    );
-  } else if (match.status === "final") {
-    lead = (
-      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {t("extend.worldcup.fullTime")}
-      </span>
-    );
-  } else {
-    lead = (
-      <span className="text-xs font-semibold text-zinc-200 tabular-nums">
-        {formatKickoff(match.kickoffMs, lang)}
-      </span>
-    );
-  }
+  const kickoff = formatKickoff(match.kickoffMs, lang);
   return (
     <div className="flex min-w-0 items-center gap-2">
-      {lead}
+      <span className="shrink-0 text-xs font-semibold text-zinc-200 tabular-nums">
+        {kickoff}
+      </span>
       <span className="truncate text-[11px] tabular-nums text-zinc-500">
         {formatVolume(match.volume)} {t("extend.worldcup.volume")}
       </span>
@@ -245,6 +241,7 @@ function MatchCardImpl({
   onToggleWidget?: (match: WcMatch) => void;
 }) {
   const { t } = useTranslation();
+  const translate = t as (key: `extend.${string}`) => string;
   const { moneyline: ml, spread, total } = match;
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
@@ -286,6 +283,12 @@ function MatchCardImpl({
   );
 
   const isLive = match.status === "live";
+  const liveButtonLabel =
+    match.status === "live"
+      ? formatLivePeriodLabel(match, translate) ?? t("extend.worldcup.live")
+      : match.status === "final"
+        ? t("extend.worldcup.fullTime")
+        : t("extend.worldcup.live");
   // The live button highlights when "active": on desktop that means selected
   // for the pinned right-rail widget; on mobile it means this card's inline
   // widget is expanded. We render two breakpoint-scoped variants so each
@@ -305,6 +308,8 @@ function MatchCardImpl({
         "shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer",
         isLive
           ? "border-[#f76816]/50 bg-[#f76816]/15 text-[#f76816] hover:bg-[#f76816]/20"
+          : match.status === "final"
+            ? "border-bearish/40 bg-bearish/10 text-bearish hover:bg-bearish/15"
           : opts.highlighted
             ? "border-[#c7ff2e]/50 bg-[#c7ff2e]/15 text-[#c7ff2e]"
             : "border-zinc-700/60 bg-zinc-800/50 text-zinc-300 hover:bg-zinc-800",
@@ -321,7 +326,7 @@ function MatchCardImpl({
           <path d="M8 5v14l11-7z" />
         </svg>
       )}
-      {t("extend.worldcup.live")}
+      {liveButtonLabel}
     </button>
   );
 

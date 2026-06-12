@@ -478,6 +478,11 @@
             "other": "其他"
           }
         }
+      },
+      "period": {
+        "firstHalf": "上半場",
+        "secondHalf": "下半場",
+        "halfTime": "中場休息"
       }
     }
   },

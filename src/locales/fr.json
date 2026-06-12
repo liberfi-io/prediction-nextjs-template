@@ -470,6 +470,11 @@
             "other": "Autre"
           }
         }
+      },
+      "period": {
+        "firstHalf": "Première mi-temps",
+        "secondHalf": "Deuxième mi-temps",
+        "halfTime": "Mi-temps"
       }
     }
   },

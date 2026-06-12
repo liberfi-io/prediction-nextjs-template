@@ -472,6 +472,11 @@
             "other": "Outros"
           }
         }
+      },
+      "period": {
+        "firstHalf": "Primeiro tempo",
+        "secondHalf": "Segundo tempo",
+        "halfTime": "Intervalo"
       }
     }
   },

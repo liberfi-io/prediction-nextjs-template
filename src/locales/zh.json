@@ -445,6 +445,11 @@
             "other": "其他"
           }
         }
+      },
+      "period": {
+        "firstHalf": "上半场",
+        "secondHalf": "下半场",
+        "halfTime": "中场休息"
       }
     }
   },

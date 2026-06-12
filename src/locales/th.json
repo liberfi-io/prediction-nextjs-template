@@ -470,6 +470,11 @@
             "other": "อื่นๆ"
           }
         }
+      },
+      "period": {
+        "firstHalf": "ครึ่งแรก",
+        "secondHalf": "ครึ่งหลัง",
+        "halfTime": "พักครึ่ง"
       }
     }
   },

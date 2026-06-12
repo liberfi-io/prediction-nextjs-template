@@ -478,6 +478,11 @@
             "other": "Other"
           }
         }
+      },
+      "period": {
+        "firstHalf": "First Half",
+        "secondHalf": "Second Half",
+        "halfTime": "Half Time"
       }
     }
   },

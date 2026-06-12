@@ -470,6 +470,11 @@
             "other": "기타"
           }
         }
+      },
+      "period": {
+        "firstHalf": "전반",
+        "secondHalf": "후반",
+        "halfTime": "하프타임"
       }
     }
   },

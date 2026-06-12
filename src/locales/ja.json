@@ -470,6 +470,11 @@
             "other": "その他"
           }
         }
+      },
+      "period": {
+        "firstHalf": "前半",
+        "secondHalf": "後半",
+        "halfTime": "ハーフタイム"
       }
     }
   },
