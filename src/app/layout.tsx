@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Inter, DM_Sans } from "next/font/google";
 import { defaultNS } from "@liberfi.io/i18n/server";
 import { CONFIG } from "../config";
@@ -64,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
         <body className={`${inter.className} ${dmSans.variable}`}>
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <AppLayout locale={locale}>{children}</AppLayout>
         {process.env.NODE_ENV === "production" && (
           <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
