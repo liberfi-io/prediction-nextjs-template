@@ -70,9 +70,22 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className={`${inter.className} ${dmSans.variable}`}>
+        {/*
+          Load the Telegram WebApp SDK without blocking hydration. The script is
+          still required: it exposes `window.Telegram.WebApp` (ready()/expand(),
+          initData, theme/viewport) which the Telegram client does NOT inject on
+          its own — it only passes launch params via the URL hash. We keep it,
+          but the home redirect does not depend on it being ready, because
+          `start_param` is also read straight from the URL hash
+          (`readUrlStartParam`). Using `beforeInteractive` here used to stall the
+          entire app's hydration whenever `telegram.org` was slow/unreachable
+          (common inside the in-app proxy), leaving the `/` splash spinning for
+          minutes. `afterInteractive` lets React hydrate and run the redirect
+          effect immediately while the SDK loads in parallel.
+        */}
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
         <AppLayout locale={locale}>{children}</AppLayout>
         <TelegramMiniAppSessionSync />

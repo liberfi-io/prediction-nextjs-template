@@ -5,7 +5,13 @@ import { HomeLaunchRedirect } from "src/components/page/HomeLaunchRedirect";
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 
-const PREFETCH_TIMEOUT_MS = 3000;
+// `/` is a pure redirect splash, so its TTFB matters for every visitor while
+// the prefetch only benefits the minority `wd` (match-detail) deep link. The
+// server cannot know the route here (`start_param` is client-only), so this
+// prefetch is speculative; keep the blocking budget small. On timeout the
+// client refetches on demand (`useWorldcupMatches({ enabled })`), so a slow
+// backend never holds the splash hostage.
+const PREFETCH_TIMEOUT_MS = 1000;
 
 /**
  * Home route (`/`). This is a thin client-side redirector, not a content page:
@@ -14,8 +20,9 @@ const PREFETCH_TIMEOUT_MS = 3000;
  * (a World Cup deep link, or `/world-cup` by default). The events market list
  * now lives at `/events`.
  *
- * We SSR-prefetch the matches list so the `wd` matchId→slug lookup resolves
- * from cache instantly, bounded by a 3s race so a slow backend never blocks.
+ * We SSR-prefetch the matches list so the `wd` matchId→slug lookup can resolve
+ * from cache, bounded by a short race so a slow backend never blocks first
+ * paint; the `wd` client query falls back to an on-demand fetch on timeout.
  */
 export default async function Page() {
   const lang = mapToApiLang(await detectLanguage());
