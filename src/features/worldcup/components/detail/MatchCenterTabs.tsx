@@ -25,8 +25,8 @@ export function MatchCenterTabs({
   liveVideos,
   className,
   contentClassName = "min-h-[420px] flex-1 p-2",
+  liveContentClassName = "p-2",
   centerWidgetClassName = "h-full min-h-[404px]",
-  livePanelClassName = "h-full min-h-[404px]",
   activeTab,
   hideTabs = false,
 }: {
@@ -34,8 +34,8 @@ export function MatchCenterTabs({
   liveVideos?: WcMatchLiveVideo[] | null;
   className?: string;
   contentClassName?: string;
+  liveContentClassName?: string;
   centerWidgetClassName?: string;
-  livePanelClassName?: string;
   activeTab?: CenterTab;
   hideTabs?: boolean;
 }) {
@@ -84,12 +84,10 @@ export function MatchCenterTabs({
 
       {/* Content fills remaining height (min 420px) so it can match an
           equal-height row alongside the chart and order book. */}
-      <div className={contentClassName}>
+      <div className={tab === "live" ? liveContentClassName : contentClassName}>
         {tab === "live" ? (
           <LiveStreamPanel
             videos={liveVideos}
-            className={livePanelClassName}
-            iframeClassName="h-full w-full"
           />
         ) : tab === "center" ? (
           <SportsWidget

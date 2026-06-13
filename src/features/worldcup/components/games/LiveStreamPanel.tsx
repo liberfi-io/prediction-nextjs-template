@@ -16,7 +16,7 @@ export function hasLiveVideos(videos?: WcMatchLiveVideo[] | null): boolean {
 export function LiveStreamPanel({
   videos,
   className,
-  iframeClassName = "aspect-video w-full",
+  iframeClassName,
 }: {
   videos?: WcMatchLiveVideo[] | null;
   className?: string;
@@ -62,12 +62,12 @@ export function LiveStreamPanel({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0a0b]">
+      <div className="aspect-video w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0a0b]">
         <iframe
           key={current.url}
           src={current.url}
           title={t("extend.worldcup.live")}
-          className={cn("border-0 bg-[#0a0a0b]", iframeClassName)}
+          className={cn("h-full w-full border-0 bg-[#0a0a0b]", iframeClassName)}
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           allowFullScreen
           sandbox="allow-scripts allow-same-origin allow-presentation"

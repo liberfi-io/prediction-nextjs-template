@@ -387,8 +387,6 @@ function MatchCardImpl({
         return (
           <LiveStreamPanel
             videos={match.liveVideos}
-            className="h-136"
-            iframeClassName="h-full w-full"
           />
         );
       case "center":

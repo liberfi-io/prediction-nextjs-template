@@ -382,10 +382,10 @@ export function WorldCupDetailPage({
               liveVideos={liveVideos}
               activeTab={mobileTab}
               hideTabs
-              className="h-140 w-full"
-              contentClassName="h-140 min-h-0 p-0"
+              className="w-full"
+              contentClassName="h-140 min-h-0 p-2"
+              liveContentClassName="p-2"
               centerWidgetClassName="h-140 min-h-0"
-              livePanelClassName="h-140 min-h-0"
             />
           )}
 
@@ -567,8 +567,8 @@ type MobileTabKey =
 // which desktop keeps as buttons). Labels reuse existing i18n keys.
 const MOBILE_TABS = [
   { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
-  { key: "center", labelKey: "extend.worldcup.detail.tab.center" },
   { key: "live", labelKey: "extend.worldcup.live" },
+  { key: "center", labelKey: "extend.worldcup.detail.tab.center" },
   { key: "news", labelKey: "extend.worldcup.detail.tab.news" },
   { key: "comments", labelKey: "extend.worldcup.detail.tab.comments" },
   { key: "positions", labelKey: "extend.portfolio.positions" },
