@@ -83,6 +83,23 @@ export const GROUP_MATCHES: Array<
   ["M72", "J", "jor", "arg", 1782612000000, "fifwc-jor-arg-2026-06-27", 3938],
 ];
 
+/**
+ * Static `matchId → Polymarket slug` map for the group stage, derived from
+ * {@link GROUP_MATCHES}. Lets the launch redirect resolve a `wd` deep link's
+ * matchId to a detail slug with zero network — the fixtures are fixed, so the
+ * mapping is known ahead of time. Knockout matches are intentionally absent:
+ * their fixtures (and thus slugs) are not known until the bracket resolves, so
+ * those deep links fall back to the live matches lookup.
+ */
+export const MATCH_SLUG_BY_ID: Record<string, string> = Object.fromEntries(
+  GROUP_MATCHES.map(([matchId, , , , , slug]) => [matchId, slug]),
+);
+
+/** Resolve a matchId to its detail slug from the static schedule, or null. */
+export function matchSlugById(matchId: string): string | null {
+  return MATCH_SLUG_BY_ID[matchId] ?? null;
+}
+
 /** [matchId, round, homeLabel, awayLabel, kickoffMs, venue, city]. */
 export const KNOCKOUT_MATCHES: Array<
   [string, string, string, string, number, string, string]

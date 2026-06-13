@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "src/features/worldcup/data/queries";
+import { matchSlugById } from "src/features/worldcup/data/schedule";
 import { storeInviteCode } from "src/features/referral/storage";
 import {
   readTelegramMiniAppContext,
@@ -22,6 +23,12 @@ import { diagMark, diagReport } from "src/features/diagnostics/clientDiag";
  * and generic Telegram launches end up on the World Cup hub.
  */
 const DEFAULT_HREF = "/world-cup";
+
+// Hard ceiling for the `wd` matchId→slug lookup. The splash must never hang on
+// a stalled matches request — observed on iOS/macOS WebKit, where a request can
+// sit pending indefinitely (neither resolving nor erroring). When this fires we
+// give up on the slug and fall back to the list anchored on the match id.
+const WD_LOOKUP_TIMEOUT_MS = 2500;
 
 function detailHref(slug: string, parsed: ParsedStartParam): string {
   if (!parsed.market || !parsed.outcome) return `/world-cup/match/${slug}`;
@@ -95,7 +102,20 @@ export function HomeLaunchRedirect() {
       return;
     }
 
-    // `wd`: defer until the matches lookup resolves the matchId→slug.
+    // `wd`: the matchId→slug mapping is fixed for group matches, so resolve it
+    // from the static schedule and jump straight to the detail page with zero
+    // network. This is the common deep-link case and avoids fetching the whole
+    // matches list on `/` (the original cause of the WebKit "spinner forever").
+    const staticSlug = matchSlugById(parsed.target);
+    if (staticSlug) {
+      diagMark("redirect:wd-static");
+      diagReport("redirect");
+      router.replace(detailHref(staticSlug, parsed));
+      return;
+    }
+
+    // Unknown id (e.g. a knockout fixture not yet resolved): fall back to the
+    // live matches lookup, bounded by the timeout safety net below.
     diagMark("pending:wd");
     setPending(parsed);
   }, [router]);
@@ -121,7 +141,18 @@ export function HomeLaunchRedirect() {
       diagMark(`redirect:wd-fallback:${isError ? "err" : "ok"}`);
       diagReport("redirect");
       router.replace(listHref(pending.target));
+      return;
     }
+
+    // Still loading: arm a hard timeout so a stalled request can't trap the
+    // splash forever. If the lookup resolves first, the effect re-runs and one
+    // of the branches above clears this timer.
+    const timer = setTimeout(() => {
+      diagMark("redirect:wd-timeout");
+      diagReport("redirect");
+      router.replace(listHref(pending.target));
+    }, WD_LOOKUP_TIMEOUT_MS);
+    return () => clearTimeout(timer);
   }, [isError, isFetched, pending, router, targetMatch]);
 
   return <LaunchSplash />;

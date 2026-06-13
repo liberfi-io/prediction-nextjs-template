@@ -309,12 +309,44 @@ function PageShell({ children }: PropsWithChildren) {
     return [...rest.slice(0, mid), worldcup, ...rest.slice(mid)];
   }, [navItems]);
 
+  // Warm the nav destinations, but never at the expense of the first paint.
+  // On `/` (a redirect splash that immediately navigates away) we skip it
+  // entirely — otherwise these 5 RSC prefetches fire while the launch is still
+  // resolving and starve the critical path (matches lookup + the real target
+  // page) for connections, which is the main cause of the slow Telegram load.
+  // Elsewhere we defer to idle so prefetching trails, not blocks, the page.
   useEffect(() => {
-    navItemsConfig.forEach((item) => {
-      if (navPathname(item.href) !== pathname) {
-        router.prefetch(item.href);
+    if (pathname === "/") return;
+
+    const prefetchAll = () => {
+      navItemsConfig.forEach((item) => {
+        if (navPathname(item.href) !== pathname) {
+          router.prefetch(item.href);
+        }
+      });
+    };
+
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number },
+        ) => number;
+        cancelIdleCallback?: (id: number) => void;
       }
-    });
+    ).requestIdleCallback;
+
+    if (typeof ric === "function") {
+      const id = ric(prefetchAll, { timeout: 3000 });
+      return () => {
+        (
+          window as Window & { cancelIdleCallback?: (id: number) => void }
+        ).cancelIdleCallback?.(id);
+      };
+    }
+
+    const timer = setTimeout(prefetchAll, 1500);
+    return () => clearTimeout(timer);
   }, [router, pathname]);
 
   const onNavigate = useCallback(
