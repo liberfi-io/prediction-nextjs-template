@@ -21,6 +21,7 @@ type GroupBy = "stage" | "time";
 const FINISHED_MATCH_HIDE_DELAY_MS = 3 * 60 * 60 * 1000;
 const FALLBACK_MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
 const LIVE_VIDEO_AUTOPEN_LEAD_MS = 5 * 60 * 1000;
+const LIVE_VIDEO_AUTOPEN_LAG_MS = 60 * 60 * 1000;
 
 function nearestScrollContainer(el: HTMLElement): HTMLElement | null {
   let current = el.parentElement;
@@ -99,17 +100,25 @@ function defaultLiveWidgetMatch(matchesInListOrder: WcMatch[], nowMs: number): W
   const live = matchesInListOrder.find((m) => m.status === "live");
   if (live) return live;
 
-  let next: WcMatch | null = null;
+  let nearest: WcMatch | null = null;
   for (const match of matchesInListOrder) {
-    if (match.kickoffMs <= nowMs) continue;
-    if (!next || match.kickoffMs < next.kickoffMs) next = match;
+    if (
+      !nearest ||
+      Math.abs(match.kickoffMs - nowMs) < Math.abs(nearest.kickoffMs - nowMs)
+    ) {
+      nearest = match;
+    }
   }
-  return next;
+  return nearest;
 }
 
 function isWithinLiveVideoAutopenWindow(match: WcMatch, nowMs: number): boolean {
   if (match.status === "live") return true;
-  return match.status === "scheduled" && match.kickoffMs >= nowMs && match.kickoffMs - nowMs <= LIVE_VIDEO_AUTOPEN_LEAD_MS;
+  return (
+    match.status === "scheduled" &&
+    nowMs >= match.kickoffMs - LIVE_VIDEO_AUTOPEN_LEAD_MS &&
+    nowMs <= match.kickoffMs + LIVE_VIDEO_AUTOPEN_LAG_MS
+  );
 }
 
 export function GamesTab() {
