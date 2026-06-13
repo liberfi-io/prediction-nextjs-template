@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Spinner } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "src/features/worldcup/data/queries";
 import { matchSlugById } from "src/features/worldcup/data/schedule";
@@ -49,18 +48,34 @@ function listHref(target: string): string {
  * Telegram delivers the mini-app launch payload — including the `initData`
  * that Privy needs for silent Telegram login — only in the URL hash. Privy
  * reads `window.location.hash` directly and bails unless it still starts with
- * `#tgWebAppData`. The `router.replace` below would otherwise navigate to a
- * hash-less URL before Privy consumes it, silently killing auto-login (the
- * old code masked this by stalling on the matches fetch, which left the hash
- * around long enough for Privy to read it). Appending the original launch hash
- * keeps it present until Privy finishes and clears it itself. Routing ignores
- * the hash, so this is inert for navigation.
+ * `#tgWebAppData`. Navigating to a hash-less URL before Privy consumes it would
+ * silently kill auto-login, so we append the original launch hash; Privy clears
+ * it itself once login completes. Routing ignores the hash, so this is inert
+ * for navigation.
  */
 function withLaunchHash(href: string): string {
   if (typeof window === "undefined") return href;
   if (href.includes("#")) return href;
   const hash = window.location.hash;
   return hash.startsWith("#tgWebAppData") ? `${href}${hash}` : href;
+}
+
+/**
+ * Leave the launch splash with a full-document navigation.
+ *
+ * `/` is a throwaway redirect splash. Next's client navigation
+ * (`router.replace`) is fragile here in the Telegram in-app WebView: it must
+ * fetch the destination's RSC payload to finish, but on cold start Privy's
+ * login burst (auth.privy.io bundles, Cloudflare turnstile, the Telegram login
+ * bot, the embedded-wallet iframe) saturates WebKit's handful of parallel
+ * connections, so that fetch can sit pending forever and the navigation never
+ * completes — the splash spinner then hangs indefinitely (a refresh clears it
+ * because the session already exists and the target renders via SSR). A hard
+ * `location.replace` renders the destination server-side and never depends on
+ * that contended fetch channel.
+ */
+function redirectTo(href: string): void {
+  window.location.replace(withLaunchHash(href));
 }
 
 function LaunchSplash() {
@@ -75,14 +90,15 @@ function LaunchSplash() {
  * Client splash rendered at `/`. Telegram delivers `start_param` only in the
  * client-side URL hash / `initData`, so the server can never know the deep-link
  * target — resolution must happen here, after mount. We parse the start param,
- * capture any referral, then `router.replace` to the real destination so the
- * home entry is swapped out of history (no back-button trap, no list flash).
+ * capture any referral, then hard-redirect (`location.replace`) to the real
+ * destination so the home entry is swapped out of history (no back-button trap,
+ * no list flash) and the target renders via SSR instead of a contended RSC
+ * fetch (see {@link redirectTo}).
  *
- * `wd` (match detail) needs a matchId→slug lookup; the matches list is
- * SSR-prefetched by the home page so this usually resolves from cache instantly.
+ * `wd` (match detail) usually resolves its matchId→slug from the static
+ * schedule with zero network; only unknown ids fall back to a live lookup.
  */
 export function HomeLaunchRedirect() {
-  const router = useRouter();
   const [pending, setPending] = useState<ParsedStartParam | null>(null);
 
   const needsMatchLookup = pending?.route === "wd";
@@ -111,14 +127,14 @@ export function HomeLaunchRedirect() {
     if (!parsed) {
       diagMark(`redirect:${DEFAULT_HREF}`);
       diagReport("redirect");
-      router.replace(withLaunchHash(DEFAULT_HREF));
+      redirectTo(DEFAULT_HREF);
       return;
     }
 
     if (parsed.route === "wl") {
       diagMark("redirect:wl");
       diagReport("redirect");
-      router.replace(withLaunchHash(listHref(parsed.target)));
+      redirectTo(listHref(parsed.target));
       return;
     }
 
@@ -130,7 +146,7 @@ export function HomeLaunchRedirect() {
     if (staticSlug) {
       diagMark("redirect:wd-static");
       diagReport("redirect");
-      router.replace(withLaunchHash(detailHref(staticSlug, parsed)));
+      redirectTo(detailHref(staticSlug, parsed));
       return;
     }
 
@@ -138,7 +154,7 @@ export function HomeLaunchRedirect() {
     // live matches lookup, bounded by the timeout safety net below.
     diagMark("pending:wd");
     setPending(parsed);
-  }, [router]);
+  }, []);
 
   const targetMatch = useMemo(() => {
     if (!pending) return null;
@@ -151,7 +167,7 @@ export function HomeLaunchRedirect() {
     if (targetMatch) {
       diagMark("redirect:wd-detail");
       diagReport("redirect");
-      router.replace(withLaunchHash(detailHref(targetMatch.slug, pending)));
+      redirectTo(detailHref(targetMatch.slug, pending));
       return;
     }
 
@@ -160,7 +176,7 @@ export function HomeLaunchRedirect() {
     if (isFetched || isError) {
       diagMark(`redirect:wd-fallback:${isError ? "err" : "ok"}`);
       diagReport("redirect");
-      router.replace(withLaunchHash(listHref(pending.target)));
+      redirectTo(listHref(pending.target));
       return;
     }
 
@@ -170,10 +186,10 @@ export function HomeLaunchRedirect() {
     const timer = setTimeout(() => {
       diagMark("redirect:wd-timeout");
       diagReport("redirect");
-      router.replace(withLaunchHash(listHref(pending.target)));
+      redirectTo(listHref(pending.target));
     }, WD_LOOKUP_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [isError, isFetched, pending, router, targetMatch]);
+  }, [isError, isFetched, pending, targetMatch]);
 
   return <LaunchSplash />;
 }
