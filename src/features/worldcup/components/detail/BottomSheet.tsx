@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { cn } from "@liberfi.io/ui";
+import { ModalContent, StyledModal, cn } from "@liberfi.io/ui";
 
 /**
- * Lightweight mobile bottom sheet (action sheet) used by the World Cup detail
- * page. Slides up from the bottom over a dimmed backdrop, exposes a drag
- * handle, and is dismissed by tapping the backdrop. Visual treatment matches
- * the app's existing mobile balance sheet so the family stays consistent.
- *
- * Rendered as `fixed inset-0` so it overlays the app footer while open. Body
- * scroll is locked while open to avoid background scroll bleed.
+ * Mobile bottom sheet used by the World Cup detail page. It is backed by the
+ * shared Modal primitive so stacking, focus trapping, scroll lock and outside
+ * dismissal stay consistent with the rest of the app.
  */
 export function BottomSheet({
   open,
@@ -23,41 +18,36 @@ export function BottomSheet({
   children: React.ReactNode;
   className?: string;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  if (!open) return null;
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end justify-center"
-      onClick={onClose}
+    <StyledModal
+      isOpen={open}
+      onOpenChange={handleOpenChange}
+      placement="bottom"
+      size="lg"
+      backdrop="blur"
+      hideCloseButton
+      scrollBehavior="inside"
+      className={cn("pb-[env(safe-area-inset-bottom)]", className)}
+      motionProps={{
+        variants: {
+          enter: {
+            y: 0,
+            opacity: 1,
+            transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] },
+          },
+          exit: {
+            y: 32,
+            opacity: 0,
+            transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] },
+          },
+        },
+      }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className={cn(
-          "relative w-full max-h-[90dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200",
-          className,
-        )}
-        style={{
-          borderRadius: "16px 16px 0 0",
-          border: "1px solid rgba(39,39,42,1)",
-          borderBottom: "none",
-          background: "rgba(24,24,27,1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 z-10 flex justify-center bg-[rgba(24,24,27,1)] pb-1 pt-3">
-          <div className="h-1 w-9 rounded-full bg-zinc-700" />
-        </div>
-        {children}
-      </div>
-    </div>
+      <ModalContent>{children}</ModalContent>
+    </StyledModal>
   );
 }

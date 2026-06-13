@@ -447,7 +447,7 @@ export function WorldCupDetailPage({
           <BottomSheet
             open={tradeSheetOpen}
             onClose={() => setTradeSheetOpen(false)}
-            className="px-4 pb-4"
+            className="p-3"
           >
             <TradePanel
               event={event}
