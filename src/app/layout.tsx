@@ -6,6 +6,7 @@ import { defaultNS } from "@liberfi.io/i18n/server";
 import { CONFIG } from "../config";
 import { GoogleAnalytics } from "../components/GoogleAnalytics";
 import { AppLayout } from "../components/AppLayout";
+import { TelegramMiniAppSessionSync } from "../components/TelegramMiniAppSessionSync";
 import { initServerI18n } from "../i18n/initServerI18n";
 import { detectLanguage } from "../i18n/detectLanguage";
 
@@ -74,6 +75,7 @@ export default async function RootLayout({
           strategy="beforeInteractive"
         />
         <AppLayout locale={locale}>{children}</AppLayout>
+        <TelegramMiniAppSessionSync />
         {process.env.NODE_ENV === "production" && (
           <GoogleAnalytics
             GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
