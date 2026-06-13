@@ -1,4 +1,5 @@
 import type { WcMatch } from "../../types";
+import { formatLine } from "../../odds/convert-price";
 import { marketLine, type CategorizedMarkets, type MarketGroup } from "./marketGrouping";
 
 export type DeepLinkOutcome = "yes" | "no";
@@ -91,6 +92,22 @@ function resolveTotal(cats: CategorizedMarkets, marketCode: string) {
   );
 }
 
+function resolveSpread(
+  cats: CategorizedMarkets,
+  match: WcMatch | null | undefined,
+  marketCode: string,
+) {
+  const group = groupOf(cats, "spreads");
+  if (!group) return null;
+  if (marketCode === "sp" || !match) return findDefaultOption(group);
+
+  const homeLineLabel = formatLine(match.spread.line);
+  return (
+    group.options.find((option) => option.label === homeLineLabel) ??
+    findDefaultOption(group)
+  );
+}
+
 export function resolveMarketDeepLink(input: {
   cats: CategorizedMarkets;
   match: WcMatch | null | undefined;
@@ -110,8 +127,8 @@ export function resolveMarketDeepLink(input: {
   if (marketCode === "mlh" || marketCode === "mld" || marketCode === "mla") {
     if (!match) return null;
     option = resolveMoneyline(cats, match, marketCode);
-  } else if (marketCode === "sp") {
-    option = findDefaultOption(groupOf(cats, "spreads"));
+  } else if (marketCode === "sp" || marketCode === "sph" || marketCode === "spa") {
+    option = resolveSpread(cats, match, marketCode);
   } else if (marketCode === "to" || /^to[0-9]+$/.test(marketCode)) {
     option = resolveTotal(cats, marketCode);
   } else if (marketCode === "btts") {

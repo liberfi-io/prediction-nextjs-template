@@ -1,0 +1,39 @@
+"use client";
+
+import {
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  StyledModal,
+} from "@liberfi.io/ui";
+
+/**
+ * Trade modal backed by the shared Modal primitive so stacking, focus trapping,
+ * scroll lock and outside dismissal stay consistent with the rest of the app.
+ */
+export function TradeModal({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  };
+
+  return (
+    <StyledModal isOpen={open} onOpenChange={handleOpenChange} size="lg">
+      <ModalContent>
+        <ModalHeader className="px-5 pt-5 pb-3">
+          <span className="text-lg font-semibold text-white">{title}</span>
+        </ModalHeader>
+        <ModalBody className="px-5 pb-5 pt-0">{children}</ModalBody>
+      </ModalContent>
+    </StyledModal>
+  );
+}

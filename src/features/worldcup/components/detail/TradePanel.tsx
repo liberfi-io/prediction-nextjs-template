@@ -12,8 +12,8 @@ import {
 
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
- * form. Shared by the desktop right-rail aside and the mobile trade action
- * sheet so both surfaces stay visually and behaviourally in sync.
+ * form. Shared by the desktop right-rail aside and the trade modal so both
+ * surfaces stay visually and behaviourally in sync.
  */
 export function TradePanel({
   event,
@@ -37,7 +37,7 @@ export function TradePanel({
   const { t } = useTranslation();
 
   return (
-    <div>
+    <div className="[&_.worldcup-trade-panel-form>div]:px-2 lg:[&_.worldcup-trade-panel-form>div]:px-4">
       <div className="mb-3 flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/60 p-0.5">
         <BuySellTab
           tone="bullish"
@@ -55,23 +55,29 @@ export function TradePanel({
         </BuySellTab>
       </div>
       {side === "sell" ? (
-        <SellFormWidget
-          key={`sell-${market.slug}`}
-          event={event}
-          market={market}
-          initialOutcome={outcome}
-          onOutcomeChange={onOutcomeChange}
-          onSetupRequired={onSetupRequired}
-        />
+        <div className="worldcup-trade-panel-form">
+          <SellFormWidget
+            key={`sell-${market.slug}`}
+            event={event}
+            market={market}
+            variant="flat"
+            initialOutcome={outcome}
+            onOutcomeChange={onOutcomeChange}
+            onSetupRequired={onSetupRequired}
+          />
+        </div>
       ) : (
-        <TradeFormWidget
-          key={`buy-${market.slug}`}
-          event={event}
-          market={market}
-          initialOutcome={outcome}
-          onOutcomeChange={onOutcomeChange}
-          onInsufficientBalance={onInsufficientBalance}
-        />
+        <div className="worldcup-trade-panel-form">
+          <TradeFormWidget
+            key={`buy-${market.slug}`}
+            event={event}
+            market={market}
+            variant="flat"
+            initialOutcome={outcome}
+            onOutcomeChange={onOutcomeChange}
+            onInsufficientBalance={onInsufficientBalance}
+          />
+        </div>
       )}
     </div>
   );

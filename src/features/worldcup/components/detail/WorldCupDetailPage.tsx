@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn, toast, useScreen } from "@liberfi.io/ui";
+import {
+  cn,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  StyledModal,
+  toast,
+  useScreen,
+} from "@liberfi.io/ui";
 import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
@@ -30,7 +38,7 @@ import { MatchCenterTabs } from "./MatchCenterTabs";
 import { MarketsPanel } from "./MarketsPanel";
 import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
-import { BottomSheet } from "./BottomSheet";
+import { TradeModal } from "src/components/TradeModal";
 import {
   categorizeMarkets,
   categoryOfGroup,
@@ -233,7 +241,7 @@ export function WorldCupDetailPage({
     void openSetupWallet();
   }, [openSetupWallet]);
 
-  // Open the mobile trade action sheet pre-selected to a tapped outcome (buy).
+  // Open the trade modal pre-selected to a tapped outcome (buy).
   const handleMobileTradePick = useCallback((oc: TradeOutcome) => {
     setOutcome(oc);
     setSide("buy");
@@ -319,7 +327,7 @@ export function WorldCupDetailPage({
   // -------------------------------------------------------------------------
   // Mobile layout: single column with one flat tab row (order book + match
   // center / news / comments / positions / orders / history), a sticky trade
-  // bar, and bottom sheets for the markets switcher and the trade form.
+  // bar, and modals for the markets switcher and the trade form.
   // -------------------------------------------------------------------------
   if (!isDesktop) {
     return (
@@ -423,31 +431,42 @@ export function WorldCupDetailPage({
           <MobileTradeBar market={selectedMarket} onPick={handleMobileTradePick} />
         )}
 
-        {/* Markets switcher sheet (opened from the header dropdown) */}
-        <BottomSheet
-          open={marketsSheetOpen}
-          onClose={() => setMarketsSheetOpen(false)}
-          className="max-h-[80dvh]"
+        {/* Markets switcher modal (opened from the header dropdown) */}
+        <StyledModal
+          isOpen={marketsSheetOpen}
+          onOpenChange={(open) => {
+            if (!open) setMarketsSheetOpen(false);
+          }}
+          size="lg"
         >
-          <MarketsPanel
-            cats={cats}
-            activeCategory={activeCategory}
-            selectedSlug={selectedSlug}
-            onSelect={(slug) => {
-              handleSelect(slug);
-              setMarketsSheetOpen(false);
-            }}
-            onClose={() => setMarketsSheetOpen(false)}
-            className="border-0 bg-transparent"
-          />
-        </BottomSheet>
+          <ModalContent>
+            <ModalHeader className="px-5 pt-5 pb-3">
+              <span className="text-lg font-semibold text-white">
+                {t("extend.worldcup.detail.markets.title")}
+              </span>
+            </ModalHeader>
+            <ModalBody className="px-5 pb-5 pt-0">
+              <MarketsPanel
+                cats={cats}
+                activeCategory={activeCategory}
+                selectedSlug={selectedSlug}
+                onSelect={(slug) => {
+                  handleSelect(slug);
+                  setMarketsSheetOpen(false);
+                }}
+                onClose={() => setMarketsSheetOpen(false)}
+                className="border-0 bg-transparent"
+              />
+            </ModalBody>
+          </ModalContent>
+        </StyledModal>
 
-        {/* Trade action sheet */}
+        {/* Trade action modal */}
         {selectedMarket && (
-          <BottomSheet
+          <TradeModal
             open={tradeSheetOpen}
             onClose={() => setTradeSheetOpen(false)}
-            className="p-3"
+            title={t(`extend.worldcup.detail.trade.${side}`)}
           >
             <TradePanel
               event={event}
@@ -459,7 +478,7 @@ export function WorldCupDetailPage({
               onInsufficientBalance={handleInsufficientBalance}
               onSetupRequired={handleSetupRequired}
             />
-          </BottomSheet>
+          </TradeModal>
         )}
       </div>
     );

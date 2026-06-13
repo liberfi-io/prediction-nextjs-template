@@ -1,3 +1,5 @@
+import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
+
 /**
  * World Cup domain types — self-contained in the template (ADR-6).
  *
@@ -77,6 +79,17 @@ export interface WcTotal {
   under: WcOutcome;
 }
 
+/** Card-level trade markets returned by the matches list endpoint. */
+export interface WcMatchTradeMarkets {
+  moneylineHome?: PredictMarket;
+  moneylineDraw?: PredictMarket;
+  moneylineAway?: PredictMarket;
+  spreadHome?: PredictMarket;
+  spreadAway?: PredictMarket;
+  spread?: PredictMarket;
+  total?: PredictMarket;
+}
+
 export interface WcMatch {
   matchId: string;
   /** e.g. "group-A", "r32", "r16", "r8", "r4", "r3rd", "final". */
@@ -99,6 +112,10 @@ export interface WcMatch {
   moneyline: WcMoneyline;
   spread: WcSpread;
   total: WcTotal;
+  /** Lightweight event shell for opening the card trade sheet without a detail fetch. */
+  tradeEvent?: PredictEvent;
+  /** Full SDK market objects for the odds buttons shown on the card. */
+  tradeMarkets?: WcMatchTradeMarkets;
   /** Live-only. */
   liveScore?: { home: number; away: number };
   /** Live-only, e.g. "2nd · 67'". */

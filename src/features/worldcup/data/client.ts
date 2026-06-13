@@ -9,7 +9,7 @@
  * client-side.
  */
 
-import type { PredictEvent } from "@liberfi.io/react-predict";
+import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
 import type {
   WcBracketNode,
   WcFeed,
@@ -28,6 +28,7 @@ import type {
   WcTeam,
   WcThirdPlaceRow,
   WcTotal,
+  WcMatchTradeMarkets,
 } from "../types";
 import { getTeam, getTeamByName } from "./teams";
 import { GROUP_MATCHES, THESPORTS_MATCH_IDS } from "./schedule";
@@ -112,6 +113,10 @@ export interface WcMatchDto {
   liquidity?: number;
   markets: WcMarketDto[] | null;
   market_count: number;
+  /** Lightweight PredictEvent shell plus the card trade markets. */
+  trade_event?: PredictEvent;
+  /** Full SDK market objects for the odds buttons shown by the card. */
+  trade_markets?: WcMatchTradeMarkets;
   live_state?: WcMatchLiveStateDto;
   live_videos?: WcMatchLiveVideoDto[] | null;
 }
@@ -302,6 +307,29 @@ function buildTotal(markets: WcMarketDto[]): WcTotal {
   };
 }
 
+function tradeMarketsList(tradeMarkets?: WcMatchTradeMarkets): PredictMarket[] {
+  if (!tradeMarkets) return [];
+  const seen = new Set<string>();
+  const markets: PredictMarket[] = [];
+  for (const market of Object.values(tradeMarkets)) {
+    if (!market || seen.has(market.slug)) continue;
+    seen.add(market.slug);
+    markets.push(market);
+  }
+  return markets;
+}
+
+function buildTradeEvent(
+  dto: WcMatchDto,
+  tradeMarkets?: WcMatchTradeMarkets,
+): PredictEvent | undefined {
+  if (!dto.trade_event) return undefined;
+  const markets = dto.trade_event.markets?.length
+    ? dto.trade_event.markets
+    : tradeMarketsList(tradeMarkets);
+  return { ...dto.trade_event, markets };
+}
+
 /** Map the backend status string onto the UI's three-state enum. */
 function mapStatus(raw: string, kickoffMs: number): WcMatchStatus {
   switch (raw?.toLowerCase()) {
@@ -382,6 +410,7 @@ function adaptMatch(dto: WcMatchDto): WcMatch {
   const homeKeys = teamKeys(dto.home_team, home);
   const awayKeys = teamKeys(dto.away_team, away);
   const markets = dto.markets ?? [];
+  const tradeMarkets = dto.trade_markets;
   const kickoffMs = Date.parse(dto.kickoff_at);
   const liveState = adaptLiveState(dto.live_state);
 
@@ -402,6 +431,8 @@ function adaptMatch(dto: WcMatchDto): WcMatch {
     moneyline: buildMoneyline(markets, homeKeys, awayKeys, home, away),
     spread: buildSpread(markets, homeKeys, awayKeys, home, away),
     total: buildTotal(markets),
+    tradeEvent: buildTradeEvent(dto, tradeMarkets),
+    tradeMarkets,
     liveScore: liveState?.score,
     livePeriod: formatLivePeriod(liveState),
     liveState,

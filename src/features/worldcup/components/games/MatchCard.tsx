@@ -4,7 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, useScreen } from "@liberfi.io/ui";
-import { EventCommentsWidget } from "@liberfi.io/ui-predict";
+import { EventCommentsWidget, type TradeOutcome } from "@liberfi.io/ui-predict";
 import type { WcMatch, WcTeam } from "../../types";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
@@ -226,6 +226,7 @@ function MatchCardImpl({
   highlighted = false,
   widgetOpen = false,
   onOpen,
+  onMarketPick,
   onLive,
   onToggleWidget,
 }: {
@@ -238,6 +239,7 @@ function MatchCardImpl({
   /** Mobile: this card's inline live widget is expanded. */
   widgetOpen?: boolean;
   onOpen: (slug: string) => void;
+  onMarketPick?: (match: WcMatch, marketCode: string, outcome: TradeOutcome) => void;
   /** Desktop: select this match for the pinned right-rail widget. */
   onLive?: (match: WcMatch) => void;
   /** Mobile: toggle this card's inline live widget. */
@@ -250,6 +252,16 @@ function MatchCardImpl({
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
+  const pickMarket = (
+    e: React.MouseEvent,
+    marketCode: string,
+    outcome: TradeOutcome,
+    price: number,
+  ) => {
+    stop(e);
+    if (price <= 0) return;
+    onMarketPick?.(match, marketCode, outcome);
+  };
   const hasLive = hasLiveVideos(match.liveVideos);
   const [panelTab, setPanelTab] = useState<CardPanelTab>(hasLive ? "live" : "center");
   const wasWidgetOpenRef = useRef(false);
@@ -260,23 +272,29 @@ function MatchCardImpl({
 
   const moneylineCol = (tall: boolean) => (
     <>
-      <Pill label={match.home.code} price={ml.home.price} format={format} variant="fade" colors={homeColors} tall={tall} />
-      <Pill label={drawLabel} price={ml.draw.price} format={format} variant="fade" colors={PILL_NEUTRAL} tall={tall} />
-      <Pill label={match.away.code} price={ml.away.price} format={format} variant="fade" colors={awayColors} tall={tall} />
+      <Pill label={match.home.code} price={ml.home.price} format={format} variant="fade" colors={homeColors} tall={tall} onClick={(e) => pickMarket(e, "mlh", "yes", ml.home.price)} />
+      <Pill label={drawLabel} price={ml.draw.price} format={format} variant="fade" colors={PILL_NEUTRAL} tall={tall} onClick={(e) => pickMarket(e, "mld", "yes", ml.draw.price)} />
+      <Pill label={match.away.code} price={ml.away.price} format={format} variant="fade" colors={awayColors} tall={tall} onClick={(e) => pickMarket(e, "mla", "yes", ml.away.price)} />
     </>
   );
 
+  const homeSpreadMarketCode = spread.line < 0 ? "sph" : "spa";
+  const awaySpreadMarketCode = spread.line < 0 ? "sph" : "spa";
+  const homeSpreadOutcome: TradeOutcome = spread.line < 0 ? "yes" : "no";
+  const awaySpreadOutcome: TradeOutcome = spread.line < 0 ? "no" : "yes";
+  const totalMarketCode = total.line > 0 ? `to${Math.round(total.line * 10)}` : "to";
+
   const spreadCol = (
     <>
-      <Pill label={`${match.home.code} ${formatLine(spread.line)}`} price={spread.home.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow />
-      <Pill label={`${match.away.code} ${formatLine(-spread.line)}`} price={spread.away.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow />
+      <Pill label={`${match.home.code} ${formatLine(spread.line)}`} price={spread.home.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, homeSpreadMarketCode, homeSpreadOutcome, spread.home.price)} />
+      <Pill label={`${match.away.code} ${formatLine(-spread.line)}`} price={spread.away.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, awaySpreadMarketCode, awaySpreadOutcome, spread.away.price)} />
     </>
   );
 
   const totalCol = (
     <>
-      <Pill label={`O ${total.line}`} price={total.over.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow />
-      <Pill label={`U ${total.line}`} price={total.under.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow />
+      <Pill label={`O ${total.line}`} price={total.over.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, totalMarketCode, "yes", total.over.price)} />
+      <Pill label={`U ${total.line}`} price={total.under.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, totalMarketCode, "no", total.under.price)} />
     </>
   );
 

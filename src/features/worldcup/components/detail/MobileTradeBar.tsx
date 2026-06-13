@@ -25,7 +25,7 @@ function formatCents(value: number): string {
 
 /**
  * Fixed bottom action bar mirroring future.news' mobile event page: two large
- * outcome buttons (YES / NO) with live prices that open the trade action sheet
+ * outcome buttons (YES / NO) with live prices that open the trade modal
  * pre-selected to the tapped outcome.
  *
  * Pinned to the viewport bottom just above the app's mobile tab footer. We use
