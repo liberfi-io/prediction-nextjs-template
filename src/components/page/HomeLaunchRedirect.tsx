@@ -14,7 +14,6 @@ import {
   toQueryOutcome,
 } from "src/features/telegram-miniapp/startParam";
 import type { ParsedStartParam } from "src/features/telegram-miniapp/types";
-import { diagMark, diagReport } from "src/features/diagnostics/clientDiag";
 
 /**
  * Where a launch with no (or unparseable) deep link lands. The home route is a
@@ -64,15 +63,16 @@ function withLaunchHash(href: string): string {
  * Leave the launch splash with a full-document navigation.
  *
  * `/` is a throwaway redirect splash. Next's client navigation
- * (`router.replace`) is fragile here in the Telegram in-app WebView: it must
- * fetch the destination's RSC payload to finish, but on cold start Privy's
- * login burst (auth.privy.io bundles, Cloudflare turnstile, the Telegram login
- * bot, the embedded-wallet iframe) saturates WebKit's handful of parallel
- * connections, so that fetch can sit pending forever and the navigation never
- * completes — the splash spinner then hangs indefinitely (a refresh clears it
- * because the session already exists and the target renders via SSR). A hard
- * `location.replace` renders the destination server-side and never depends on
- * that contended fetch channel.
+ * (`router.replace`) is fragile here in the Telegram in-app WebView: it is a
+ * low-priority React transition that must run on the main thread before it even
+ * issues the destination's RSC request. On cold start Privy's login burst
+ * (parsing/executing the auth.privy.io bundles, the embedded-wallet iframe
+ * postMessage round-trips, WalletConnect init) keeps the main thread busy, so
+ * that transition gets starved indefinitely — the RSC request is never sent and
+ * the splash spinner hangs forever (a refresh clears it: the session already
+ * exists, so there is no login burst, and the target renders via SSR). A hard
+ * `location.replace` is a native synchronous navigation that bypasses React
+ * scheduling entirely, so it always fires.
  */
 function redirectTo(href: string): void {
   window.location.replace(withLaunchHash(href));
@@ -109,31 +109,23 @@ export function HomeLaunchRedirect() {
   } = useWorldcupMatches({ enabled: Boolean(needsMatchLookup) });
 
   useEffect(() => {
-    diagMark("home_effect");
     readyTelegramWebApp();
 
     const context = readTelegramMiniAppContext();
     const parsed = context?.startParam
       ? parseStartParam(context.startParam)
       : null;
-    diagMark(
-      `tg_ctx:${context ? "ctx" : "none"}:route=${parsed?.route ?? "-"}`,
-    );
 
     if (parsed?.referral) {
       storeInviteCode(parsed.referral);
     }
 
     if (!parsed) {
-      diagMark(`redirect:${DEFAULT_HREF}`);
-      diagReport("redirect");
       redirectTo(DEFAULT_HREF);
       return;
     }
 
     if (parsed.route === "wl") {
-      diagMark("redirect:wl");
-      diagReport("redirect");
       redirectTo(listHref(parsed.target));
       return;
     }
@@ -144,15 +136,12 @@ export function HomeLaunchRedirect() {
     // matches list on `/` (the original cause of the WebKit "spinner forever").
     const staticSlug = matchSlugById(parsed.target);
     if (staticSlug) {
-      diagMark("redirect:wd-static");
-      diagReport("redirect");
       redirectTo(detailHref(staticSlug, parsed));
       return;
     }
 
     // Unknown id (e.g. a knockout fixture not yet resolved): fall back to the
     // live matches lookup, bounded by the timeout safety net below.
-    diagMark("pending:wd");
     setPending(parsed);
   }, []);
 
@@ -165,8 +154,6 @@ export function HomeLaunchRedirect() {
     if (!pending) return;
 
     if (targetMatch) {
-      diagMark("redirect:wd-detail");
-      diagReport("redirect");
       redirectTo(detailHref(targetMatch.slug, pending));
       return;
     }
@@ -174,8 +161,6 @@ export function HomeLaunchRedirect() {
     // Lookup finished without a match (hidden / unknown id, or backend down):
     // fall back to the list anchored on the requested match id.
     if (isFetched || isError) {
-      diagMark(`redirect:wd-fallback:${isError ? "err" : "ok"}`);
-      diagReport("redirect");
       redirectTo(listHref(pending.target));
       return;
     }
@@ -184,8 +169,6 @@ export function HomeLaunchRedirect() {
     // splash forever. If the lookup resolves first, the effect re-runs and one
     // of the branches above clears this timer.
     const timer = setTimeout(() => {
-      diagMark("redirect:wd-timeout");
-      diagReport("redirect");
       redirectTo(listHref(pending.target));
     }, WD_LOOKUP_TIMEOUT_MS);
     return () => clearTimeout(timer);

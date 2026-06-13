@@ -116,7 +116,6 @@ import {
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
-import { DiagReporter } from "./DiagReporter";
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -248,7 +247,6 @@ export function AppLayout({
           </LocaleProvider>
         </AuthProviders>
       </QueryClientProvider>
-      <DiagReporter />
     </>
   );
 }
