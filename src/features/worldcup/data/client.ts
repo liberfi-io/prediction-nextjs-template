@@ -17,6 +17,7 @@ import type {
   WcFeedPage,
   WcGroup,
   WcMatch,
+  WcMatchLiveVideo,
   WcMatchLiveState,
   WcMatchStatus,
   WcMoneyline,
@@ -84,6 +85,13 @@ export interface WcMatchLiveStateDto {
   updated_at?: string;
 }
 
+export interface WcMatchLiveVideoDto {
+  url: string;
+  type: number;
+  status: number;
+  source?: string;
+}
+
 export interface WcMatchDto {
   match_id: string;
   stage: string;
@@ -105,6 +113,7 @@ export interface WcMatchDto {
   markets: WcMarketDto[] | null;
   market_count: number;
   live_state?: WcMatchLiveStateDto;
+  live_videos?: WcMatchLiveVideoDto[] | null;
 }
 
 export interface WcMatchesResponseDto {
@@ -121,6 +130,7 @@ export interface WorldcupMatchLiveUpdate {
 
 export type PredictEventWithWorldcupLive = PredictEvent & {
   live_state?: WcMatchLiveStateDto;
+  live_videos?: WcMatchLiveVideoDto[] | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -330,6 +340,17 @@ export function adaptLiveState(dto?: WcMatchLiveStateDto): WcMatchLiveState | un
   };
 }
 
+export function adaptLiveVideos(videos?: WcMatchLiveVideoDto[] | null): WcMatchLiveVideo[] {
+  return (videos ?? [])
+    .filter((video) => video.url && video.status === 1)
+    .map((video) => ({
+      url: video.url,
+      type: video.type,
+      status: video.status,
+      source: video.source || undefined,
+    }));
+}
+
 export function formatLivePeriod(state?: WcMatchLiveState): string | undefined {
   if (!state) return undefined;
   if (state.period && state.elapsed) return `${state.period} · ${state.elapsed}'`;
@@ -351,6 +372,7 @@ export function applyLiveStateToMatch(match: WcMatch, state: WcMatchLiveState): 
     liveScore: state.score,
     livePeriod: formatLivePeriod(state),
     liveState: state,
+    liveVideos: match.liveVideos,
   };
 }
 
@@ -383,6 +405,7 @@ function adaptMatch(dto: WcMatchDto): WcMatch {
     liveScore: liveState?.score,
     livePeriod: formatLivePeriod(liveState),
     liveState,
+    liveVideos: adaptLiveVideos(dto.live_videos),
   };
   return match;
 }

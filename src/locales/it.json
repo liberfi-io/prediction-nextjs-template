@@ -313,6 +313,7 @@
       "volume": "Vol",
       "draw": "Pareggio",
       "live": "Live",
+      "liveSource": "Source {{index}}",
       "matchView": "mercati",
       "relatedEvents": "Eventi simili",
       "versus": "vs",

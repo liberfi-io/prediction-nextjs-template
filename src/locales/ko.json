@@ -311,6 +311,7 @@
       "volume": "변동성",
       "draw": "무승부",
       "live": "실시간",
+      "liveSource": "Source {{index}}",
       "matchView": "마켓",
       "relatedEvents": "유사 이벤트",
       "versus": "대",

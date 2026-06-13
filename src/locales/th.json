@@ -311,6 +311,7 @@
       "volume": "ปริมาณ",
       "draw": "เสมอ",
       "live": "ถ่ายทอดสด",
+      "liveSource": "Source {{index}}",
       "matchView": "ตลาด",
       "relatedEvents": "เหตุการณ์ที่คล้ายกัน",
       "versus": "พบ",

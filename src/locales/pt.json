@@ -313,6 +313,7 @@
       "volume": "Vol",
       "draw": "Empate",
       "live": "Ao vivo",
+      "liveSource": "Source {{index}}",
       "matchView": "mercados",
       "relatedEvents": "Eventos Similares",
       "versus": "vs",

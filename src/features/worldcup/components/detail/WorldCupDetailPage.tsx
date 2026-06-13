@@ -19,10 +19,11 @@ import {
 } from "src/components/FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
-import { applyLiveStateToMatch } from "../../data/client";
+import { adaptLiveVideos, applyLiveStateToMatch } from "../../data/client";
 import { useWorldcupLiveUpdates } from "../../data/live";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
+import { hasLiveVideos } from "../games/LiveStreamPanel";
 import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
 import { MatchBanner } from "./MatchBanner";
 import { MatchCenterTabs } from "./MatchCenterTabs";
@@ -103,6 +104,16 @@ export function WorldCupDetailPage({
     const liveState = liveStates[found.matchId];
     return liveState ? applyLiveStateToMatch(found, liveState) : found;
   }, [matches, liveStates, id]);
+  const liveVideos = useMemo(() => {
+    const eventVideos = adaptLiveVideos(event?.live_videos);
+    return eventVideos.length > 0 ? eventVideos : match?.liveVideos;
+  }, [event?.live_videos, match?.liveVideos]);
+  const showLiveTab = hasLiveVideos(liveVideos);
+  const mobileTabs = useMemo(
+    () =>
+      MOBILE_TABS.filter((tab) => tab.key !== "live" || showLiveTab),
+    [showLiveTab],
+  );
 
   const cats = useMemo(
     () => categorizeMarkets(event?.markets ?? [], teamHint(match)),
@@ -119,6 +130,10 @@ export function WorldCupDetailPage({
   const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTabKey>("orderbook");
   const deepLinkAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (mobileTab === "live" && !showLiveTab) setMobileTab("center");
+  }, [mobileTab, showLiveTab]);
 
   const deepLinkMarket = initialMarket?.trim() || null;
   const deepLinkOutcome = initialOutcome?.trim() || null;
@@ -328,7 +343,7 @@ export function WorldCupDetailPage({
         {/* Tabbed lower content */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1 overflow-x-auto rounded-[10px] border border-zinc-800 bg-zinc-900/60 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {MOBILE_TABS.map(({ key, labelKey }) => (
+            {mobileTabs.map(({ key, labelKey }) => (
               <button
                 key={key}
                 type="button"
@@ -340,7 +355,7 @@ export function WorldCupDetailPage({
                     : "text-zinc-400 hover:text-zinc-200",
                 )}
               >
-                {t(labelKey)}
+                {key === "live" ? t("extend.worldcup.live") : t(labelKey)}
               </button>
             ))}
           </div>
@@ -359,13 +374,18 @@ export function WorldCupDetailPage({
             ) : null)}
 
           {(mobileTab === "center" ||
+            mobileTab === "live" ||
             mobileTab === "news" ||
             mobileTab === "comments") && (
             <MatchCenterTabs
               match={match ?? null}
+              liveVideos={liveVideos}
               activeTab={mobileTab}
               hideTabs
-              className="w-full"
+              className="h-140 w-full"
+              contentClassName="h-140 min-h-0 p-0"
+              centerWidgetClassName="h-140 min-h-0"
+              livePanelClassName="h-140 min-h-0"
             />
           )}
 
@@ -488,6 +508,7 @@ export function WorldCupDetailPage({
           {/* Column 2: match center, widened */}
           <MatchCenterTabs
             match={match ?? null}
+            liveVideos={liveVideos}
             className="w-full shrink-0 xl:w-[440px]"
           />
         </div>
@@ -530,6 +551,7 @@ export function WorldCupDetailPage({
 
 type MobileTabKey =
   | "orderbook"
+  | "live"
   | "center"
   | "news"
   | "comments"
@@ -546,6 +568,7 @@ type MobileTabKey =
 const MOBILE_TABS = [
   { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
   { key: "center", labelKey: "extend.worldcup.detail.tab.center" },
+  { key: "live", labelKey: "extend.worldcup.live" },
   { key: "news", labelKey: "extend.worldcup.detail.tab.news" },
   { key: "comments", labelKey: "extend.worldcup.detail.tab.comments" },
   { key: "positions", labelKey: "extend.portfolio.positions" },

@@ -313,6 +313,7 @@
       "volume": "Vol",
       "draw": "Draw",
       "live": "Live",
+      "liveSource": "Source {{index}}",
       "matchView": "markets",
       "relatedEvents": "Similar Events",
       "versus": "vs",

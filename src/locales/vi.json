@@ -311,6 +311,7 @@
       "volume": "Vol",
       "draw": "Hòa",
       "live": "Trực tiếp",
+      "liveSource": "Source {{index}}",
       "matchView": "thị trường",
       "relatedEvents": "Sự kiện tương tự",
       "versus": "vs",

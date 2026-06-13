@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn } from "@liberfi.io/ui";
+import { cn, useScreen } from "@liberfi.io/ui";
+import { EventCommentsWidget } from "@liberfi.io/ui-predict";
 import type { WcMatch, WcTeam } from "../../types";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
@@ -11,9 +12,11 @@ import { TeamFlag } from "../TeamFlag";
 import { formatLivePeriodLabel } from "../livePeriod";
 import { formatKickoff, formatVolume } from "../util";
 import { SportsWidget } from "./SportsWidget";
-import { LiveStreamPanel } from "./LiveStreamPanel";
+import { hasLiveVideos, LiveStreamPanel } from "./LiveStreamPanel";
+import { MarketNewsWidget } from "../detail/feeds/MarketNewsWidget";
 
 type PillColors = { bg: string; text: string; shadow: string };
+type CardPanelTab = "live" | "center" | "news" | "comments";
 
 // Neutral fill for non-moneyline buttons. Solid enough to read as an enabled
 // control (the old translucent zinc looked disabled).
@@ -228,7 +231,7 @@ function MatchCardImpl({
 }: {
   match: WcMatch;
   format: OddsFormat;
-  /** Desktop: this match is the one shown in the pinned right-rail widget. */
+  /** This match is the current live-widget selection. */
   activeLive?: boolean;
   /** URL deep-link target highlight. */
   highlighted?: boolean;
@@ -241,20 +244,15 @@ function MatchCardImpl({
   onToggleWidget?: (match: WcMatch) => void;
 }) {
   const { t } = useTranslation();
+  const { isDesktop } = useScreen();
   const translate = t as (key: `extend.${string}`) => string;
   const { moneyline: ml, spread, total } = match;
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
-
-  // PoC: hard-wire the multi-source live-stream panel onto the opener
-  // (Mexico vs South Africa). Its live button toggles a card-bottom expansion
-  // on both desktop and mobile, independent of the SportsWidget plumbing.
-  //
-  // Disabled until proper development. Re-enable by restoring the opener check:
-  //   match.home.code === "MEX" && match.away.code === "RSA"
-  const isStreamMatch = false;
-  const [streamOpen, setStreamOpen] = useState(false);
+  const hasLive = hasLiveVideos(match.liveVideos);
+  const [panelTab, setPanelTab] = useState<CardPanelTab>(hasLive ? "live" : "center");
+  const wasWidgetOpenRef = useRef(false);
 
   const homeColors = teamColors(match.home.color);
   const awayColors = teamColors(match.away.color);
@@ -289,10 +287,6 @@ function MatchCardImpl({
       : match.status === "final"
         ? t("extend.worldcup.fullTime")
         : t("extend.worldcup.live");
-  // The live button highlights when "active": on desktop that means selected
-  // for the pinned right-rail widget; on mobile it means this card's inline
-  // widget is expanded. We render two breakpoint-scoped variants so each
-  // follows its own state and click behavior.
   const renderLiveButton = (opts: {
     highlighted: boolean;
     onClick: () => void;
@@ -340,6 +334,79 @@ function MatchCardImpl({
     </span>
   );
 
+  const desktopTabs = useMemo<CardPanelTab[]>(
+    () => (hasLive ? ["live", "news", "comments"] : ["news", "comments"]),
+    [hasLive],
+  );
+  const mobileTabs = useMemo<CardPanelTab[]>(
+    () =>
+      hasLive
+        ? ["live", "center", "news", "comments"]
+        : ["center", "news", "comments"],
+    [hasLive],
+  );
+  const panelTabs = isDesktop ? desktopTabs : mobileTabs;
+
+  useEffect(() => {
+    if (widgetOpen && !wasWidgetOpenRef.current) {
+      setPanelTab(hasLive ? "live" : "center");
+    }
+    wasWidgetOpenRef.current = widgetOpen;
+  }, [hasLive, widgetOpen]);
+
+  useEffect(() => {
+    if (!panelTabs.includes(panelTab)) setPanelTab(panelTabs[0]);
+  }, [panelTab, panelTabs]);
+
+  const renderPanelTabButton = (tab: CardPanelTab, keyPrefix: string, className: string) => (
+    <button
+      key={`${keyPrefix}-${tab}`}
+      type="button"
+      onClick={() => setPanelTab(tab)}
+      className={cn(
+        "rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
+        panelTab === tab
+          ? "bg-zinc-800 text-[#c7ff2e]"
+          : "text-zinc-500 hover:text-zinc-200",
+        className,
+      )}
+    >
+      {tab === "live"
+        ? t("extend.worldcup.live")
+        : t(`extend.worldcup.detail.tab.${tab}`)}
+    </button>
+  );
+
+  const effectivePanelTab: CardPanelTab = panelTabs.includes(panelTab)
+    ? panelTab
+    : panelTabs[0];
+
+  const panelContent = (() => {
+    switch (effectivePanelTab) {
+      case "live":
+        return (
+          <LiveStreamPanel
+            videos={match.liveVideos}
+            className="h-136"
+            iframeClassName="h-full w-full"
+          />
+        );
+      case "center":
+        return <SportsWidget match={match} className="h-136" />;
+      case "comments":
+        return (
+          <EventCommentsWidget
+            slug={match.slug}
+            source="polymarket"
+            className="h-136"
+          />
+        );
+      case "news":
+      default:
+        return <MarketNewsWidget slug={match.slug} className="h-136" />;
+    }
+  })();
+
   return (
     <div
       id={`match-${match.matchId}`}
@@ -359,30 +426,14 @@ function MatchCardImpl({
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <HeaderMeta match={match} />
         <div className="flex shrink-0 items-center gap-1.5">
-          {isStreamMatch ? (
-            // PoC opener: one live button that expands the multi-source stream
-            // panel under the card on every breakpoint.
-            renderLiveButton({
-              highlighted: streamOpen,
-              onClick: () => setStreamOpen((v) => !v),
-              className: "flex",
-            })
-          ) : (
-            <>
-              {/* Desktop: selects the pinned right-rail widget. */}
-              {renderLiveButton({
-                highlighted: activeLive,
-                onClick: () => onLive?.(match),
-                className: "hidden lg:flex",
-              })}
-              {/* Mobile: toggles this card's inline expanding widget. */}
-              {renderLiveButton({
-                highlighted: widgetOpen,
-                onClick: () => onToggleWidget?.(match),
-                className: "flex lg:hidden",
-              })}
-            </>
-          )}
+          {renderLiveButton({
+            highlighted: activeLive || widgetOpen,
+            onClick: () => {
+              onLive?.(match);
+              onToggleWidget?.(match);
+            },
+            className: "flex",
+          })}
           {viewPill}
         </div>
       </div>
@@ -403,47 +454,29 @@ function MatchCardImpl({
         <div className="grid grid-cols-3 gap-2">{moneylineCol(true)}</div>
       </div>
 
-      {/* ---------- PoC opener: multi-source live stream, expands under the card (all breakpoints) ---------- */}
-      {isStreamMatch && (
-        <AnimatePresence initial={false}>
-          {streamOpen && (
-            <motion.div
-              key="live-stream"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="overflow-hidden"
-              onClick={stop}
-            >
-              <div className="px-3 pb-3 sm:px-4">
-                <LiveStreamPanel />
+      <AnimatePresence initial={false}>
+        {widgetOpen && (
+          <motion.div
+            key="live-widget"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden"
+            onClick={stop}
+          >
+            <div className="px-3 pb-3 sm:px-4">
+              <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40">
+                <div className="flex items-center gap-1 overflow-x-auto border-b border-zinc-800 px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {desktopTabs.map((tab) => renderPanelTabButton(tab, "desktop", "hidden lg:block"))}
+                  {mobileTabs.map((tab) => renderPanelTabButton(tab, "mobile", "block lg:hidden"))}
+                </div>
+                <div className="p-2">{panelContent}</div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
-
-      {/* ---------- Mobile (< lg): inline live widget, expands under the card ---------- */}
-      {!isStreamMatch && (
-        <AnimatePresence initial={false}>
-          {widgetOpen && (
-            <motion.div
-              key="live-widget"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="overflow-hidden lg:hidden"
-              onClick={stop}
-            >
-              <div className="px-3 pb-3">
-                <SportsWidget match={match} className="h-[360px]" />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

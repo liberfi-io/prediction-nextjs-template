@@ -313,6 +313,7 @@
       "volume": "Объем",
       "draw": "Ничья",
       "live": "В эфире",
+      "liveSource": "Source {{index}}",
       "matchView": "рынки",
       "relatedEvents": "Похожие события",
       "versus": "против",

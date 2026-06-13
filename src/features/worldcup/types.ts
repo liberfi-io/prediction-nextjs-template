@@ -35,6 +35,13 @@ export interface WcMatchLiveState {
   updatedAt?: string;
 }
 
+export interface WcMatchLiveVideo {
+  url: string;
+  type: number;
+  status: number;
+  source?: string;
+}
+
 export interface WcOutcome {
   /** English base label (Convention B). */
   label: string;
@@ -97,6 +104,7 @@ export interface WcMatch {
   /** Live-only, e.g. "2nd · 67'". */
   livePeriod?: string;
   liveState?: WcMatchLiveState;
+  liveVideos?: WcMatchLiveVideo[];
 }
 
 export interface WcStandingRow {

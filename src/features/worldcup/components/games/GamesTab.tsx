@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@liberfi.io/ui";
+import { cn, useScreen } from "@liberfi.io/ui";
 import { applyLiveStateToMatch } from "../../data/client";
 import { useWorldcupLiveUpdates } from "../../data/live";
 import { useWorldcupMatches } from "../../data/queries";
@@ -14,11 +14,13 @@ import { GamesSkeleton } from "../skeletons";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
 import { SportsWidget } from "./SportsWidget";
+import { hasLiveVideos } from "./LiveStreamPanel";
 
 type GroupBy = "stage" | "time";
 
 const FINISHED_MATCH_HIDE_DELAY_MS = 3 * 60 * 60 * 1000;
 const FALLBACK_MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
+const LIVE_VIDEO_AUTOPEN_LEAD_MS = 5 * 60 * 1000;
 
 function nearestScrollContainer(el: HTMLElement): HTMLElement | null {
   let current = el.parentElement;
@@ -93,8 +95,26 @@ function isHiddenFromTimeList(match: WcMatch, nowMs: number): boolean {
   return nowMs - finalReferenceMs(match) > FINISHED_MATCH_HIDE_DELAY_MS;
 }
 
+function defaultLiveWidgetMatch(matchesInListOrder: WcMatch[], nowMs: number): WcMatch | null {
+  const live = matchesInListOrder.find((m) => m.status === "live");
+  if (live) return live;
+
+  let next: WcMatch | null = null;
+  for (const match of matchesInListOrder) {
+    if (match.kickoffMs <= nowMs) continue;
+    if (!next || match.kickoffMs < next.kickoffMs) next = match;
+  }
+  return next;
+}
+
+function isWithinLiveVideoAutopenWindow(match: WcMatch, nowMs: number): boolean {
+  if (match.status === "live") return true;
+  return match.status === "scheduled" && match.kickoffMs >= nowMs && match.kickoffMs - nowMs <= LIVE_VIDEO_AUTOPEN_LEAD_MS;
+}
+
 export function GamesTab() {
   const { t, i18n } = useTranslation();
+  const { isDesktop } = useScreen();
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = i18n.language || "en";
@@ -103,6 +123,9 @@ export function GamesTab() {
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const scrolledTargetRef = useRef<string | null>(null);
+  const pendingStageScrollRef = useRef(false);
+  const highlightTimeoutRef = useRef<number | null>(null);
+  const widgetTouchedRef = useRef(false);
 
   // SSR-prefetched then polled every 30s; grouping/sorting stays client-side.
   const { data: rawMatches = [], isPending } = useWorldcupMatches();
@@ -133,47 +156,29 @@ export function GamesTab() {
     return target?.trim() || null;
   }, [searchParams]);
 
-  // First in-progress match in list order (the one both layouts default to when
-  // multiple games are live at the same time).
-  const firstLiveMatch = useMemo(
-    () => displayMatches.find((m) => m.status === "live") ?? null,
-    [displayMatches]
-  );
+  const flashMatchHighlight = useCallback((matchId: string) => {
+    if (highlightTimeoutRef.current !== null) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
 
-  // Desktop right-rail: match shown in the pinned live widget (defaults to the
-  // first live game, else the earliest scheduled one).
-  const [liveMatch, setLiveMatch] = useState<WcMatch | null>(null);
-  const activeMatch = useMemo(
-    () =>
-      liveMatch ??
-      firstLiveMatch ??
-      [...displayMatches].sort((a, b) => a.kickoffMs - b.kickoffMs)[0] ??
-      null,
-    [liveMatch, firstLiveMatch, displayMatches]
-  );
-
-  // Mobile (< lg): no pinned widget. The live button toggles an inline widget
-  // expanding under the tapped card; only one is open at a time. By default the
-  // first live match's widget is expanded; nothing when no game is live.
-  const [openWidgetId, setOpenWidgetId] = useState<string | null>(null);
-  const onToggleWidget = useCallback(
-    (m: WcMatch) =>
-      setOpenWidgetId((prev) => (prev === m.matchId ? null : m.matchId)),
-    []
-  );
-
-  // Apply the mobile default once matches are available; later toggles and
-  // polling refreshes don't reopen it.
-  const defaultedRef = useRef(false);
-  useEffect(() => {
-    if (defaultedRef.current || displayMatches.length === 0) return;
-    defaultedRef.current = true;
-    setOpenWidgetId(firstLiveMatch?.matchId ?? null);
-  }, [displayMatches.length, firstLiveMatch]);
+    setHighlightedMatchId(matchId);
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedMatchId((current) => (current === matchId ? null : current));
+      highlightTimeoutRef.current = null;
+    }, 2500);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current !== null) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -183,7 +188,7 @@ export function GamesTab() {
     if (!match) return;
 
     scrolledTargetRef.current = anchorTarget;
-    setHighlightedMatchId(anchorTarget);
+    flashMatchHighlight(anchorTarget);
     window.requestAnimationFrame(() => {
       scrollMatchIntoView(anchorTarget);
     });
@@ -191,17 +196,10 @@ export function GamesTab() {
       scrollMatchIntoView(anchorTarget);
     }, 500);
 
-    const timeout = window.setTimeout(() => {
-      setHighlightedMatchId((current) =>
-        current === anchorTarget ? null : current,
-      );
-    }, 2500);
-
     return () => {
       window.clearTimeout(settleTimeout);
-      window.clearTimeout(timeout);
     };
-  }, [anchorTarget, displayMatches]);
+  }, [anchorTarget, displayMatches, flashMatchHighlight]);
 
   const sections = useMemo(() => {
     if (groupBy === "time") {
@@ -230,6 +228,79 @@ export function GamesTab() {
       }));
   }, [displayMatches, groupBy, lang, t]);
 
+  const matchesInListOrder = useMemo(
+    () => sections.flatMap((section) => section.items),
+    [sections],
+  );
+
+  const defaultWidgetMatch = useMemo(
+    () => defaultLiveWidgetMatch(matchesInListOrder, nowMs),
+    [matchesInListOrder, nowMs],
+  );
+
+  // Desktop right-rail: match shown in the pinned live widget. The default is
+  // selected from the rendered list order: first live match, then nearest future
+  // kickoff, with ties preserving the card that appears higher in the list.
+  const [liveMatch, setLiveMatch] = useState<WcMatch | null>(null);
+  const activeMatch = useMemo(
+    () =>
+      liveMatch ??
+      defaultWidgetMatch ??
+      matchesInListOrder[0] ??
+      null,
+    [liveMatch, defaultWidgetMatch, matchesInListOrder],
+  );
+
+  // Mobile (< lg): no pinned widget. The live button toggles an inline widget
+  // expanding under the tapped card; only one is open at a time. By default the
+  // same match selected for the desktop right-rail is expanded.
+  const [openWidgetId, setOpenWidgetId] = useState<string | null>(null);
+  const onToggleWidget = useCallback(
+    (m: WcMatch) => {
+      widgetTouchedRef.current = true;
+      setOpenWidgetId((prev) => (prev === m.matchId ? null : m.matchId));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (widgetTouchedRef.current) return;
+    if (!activeMatch || !isWithinLiveVideoAutopenWindow(activeMatch, nowMs)) {
+      setOpenWidgetId(null);
+      return;
+    }
+
+    const shouldOpen = isDesktop
+      ? hasLiveVideos(activeMatch.liveVideos)
+      : true;
+    setOpenWidgetId(shouldOpen ? activeMatch.matchId : null);
+  }, [activeMatch, isDesktop, nowMs]);
+
+  useEffect(() => {
+    if (!pendingStageScrollRef.current || groupBy !== "stage") return;
+    const target = activeMatch?.matchId;
+    if (!target || !matchesInListOrder.some((m) => m.matchId === target)) return;
+
+    pendingStageScrollRef.current = false;
+    flashMatchHighlight(target);
+    window.requestAnimationFrame(() => {
+      scrollMatchIntoView(target);
+    });
+
+    const settleTimeout = window.setTimeout(() => {
+      scrollMatchIntoView(target);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(settleTimeout);
+    };
+  }, [activeMatch?.matchId, flashMatchHighlight, groupBy, matchesInListOrder]);
+
+  const handleStageGroupBy = useCallback(() => {
+    pendingStageScrollRef.current = true;
+    setGroupBy("stage");
+  }, []);
+
   if (isPending) return <GamesSkeleton />;
 
   return (
@@ -242,7 +313,7 @@ export function GamesTab() {
           (48px) and the pin offset (65px). */}
       <aside className="hidden shrink-0 lg:order-last lg:block lg:w-82">
         <div className="relative lg:sticky lg:top-[65px] lg:flex lg:max-h-[calc(100dvh-113px)] lg:flex-col lg:gap-4 lg:pb-4 lg:overflow-y-auto lg:overflow-x-hidden no-scrollbar">
-          <SportsWidget match={activeMatch} className="h-100 shrink-0" />
+          <SportsWidget match={activeMatch} className="h-136 shrink-0" />
           {/* Desktop: related events below the widget; header sticks under it. */}
           <RelatedEvents className="hidden lg:flex" />
         </div>
@@ -254,7 +325,7 @@ export function GamesTab() {
           <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
             <Toggle
               active={groupBy === "stage"}
-              onClick={() => setGroupBy("stage")}
+              onClick={handleStageGroupBy}
             >
               {t("extend.worldcup.groupBy.stage")}
             </Toggle>

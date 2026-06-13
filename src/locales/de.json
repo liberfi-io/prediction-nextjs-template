@@ -313,6 +313,7 @@
       "volume": "Vol",
       "draw": "Unentschieden",
       "live": "Live",
+      "liveSource": "Source {{index}}",
       "matchView": "Märkte",
       "relatedEvents": "Ähnliche Ereignisse",
       "versus": "vs",

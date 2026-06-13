@@ -311,6 +311,7 @@
       "volume": "ボリューム",
       "draw": "引き分け",
       "live": "ライブ",
+      "liveSource": "Source {{index}}",
       "matchView": "マーケット",
       "relatedEvents": "類似イベント",
       "versus": "対",

@@ -311,6 +311,7 @@
       "volume": "Vol",
       "draw": "Égalité",
       "live": "En direct",
+      "liveSource": "Source {{index}}",
       "matchView": "marchés",
       "relatedEvents": "Événements similaires",
       "versus": "vs",

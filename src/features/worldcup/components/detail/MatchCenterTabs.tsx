@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn, EmptyIcon } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import { EventCommentsWidget } from "@liberfi.io/ui-predict";
-import type { WcMatch } from "../../types";
+import type { WcMatch, WcMatchLiveVideo } from "../../types";
 import { SportsWidget } from "../games/SportsWidget";
+import { hasLiveVideos, LiveStreamPanel } from "../games/LiveStreamPanel";
 import { MarketNewsWidget } from "./feeds/MarketNewsWidget";
 
-export type CenterTab = "center" | "news" | "comments";
-
-const TABS: CenterTab[] = ["center", "news", "comments"];
+export type CenterTab = "live" | "center" | "news" | "comments";
 
 /**
  * Center panel tabs mirroring future.news: "Match Center" embeds the shared
@@ -23,18 +22,36 @@ const TABS: CenterTab[] = ["center", "news", "comments"];
  */
 export function MatchCenterTabs({
   match,
+  liveVideos,
   className,
+  contentClassName = "min-h-[420px] flex-1 p-2",
+  centerWidgetClassName = "h-full min-h-[404px]",
+  livePanelClassName = "h-full min-h-[404px]",
   activeTab,
   hideTabs = false,
 }: {
   match: WcMatch | null;
+  liveVideos?: WcMatchLiveVideo[] | null;
   className?: string;
+  contentClassName?: string;
+  centerWidgetClassName?: string;
+  livePanelClassName?: string;
   activeTab?: CenterTab;
   hideTabs?: boolean;
 }) {
   const { t } = useTranslation();
+  const showLive = hasLiveVideos(liveVideos);
+  const tabs = useMemo<CenterTab[]>(
+    () => (showLive ? ["live", "center", "news", "comments"] : ["center", "news", "comments"]),
+    [showLive],
+  );
   const [internalTab, setInternalTab] = useState<CenterTab>("center");
-  const tab = activeTab ?? internalTab;
+  const requestedTab = activeTab ?? internalTab;
+  const tab = tabs.includes(requestedTab) ? requestedTab : tabs[0];
+
+  useEffect(() => {
+    if (!tabs.includes(internalTab)) setInternalTab(tabs[0]);
+  }, [internalTab, tabs]);
 
   return (
     <div
@@ -45,7 +62,7 @@ export function MatchCenterTabs({
     >
       {!hideTabs && (
         <div className="flex items-center gap-1 border-b border-zinc-800 px-2 py-2">
-          {TABS.map((key) => (
+          {tabs.map((key) => (
             <button
               key={key}
               type="button"
@@ -57,7 +74,9 @@ export function MatchCenterTabs({
                   : "text-zinc-500 hover:text-zinc-200",
               )}
             >
-              {t(`extend.worldcup.detail.tab.${key}`)}
+              {key === "live"
+                ? t("extend.worldcup.live")
+                : t(`extend.worldcup.detail.tab.${key}`)}
             </button>
           ))}
         </div>
@@ -65,9 +84,19 @@ export function MatchCenterTabs({
 
       {/* Content fills remaining height (min 420px) so it can match an
           equal-height row alongside the chart and order book. */}
-      <div className="min-h-[420px] flex-1 p-2">
-        {tab === "center" ? (
-          <SportsWidget match={match} className="h-full min-h-[404px]" bordered={false} />
+      <div className={contentClassName}>
+        {tab === "live" ? (
+          <LiveStreamPanel
+            videos={liveVideos}
+            className={livePanelClassName}
+            iframeClassName="h-full w-full"
+          />
+        ) : tab === "center" ? (
+          <SportsWidget
+            match={match}
+            className={centerWidgetClassName}
+            bordered={false}
+          />
         ) : tab === "comments" ? (
           match ? (
             <EventCommentsWidget
