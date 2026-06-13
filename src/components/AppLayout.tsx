@@ -116,6 +116,7 @@ import {
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
+import { DiagReporter } from "./DiagReporter";
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -230,22 +231,25 @@ export function AppLayout({
   const queryClient = getQueryClient();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProviders>
-        <LocaleProvider
-          locale={locale}
-          supportedLanguages={SUPPORTED_LANG_CODES}
-          convertDetectedLanguage={toSupportedLang}
-          resources={i18nResources}
-        >
-          <ServiceProviders>
-            <PageShell>{children}</PageShell>
-            <StyledToaster />
-            <PredictSearchModal />
-          </ServiceProviders>
-        </LocaleProvider>
-      </AuthProviders>
-    </QueryClientProvider>
+    <>
+      <QueryClientProvider client={queryClient}>
+        <AuthProviders>
+          <LocaleProvider
+            locale={locale}
+            supportedLanguages={SUPPORTED_LANG_CODES}
+            convertDetectedLanguage={toSupportedLang}
+            resources={i18nResources}
+          >
+            <ServiceProviders>
+              <PageShell>{children}</PageShell>
+              <StyledToaster />
+              <PredictSearchModal />
+            </ServiceProviders>
+          </LocaleProvider>
+        </AuthProviders>
+      </QueryClientProvider>
+      <DiagReporter />
+    </>
   );
 }
 

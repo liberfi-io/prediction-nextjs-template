@@ -14,6 +14,7 @@ import {
   toQueryOutcome,
 } from "src/features/telegram-miniapp/startParam";
 import type { ParsedStartParam } from "src/features/telegram-miniapp/types";
+import { diagMark, diagReport } from "src/features/diagnostics/clientDiag";
 
 /**
  * Where a launch with no (or unparseable) deep link lands. The home route is a
@@ -65,28 +66,37 @@ export function HomeLaunchRedirect() {
   } = useWorldcupMatches({ enabled: Boolean(needsMatchLookup) });
 
   useEffect(() => {
+    diagMark("home_effect");
     readyTelegramWebApp();
 
     const context = readTelegramMiniAppContext();
     const parsed = context?.startParam
       ? parseStartParam(context.startParam)
       : null;
+    diagMark(
+      `tg_ctx:${context ? "ctx" : "none"}:route=${parsed?.route ?? "-"}`,
+    );
 
     if (parsed?.referral) {
       storeInviteCode(parsed.referral);
     }
 
     if (!parsed) {
+      diagMark(`redirect:${DEFAULT_HREF}`);
+      diagReport("redirect");
       router.replace(DEFAULT_HREF);
       return;
     }
 
     if (parsed.route === "wl") {
+      diagMark("redirect:wl");
+      diagReport("redirect");
       router.replace(listHref(parsed.target));
       return;
     }
 
     // `wd`: defer until the matches lookup resolves the matchId→slug.
+    diagMark("pending:wd");
     setPending(parsed);
   }, [router]);
 
@@ -99,6 +109,8 @@ export function HomeLaunchRedirect() {
     if (!pending) return;
 
     if (targetMatch) {
+      diagMark("redirect:wd-detail");
+      diagReport("redirect");
       router.replace(detailHref(targetMatch.slug, pending));
       return;
     }
@@ -106,6 +118,8 @@ export function HomeLaunchRedirect() {
     // Lookup finished without a match (hidden / unknown id, or backend down):
     // fall back to the list anchored on the requested match id.
     if (isFetched || isError) {
+      diagMark(`redirect:wd-fallback:${isError ? "err" : "ok"}`);
+      diagReport("redirect");
       router.replace(listHref(pending.target));
     }
   }, [isError, isFetched, pending, router, targetMatch]);
