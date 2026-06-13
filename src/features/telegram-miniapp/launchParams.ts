@@ -55,6 +55,18 @@ export function getTelegramWebApp(): TelegramWebApp | null {
   return window.Telegram?.WebApp ?? null;
 }
 
+/**
+ * Raw Telegram `initData` for the current launch, used to authenticate the
+ * mini-app session server-side. Prefer the SDK value
+ * (`window.Telegram.WebApp.initData`), but fall back to the launch hash
+ * (`#tgWebAppData=...`): `telegram-web-app.js` loads `afterInteractive`, so the
+ * SDK may not be ready yet when we sync, while the hash is present from the
+ * very first paint.
+ */
+export function readTelegramInitData(): string | null {
+  return asString(getTelegramWebApp()?.initData) ?? readUrlParam("tgWebAppData");
+}
+
 export function readyTelegramWebApp(): void {
   getTelegramWebApp()?.ready?.();
 }

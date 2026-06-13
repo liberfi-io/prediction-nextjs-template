@@ -71,22 +71,29 @@ export default async function RootLayout({
     >
       <body className={`${inter.className} ${dmSans.variable}`}>
         {/*
-          Load the Telegram WebApp SDK without blocking hydration. The script is
-          still required: it exposes `window.Telegram.WebApp` (ready()/expand(),
-          initData, theme/viewport) which the Telegram client does NOT inject on
-          its own — it only passes launch params via the URL hash. We keep it,
-          but the home redirect does not depend on it being ready, because
-          `start_param` is also read straight from the URL hash
-          (`readUrlStartParam`). Using `beforeInteractive` here used to stall the
-          entire app's hydration whenever `telegram.org` was slow/unreachable
-          (common inside the in-app proxy), leaving the `/` splash spinning for
-          minutes. `afterInteractive` lets React hydrate and run the redirect
-          effect immediately while the SDK loads in parallel.
+          Telegram WebApp SDK. It exposes `window.Telegram.WebApp` (ready()/
+          expand(), initData, theme/viewport), which the Telegram client does
+          NOT inject on its own — it only passes launch params via the URL hash.
+
+          Self-hosted from `public/` instead of `telegram.org` on purpose: the
+          official host is frequently slow/unreachable from inside the in-app
+          proxy (a direct `curl telegram.org` from our network already fails),
+          and a cross-origin SDK load is exactly what used to stall the app.
+          Serving it same-origin makes it load fast and reliably.
+
+          `afterInteractive` (not `beforeInteractive`): never make this script a
+          render-blocking dependency. `beforeInteractive` would hold hydration
+          hostage to the script — the original "spinner for minutes" bug. None
+          of our critical paths need it ready synchronously: Privy reads the
+          launch payload from the URL hash, and `start_param`/`initData` both
+          have hash fallbacks (`readUrlStartParam` / `readTelegramInitData`).
+          So the SDK loads in parallel and only powers ready()/expand() and the
+          richer `initDataUnsafe` once available.
+
+          To refresh: re-download `public/telegram-web-app.js` from
+          https://telegram.org/js/telegram-web-app.js.
         */}
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="afterInteractive"
-        />
+        <Script src="/telegram-web-app.js" strategy="afterInteractive" />
         <AppLayout locale={locale}>{children}</AppLayout>
         <TelegramMiniAppSessionSync />
         {process.env.NODE_ENV === "production" && (

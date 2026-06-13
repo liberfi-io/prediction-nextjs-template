@@ -1,7 +1,7 @@
-import { getTelegramWebApp } from "./launchParams";
+import { readTelegramInitData } from "./launchParams";
 
 export async function syncTelegramMiniAppSession(): Promise<void> {
-  const initData = getTelegramWebApp()?.initData;
+  const initData = readTelegramInitData();
   if (!initData?.trim()) return;
 
   try {

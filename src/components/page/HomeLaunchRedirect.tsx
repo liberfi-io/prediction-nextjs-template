@@ -43,6 +43,26 @@ function listHref(target: string): string {
   return `/world-cup?match=${encodeURIComponent(target)}`;
 }
 
+/**
+ * Carry the Telegram launch hash (`#tgWebAppData=...`) across the redirect.
+ *
+ * Telegram delivers the mini-app launch payload — including the `initData`
+ * that Privy needs for silent Telegram login — only in the URL hash. Privy
+ * reads `window.location.hash` directly and bails unless it still starts with
+ * `#tgWebAppData`. The `router.replace` below would otherwise navigate to a
+ * hash-less URL before Privy consumes it, silently killing auto-login (the
+ * old code masked this by stalling on the matches fetch, which left the hash
+ * around long enough for Privy to read it). Appending the original launch hash
+ * keeps it present until Privy finishes and clears it itself. Routing ignores
+ * the hash, so this is inert for navigation.
+ */
+function withLaunchHash(href: string): string {
+  if (typeof window === "undefined") return href;
+  if (href.includes("#")) return href;
+  const hash = window.location.hash;
+  return hash.startsWith("#tgWebAppData") ? `${href}${hash}` : href;
+}
+
 function LaunchSplash() {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0b]">
@@ -91,14 +111,14 @@ export function HomeLaunchRedirect() {
     if (!parsed) {
       diagMark(`redirect:${DEFAULT_HREF}`);
       diagReport("redirect");
-      router.replace(DEFAULT_HREF);
+      router.replace(withLaunchHash(DEFAULT_HREF));
       return;
     }
 
     if (parsed.route === "wl") {
       diagMark("redirect:wl");
       diagReport("redirect");
-      router.replace(listHref(parsed.target));
+      router.replace(withLaunchHash(listHref(parsed.target)));
       return;
     }
 
@@ -110,7 +130,7 @@ export function HomeLaunchRedirect() {
     if (staticSlug) {
       diagMark("redirect:wd-static");
       diagReport("redirect");
-      router.replace(detailHref(staticSlug, parsed));
+      router.replace(withLaunchHash(detailHref(staticSlug, parsed)));
       return;
     }
 
@@ -131,7 +151,7 @@ export function HomeLaunchRedirect() {
     if (targetMatch) {
       diagMark("redirect:wd-detail");
       diagReport("redirect");
-      router.replace(detailHref(targetMatch.slug, pending));
+      router.replace(withLaunchHash(detailHref(targetMatch.slug, pending)));
       return;
     }
 
@@ -140,7 +160,7 @@ export function HomeLaunchRedirect() {
     if (isFetched || isError) {
       diagMark(`redirect:wd-fallback:${isError ? "err" : "ok"}`);
       diagReport("redirect");
-      router.replace(listHref(pending.target));
+      router.replace(withLaunchHash(listHref(pending.target)));
       return;
     }
 
@@ -150,7 +170,7 @@ export function HomeLaunchRedirect() {
     const timer = setTimeout(() => {
       diagMark("redirect:wd-timeout");
       diagReport("redirect");
-      router.replace(listHref(pending.target));
+      router.replace(withLaunchHash(listHref(pending.target)));
     }, WD_LOOKUP_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [isError, isFetched, pending, router, targetMatch]);
