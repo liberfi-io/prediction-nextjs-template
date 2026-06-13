@@ -259,6 +259,10 @@ function MatchCardImpl({
     price: number,
   ) => {
     stop(e);
+    if (match.status === "final" || match.liveState?.ended) {
+      onOpen(match.slug);
+      return;
+    }
     if (price <= 0) return;
     onMarketPick?.(match, marketCode, outcome);
   };
