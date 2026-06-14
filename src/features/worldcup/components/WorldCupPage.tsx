@@ -14,6 +14,7 @@ import type { WcTab } from "../tabs";
 export function WorldCupPage({ tab }: { tab: WcTab }) {
   return (
     <>
+      {tab === "today" && <GamesTab mode="today" />}
       {tab === "games" && <GamesTab />}
       {tab === "props" && <PropsTab />}
       {tab === "groups" && <GroupsTab />}

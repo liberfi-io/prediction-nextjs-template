@@ -64,6 +64,7 @@ function Pill({
   colors,
   tall = false,
   grow = false,
+  disabled = false,
   onClick,
 }: {
   label: string;
@@ -74,15 +75,18 @@ function Pill({
   tall?: boolean;
   /** Stretch to fill the column height (spread/total fill moneyline's height). */
   grow?: boolean;
+  disabled?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 }) {
   const handleEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
     const el = e.currentTarget;
     el.style.setProperty("--shadow-offset", "1px");
     el.style.transform = "translateY(2px)";
   };
 
   const handleLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
     const el = e.currentTarget;
     el.style.setProperty("--shadow-offset", "3px");
     el.style.transform = "translateY(0px)";
@@ -91,11 +95,13 @@ function Pill({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       className={cn(
-        "flex w-full min-w-0 items-center justify-between gap-1.5 rounded-[9px] px-2.5 cursor-pointer will-change-transform [-webkit-tap-highlight-color:transparent]",
+        "flex w-full min-w-0 items-center justify-between gap-1.5 rounded-[9px] px-2.5 will-change-transform [-webkit-tap-highlight-color:transparent]",
+        disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
         grow ? "min-h-[34px] flex-1" : tall ? "h-[38px]" : "h-[34px]",
       )}
       style={
@@ -259,13 +265,10 @@ function MatchCardImpl({
     price: number,
   ) => {
     stop(e);
-    if (match.status === "final" || match.liveState?.ended) {
-      onOpen(match.slug);
-      return;
-    }
     if (price <= 0) return;
     onMarketPick?.(match, marketCode, outcome);
   };
+  const marketsDisabled = match.status === "final" || Boolean(match.liveState?.ended);
   const hasLive = hasLiveVideos(match.liveVideos);
   const [panelTab, setPanelTab] = useState<CardPanelTab>(hasLive ? "live" : "center");
   const wasWidgetOpenRef = useRef(false);
@@ -276,9 +279,36 @@ function MatchCardImpl({
 
   const moneylineCol = (tall: boolean) => (
     <>
-      <Pill label={match.home.code} price={ml.home.price} format={format} variant="fade" colors={homeColors} tall={tall} onClick={(e) => pickMarket(e, "mlh", "yes", ml.home.price)} />
-      <Pill label={drawLabel} price={ml.draw.price} format={format} variant="fade" colors={PILL_NEUTRAL} tall={tall} onClick={(e) => pickMarket(e, "mld", "yes", ml.draw.price)} />
-      <Pill label={match.away.code} price={ml.away.price} format={format} variant="fade" colors={awayColors} tall={tall} onClick={(e) => pickMarket(e, "mla", "yes", ml.away.price)} />
+      <Pill
+        label={match.home.code}
+        price={ml.home.price}
+        format={format}
+        variant="fade"
+        colors={homeColors}
+        tall={tall}
+        disabled={marketsDisabled}
+        onClick={(e) => pickMarket(e, "mlh", "yes", ml.home.price)}
+      />
+      <Pill
+        label={drawLabel}
+        price={ml.draw.price}
+        format={format}
+        variant="fade"
+        colors={PILL_NEUTRAL}
+        tall={tall}
+        disabled={marketsDisabled}
+        onClick={(e) => pickMarket(e, "mld", "yes", ml.draw.price)}
+      />
+      <Pill
+        label={match.away.code}
+        price={ml.away.price}
+        format={format}
+        variant="fade"
+        colors={awayColors}
+        tall={tall}
+        disabled={marketsDisabled}
+        onClick={(e) => pickMarket(e, "mla", "yes", ml.away.price)}
+      />
     </>
   );
 
@@ -290,15 +320,55 @@ function MatchCardImpl({
 
   const spreadCol = (
     <>
-      <Pill label={`${match.home.code} ${formatLine(spread.line)}`} price={spread.home.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, homeSpreadMarketCode, homeSpreadOutcome, spread.home.price)} />
-      <Pill label={`${match.away.code} ${formatLine(-spread.line)}`} price={spread.away.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, awaySpreadMarketCode, awaySpreadOutcome, spread.away.price)} />
+      <Pill
+        label={`${match.home.code} ${formatLine(spread.line)}`}
+        price={spread.home.price}
+        format={format}
+        variant="roll"
+        colors={PILL_NEUTRAL}
+        grow
+        disabled={marketsDisabled}
+        onClick={(e) =>
+          pickMarket(e, homeSpreadMarketCode, homeSpreadOutcome, spread.home.price)
+        }
+      />
+      <Pill
+        label={`${match.away.code} ${formatLine(-spread.line)}`}
+        price={spread.away.price}
+        format={format}
+        variant="roll"
+        colors={PILL_NEUTRAL}
+        grow
+        disabled={marketsDisabled}
+        onClick={(e) =>
+          pickMarket(e, awaySpreadMarketCode, awaySpreadOutcome, spread.away.price)
+        }
+      />
     </>
   );
 
   const totalCol = (
     <>
-      <Pill label={`O ${total.line}`} price={total.over.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, totalMarketCode, "yes", total.over.price)} />
-      <Pill label={`U ${total.line}`} price={total.under.price} format={format} variant="roll" colors={PILL_NEUTRAL} grow onClick={(e) => pickMarket(e, totalMarketCode, "no", total.under.price)} />
+      <Pill
+        label={`O ${total.line}`}
+        price={total.over.price}
+        format={format}
+        variant="roll"
+        colors={PILL_NEUTRAL}
+        grow
+        disabled={marketsDisabled}
+        onClick={(e) => pickMarket(e, totalMarketCode, "yes", total.over.price)}
+      />
+      <Pill
+        label={`U ${total.line}`}
+        price={total.under.price}
+        format={format}
+        variant="roll"
+        colors={PILL_NEUTRAL}
+        grow
+        disabled={marketsDisabled}
+        onClick={(e) => pickMarket(e, totalMarketCode, "no", total.under.price)}
+      />
     </>
   );
 
@@ -357,7 +427,10 @@ function MatchCardImpl({
   );
 
   const desktopTabs = useMemo<CardPanelTab[]>(
-    () => (hasLive ? ["live", "news", "comments"] : ["news", "comments"]),
+    () =>
+      hasLive
+        ? ["live", "center", "news", "comments"]
+        : ["center", "news", "comments"],
     [hasLive],
   );
   const mobileTabs = useMemo<CardPanelTab[]>(
@@ -412,7 +485,7 @@ function MatchCardImpl({
           />
         );
       case "center":
-        return <SportsWidget match={match} className="h-136" />;
+        return <SportsWidget match={match} className={isDesktop ? "h-170" : "h-136"} />;
       case "comments":
         return (
           <EventCommentsWidget

@@ -296,6 +296,7 @@
     },
     "worldcup": {
       "tab": {
+        "today": "Aujourd'hui",
         "games": "Matchs",
         "props": "Props",
         "groups": "Groupes",

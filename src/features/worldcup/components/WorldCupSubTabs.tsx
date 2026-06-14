@@ -24,7 +24,7 @@ export function WorldCupSubTabs() {
 
   const go = useCallback(
     (next: WcTab) =>
-      router.push(next === "games" ? "/world-cup" : `/world-cup/${next}`),
+      router.push(next === "today" ? "/world-cup" : `/world-cup/${next}`),
     [router]
   );
 

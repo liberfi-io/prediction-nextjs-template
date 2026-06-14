@@ -265,6 +265,7 @@
     },
     "worldcup": {
       "tab": {
+        "today": "今日",
         "games": "比賽",
         "props": "提案",
         "groups": "積分榜",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn, toast, useScreen } from "@liberfi.io/ui";
+import { cn, toast } from "@liberfi.io/ui";
 import { applyLiveStateToMatch } from "../../data/client";
 import { useWorldcupLiveUpdates } from "../../data/live";
 import { useWorldcupMatches, useWorldcupMatchEvent } from "../../data/queries";
@@ -15,7 +15,6 @@ import { GamesSkeleton } from "../skeletons";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
 import { SportsWidget } from "./SportsWidget";
-import { hasLiveVideos } from "./LiveStreamPanel";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { usePredictWallet, type TradeOutcome, type TradeSide } from "@liberfi.io/ui-predict";
 import type { PredictEvent, PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
@@ -35,6 +34,10 @@ import {
 import { resolveMarketDeepLink } from "../detail/deepLink";
 
 type GroupBy = "stage" | "time";
+
+interface GamesTabProps {
+  mode?: "all" | "today";
+}
 
 interface TradeRequest {
   match: WcMatch;
@@ -148,6 +151,16 @@ function isWithinLiveVideoAutopenWindow(match: WcMatch, nowMs: number): boolean 
   );
 }
 
+function todayMatchWindow(nowMs: number): { startMs: number; endMs: number } {
+  const start = new Date(nowMs);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2);
+
+  return { startMs: start.getTime(), endMs: end.getTime() };
+}
+
 function teamHint(match: WcMatch): TeamHint {
   const keys = (...vals: string[]) =>
     new Set(vals.filter(Boolean).map((s) => s.trim().toLowerCase()));
@@ -216,12 +229,12 @@ function selectedTradeLabel(match: WcMatch, marketCode: string, outcome: TradeOu
   return undefined;
 }
 
-export function GamesTab() {
+export function GamesTab({ mode = "all" }: GamesTabProps) {
   const { t, i18n } = useTranslation();
-  const { isDesktop } = useScreen();
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = i18n.language || "en";
+  const todayOnly = mode === "today";
   const [format] = useOddsFormat();
   const [groupBy, setGroupBy] = useState<GroupBy>("time");
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
@@ -256,13 +269,20 @@ export function GamesTab() {
     [rawMatches, liveStates]
   );
 
-  const displayMatches = useMemo(
-    () =>
-      groupBy === "time"
-        ? matches.filter((m) => !isHiddenFromTimeList(m, nowMs))
-        : matches,
-    [matches, groupBy, nowMs]
-  );
+  const effectiveGroupBy = todayOnly ? "time" : groupBy;
+
+  const displayMatches = useMemo(() => {
+    const windowedMatches = todayOnly
+      ? (() => {
+          const { startMs, endMs } = todayMatchWindow(nowMs);
+          return matches.filter((m) => m.kickoffMs >= startMs && m.kickoffMs < endMs);
+        })()
+      : matches;
+
+    return effectiveGroupBy === "time"
+      ? windowedMatches.filter((m) => !isHiddenFromTimeList(m, nowMs))
+      : windowedMatches;
+  }, [effectiveGroupBy, matches, nowMs, todayOnly]);
   const onOpen = useCallback(
     (slug: string) => router.push(`/world-cup/match/${slug}`),
     [router]
@@ -421,7 +441,7 @@ export function GamesTab() {
   }, [anchorTarget, displayMatches, flashMatchHighlight]);
 
   const sections = useMemo(() => {
-    if (groupBy === "time") {
+    if (effectiveGroupBy === "time") {
       const byDay = new Map<string, typeof displayMatches>();
       for (const m of [...displayMatches].sort((a, b) => a.kickoffMs - b.kickoffMs)) {
         const key = new Date(m.kickoffMs).toLocaleDateString(
@@ -445,7 +465,7 @@ export function GamesTab() {
         title: t("extend.worldcup.groupLabel", { code }),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
-  }, [displayMatches, groupBy, lang, t]);
+  }, [displayMatches, effectiveGroupBy, lang, t]);
 
   const matchesInListOrder = useMemo(
     () => sections.flatMap((section) => section.items),
@@ -489,11 +509,8 @@ export function GamesTab() {
       return;
     }
 
-    const shouldOpen = isDesktop
-      ? hasLiveVideos(activeMatch.liveVideos)
-      : true;
-    setOpenWidgetId(shouldOpen ? activeMatch.matchId : null);
-  }, [activeMatch, isDesktop, nowMs]);
+    setOpenWidgetId(activeMatch.matchId);
+  }, [activeMatch, nowMs]);
 
   useEffect(() => {
     if (!pendingStageScrollRef.current || groupBy !== "stage") return;
@@ -540,21 +557,23 @@ export function GamesTab() {
 
       {/* LEFT: toolbar + match list */}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
-            <Toggle
-              active={groupBy === "stage"}
-              onClick={handleStageGroupBy}
-            >
-              {t("extend.worldcup.groupBy.stage")}
-            </Toggle>
-            <Toggle
-              active={groupBy === "time"}
-              onClick={() => setGroupBy("time")}
-            >
-              {t("extend.worldcup.groupBy.time")}
-            </Toggle>
-          </div>
+        <div className={cn("flex items-center gap-2", todayOnly ? "justify-end" : "justify-between")}>
+          {!todayOnly && (
+            <div className="flex items-center gap-1 rounded-[10px] border border-zinc-800 bg-zinc-900/40 p-0.5">
+              <Toggle
+                active={groupBy === "stage"}
+                onClick={handleStageGroupBy}
+              >
+                {t("extend.worldcup.groupBy.stage")}
+              </Toggle>
+              <Toggle
+                active={groupBy === "time"}
+                onClick={() => setGroupBy("time")}
+              >
+                {t("extend.worldcup.groupBy.time")}
+              </Toggle>
+            </div>
+          )}
           <OddsFormatSelect />
         </div>
 

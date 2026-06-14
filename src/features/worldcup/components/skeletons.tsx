@@ -253,6 +253,7 @@ export function BracketSkeleton() {
 export function WorldCupTabSkeleton({ tab }: { tab: WcTab }) {
   return (
     <>
+      {tab === "today" && <GamesSkeleton />}
       {tab === "games" && <GamesSkeleton />}
       {tab === "props" && <PropsSkeleton />}
       {tab === "groups" && <GroupsSkeleton />}

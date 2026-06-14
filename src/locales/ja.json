@@ -296,6 +296,7 @@
     },
     "worldcup": {
       "tab": {
+        "today": "今日",
         "games": "試合",
         "props": "プロップ",
         "groups": "グループ",

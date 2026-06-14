@@ -29,6 +29,7 @@ function prefetchForTab(
   lang: string,
 ): Promise<unknown> | null {
   switch (tab) {
+    case "today":
     case "games":
       return Promise.all([
         prefetchWorldcupMatches(queryClient, lang),
@@ -76,12 +77,12 @@ async function WorldCupTabContent({ tab }: { tab: WcTab }) {
 }
 
 /**
- * World Cup catch-all route. `/world-cup` is Games; `/world-cup/<tab>` selects
- * props / groups / bracket / map.
+ * World Cup catch-all route. `/world-cup` is Today; `/world-cup/<tab>` selects
+ * games / props / groups / bracket.
  *
  * The data-fetching content is wrapped in Suspense so the first paint shows a
  * tab-specific skeleton, then hydrates; the client then polls every 30s. Every
- * tab (games / props / groups / bracket) prefetches its backend endpoint.
+ * tab (today / games / props / groups / bracket) prefetches its backend endpoint.
  */
 export default async function Page({ params }: PageProps) {
   const { tab } = await params;
