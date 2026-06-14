@@ -6,7 +6,7 @@
  *
  * Layout mirrors a portfolio profile page: a wallet header, three summary
  * cards (TOTAL VALUE with a daily sparkline, PERFORMANCE & BIAS, YIELD & RISK
- * with a category exposure bar) and the POSITIONS / SETTLED / ACTIVITY tabs.
+ * with a category exposure bar) and the OPEN / CLOSED / SETTLED / ACTIVITY tabs.
  *
  * The whole panel scrolls as one surface; the active tab's list is virtualized
  * against that scroll surface via `scrollMargin` so the cards scroll away
@@ -64,11 +64,12 @@ import {
 } from "./SummaryCards";
 import { PositionsTableSkeleton, WalletDetailSkeleton } from "./skeletons";
 
-type DetailTab = "open" | "settled" | "activity";
+type DetailTab = "open" | "closed" | "settled" | "activity";
 
 /** Maps a positions tab to the backend `status` lifecycle filter. */
-const TAB_STATUS: Record<"open" | "settled", PositionStatus> = {
+const TAB_STATUS: Record<"open" | "closed" | "settled", PositionStatus> = {
   open: "holding",
+  closed: "closed",
   settled: "settled",
 };
 
@@ -255,6 +256,7 @@ function WalletTabs({
 
   const tabs: { key: DetailTab; label: string; count?: number }[] = [
     { key: "open", label: t("extend.leaderboard.detail.tabs.open"), count: summary.openPositionCount },
+    { key: "closed", label: t("extend.leaderboard.tabs.closed") },
     { key: "settled", label: t("extend.leaderboard.detail.tabs.settled") },
     { key: "activity", label: t("extend.leaderboard.tabs.activity") },
   ];
@@ -374,7 +376,7 @@ function PositionsTable({
   scrollRef,
 }: {
   wallet: string;
-  tab: "open" | "settled";
+  tab: "open" | "closed" | "settled";
   query: string;
   sort: { field: PositionSortField; order: SortOrder } | null;
   onSort: (s: { field: PositionSortField; order: SortOrder } | null) => void;
@@ -400,8 +402,8 @@ function PositionsTable({
   const sortFor = (field: PositionSortField): SortOrder | undefined =>
     sort?.field === field ? sort.order : undefined;
 
-  // The backend already filters by lifecycle status (holding / settled); only
-  // the local market-question search is applied client-side.
+  // The backend already filters by lifecycle status (holding / closed /
+  // settled); only the local market-question search is applied client-side.
   const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
   const q = query.trim().toLowerCase();
   const rows = q
@@ -432,9 +434,15 @@ function PositionsTable({
   // the same query key, so it never trips this.
   if (isLoading || isPlaceholderData) return <PositionsTableSkeleton />;
   if (rows.length === 0) {
+    const emptyKey =
+      q
+        ? "extend.leaderboard.detail.noResults"
+        : tab === "closed"
+          ? "extend.leaderboard.noClosed"
+          : "extend.leaderboard.noPositions";
     return (
       <EmptyBlock
-        message={t(q ? "extend.leaderboard.detail.noResults" : "extend.leaderboard.noPositions")}
+        message={t(emptyKey)}
       />
     );
   }
