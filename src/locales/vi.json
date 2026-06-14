@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "Chưa thực hiện",
         "colLastActive": "Hoạt động",
         "colStatus": "Trạng thái",
-        "tabs": { "all": "Tất cả", "open": "Mở", "settled": "Đã tất toán" },
+        "tabs": { "all": "Tất cả", "open": "Mở", "closed": "Đã đóng" },
         "status": { "won": "THẮNG", "lost": "THUA", "open": "MỞ" }
       }
     },

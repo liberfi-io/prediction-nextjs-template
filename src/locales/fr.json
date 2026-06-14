@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "Latent",
         "colLastActive": "Activité",
         "colStatus": "Statut",
-        "tabs": { "all": "Tout", "open": "Ouvert", "settled": "Réglé" },
+        "tabs": { "all": "Tout", "open": "Ouvert", "closed": "Clôturées" },
         "status": { "won": "GAGNÉ", "lost": "PERDU", "open": "OUVERT" }
       }
     },

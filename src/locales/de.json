@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "Unrealisiert",
         "colLastActive": "Aktiv",
         "colStatus": "Status",
-        "tabs": { "all": "Alle", "open": "Offen", "settled": "Abgerechnet" },
+        "tabs": { "all": "Alle", "open": "Offen", "closed": "Geschlossen" },
         "status": { "won": "GEWONNEN", "lost": "VERLOREN", "open": "OFFEN" }
       }
     },

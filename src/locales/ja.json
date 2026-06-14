@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "含み",
         "colLastActive": "最終",
         "colStatus": "ステータス",
-        "tabs": { "all": "すべて", "open": "保有中", "settled": "決済済み" },
+        "tabs": { "all": "すべて", "open": "保有中", "closed": "クローズ" },
         "status": { "won": "勝ち", "lost": "負け", "open": "保有" }
       }
     },

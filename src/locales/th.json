@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "ยังไม่รับรู้",
         "colLastActive": "ใช้งานล่าสุด",
         "colStatus": "สถานะ",
-        "tabs": { "all": "ทั้งหมด", "open": "เปิด", "settled": "ชำระแล้ว" },
+        "tabs": { "all": "ทั้งหมด", "open": "เปิด", "closed": "ปิดแล้ว" },
         "status": { "won": "ชนะ", "lost": "แพ้", "open": "เปิด" }
       }
     },

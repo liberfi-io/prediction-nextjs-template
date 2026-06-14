@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "未實現",
         "colLastActive": "最近活躍",
         "colStatus": "狀態",
-        "tabs": { "all": "全部", "open": "持倉中", "settled": "已結算" },
+        "tabs": { "all": "全部", "open": "持倉中", "closed": "已平倉" },
         "status": { "won": "盈利", "lost": "虧損", "open": "持倉" }
       }
     },

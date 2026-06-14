@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "Нереализ.",
         "colLastActive": "Активность",
         "colStatus": "Статус",
-        "tabs": { "all": "Все", "open": "Открытые", "settled": "Расчёт" },
+        "tabs": { "all": "Все", "open": "Открытые", "closed": "Закрытые" },
         "status": { "won": "ВЫИГРЫШ", "lost": "ПРОИГРЫШ", "open": "ОТКРЫТО" }
       }
     },

@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "미실현",
         "colLastActive": "활동",
         "colStatus": "상태",
-        "tabs": { "all": "전체", "open": "오픈", "settled": "정산" },
+        "tabs": { "all": "전체", "open": "오픈", "closed": "청산" },
         "status": { "won": "승", "lost": "패", "open": "오픈" }
       }
     },

@@ -64,12 +64,12 @@ import {
 } from "./SummaryCards";
 import { PositionsTableSkeleton, WalletDetailSkeleton } from "./skeletons";
 
-type DetailTab = "open" | "settled" | "activity";
+type DetailTab = "open" | "closed" | "activity";
 
 /** Maps a positions tab to the backend `status` lifecycle filter. */
-const TAB_STATUS: Record<"open" | "settled", PositionStatus> = {
+const TAB_STATUS: Record<"open" | "closed", PositionStatus> = {
   open: "holding",
-  settled: "settled",
+  closed: "closed",
 };
 
 /** Estimated list row height (px) for the virtualizer's first paint. */
@@ -255,7 +255,7 @@ function WalletTabs({
 
   const tabs: { key: DetailTab; label: string; count?: number }[] = [
     { key: "open", label: t("extend.leaderboard.detail.tabs.open"), count: summary.openPositionCount },
-    { key: "settled", label: t("extend.leaderboard.detail.tabs.settled") },
+    { key: "closed", label: t("extend.leaderboard.detail.tabs.closed") },
     { key: "activity", label: t("extend.leaderboard.tabs.activity") },
   ];
 
@@ -374,7 +374,7 @@ function PositionsTable({
   scrollRef,
 }: {
   wallet: string;
-  tab: "open" | "settled";
+  tab: "open" | "closed";
   query: string;
   sort: { field: PositionSortField; order: SortOrder } | null;
   onSort: (s: { field: PositionSortField; order: SortOrder } | null) => void;
@@ -400,7 +400,7 @@ function PositionsTable({
   const sortFor = (field: PositionSortField): SortOrder | undefined =>
     sort?.field === field ? sort.order : undefined;
 
-  // The backend already filters by lifecycle status (holding / settled); only
+  // The backend already filters by lifecycle status (holding / closed); only
   // the local market-question search is applied client-side.
   const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
   const q = query.trim().toLowerCase();

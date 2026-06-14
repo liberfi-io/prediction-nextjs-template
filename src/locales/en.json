@@ -128,7 +128,7 @@
         "colUnrealizedPnl": "Unrealized",
         "colLastActive": "Active",
         "colStatus": "Status",
-        "tabs": { "all": "All", "open": "Open", "settled": "Settled" },
+        "tabs": { "all": "All", "open": "Open", "closed": "Closed" },
         "status": { "won": "WON", "lost": "LOST", "open": "OPEN" }
       }
     },
