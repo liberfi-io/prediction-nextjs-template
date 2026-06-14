@@ -74,6 +74,7 @@ export const FUND_WALLET_MODAL_ID = "fund-prediction-wallet";
 
 type WalletSource = "solana" | "evm";
 type Screen = "main" | "deposit" | "withdraw";
+const DEFAULT_DEPOSIT_CHAIN_KEY: DepositChainKey = "tron";
 
 /**
  * Optional payload accepted by `useAsyncModal(FUND_WALLET_MODAL_ID).onOpen({ params })`.
@@ -934,7 +935,7 @@ function PolymarketDepositBody({
   }, [supportedAssets]);
 
   const [selectedChainKey, setSelectedChainKey] = useState<DepositChainKey>(
-    availableChains[0]?.key ?? "solana",
+    () => getDefaultDepositChainKey(availableChains),
   );
 
   // Keep the selected chain in sync when the available set changes (e.g.
@@ -944,12 +945,13 @@ function PolymarketDepositBody({
       availableChains.length > 0 &&
       !availableChains.some((c) => c.key === selectedChainKey)
     ) {
-      setSelectedChainKey(availableChains[0].key);
+      setSelectedChainKey(getDefaultDepositChainKey(availableChains));
     }
   }, [availableChains, selectedChainKey]);
 
   const selectedChain =
     availableChains.find((c) => c.key === selectedChainKey) ??
+    availableChains.find((c) => c.key === DEFAULT_DEPOSIT_CHAIN_KEY) ??
     availableChains[0];
 
   const address =
@@ -1512,7 +1514,7 @@ function WithdrawScreen({
   const [transactionId, setTransactionId] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedChainKey, setSelectedChainKey] =
-    useState<DepositChainKey>("solana");
+    useState<DepositChainKey>(DEFAULT_DEPOSIT_CHAIN_KEY);
   const [selectedAssetKey, setSelectedAssetKey] = useState<string>("");
 
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
@@ -1679,7 +1681,7 @@ function WithdrawScreen({
       availableChains.length > 0 &&
       !availableChains.some((c) => c.key === selectedChainKey)
     ) {
-      setSelectedChainKey(availableChains[0].key);
+      setSelectedChainKey(getDefaultDepositChainKey(availableChains));
     }
   }, [availableChains, selectedChainKey]);
 
@@ -2132,6 +2134,16 @@ function getWithdrawAssetsForChain(
 function getWithdrawChains(): DepositChainConfig[] {
   return DEPOSIT_CHAIN_ORDER.map((k) => DEPOSIT_CHAINS[k]).filter(
     (chain) => getWithdrawAssetsForChain(chain.chainId).length > 0,
+  );
+}
+
+function getDefaultDepositChainKey(
+  chains: DepositChainConfig[],
+): DepositChainKey {
+  return (
+    chains.find((chain) => chain.key === DEFAULT_DEPOSIT_CHAIN_KEY)?.key ??
+    chains[0]?.key ??
+    DEFAULT_DEPOSIT_CHAIN_KEY
   );
 }
 
