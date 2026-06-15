@@ -14,7 +14,6 @@ import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
-import { SportsWidget } from "./SportsWidget";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { usePredictWallet, type TradeOutcome, type TradeSide } from "@liberfi.io/ui-predict";
 import type { PredictEvent, PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
@@ -549,7 +548,6 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
           (48px) and the pin offset (65px). */}
       <aside className="hidden shrink-0 lg:order-last lg:block lg:w-82">
         <div className="relative lg:sticky lg:top-[65px] lg:flex lg:max-h-[calc(100dvh-113px)] lg:flex-col lg:gap-4 lg:pb-4 lg:overflow-y-auto lg:overflow-x-hidden no-scrollbar">
-          <SportsWidget match={activeMatch} className="h-136 shrink-0" />
           {/* Desktop: related events below the widget; header sticks under it. */}
           <RelatedEvents className="hidden lg:flex" />
         </div>

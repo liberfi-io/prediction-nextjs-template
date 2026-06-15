@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { cn, EmptyIcon } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import { EventCommentsWidget } from "@liberfi.io/ui-predict";
+import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import type { WcMatch, WcMatchLiveVideo } from "../../types";
 import { SportsWidget } from "../games/SportsWidget";
 import { hasLiveVideos, LiveStreamPanel } from "../games/LiveStreamPanel";
@@ -42,7 +43,12 @@ export function MatchCenterTabs({
   const { t } = useTranslation();
   const showLive = hasLiveVideos(liveVideos);
   const tabs = useMemo<CenterTab[]>(
-    () => (showLive ? ["live", "center", "news", "comments"] : ["center", "news", "comments"]),
+    () => {
+      const centerTabs: CenterTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
+        ? ["center", "news", "comments"]
+        : ["news", "comments"];
+      return showLive ? ["live", ...centerTabs] : centerTabs;
+    },
     [showLive],
   );
   const [internalTab, setInternalTab] = useState<CenterTab>("center");

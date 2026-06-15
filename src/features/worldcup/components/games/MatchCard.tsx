@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, useScreen } from "@liberfi.io/ui";
 import { EventCommentsWidget, type TradeOutcome } from "@liberfi.io/ui-predict";
+import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import type { WcMatch, WcTeam } from "../../types";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
@@ -270,7 +271,9 @@ function MatchCardImpl({
   };
   const marketsDisabled = match.status === "final" || Boolean(match.liveState?.ended);
   const hasLive = hasLiveVideos(match.liveVideos);
-  const [panelTab, setPanelTab] = useState<CardPanelTab>(hasLive ? "live" : "center");
+  const [panelTab, setPanelTab] = useState<CardPanelTab>(
+    hasLive ? "live" : ENABLE_WORLD_CUP_MATCH_CENTER ? "center" : "news",
+  );
   const wasWidgetOpenRef = useRef(false);
 
   const homeColors = teamColors(match.home.color);
@@ -427,24 +430,30 @@ function MatchCardImpl({
   );
 
   const desktopTabs = useMemo<CardPanelTab[]>(
-    () =>
-      hasLive
-        ? ["live", "center", "news", "comments"]
-        : ["center", "news", "comments"],
+    () => {
+      const centerTabs: CardPanelTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
+        ? ["center", "news", "comments"]
+        : ["news", "comments"];
+      return hasLive ? ["live", ...centerTabs] : centerTabs;
+    },
     [hasLive],
   );
   const mobileTabs = useMemo<CardPanelTab[]>(
-    () =>
-      hasLive
-        ? ["live", "center", "news", "comments"]
-        : ["center", "news", "comments"],
+    () => {
+      const centerTabs: CardPanelTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
+        ? ["center", "news", "comments"]
+        : ["news", "comments"];
+      return hasLive ? ["live", ...centerTabs] : centerTabs;
+    },
     [hasLive],
   );
   const panelTabs = isDesktop ? desktopTabs : mobileTabs;
 
   useEffect(() => {
     if (widgetOpen && !wasWidgetOpenRef.current) {
-      setPanelTab(hasLive ? "live" : "center");
+      setPanelTab(
+        hasLive ? "live" : ENABLE_WORLD_CUP_MATCH_CENTER ? "center" : "news",
+      );
     }
     wasWidgetOpenRef.current = widgetOpen;
   }, [hasLive, widgetOpen]);

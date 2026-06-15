@@ -45,6 +45,7 @@ import { MarketsPanel } from "./MarketsPanel";
 import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
 import { TradeModal } from "src/components/TradeModal";
+import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import {
   categorizeMarkets,
   categoryOfGroup,
@@ -145,7 +146,10 @@ export function WorldCupDetailPage({
   const deepLinkAppliedRef = useRef(false);
 
   useEffect(() => {
-    if (mobileTab === "live" && !showLiveTab) setMobileTab("center");
+    if (mobileTab === "live" && !showLiveTab) setMobileTab("orderbook");
+    if (mobileTab === "center" && !ENABLE_WORLD_CUP_MATCH_CENTER) {
+      setMobileTab("news");
+    }
   }, [mobileTab, showLiveTab]);
 
   const deepLinkMarket = initialMarket?.trim() || null;
@@ -649,7 +653,9 @@ type MobileTabKey =
 const MOBILE_TABS = [
   { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
   { key: "live", labelKey: "extend.worldcup.live" },
-  { key: "center", labelKey: "extend.worldcup.detail.tab.center" },
+  ...(ENABLE_WORLD_CUP_MATCH_CENTER
+    ? [{ key: "center", labelKey: "extend.worldcup.detail.tab.center" } as const]
+    : []),
   { key: "news", labelKey: "extend.worldcup.detail.tab.news" },
   { key: "comments", labelKey: "extend.worldcup.detail.tab.comments" },
   { key: "positions", labelKey: "extend.portfolio.positions" },

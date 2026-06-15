@@ -12,3 +12,9 @@
  * and the markets list is pinned to Polymarket only (platform filter hidden).
  */
 export const ENABLE_KALSHI = process.env.NEXT_PUBLIC_ENABLE_KALSHI === "true";
+
+/**
+ * Whether World Cup Match Center embeds are enabled. Defaults to disabled until
+ * the required third-party service package is purchased.
+ */
+export const ENABLE_WORLD_CUP_MATCH_CENTER = false;
