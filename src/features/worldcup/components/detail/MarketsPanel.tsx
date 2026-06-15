@@ -30,14 +30,12 @@ export function MarketsPanel({
   activeCategory,
   selectedSlug,
   onSelect,
-  onClose,
   className,
 }: {
   cats: CategorizedMarkets;
   activeCategory: MarketCategory;
   selectedSlug: string;
   onSelect: (slug: string) => void;
-  onClose: () => void;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -51,7 +49,10 @@ export function MarketsPanel({
   // book's best ask in real time (the 30s event poll only refreshes the static
   // snapshot, which drifts from the live WS book).
   const selectedMarket = useMemo(
-    () => (selectedSlug ? findSelection(cats, selectedSlug)?.option.market : undefined),
+    () =>
+      selectedSlug
+        ? findSelection(cats, selectedSlug)?.option.market
+        : undefined,
     [cats, selectedSlug],
   );
   const { data: liveOrderbook } = useRealtimeOrderbook(
@@ -114,27 +115,10 @@ export function MarketsPanel({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40",
+        "flex min-h-0 flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40",
         className,
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2.5">
-        <span className="text-sm font-semibold text-zinc-100">
-          {t("extend.worldcup.detail.markets.title")}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="close"
-          className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
       {/* Sort + active-only */}
       <div className="flex flex-wrap items-center gap-1 border-b border-zinc-800 px-3 py-2">
         {SORTS.map((key) => (
@@ -242,7 +226,9 @@ function GroupRow({
     <div className="rounded-[10px] border border-zinc-800/70 bg-zinc-900/40 p-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="truncate text-sm font-medium text-zinc-100">{label}</span>
+          <span className="truncate text-sm font-medium text-zinc-100">
+            {label}
+          </span>
           <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
             {formatVolume(group.volume)} {t("extend.worldcup.volume")}
           </span>

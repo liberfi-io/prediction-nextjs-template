@@ -1,13 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   cn,
   ModalBody,
   ModalContent,
-  ModalHeader,
   StyledModal,
   toast,
   useScreen,
@@ -118,8 +124,7 @@ export function WorldCupDetailPage({
   }, [event?.live_videos, match?.liveVideos]);
   const showLiveTab = hasLiveVideos(liveVideos);
   const mobileTabs = useMemo(
-    () =>
-      MOBILE_TABS.filter((tab) => tab.key !== "live" || showLiveTab),
+    () => MOBILE_TABS.filter((tab) => tab.key !== "live" || showLiveTab),
     [showLiveTab],
   );
 
@@ -154,7 +159,8 @@ export function WorldCupDetailPage({
 
   // Seed the default selection once markets arrive.
   useEffect(() => {
-    if (!selectedSlug && selection) setSelectedSlug(selection.option.market.slug);
+    if (!selectedSlug && selection)
+      setSelectedSlug(selection.option.market.slug);
   }, [selectedSlug, selection]);
 
   useEffect(() => {
@@ -346,7 +352,10 @@ export function WorldCupDetailPage({
 
         {match && <MatchBanner match={match} />}
 
-        <EventPriceChart event={chartEvent} volume={event.volume ?? undefined} />
+        <EventPriceChart
+          event={chartEvent}
+          volume={event.volume ?? undefined}
+        />
 
         {/* Tabbed lower content */}
         <div className="flex flex-col gap-3">
@@ -428,7 +437,10 @@ export function WorldCupDetailPage({
 
         {/* Sticky buy/sell action bar */}
         {selectedMarket && (
-          <MobileTradeBar market={selectedMarket} onPick={handleMobileTradePick} />
+          <MobileTradeBar
+            market={selectedMarket}
+            onPick={handleMobileTradePick}
+          />
         )}
 
         {/* Markets switcher modal (opened from the header dropdown) */}
@@ -440,23 +452,23 @@ export function WorldCupDetailPage({
           size="lg"
         >
           <ModalContent>
-            <ModalHeader className="px-5 pt-5 pb-3">
-              <span className="text-lg font-semibold text-white">
-                {t("extend.worldcup.detail.markets.title")}
-              </span>
-            </ModalHeader>
-            <ModalBody className="px-5 pb-5 pt-0">
-              <MarketsPanel
-                cats={cats}
-                activeCategory={activeCategory}
-                selectedSlug={selectedSlug}
-                onSelect={(slug) => {
-                  handleSelect(slug);
-                  setMarketsSheetOpen(false);
-                }}
+            <ModalBody className="p-0">
+              <MarketSwitcherFrame
+                title={t("extend.worldcup.detail.markets.title")}
                 onClose={() => setMarketsSheetOpen(false)}
-                className="border-0 bg-transparent"
-              />
+                className="max-h-[80dvh] border-0 bg-transparent"
+              >
+                <MarketsPanel
+                  cats={cats}
+                  activeCategory={activeCategory}
+                  selectedSlug={selectedSlug}
+                  onSelect={(slug) => {
+                    handleSelect(slug);
+                    setMarketsSheetOpen(false);
+                  }}
+                  className="flex-1 border-0 bg-transparent"
+                />
+              </MarketSwitcherFrame>
             </ModalBody>
           </ModalContent>
         </StyledModal>
@@ -500,14 +512,19 @@ export function WorldCupDetailPage({
           onClose={() => setPanelOpen(false)}
           onBack={() => router.back()}
           popoverContent={
-            <MarketsPanel
-              cats={cats}
-              activeCategory={activeCategory}
-              selectedSlug={selectedSlug}
-              onSelect={handleSelect}
+            <MarketSwitcherFrame
+              title={t("extend.worldcup.detail.markets.title")}
               onClose={() => setPanelOpen(false)}
               className="max-h-[70vh]"
-            />
+            >
+              <MarketsPanel
+                cats={cats}
+                activeCategory={activeCategory}
+                selectedSlug={selectedSlug}
+                onSelect={handleSelect}
+                className="flex-1 border-0 bg-transparent"
+              />
+            </MarketSwitcherFrame>
           }
         />
 
@@ -564,6 +581,51 @@ export function WorldCupDetailPage({
           </div>
         </aside>
       )}
+    </div>
+  );
+}
+
+function MarketSwitcherFrame({
+  title,
+  onClose,
+  className,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-0 flex-col rounded-[12px] border border-zinc-800 bg-zinc-950",
+        className,
+      )}
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-3 py-2.5">
+        <span className="text-sm font-semibold text-zinc-100">{title}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="close"
+          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   );
 }
