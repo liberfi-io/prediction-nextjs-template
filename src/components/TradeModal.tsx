@@ -5,6 +5,7 @@ import {
   ModalContent,
   ModalHeader,
   StyledModal,
+  useScreen,
 } from "@liberfi.io/ui";
 
 /**
@@ -22,12 +23,19 @@ export function TradeModal({
   title: string;
   children: React.ReactNode;
 }) {
+  const { isMobile } = useScreen();
+
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) onClose();
   };
 
   return (
-    <StyledModal isOpen={open} onOpenChange={handleOpenChange} size="lg">
+    <StyledModal
+      isOpen={open}
+      onOpenChange={handleOpenChange}
+      placement={isMobile ? "bottom" : "center"}
+      size="lg"
+    >
       <ModalContent>
         <ModalHeader className="px-5 pt-5 pb-3">
           <span className="text-lg font-semibold text-white">{title}</span>
