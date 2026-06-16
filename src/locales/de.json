@@ -313,6 +313,7 @@
         "price": "Preis",
         "percentage": "Prozentsatz",
         "decimal": "Dezimal",
+        "european": "Europäisch",
         "american": "Amerikanisch",
         "fractional": "Bruchteil",
         "hongKong": "HK",

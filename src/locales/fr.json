@@ -311,6 +311,7 @@
         "price": "Prix",
         "percentage": "Pourcentage",
         "decimal": "Décimal",
+        "european": "Européen",
         "american": "Américain",
         "fractional": "Fractionnaire",
         "hongKong": "HK",

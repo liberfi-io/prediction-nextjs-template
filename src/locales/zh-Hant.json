@@ -313,6 +313,7 @@
         "price": "價格",
         "percentage": "百分比",
         "decimal": "小數",
+        "european": "歐盤",
         "american": "美式",
         "fractional": "分數",
         "hongKong": "香港",

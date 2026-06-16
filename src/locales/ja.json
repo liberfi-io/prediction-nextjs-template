@@ -311,6 +311,7 @@
         "price": "価格",
         "percentage": "パーセンテージ",
         "decimal": "小数",
+        "european": "欧州式",
         "american": "アメリカン",
         "fractional": "分数",
         "hongKong": "香港",

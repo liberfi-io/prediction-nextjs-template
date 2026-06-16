@@ -311,6 +311,7 @@
         "price": "가격",
         "percentage": "백분율",
         "decimal": "소수",
+        "european": "유럽식",
         "american": "미국식",
         "fractional": "분수",
         "hongKong": "홍콩",

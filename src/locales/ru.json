@@ -313,6 +313,7 @@
         "price": "Цена",
         "percentage": "Процент",
         "decimal": "Десятичный",
+        "european": "Европейский",
         "american": "Американский",
         "fractional": "Дробный",
         "hongKong": "Гонконгский",
