@@ -85,10 +85,33 @@ function teamHint(match?: WcMatch): TeamHint | undefined {
  * trade/order-book logic keys off by index) stay intact.
  */
 function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
+  const displayMarket = withSettledOutcomePrices(market);
+  const outcomes = displayMarket.outcomes?.length
+    ? [{ ...displayMarket.outcomes[0], label }, ...displayMarket.outcomes.slice(1)]
+    : displayMarket.outcomes;
+  return { ...displayMarket, question: label, outcomes };
+}
+
+function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
+  if (market.status === "open") return market;
+
+  let changed = false;
   const outcomes = market.outcomes?.length
-    ? [{ ...market.outcomes[0], label }, ...market.outcomes.slice(1)]
+    ? market.outcomes.map((outcome) => {
+        if (typeof outcome.price !== "number" || !Number.isFinite(outcome.price)) {
+          return outcome;
+        }
+        changed = changed || outcome.best_bid !== outcome.price;
+        changed = changed || outcome.best_ask !== outcome.price;
+        return {
+          ...outcome,
+          best_bid: outcome.price,
+          best_ask: outcome.price,
+        };
+      })
     : market.outcomes;
-  return { ...market, question: label, outcomes };
+
+  return changed ? { ...market, outcomes } : market;
 }
 
 export function WorldCupDetailPage({
@@ -309,6 +332,9 @@ export function WorldCupDetailPage({
   }
 
   const selectedMarket = selection?.option.market;
+  const selectedDisplayMarket = selectedMarket
+    ? withSettledOutcomePrices(selectedMarket)
+    : selectedMarket;
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)
@@ -342,8 +368,7 @@ export function WorldCupDetailPage({
   // The chart legend / market selector derive their label from
   // `market.outcomes[0].label ?? market.question`. Override those fields so each
   // line reads like the Markets panel trigger ("Moneyline (Draw)") instead of
-  // Polymarket's verbose "Draw (Mexico vs. South Africa)". Cloning is shallow;
-  // the order book keeps using the original `selectedMarket`.
+  // Polymarket's verbose "Draw (Mexico vs. South Africa)".
   const chartEvent = selectedGroup
     ? {
         ...event,
@@ -354,12 +379,12 @@ export function WorldCupDetailPage({
     : event;
 
   // Trade form title mirrors the selected trigger text ("Buy Yes · Moneyline
-  // (Draw)"). Order book / mobile trade bar keep the original market so their
-  // own outcome rendering is untouched.
+  // (Draw)"). Display surfaces use settled prices for closed markets so stale
+  // 0.001 tail asks do not render as 1000.00 decimal odds.
   const tradeMarket =
-    selectedMarket && selection
-      ? withCleanLabel(selectedMarket, selectedLabel)
-      : selectedMarket;
+    selectedDisplayMarket && selection
+      ? withCleanLabel(selectedDisplayMarket, selectedLabel)
+      : selectedDisplayMarket;
 
   // -------------------------------------------------------------------------
   // Mobile layout: single column with one flat tab row (order book + match
@@ -373,7 +398,7 @@ export function WorldCupDetailPage({
       <div className="flex w-full flex-col gap-4 pb-4">
         <DetailHeader
           event={event}
-          market={selectedMarket}
+          market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
           panelOpen={marketsSheetOpen}
           onTogglePanel={() => setMarketsSheetOpen((v) => !v)}
@@ -412,7 +437,7 @@ export function WorldCupDetailPage({
             (selectedMarket ? (
               <div className="flex min-h-[360px] flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
                 <EventMarketDetailWidget
-                  market={selectedMarket}
+                  market={selectedDisplayMarket ?? selectedMarket}
                   outcome={outcome}
                   onTradeAction={handleTradeAction}
                   initialViewMode="table"
@@ -468,9 +493,9 @@ export function WorldCupDetailPage({
         </div>
 
         {/* Sticky buy/sell action bar */}
-        {selectedMarket && (
+        {selectedDisplayMarket && (
           <MobileTradeBar
-            market={selectedMarket}
+            market={selectedDisplayMarket}
             onPick={handleMobileTradePick}
           />
         )}
@@ -538,7 +563,7 @@ export function WorldCupDetailPage({
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <DetailHeader
           event={event}
-          market={selectedMarket}
+          market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((v) => !v)}
@@ -651,7 +676,7 @@ export function WorldCupDetailPage({
           {/* Order book — vertical (table) mode, beneath the trade form */}
           <div className="flex min-h-[360px] flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
             <EventMarketDetailWidget
-              market={selectedMarket}
+              market={selectedDisplayMarket ?? selectedMarket}
               outcome={outcome}
               onTradeAction={handleTradeAction}
               initialViewMode="table"

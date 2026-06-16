@@ -195,6 +195,9 @@ export function yesPrice(m: PredictMarket): number {
  * layered on top for the selected market).
  */
 export function yesAskPrice(m: PredictMarket): number {
+  const settledPrice = finitePrice(m.outcomes?.[0]?.price);
+  if (m.status !== "open" && settledPrice !== undefined) return settledPrice;
+
   const corrected = correctedYesAsk(m);
   if (corrected !== undefined) return corrected;
   return m.outcomes?.[0]?.best_ask ?? m.outcomes?.[0]?.price ?? 0;

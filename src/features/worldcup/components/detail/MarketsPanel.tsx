@@ -1,9 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
-import { useRealtimeOrderbook, pickBestAsk } from "@liberfi.io/react-predict";
+import {
+  useRealtimeOrderbook,
+  usePredictClient,
+  orderbookQueryKey,
+  pickBestAsk,
+} from "@liberfi.io/react-predict";
 import { convertPrice } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { formatVolume } from "../util";
@@ -41,6 +47,7 @@ export function MarketsPanel({
   className?: string;
 }) {
   const { t } = useTranslation();
+  const predictClient = usePredictClient();
 
   const [sort, setSort] = useState<SortKey>("default");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -66,9 +73,16 @@ export function MarketsPanel({
     { enabled: Boolean(selectedMarket) && selectedMarket?.status === "open" },
   );
   const liveSelectedPrice = useMemo(() => {
+    if (
+      !selectedMarket ||
+      liveOrderbook?.market_id !== selectedMarket.slug ||
+      liveOrderbook?.outcome !== "yes"
+    ) {
+      return null;
+    }
     const ask = pickBestAsk(liveOrderbook, "yes");
     return ask != null && ask > 0 ? ask : null;
-  }, [liveOrderbook]);
+  }, [liveOrderbook, selectedMarket]);
 
   const categoryTabs = useMemo(
     () =>
@@ -90,6 +104,46 @@ export function MarketsPanel({
   );
 
   const groups = useMemo<MarketGroup[]>(() => cats[category], [cats, category]);
+  const visibleMarkets = useMemo(() => {
+    const bySlug = new Map<string, MarketOption["market"]>();
+    for (const group of groups) {
+      for (const option of group.options) {
+        if (activeOnly && option.market.status !== "open") continue;
+        bySlug.set(option.market.slug, option.market);
+      }
+    }
+    return [...bySlug.values()];
+  }, [activeOnly, groups]);
+  const visibleOrderbooks = useQueries({
+    queries: visibleMarkets.map((market) => ({
+      queryKey: orderbookQueryKey(
+        market.slug,
+        market.source ?? "polymarket",
+        "yes",
+      ),
+      queryFn: () =>
+        predictClient.getOrderbook(
+          market.slug,
+          market.source ?? "polymarket",
+          "yes",
+        ),
+      enabled: market.status === "open",
+      refetchInterval: 5_000,
+      staleTime: 1_000,
+    })),
+  });
+  const orderbookPricesBySlug = useMemo(() => {
+    const prices = new Map<string, number>();
+    visibleOrderbooks.forEach((result, index) => {
+      const market = visibleMarkets[index];
+      const orderbook = result.data;
+      if (!market || orderbook?.market_id !== market.slug) return;
+      if (orderbook.outcome !== "yes") return;
+      const ask = pickBestAsk(orderbook, "yes");
+      if (ask != null && ask > 0) prices.set(market.slug, ask);
+    });
+    return prices;
+  }, [visibleMarkets, visibleOrderbooks]);
 
   const sortOptions = (options: MarketOption[]): MarketOption[] => {
     const filtered = activeOnly
@@ -180,6 +234,7 @@ export function MarketsPanel({
             options={sortOptions(group.options)}
             selectedSlug={selectedSlug}
             liveSelectedPrice={liveSelectedPrice}
+            orderbookPricesBySlug={orderbookPricesBySlug}
             onSelect={onSelect}
             label={t(`extend.worldcup.detail.markets.type.${group.type_label}`)}
           />
@@ -194,6 +249,7 @@ function GroupRow({
   options,
   selectedSlug,
   liveSelectedPrice,
+  orderbookPricesBySlug,
   onSelect,
   label,
 }: {
@@ -202,6 +258,7 @@ function GroupRow({
   selectedSlug: string;
   /** Live YES best-ask (0–1) for the currently selected market, if any. */
   liveSelectedPrice: number | null;
+  orderbookPricesBySlug: Map<string, number>;
   onSelect: (slug: string) => void;
   label: string;
 }) {
@@ -210,24 +267,19 @@ function GroupRow({
 
   if (options.length === 0) return null;
 
-  // The odds shown on the right use the selected option's (or the first
-  // option's) YES best-ask, so they line up with the order book. For the active
-  // market that also drives the on-screen order book, prefer its live best ask.
+  // Option odds use each market's YES best-ask, so they line up with the order
+  // book. For the active market that also drives the on-screen order book,
+  // prefer its live best ask.
   const active =
     options.find((o) => o.market.slug === selectedSlug) ?? options[0];
-  const isActiveSelected = active.market.slug === selectedSlug;
-  const priceUnit =
-    isActiveSelected && liveSelectedPrice != null
+  const priceForMarket = (market: MarketOption["market"]): number =>
+    market.slug === selectedSlug && liveSelectedPrice != null
       ? liveSelectedPrice
-      : yesAskPrice(active.market);
-  const odds = convertPrice(priceUnit, format);
+      : orderbookPricesBySlug.get(market.slug) ?? yesAskPrice(market);
+  const odds = convertPrice(priceForMarket(active.market), format);
   const single = options.length === 1;
   const optionOdds = (option: MarketOption): string => {
-    const optionPrice =
-      option.market.slug === selectedSlug && liveSelectedPrice != null
-        ? liveSelectedPrice
-        : yesAskPrice(option.market);
-    return convertPrice(optionPrice, format);
+    return convertPrice(priceForMarket(option.market), format);
   };
 
   return (
