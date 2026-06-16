@@ -21,9 +21,9 @@ const SORTS: SortKey[] = ["default", "odds", "volume", "liquidity"];
 
 /**
  * future.news-style Markets switcher. Lets the user browse every market type of
- * a match (Game Lines / Exact Score / Halftime Result), filter to active
- * markets, re-sort, and pick a specific outcome/line — which drives the chart,
- * order book, trade panel and header of the detail page.
+ * a match, filter to active markets, re-sort, and pick a specific outcome/line
+ * — which drives the chart, order book, trade panel and header of the detail
+ * page.
  */
 export function MarketsPanel({
   cats,
@@ -75,21 +75,19 @@ export function MarketsPanel({
           ["gameLines", cats.gameLines],
           ["exactScore", cats.exactScore],
           ["halftime", cats.halftime],
+          ["secondHalf", cats.secondHalf],
+          ["corners", cats.corners],
+          ["goals", cats.goals],
+          ["assists", cats.assists],
+          ["shots", cats.shots],
+          ["saves", cats.saves],
+          ["other", cats.other],
         ] as [MarketCategory, MarketGroup[]][]
       ).filter(([, groups]) => groups.length > 0),
     [cats],
   );
 
-  const groups = useMemo<MarketGroup[]>(() => {
-    switch (category) {
-      case "exactScore":
-        return cats.exactScore;
-      case "halftime":
-        return cats.halftime;
-      default:
-        return cats.gameLines;
-    }
-  }, [cats, category]);
+  const groups = useMemo<MarketGroup[]>(() => cats[category], [cats, category]);
 
   const sortOptions = (options: MarketOption[]): MarketOption[] => {
     const filtered = activeOnly
@@ -152,14 +150,14 @@ export function MarketsPanel({
 
       {/* Category tabs */}
       {categoryTabs.length > 1 && (
-        <div className="flex items-center gap-1 border-b border-zinc-800 px-3 py-2">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-zinc-800 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categoryTabs.map(([key]) => (
             <button
               key={key}
               type="button"
               onClick={() => setCategory(key)}
               className={cn(
-                "rounded-[8px] px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
+                "shrink-0 rounded-[8px] px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
                 category === key
                   ? "bg-zinc-800 text-[#c7ff2e]"
                   : "text-zinc-500 hover:text-zinc-200",

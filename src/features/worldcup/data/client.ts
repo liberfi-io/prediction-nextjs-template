@@ -48,6 +48,7 @@ export interface WcOutcomeDto {
 }
 
 export interface WcMarketDto {
+  slug?: string;
   condition_id: string;
   sports_market_type: string;
   group_item_title?: string;
@@ -483,12 +484,9 @@ export const worldcupMatchEventQueryKey = (slug: string) =>
 
 /**
  * Fetch a single World Cup match as a full {@link PredictEvent} with every
- * market aggregated across its four Polymarket event slugs (moneyline, spreads,
- * totals, both-teams-to-score, exact score, halftime). Hits the dedicated
- * `GET /api/v1/worldcup/matches/{slug}` endpoint; the response is already the
- * snake_case PredictEvent shape (no adapter needed), so the SDK leaf components
- * (`EventPriceChart`, `EventMarketDetailWidget`, `TradeFormWidget`) consume it
- * directly.
+ * core and extended market. Hits `GET /api/v1/worldcup/matches/{slug}` with
+ * `include_extended=true`; the response is already the snake_case PredictEvent
+ * shape, so SDK leaf components consume it directly.
  */
 export async function fetchWorldcupMatchEvent(
   baseUrl: string,
@@ -497,7 +495,7 @@ export async function fetchWorldcupMatchEvent(
 ): Promise<PredictEventWithWorldcupLive> {
   return getWorldcupJson<PredictEventWithWorldcupLive>(
     baseUrl,
-    `matches/${encodeURIComponent(slug)}`,
+    `matches/${encodeURIComponent(slug)}?include_extended=true`,
     lang,
   );
 }

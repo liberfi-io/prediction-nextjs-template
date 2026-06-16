@@ -3,9 +3,10 @@
  * `GET /api/v1/worldcup/matches/{slug}`) into the categories and selectable
  * groups the Markets panel renders. Replicates future.news' market switcher:
  *
- *   Game Lines      = moneyline + both_teams_to_score + spreads + totals
+ *   Game Lines      = moneyline + both_teams_to_score + spreads + totals + first-to-score
  *   Exact Score     = soccer_exact_score
  *   Halftime Result = soccer_halftime_result
+ *   Extended groups = team totals, half lines, corners, player goals/assists/shots/saves
  *
  * Each group exposes the inline outcome/line options (Moneyline = home/draw/away,
  * Spreads = handicap lines, Totals = goal lines, ...) used to pick the active
@@ -23,9 +24,40 @@ export type SportsMarketType =
   | "both_teams_to_score"
   | "soccer_exact_score"
   | "soccer_halftime_result"
+  | "soccer_second_half_result"
+  | "soccer_first_to_score"
+  | "soccer_team_totals"
+  | "both_teams_to_score_first_half"
+  | "both_teams_to_score_second_half"
+  | "first_half_totals"
+  | "second_half_totals"
+  | "soccer_first_half_team_totals"
+  | "soccer_second_half_team_totals"
+  | "soccer_second_half_total_corners"
+  | "soccer_team_total_corners"
+  | "total_corners"
+  | "soccer_game_corners_odd_even"
+  | "soccer_first_half_total_corners"
+  | "soccer_first_corner"
+  | "soccer_player_goals"
+  | "soccer_player_goals_plus_assists"
+  | "soccer_player_assists"
+  | "soccer_player_shots"
+  | "soccer_player_shots_on_target"
+  | "soccer_player_goalkeeper_saves"
   | "other";
 
-export type MarketCategory = "gameLines" | "exactScore" | "halftime";
+export type MarketCategory =
+  | "gameLines"
+  | "exactScore"
+  | "halftime"
+  | "secondHalf"
+  | "corners"
+  | "goals"
+  | "assists"
+  | "shots"
+  | "saves"
+  | "other";
 
 /** One selectable option inside a group (maps 1:1 to a market). */
 export interface MarketOption {
@@ -52,6 +84,13 @@ export interface CategorizedMarkets {
   gameLines: MarketGroup[];
   exactScore: MarketGroup[];
   halftime: MarketGroup[];
+  secondHalf: MarketGroup[];
+  corners: MarketGroup[];
+  goals: MarketGroup[];
+  assists: MarketGroup[];
+  shots: MarketGroup[];
+  saves: MarketGroup[];
+  other: MarketGroup[];
 }
 
 /** Hint used to orient spread handicaps from the home team's perspective. */
@@ -175,6 +214,24 @@ function buildTotals(markets: PredictMarket[]): MarketGroup {
   };
 }
 
+function buildTotalsList(
+  key: string,
+  type: SportsMarketType,
+  markets: PredictMarket[],
+): MarketGroup {
+  const options = markets
+    .map((m): MarketOption => {
+      const line = marketLine(m);
+      return {
+        market: m,
+        label: marketLabel(m),
+        sort: line ?? Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label));
+  return { key, type, type_label: type, options, volume: sumVolume(markets) };
+}
+
 /** A single binary market (e.g. Both Teams to Score) → one-option group. */
 function buildSingle(
   key: string,
@@ -201,6 +258,7 @@ function buildList(
   key: string,
   type: SportsMarketType,
   markets: PredictMarket[],
+  typeLabel: SportsMarketType = type,
 ): MarketGroup {
   // Exact-score options carry an "Exact Score: " prefix (e.g.
   // "Exact Score: 2-0"); drop it so only the scoreline shows everywhere it is
@@ -216,7 +274,21 @@ function buildList(
       };
     })
     .sort((a, b) => b.sort - a.sort);
-  return { key, type, type_label: type, options, volume: sumVolume(markets) };
+  return { key, type, type_label: typeLabel, options, volume: sumVolume(markets) };
+}
+
+function buildTypedLists(
+  prefix: string,
+  types: SportsMarketType[],
+  byType: Map<SportsMarketType, PredictMarket[]>,
+  typeLabel?: SportsMarketType,
+): MarketGroup[] {
+  const groups: MarketGroup[] = [];
+  for (const type of types) {
+    const markets = byType.get(type);
+    if (markets?.length) groups.push(buildList(`${prefix}:${type}`, type, markets, typeLabel));
+  }
+  return groups;
 }
 
 // ---------------------------------------------------------------------------
@@ -248,6 +320,14 @@ export function categorizeMarkets(
   if (spreads?.length) gameLines.push(buildSpreads(spreads, hint));
   const totals = byType.get("totals");
   if (totals?.length) gameLines.push(buildTotals(totals));
+  const firstToScore = byType.get("soccer_first_to_score");
+  if (firstToScore?.length) {
+    gameLines.push(buildList("first_to_score", "soccer_first_to_score", firstToScore));
+  }
+  const teamTotals = byType.get("soccer_team_totals");
+  if (teamTotals?.length) {
+    gameLines.push(buildTotalsList("team_totals", "soccer_team_totals", teamTotals));
+  }
 
   const exactScore: MarketGroup[] = [];
   const exact = byType.get("soccer_exact_score");
@@ -256,13 +336,153 @@ export function categorizeMarkets(
   const halftime: MarketGroup[] = [];
   const ht = byType.get("soccer_halftime_result");
   if (ht?.length) halftime.push(buildList("halftime", "soccer_halftime_result", ht));
+  const firstHalfBTTS = byType.get("both_teams_to_score_first_half");
+  if (firstHalfBTTS?.length) {
+    halftime.push(
+      buildSingle(
+        "btts_first_half",
+        "both_teams_to_score_first_half",
+        firstHalfBTTS,
+      ),
+    );
+  }
+  const firstHalfTotals = byType.get("first_half_totals");
+  if (firstHalfTotals?.length) {
+    halftime.push(
+      buildTotalsList("first_half_totals", "first_half_totals", firstHalfTotals),
+    );
+  }
+  const firstHalfTeamTotals = byType.get("soccer_first_half_team_totals");
+  if (firstHalfTeamTotals?.length) {
+    halftime.push(
+      buildTotalsList(
+        "first_half_team_totals",
+        "soccer_first_half_team_totals",
+        firstHalfTeamTotals,
+      ),
+    );
+  }
 
-  return { gameLines, exactScore, halftime };
+  const secondHalf = buildTypedLists("second_half", ["soccer_second_half_result"], byType);
+  const secondHalfBTTS = byType.get("both_teams_to_score_second_half");
+  if (secondHalfBTTS?.length) {
+    secondHalf.push(
+      buildSingle(
+        "btts_second_half",
+        "both_teams_to_score_second_half",
+        secondHalfBTTS,
+      ),
+    );
+  }
+  const secondHalfTotals = byType.get("second_half_totals");
+  if (secondHalfTotals?.length) {
+    secondHalf.push(
+      buildTotalsList("second_half_totals", "second_half_totals", secondHalfTotals),
+    );
+  }
+  const secondHalfTeamTotals = byType.get("soccer_second_half_team_totals");
+  if (secondHalfTeamTotals?.length) {
+    secondHalf.push(
+      buildTotalsList(
+        "second_half_team_totals",
+        "soccer_second_half_team_totals",
+        secondHalfTeamTotals,
+      ),
+    );
+  }
+
+  const corners = buildTypedLists(
+    "corners",
+    [
+      "soccer_second_half_total_corners",
+      "soccer_team_total_corners",
+      "total_corners",
+      "soccer_game_corners_odd_even",
+      "soccer_first_half_total_corners",
+      "soccer_first_corner",
+    ],
+    byType,
+  );
+
+  const goals = buildTypedLists(
+    "goals",
+    ["soccer_player_goals", "soccer_player_goals_plus_assists"],
+    byType,
+  );
+  const assists = buildTypedLists("assists", ["soccer_player_assists"], byType);
+  const shots = buildTypedLists(
+    "shots",
+    ["soccer_player_shots", "soccer_player_shots_on_target"],
+    byType,
+  );
+  const saves = buildTypedLists(
+    "saves",
+    ["soccer_player_goalkeeper_saves"],
+    byType,
+  );
+
+  const knownTypes = new Set<SportsMarketType>([
+    "moneyline",
+    "both_teams_to_score",
+    "spreads",
+    "totals",
+    "soccer_first_to_score",
+    "soccer_team_totals",
+    "soccer_exact_score",
+    "soccer_halftime_result",
+    "both_teams_to_score_first_half",
+    "both_teams_to_score_second_half",
+    "first_half_totals",
+    "second_half_totals",
+    "soccer_first_half_team_totals",
+    "soccer_second_half_team_totals",
+    "soccer_second_half_result",
+    "soccer_second_half_total_corners",
+    "soccer_team_total_corners",
+    "total_corners",
+    "soccer_game_corners_odd_even",
+    "soccer_first_half_total_corners",
+    "soccer_first_corner",
+    "soccer_player_goals",
+    "soccer_player_goals_plus_assists",
+    "soccer_player_assists",
+    "soccer_player_shots",
+    "soccer_player_shots_on_target",
+    "soccer_player_goalkeeper_saves",
+  ]);
+  const otherMarkets = markets.filter((m) => !knownTypes.has(sportsType(m)));
+  const other = otherMarkets.length
+    ? [buildList("other", "other", otherMarkets)]
+    : [];
+
+  return {
+    gameLines,
+    exactScore,
+    halftime,
+    secondHalf,
+    corners,
+    goals,
+    assists,
+    shots,
+    saves,
+    other,
+  };
 }
 
 /** All groups flattened, in category order, for lookups. */
 export function allGroups(cats: CategorizedMarkets): MarketGroup[] {
-  return [...cats.gameLines, ...cats.exactScore, ...cats.halftime];
+  return [
+    ...cats.gameLines,
+    ...cats.exactScore,
+    ...cats.halftime,
+    ...cats.secondHalf,
+    ...cats.corners,
+    ...cats.goals,
+    ...cats.assists,
+    ...cats.shots,
+    ...cats.saves,
+    ...cats.other,
+  ];
 }
 
 /** Locate the group + option owning a market slug. */
@@ -296,5 +516,12 @@ export function categoryOfGroup(
 ): MarketCategory {
   if (cats.exactScore.includes(group)) return "exactScore";
   if (cats.halftime.includes(group)) return "halftime";
+  if (cats.secondHalf.includes(group)) return "secondHalf";
+  if (cats.corners.includes(group)) return "corners";
+  if (cats.goals.includes(group)) return "goals";
+  if (cats.assists.includes(group)) return "assists";
+  if (cats.shots.includes(group)) return "shots";
+  if (cats.saves.includes(group)) return "saves";
+  if (cats.other.includes(group)) return "other";
   return "gameLines";
 }

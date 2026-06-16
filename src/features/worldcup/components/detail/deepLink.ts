@@ -1,6 +1,11 @@
 import type { WcMatch } from "../../types";
 import { formatLine } from "../../odds/convert-price";
-import { marketLine, type CategorizedMarkets, type MarketGroup } from "./marketGrouping";
+import {
+  allGroups,
+  marketLine,
+  type CategorizedMarkets,
+  type MarketGroup,
+} from "./marketGrouping";
 
 export type DeepLinkOutcome = "yes" | "no";
 
@@ -10,10 +15,6 @@ export function normalizeDeepLinkOutcome(
   if (value === "yes" || value === "y") return "yes";
   if (value === "no" || value === "n") return "no";
   return null;
-}
-
-function allGroups(cats: CategorizedMarkets): MarketGroup[] {
-  return [...cats.gameLines, ...cats.exactScore, ...cats.halftime];
 }
 
 function groupOf(cats: CategorizedMarkets, type: MarketGroup["type"]) {

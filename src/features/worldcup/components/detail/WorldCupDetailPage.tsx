@@ -49,6 +49,7 @@ import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import {
   categorizeMarkets,
   categoryOfGroup,
+  allGroups,
   defaultSelection,
   findSelection,
   type TeamHint,
@@ -172,11 +173,9 @@ export function WorldCupDetailPage({
     if (!deepLinkMarket) return;
     if (!match) return;
 
-    const hasOptions = [
-      ...cats.gameLines,
-      ...cats.exactScore,
-      ...cats.halftime,
-    ].some((group) => group.options.length > 0);
+    const hasOptions = allGroups(cats).some(
+      (group) => group.options.length > 0,
+    );
     if (!hasOptions) return;
 
     const resolved = resolveMarketDeepLink({

@@ -447,7 +447,14 @@
           "category": {
             "gameLines": "賽事盤口",
             "exactScore": "準確比分",
-            "halftime": "半場結果"
+            "halftime": "半場結果",
+            "secondHalf": "下半場",
+            "corners": "角球",
+            "goals": "進球",
+            "assists": "助攻",
+            "shots": "射門",
+            "saves": "守門員撲救",
+            "other": "其他"
           },
           "type": {
             "moneyline": "獨贏",
@@ -456,6 +463,27 @@
             "both_teams_to_score": "雙方球隊進球",
             "soccer_exact_score": "準確比分",
             "soccer_halftime_result": "半場結果",
+            "soccer_second_half_result": "下半場結果",
+            "soccer_first_to_score": "率先進球",
+            "soccer_team_totals": "球隊總進球",
+            "both_teams_to_score_first_half": "上半場雙方進球",
+            "both_teams_to_score_second_half": "下半場雙方進球",
+            "first_half_totals": "上半場大小球",
+            "second_half_totals": "下半場大小球",
+            "soccer_first_half_team_totals": "上半場球隊總進球",
+            "soccer_second_half_team_totals": "下半場球隊總進球",
+            "soccer_second_half_total_corners": "下半場角球總數",
+            "soccer_team_total_corners": "球隊角球總數",
+            "total_corners": "角球總數",
+            "soccer_game_corners_odd_even": "角球單雙",
+            "soccer_first_half_total_corners": "上半場角球總數",
+            "soccer_first_corner": "首個角球",
+            "soccer_player_goals": "球員進球",
+            "soccer_player_goals_plus_assists": "進球 + 助攻",
+            "soccer_player_assists": "球員助攻",
+            "soccer_player_shots": "球員射門",
+            "soccer_player_shots_on_target": "射正",
+            "soccer_player_goalkeeper_saves": "守門員撲救",
             "other": "其他"
           }
         }

@@ -474,7 +474,14 @@
           "category": {
             "gameLines": "Linee di gioco",
             "exactScore": "Risultato esatto",
-            "halftime": "Risultato a metà tempo"
+            "halftime": "Risultato a metà tempo",
+            "secondHalf": "2nd Half",
+            "corners": "Corners",
+            "goals": "Goals",
+            "assists": "Assists",
+            "shots": "Shots",
+            "saves": "Saves",
+            "other": "Other"
           },
           "type": {
             "moneyline": "Moneyline",
@@ -483,6 +490,27 @@
             "both_teams_to_score": "Entrambe le squadre segnano",
             "soccer_exact_score": "Risultato esatto",
             "soccer_halftime_result": "Risultato a metà tempo",
+            "soccer_second_half_result": "2nd Half Result",
+            "soccer_first_to_score": "First to Score",
+            "soccer_team_totals": "Team Totals",
+            "both_teams_to_score_first_half": "1st Half BTTS",
+            "both_teams_to_score_second_half": "2nd Half BTTS",
+            "first_half_totals": "1st Half Totals",
+            "second_half_totals": "2nd Half Totals",
+            "soccer_first_half_team_totals": "1st Half Team Totals",
+            "soccer_second_half_team_totals": "2nd Half Team Totals",
+            "soccer_second_half_total_corners": "2nd Half Total Corners",
+            "soccer_team_total_corners": "Team Total Corners",
+            "total_corners": "Total Corners",
+            "soccer_game_corners_odd_even": "Corners Odd/Even",
+            "soccer_first_half_total_corners": "1st Half Total Corners",
+            "soccer_first_corner": "First Corner",
+            "soccer_player_goals": "Player Goals",
+            "soccer_player_goals_plus_assists": "Goals + Assists",
+            "soccer_player_assists": "Player Assists",
+            "soccer_player_shots": "Player Shots",
+            "soccer_player_shots_on_target": "Shots on Target",
+            "soccer_player_goalkeeper_saves": "Goalkeeper Saves",
             "other": "Altro"
           }
         }
