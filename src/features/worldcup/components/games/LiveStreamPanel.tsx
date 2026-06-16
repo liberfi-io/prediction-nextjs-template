@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
-import type { WcMatchLiveVideo } from "../../types";
+import type { WcMatch, WcMatchLiveVideo, WcTeam } from "../../types";
+import { TeamFlag } from "../TeamFlag";
 
 const STREAM_MOUNT_LEAD_MS = 5 * 60 * 1000;
 const ONE_SECOND_MS = 1000;
@@ -104,11 +105,13 @@ export function hasLiveVideos(videos?: WcMatchLiveVideo[] | null): boolean {
 export function LiveStreamPanel({
   videos,
   kickoffMs,
+  match,
   className,
   iframeClassName,
 }: {
   videos?: WcMatchLiveVideo[] | null;
   kickoffMs?: number;
+  match?: WcMatch | null;
   className?: string;
   iframeClassName?: string;
 }) {
@@ -170,10 +173,16 @@ export function LiveStreamPanel({
             referrerPolicy="no-referrer"
           />
         ) : !canMount ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 text-center">
-            <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-              {t("extend.worldcup.live")}
-            </span>
+          <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-4 text-center">
+            {match && (
+              <div className="grid w-full max-w-[280px] grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <CountdownTeam team={match.home} />
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                  {t("extend.worldcup.versus")}
+                </span>
+                <CountdownTeam team={match.away} />
+              </div>
+            )}
             <span className="text-sm font-medium text-zinc-300">
               {t("extend.worldcup.liveCountdown", { time: countdown })}
             </span>
@@ -184,6 +193,19 @@ export function LiveStreamPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CountdownTeam({ team }: { team: WcTeam }) {
+  const { t: _t } = useTranslation();
+  const t = _t as (key: string) => string;
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-1.5">
+      <TeamFlag team={team} size={36} />
+      <span className="max-w-full truncate text-xs font-semibold text-zinc-100">
+        {t("extend.worldcup.teamName." + team.code.toLowerCase())}
+      </span>
     </div>
   );
 }

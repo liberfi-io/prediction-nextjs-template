@@ -97,6 +97,7 @@ export function MatchCenterTabs({
           <LiveStreamPanel
             videos={liveVideos}
             kickoffMs={kickoffMs}
+            match={match}
           />
         ) : tab === "center" ? (
           <SportsWidget
