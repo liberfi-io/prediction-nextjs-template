@@ -471,6 +471,8 @@
           "title": "Markets",
           "closed": "Trading closed",
           "activeOnly": "Active only",
+          "pin": "Pin markets",
+          "unpin": "Unpin markets",
           "sort": {
             "default": "Default",
             "odds": "Odds",

@@ -463,6 +463,8 @@
           "title": "마켓",
           "closed": "거래 종료",
           "activeOnly": "활성화된 것만",
+          "pin": "마켓 고정",
+          "unpin": "마켓 고정 해제",
           "sort": {
             "default": "기본값",
             "odds": "배당률",

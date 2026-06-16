@@ -463,6 +463,8 @@
           "title": "Thị trường",
           "closed": "Đóng giao dịch",
           "activeOnly": "Chỉ hoạt động",
+          "pin": "Ghim thị trường",
+          "unpin": "Bỏ ghim thị trường",
           "sort": {
             "default": "Mặc định",
             "odds": "Tỷ lệ cược",

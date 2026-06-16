@@ -465,6 +465,8 @@
           "title": "Märkte",
           "closed": "Handel geschlossen",
           "activeOnly": "Nur aktiv",
+          "pin": "Märkte anheften",
+          "unpin": "Märkte lösen",
           "sort": {
             "default": "Standard",
             "odds": "Quoten",

@@ -463,6 +463,8 @@
           "title": "Marchés",
           "closed": "Trading fermé",
           "activeOnly": "Actif seulement",
+          "pin": "Épingler les marchés",
+          "unpin": "Désépingler les marchés",
           "sort": {
             "default": "Par défaut",
             "odds": "Cotes",

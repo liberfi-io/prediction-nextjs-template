@@ -465,6 +465,8 @@
           "title": "Mercados",
           "closed": "Comercio cerrado",
           "activeOnly": "Solo activos",
+          "pin": "Fijar mercados",
+          "unpin": "Desfijar mercados",
           "sort": {
             "default": "Predeterminado",
             "odds": "Probabilidades",

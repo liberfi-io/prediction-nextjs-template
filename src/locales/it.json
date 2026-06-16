@@ -465,6 +465,8 @@
           "title": "Mercati",
           "closed": "Trading chiuso",
           "activeOnly": "Solo attivi",
+          "pin": "Fissa mercati",
+          "unpin": "Sblocca mercati",
           "sort": {
             "default": "Predefinito",
             "odds": "Quote",

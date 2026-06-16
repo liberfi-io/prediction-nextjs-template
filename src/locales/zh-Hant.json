@@ -471,6 +471,8 @@
           "title": "市場",
           "closed": "已停止交易",
           "activeOnly": "僅活躍",
+          "pin": "固定市場",
+          "unpin": "取消固定市場",
           "sort": {
             "default": "默認",
             "odds": "賠率",

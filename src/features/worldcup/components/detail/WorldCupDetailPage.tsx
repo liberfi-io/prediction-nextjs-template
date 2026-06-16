@@ -139,6 +139,7 @@ export function WorldCupDetailPage({
   const [outcome, setOutcome] = useState<TradeOutcome>("yes");
   const [side, setSide] = useState<TradeSide>("buy");
   const [panelOpen, setPanelOpen] = useState(false);
+  const [marketPanelPinned, setMarketPanelPinned] = useState(false);
 
   // Mobile-only UI state
   const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
@@ -518,6 +519,16 @@ export function WorldCupDetailPage({
             <MarketSwitcherFrame
               title={t("extend.worldcup.detail.markets.title")}
               onClose={() => setPanelOpen(false)}
+              onAction={() => {
+                setMarketPanelPinned((v) => !v);
+                setPanelOpen(false);
+              }}
+              actionLabel={t(
+                marketPanelPinned
+                  ? "extend.worldcup.detail.markets.unpin"
+                  : "extend.worldcup.detail.markets.pin",
+              )}
+              actionIcon={<PinIcon pinned={marketPanelPinned} />}
               className="max-h-[70vh]"
             >
               <MarketsPanel
@@ -531,9 +542,28 @@ export function WorldCupDetailPage({
           }
         />
 
-        {/* CENTER: (score + chart) column beside the (widened) match-center column */}
+        {/* CENTER: optional pinned markets panel + score/chart + match-center */}
         <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
-          {/* Column 1: score banner above the price chart */}
+          {marketPanelPinned && (
+            <MarketSwitcherFrame
+              title={t("extend.worldcup.detail.markets.title")}
+              onClose={() => setMarketPanelPinned(false)}
+              onAction={() => setMarketPanelPinned(false)}
+              actionLabel={t("extend.worldcup.detail.markets.unpin")}
+              actionIcon={<PinIcon pinned />}
+              className="w-full xl:h-full xl:w-[320px]"
+            >
+              <MarketsPanel
+                cats={cats}
+                activeCategory={activeCategory}
+                selectedSlug={selectedSlug}
+                onSelect={handleSelect}
+                className="flex-1 border-0 bg-transparent"
+              />
+            </MarketSwitcherFrame>
+          )}
+
+          {/* Score banner above the price chart */}
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             {match && <MatchBanner match={match} />}
             <EventPriceChart
@@ -544,13 +574,22 @@ export function WorldCupDetailPage({
             />
           </div>
 
-          {/* Column 2: match center, widened */}
+          {!marketPanelPinned && (
+            <MatchCenterTabs
+              match={match ?? null}
+              liveVideos={liveVideos}
+              className="w-full shrink-0 xl:w-[440px]"
+            />
+          )}
+        </div>
+
+        {marketPanelPinned && (
           <MatchCenterTabs
             match={match ?? null}
             liveVideos={liveVideos}
-            className="w-full shrink-0 xl:w-[440px]"
+            className="w-full"
           />
-        </div>
+        )}
 
         {/* Activity spans Markets + CENTER width — full multi-source portfolio activity */}
         <PortfolioActivitySection />
@@ -591,18 +630,26 @@ export function WorldCupDetailPage({
 function MarketSwitcherFrame({
   title,
   onClose,
+  onAction,
+  actionLabel,
+  actionIcon,
   className,
   children,
 }: {
   title: string;
   onClose: () => void;
+  onAction?: () => void;
+  actionLabel?: string;
+  actionIcon?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
+  const buttonLabel = actionLabel ?? "close";
+
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col rounded-[12px] border border-zinc-800 bg-zinc-950",
+        "flex min-h-0 flex-col overflow-hidden rounded-[12px] border border-zinc-800 bg-zinc-950",
         className,
       )}
     >
@@ -610,26 +657,57 @@ function MarketSwitcherFrame({
         <span className="text-sm font-semibold text-zinc-100">{title}</span>
         <button
           type="button"
-          onClick={onClose}
-          aria-label="close"
+          onClick={onAction ?? onClose}
+          aria-label={buttonLabel}
+          title={buttonLabel}
           className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
+          {actionIcon ?? <CloseIcon />}
         </button>
       </div>
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function PinIcon({ pinned = false }: { pinned?: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 17v5" />
+      <path d="M9 10.5 4 15.5" />
+      <path d="m14 4 6 6" />
+      <path d="m17 7-8.5 8.5" />
+      <path d="M8 3h8l-2 4 3 3-6 6-3-3-4 2z" />
+      {pinned && <path d="M3 3l18 18" />}
+    </svg>
   );
 }
 

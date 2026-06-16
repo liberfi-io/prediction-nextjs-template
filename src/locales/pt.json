@@ -465,6 +465,8 @@
           "title": "Mercados",
           "closed": "Negociação encerrada",
           "activeOnly": "Apenas ativos",
+          "pin": "Fixar mercados",
+          "unpin": "Desafixar mercados",
           "sort": {
             "default": "Padrão",
             "odds": "Odds",
