@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useRealtimeOrderbook, pickBestAsk } from "@liberfi.io/react-predict";
+import { convertPrice } from "../../odds/convert-price";
+import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { formatVolume } from "../util";
 import {
   type CategorizedMarkets,
@@ -204,11 +206,12 @@ function GroupRow({
   label: string;
 }) {
   const { t } = useTranslation();
+  const [format] = useOddsFormat();
 
   if (options.length === 0) return null;
 
-  // The probability shown on the right is the selected option's (or the first
-  // option's) YES best-ask, so it lines up with the order book. For the active
+  // The odds shown on the right use the selected option's (or the first
+  // option's) YES best-ask, so they line up with the order book. For the active
   // market that also drives the on-screen order book, prefer its live best ask.
   const active =
     options.find((o) => o.market.slug === selectedSlug) ?? options[0];
@@ -217,7 +220,7 @@ function GroupRow({
     isActiveSelected && liveSelectedPrice != null
       ? liveSelectedPrice
       : yesAskPrice(active.market);
-  const prob = Math.round(priceUnit * 100);
+  const odds = convertPrice(priceUnit, format);
   const single = options.length === 1;
 
   return (
@@ -232,7 +235,7 @@ function GroupRow({
           </span>
         </div>
         <span className="shrink-0 text-sm font-bold tabular-nums text-[#c7ff2e]">
-          {prob}%
+          {odds}
         </span>
       </div>
 

@@ -14,8 +14,10 @@ import {
   cn,
   ModalBody,
   ModalContent,
+  PinIcon as UiPinIcon,
   StyledModal,
   toast,
+  UnPinIcon,
   useScreen,
 } from "@liberfi.io/ui";
 import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
@@ -46,6 +48,8 @@ import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
 import { TradeModal } from "src/components/TradeModal";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
+import { convertPrice } from "../../odds/convert-price";
+import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import {
   categorizeMarkets,
   categoryOfGroup,
@@ -99,6 +103,7 @@ export function WorldCupDetailPage({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
+  const [oddsFormat] = useOddsFormat();
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
@@ -250,6 +255,10 @@ export function WorldCupDetailPage({
   const handleSetupRequired = useCallback(() => {
     void openSetupWallet();
   }, [openSetupWallet]);
+  const oddsFormatter = useCallback(
+    (price: number) => convertPrice(price, oddsFormat),
+    [oddsFormat],
+  );
 
   // Open the trade modal pre-selected to a tapped outcome (buy).
   const handleMobileTradePick = useCallback((oc: TradeOutcome) => {
@@ -389,6 +398,7 @@ export function WorldCupDetailPage({
                   outcome={outcome}
                   onTradeAction={handleTradeAction}
                   initialViewMode="table"
+                  oddsFormatter={oddsFormatter}
                   className="min-h-0 flex-1"
                 />
               </div>
@@ -528,7 +538,13 @@ export function WorldCupDetailPage({
                   ? "extend.worldcup.detail.markets.unpin"
                   : "extend.worldcup.detail.markets.pin",
               )}
-              actionIcon={<PinIcon pinned={marketPanelPinned} />}
+              actionIcon={
+                marketPanelPinned ? (
+                  <UnPinIcon className="h-3.5 w-3.5" />
+                ) : (
+                  <UiPinIcon className="h-3.5 w-3.5" />
+                )
+              }
               className="max-h-[70vh]"
             >
               <MarketsPanel
@@ -550,7 +566,7 @@ export function WorldCupDetailPage({
               onClose={() => setMarketPanelPinned(false)}
               onAction={() => setMarketPanelPinned(false)}
               actionLabel={t("extend.worldcup.detail.markets.unpin")}
-              actionIcon={<PinIcon pinned />}
+              actionIcon={<UnPinIcon className="h-3.5 w-3.5" />}
               className="w-full xl:h-full xl:w-[320px]"
             >
               <MarketsPanel
@@ -618,6 +634,7 @@ export function WorldCupDetailPage({
               outcome={outcome}
               onTradeAction={handleTradeAction}
               initialViewMode="table"
+              oddsFormatter={oddsFormatter}
               className="min-h-0 flex-1"
             />
           </div>
@@ -684,29 +701,6 @@ function CloseIcon() {
       aria-hidden
     >
       <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
-}
-
-function PinIcon({ pinned = false }: { pinned?: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 17v5" />
-      <path d="M9 10.5 4 15.5" />
-      <path d="m14 4 6 6" />
-      <path d="m17 7-8.5 8.5" />
-      <path d="M8 3h8l-2 4 3 3-6 6-3-3-4 2z" />
-      {pinned && <path d="M3 3l18 18" />}
     </svg>
   );
 }

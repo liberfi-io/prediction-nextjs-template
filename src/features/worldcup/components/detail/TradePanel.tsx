@@ -1,14 +1,21 @@
 "use client";
 
+import { useCallback } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
-import type { PredictEvent, PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
+import type {
+  PredictEvent,
+  PredictMarket,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 import {
   TradeFormWidget,
   SellFormWidget,
   type TradeOutcome,
   type TradeSide,
 } from "@liberfi.io/ui-predict";
+import { convertPrice } from "../../odds/convert-price";
+import { useOddsFormat } from "../../odds/OddsFormatProvider";
 
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
@@ -35,6 +42,11 @@ export function TradePanel({
   onSetupRequired?: () => void;
 }) {
   const { t } = useTranslation();
+  const [format] = useOddsFormat();
+  const oddsFormatter = useCallback(
+    (price: number) => convertPrice(price, format),
+    [format],
+  );
 
   return (
     <div className="[&_.worldcup-trade-panel-form>div]:px-2 lg:[&_.worldcup-trade-panel-form>div]:px-4">
@@ -62,6 +74,7 @@ export function TradePanel({
             market={market}
             variant="flat"
             initialOutcome={outcome}
+            oddsFormatter={oddsFormatter}
             onOutcomeChange={onOutcomeChange}
             onSetupRequired={onSetupRequired}
           />
@@ -74,6 +87,7 @@ export function TradePanel({
             market={market}
             variant="flat"
             initialOutcome={outcome}
+            oddsFormatter={oddsFormatter}
             onOutcomeChange={onOutcomeChange}
             onInsufficientBalance={onInsufficientBalance}
           />

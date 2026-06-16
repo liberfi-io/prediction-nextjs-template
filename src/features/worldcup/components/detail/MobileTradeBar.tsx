@@ -9,18 +9,13 @@ import {
   useRealtimeOrderbook,
 } from "@liberfi.io/react-predict";
 import type { TradeOutcome } from "@liberfi.io/ui-predict";
+import { convertPrice } from "../../odds/convert-price";
+import { useOddsFormat } from "../../odds/OddsFormatProvider";
 
 /** Static fallback price for an outcome before the live orderbook arrives. */
 function staticAsk(market: PredictMarket, outcome: TradeOutcome): number {
   const o = market.outcomes[outcome === "yes" ? 0 : 1];
   return o?.best_ask ?? o?.price ?? 0;
-}
-
-/** Format a probability in [0,1] as a cents label, e.g. "41¢" / "< 1¢". */
-function formatCents(value: number): string {
-  const cents = value * 100;
-  if (cents > 0 && cents < 1) return "< 1\u00A2";
-  return `${Math.round(cents)}\u00A2`;
 }
 
 /**
@@ -44,6 +39,7 @@ export function MobileTradeBar({
   onPick: (outcome: TradeOutcome) => void;
 }) {
   const { t } = useTranslation();
+  const [format] = useOddsFormat();
   const isOpen = market.status === "open";
 
   const { data: yesOrderbook } = useRealtimeOrderbook(
@@ -77,13 +73,13 @@ export function MobileTradeBar({
         <OutcomeButton
           tone="bullish"
           label={yesLabel}
-          price={formatCents(yesPrice)}
+          price={convertPrice(yesPrice, format)}
           onClick={() => onPick("yes")}
         />
         <OutcomeButton
           tone="bearish"
           label={noLabel}
-          price={formatCents(noPrice)}
+          price={convertPrice(noPrice, format)}
           onClick={() => onPick("no")}
         />
       </div>

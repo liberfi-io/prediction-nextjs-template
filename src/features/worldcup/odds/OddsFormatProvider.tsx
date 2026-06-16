@@ -12,12 +12,12 @@ import { ODDS_FORMATS, type OddsFormat } from "./convert-price";
  */
 const oddsFormatAtom = atomWithStorage<OddsFormat>(
   "worldcup.oddsFormat",
-  "percentage",
+  "european",
 );
 
 export function useOddsFormat(): [OddsFormat, (next: OddsFormat) => void] {
   const [format, setFormat] = useAtom(oddsFormatAtom);
-  const safe = ODDS_FORMATS.includes(format) ? format : "percentage";
+  const safe = ODDS_FORMATS.includes(format) ? format : "european";
   const set = useCallback((next: OddsFormat) => setFormat(next), [setFormat]);
   return [safe, set];
 }

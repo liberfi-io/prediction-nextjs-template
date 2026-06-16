@@ -267,7 +267,7 @@
       "tab": {
         "today": "今日",
         "games": "比賽",
-        "props": "提案",
+        "props": "更多竞猜",
         "groups": "積分榜",
         "bracket": "對陣圖"
       },
@@ -280,7 +280,7 @@
         "price": "價格",
         "percentage": "百分比",
         "decimal": "小數",
-        "european": "歐盤",
+        "european": "欧式",
         "american": "美式",
         "fractional": "分數",
         "hongKong": "香港",
