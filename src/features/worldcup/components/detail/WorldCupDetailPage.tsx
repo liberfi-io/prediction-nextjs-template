@@ -59,7 +59,7 @@ import {
   findSelection,
   type TeamHint,
 } from "./marketGrouping";
-import { resolveMarketDeepLink } from "./deepLink";
+import { normalizeDeepLinkOutcome, resolveMarketDeepLink } from "./deepLink";
 
 /** Shared FIFA logo used for every event avatar on the World Cup detail page. */
 const FIFA_AVATAR = "/worldcup/fifa.webp";
@@ -152,6 +152,7 @@ export function WorldCupDetailPage({
   const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTabKey>("orderbook");
   const deepLinkAppliedRef = useRef(false);
+  const mobileMarketPromptOpenedRef = useRef(false);
 
   useEffect(() => {
     if (mobileTab === "live" && !showLiveTab) setMobileTab("orderbook");
@@ -162,6 +163,9 @@ export function WorldCupDetailPage({
 
   const deepLinkMarket = initialMarket?.trim() || null;
   const deepLinkOutcome = initialOutcome?.trim() || null;
+  const hasCompleteDeepLink = Boolean(
+    deepLinkMarket && normalizeDeepLinkOutcome(deepLinkOutcome),
+  );
 
   // Resolve the active selection, falling back to the first open market.
   const selection = useMemo(() => {
@@ -207,6 +211,19 @@ export function WorldCupDetailPage({
     }, 1500);
     return () => window.clearTimeout(timeout);
   }, [deepLinkMarket, match]);
+
+  useEffect(() => {
+    if (isDesktop) return;
+    if (hasCompleteDeepLink) return;
+    if (mobileMarketPromptOpenedRef.current) return;
+    const hasOptions = allGroups(cats).some(
+      (group) => group.options.length > 0,
+    );
+    if (!hasOptions) return;
+
+    mobileMarketPromptOpenedRef.current = true;
+    setMarketsSheetOpen(true);
+  }, [cats, hasCompleteDeepLink, isDesktop]);
 
   const handleSelect = useCallback((slug: string) => {
     setSelectedSlug(slug);
