@@ -326,6 +326,7 @@
       "draw": "Unentschieden",
       "live": "Live",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "Spielbeginn in {{time}}",
       "matchView": "Märkte",
       "relatedEvents": "Ähnliche Ereignisse",
       "versus": "vs",

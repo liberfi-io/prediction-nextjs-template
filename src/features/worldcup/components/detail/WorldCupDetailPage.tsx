@@ -454,6 +454,7 @@ export function WorldCupDetailPage({
             <MatchCenterTabs
               match={match ?? null}
               liveVideos={liveVideos}
+              kickoffMs={match?.kickoffMs}
               activeTab={mobileTab}
               hideTabs
               className="w-full"
@@ -640,6 +641,7 @@ export function WorldCupDetailPage({
             <MatchCenterTabs
               match={match ?? null}
               liveVideos={liveVideos}
+              kickoffMs={match?.kickoffMs}
               className="w-full shrink-0 xl:w-[440px]"
             />
           )}
@@ -649,6 +651,7 @@ export function WorldCupDetailPage({
           <MatchCenterTabs
             match={match ?? null}
             liveVideos={liveVideos}
+            kickoffMs={match?.kickoffMs}
             className="w-full"
           />
         )}

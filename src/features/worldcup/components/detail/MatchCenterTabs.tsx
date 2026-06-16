@@ -24,6 +24,7 @@ export type CenterTab = "live" | "center" | "news" | "comments";
 export function MatchCenterTabs({
   match,
   liveVideos,
+  kickoffMs,
   className,
   contentClassName = "min-h-[420px] flex-1 p-2",
   liveContentClassName = "p-2",
@@ -33,6 +34,7 @@ export function MatchCenterTabs({
 }: {
   match: WcMatch | null;
   liveVideos?: WcMatchLiveVideo[] | null;
+  kickoffMs?: number;
   className?: string;
   contentClassName?: string;
   liveContentClassName?: string;
@@ -94,6 +96,7 @@ export function MatchCenterTabs({
         {tab === "live" ? (
           <LiveStreamPanel
             videos={liveVideos}
+            kickoffMs={kickoffMs}
           />
         ) : tab === "center" ? (
           <SportsWidget
@@ -121,8 +124,10 @@ export function MatchCenterTabs({
   );
 }
 
-/** Empty/placeholder state for center tabs with no data yet (icon + hint),
- *  so an empty tab never renders as a blank panel. */
+/**
+ * Empty/placeholder state for center tabs with no data yet (icon + hint), so an
+ * empty tab never renders as a blank panel.
+ */
 function CenterEmpty({ message }: { message: string }) {
   return (
     <div className="flex h-full min-h-[404px] flex-col items-center justify-center gap-2 text-sm text-zinc-500">

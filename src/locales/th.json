@@ -324,6 +324,7 @@
       "draw": "เสมอ",
       "live": "ถ่ายทอดสด",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "การแข่งขันเริ่มใน {{time}}",
       "matchView": "ตลาด",
       "relatedEvents": "เหตุการณ์ที่คล้ายกัน",
       "versus": "พบ",

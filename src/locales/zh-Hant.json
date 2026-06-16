@@ -326,6 +326,7 @@
       "draw": "平",
       "live": "實況",
       "liveSource": "源{{index}}",
+      "liveCountdown": "距離比賽開始 {{time}}",
       "matchView": "比賽視圖",
       "relatedEvents": "相似事件",
       "versus": "對",

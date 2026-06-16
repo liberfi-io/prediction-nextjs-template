@@ -491,6 +491,7 @@ function MatchCardImpl({
         return (
           <LiveStreamPanel
             videos={match.liveVideos}
+            kickoffMs={match.kickoffMs}
           />
         );
       case "center":

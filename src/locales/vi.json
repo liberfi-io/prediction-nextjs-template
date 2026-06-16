@@ -324,6 +324,7 @@
       "draw": "Hòa",
       "live": "Trực tiếp",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "Trận đấu bắt đầu sau {{time}}",
       "matchView": "thị trường",
       "relatedEvents": "Sự kiện tương tự",
       "versus": "vs",

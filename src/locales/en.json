@@ -326,6 +326,7 @@
       "draw": "Draw",
       "live": "Live",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "Match starts in {{time}}",
       "matchView": "markets",
       "relatedEvents": "Similar Events",
       "versus": "vs",

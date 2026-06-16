@@ -326,6 +326,7 @@
       "draw": "Pareggio",
       "live": "Live",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "La partita inizia tra {{time}}",
       "matchView": "mercati",
       "relatedEvents": "Eventi simili",
       "versus": "vs",

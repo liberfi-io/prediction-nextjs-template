@@ -324,6 +324,7 @@
       "draw": "引き分け",
       "live": "ライブ",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "試合開始まで {{time}}",
       "matchView": "マーケット",
       "relatedEvents": "類似イベント",
       "versus": "対",

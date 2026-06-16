@@ -324,6 +324,7 @@
       "draw": "Égalité",
       "live": "En direct",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "Le match commence dans {{time}}",
       "matchView": "marchés",
       "relatedEvents": "Événements similaires",
       "versus": "vs",

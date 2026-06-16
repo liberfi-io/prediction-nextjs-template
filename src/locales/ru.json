@@ -326,6 +326,7 @@
       "draw": "Ничья",
       "live": "В эфире",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "Матч начнется через {{time}}",
       "matchView": "рынки",
       "relatedEvents": "Похожие события",
       "versus": "против",

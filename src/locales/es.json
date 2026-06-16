@@ -326,6 +326,7 @@
       "draw": "Empate",
       "live": "En vivo",
       "liveSource": "Source {{index}}",
+      "liveCountdown": "El partido empieza en {{time}}",
       "matchView": "mercados",
       "relatedEvents": "Eventos similares",
       "versus": "vs",
