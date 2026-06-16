@@ -8,7 +8,11 @@ import {
   applyMarketRealtimeToMatches,
 } from "../../data/client";
 import { useWorldcupRealtime } from "../../data/live";
-import { useWorldcupMatches, useWorldcupMatchEvent } from "../../data/queries";
+import {
+  usePrefetchWorldcupMatchEvent,
+  useWorldcupMatches,
+  useWorldcupMatchEvent,
+} from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
@@ -261,6 +265,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   } = useWorldcupMatchEvent(
     tradeRequest?.event && tradeRequest.market ? "" : tradeRequest?.match.slug ?? "",
   );
+  const prefetchMatchEvent = usePrefetchWorldcupMatchEvent();
   const { liveStates, marketState } = useWorldcupRealtime();
   const matches = useMemo(
     () => {
@@ -612,6 +617,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
                 widgetOpen={openWidgetId === m.matchId}
                 onOpen={onOpen}
                 onMarketPick={handleMarketPick}
+                onPrefetch={prefetchMatchEvent}
                 onLive={setLiveMatch}
                 onToggleWidget={onToggleWidget}
               />

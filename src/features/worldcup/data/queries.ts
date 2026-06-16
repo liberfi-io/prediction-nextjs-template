@@ -11,7 +11,12 @@
  * matches.
  */
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useTranslation } from "@liberfi.io/i18n";
 import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
 import {
@@ -64,7 +69,32 @@ export function useWorldcupMatches(options: WorldcupMatchesOptions = {}) {
     enabled,
     refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS,
+    // The list is already kept fresh by the 30s poll; refetching the full list
+    // on every window focus only duplicates the heavy payload.
+    refetchOnWindowFocus: false,
   });
+}
+
+/**
+ * Warm the cache for a match's full aggregated event ahead of a trade/detail
+ * interaction. Called on card hover / pointer-down so opening the trade panel
+ * (which needs the full event after the list payload dropped its inline trade
+ * objects) resolves instantly. Reuses the same key as {@link useWorldcupMatchEvent}.
+ */
+export function usePrefetchWorldcupMatchEvent() {
+  const lang = useApiLang();
+  const queryClient = useQueryClient();
+  return useCallback(
+    (slug: string) => {
+      if (!slug) return;
+      void queryClient.prefetchQuery({
+        queryKey: [...worldcupMatchEventQueryKey(slug), lang],
+        queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug, lang),
+        staleTime: POLL_INTERVAL_MS,
+      });
+    },
+    [lang, queryClient],
+  );
 }
 
 /**

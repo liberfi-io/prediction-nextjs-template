@@ -582,100 +582,121 @@ function patchTradeEvent(
   };
 }
 
-function predictOutcomePrice(outcome: PredictOutcome | undefined, fallback: number): number {
-  return outcome ? num(outcome.best_ask, outcome.price, fallback) : fallback;
+/** Best-bid/ask patch for one provider token, with its observation time. */
+interface OutcomeTokenPatch {
+  bestBid?: number;
+  bestAsk?: number;
+  observedAt: number;
 }
 
-function wcOutcomeFromPredict(
-  current: WcOutcome,
-  outcome: PredictOutcome | undefined,
-  observedAt?: number,
-): WcOutcome {
-  if (!outcome) return current;
+/**
+ * Index a market update's outcome patches by provider `token_id`. The card's
+ * odds outcomes (moneyline/spread/total) each carry the same `tokenId` from the
+ * inline `markets[]`, so a live patch can be applied directly by token without
+ * needing the heavy `tradeMarkets` objects in the list payload.
+ */
+function collectOutcomeTokenPatches(
+  update: WorldcupMatchMarketUpdate,
+  patches: WcMarketPatchDto[],
+): Map<string, OutcomeTokenPatch> {
+  const byToken = new Map<string, OutcomeTokenPatch>();
+  for (const patch of patches) {
+    const observedAt = patchObservedAt(update, patch);
+    for (const outcome of patch.outcomes ?? []) {
+      if (!outcome.token_id) continue;
+      const prev = byToken.get(outcome.token_id);
+      if (prev && prev.observedAt > observedAt) continue;
+      byToken.set(outcome.token_id, {
+        bestBid: outcome.best_bid,
+        bestAsk: outcome.best_ask,
+        observedAt,
+      });
+    }
+  }
+  return byToken;
+}
+
+/** Apply a token-keyed patch to a single card outcome. */
+function patchOutcomeByToken(
+  outcome: WcOutcome,
+  byToken: Map<string, OutcomeTokenPatch>,
+): { outcome: WcOutcome; changed: boolean } {
+  if (!outcome.tokenId) return { outcome, changed: false };
+  const patch = byToken.get(outcome.tokenId);
+  if (!patch) return { outcome, changed: false };
+
+  const nextBid = patch.bestBid ?? outcome.bestBid;
+  const nextAsk = patch.bestAsk ?? outcome.bestAsk;
+  // Realtime prefers the best ask for the displayed price (mirrors the old
+  // trade-market refresh); falls back to the current price when ask is absent.
+  const nextPrice = num(patch.bestAsk, outcome.price);
+  if (
+    nextBid === outcome.bestBid &&
+    nextAsk === outcome.bestAsk &&
+    nextPrice === outcome.price
+  ) {
+    return { outcome, changed: false };
+  }
   return {
-    ...current,
-    price: predictOutcomePrice(outcome, current.price),
-    bestBid: outcome.best_bid ?? current.bestBid,
-    bestAsk: outcome.best_ask ?? current.bestAsk,
-    marketObservedAt: observedAt ?? current.marketObservedAt,
+    outcome: {
+      ...outcome,
+      bestBid: nextBid,
+      bestAsk: nextAsk,
+      price: nextPrice,
+      marketObservedAt: patch.observedAt,
+    },
+    changed: true,
   };
 }
 
-function latestObservedAtFor(
-  market: PredictMarket | undefined,
-  observedBySlug: Record<string, number>,
-): number | undefined {
-  return market ? observedBySlug[market.slug] : undefined;
-}
-
-function refreshCardOddsFromTradeMarkets(
+/**
+ * Refresh the card's moneyline/spread/total odds straight from a market
+ * update's per-token best bid/ask. Independent of `tradeMarkets`, so it keeps
+ * working after the list payload drops the heavy trade objects.
+ */
+function applyOddsPatchByToken(
   match: WcMatch,
-  observedBySlug: Record<string, number>,
-): WcMatch {
-  const tradeMarkets = match.tradeMarkets;
-  if (!tradeMarkets) return match;
+  byToken: Map<string, OutcomeTokenPatch>,
+): { match: WcMatch; changed: boolean } {
+  if (byToken.size === 0) return { match, changed: false };
 
-  const moneylineHomeObservedAt = latestObservedAtFor(
-    tradeMarkets.moneylineHome,
-    observedBySlug,
-  );
-  const moneylineDrawObservedAt = latestObservedAtFor(
-    tradeMarkets.moneylineDraw,
-    observedBySlug,
-  );
-  const moneylineAwayObservedAt = latestObservedAtFor(
-    tradeMarkets.moneylineAway,
-    observedBySlug,
-  );
-  const spreadMarket =
-    match.spread.line < 0 ? tradeMarkets.spreadHome : tradeMarkets.spreadAway;
-  const spreadObservedAt = latestObservedAtFor(spreadMarket, observedBySlug);
-  const totalObservedAt = latestObservedAtFor(tradeMarkets.total, observedBySlug);
+  const mlHome = patchOutcomeByToken(match.moneyline.home, byToken);
+  const mlDraw = patchOutcomeByToken(match.moneyline.draw, byToken);
+  const mlAway = patchOutcomeByToken(match.moneyline.away, byToken);
+  const spHome = patchOutcomeByToken(match.spread.home, byToken);
+  const spAway = patchOutcomeByToken(match.spread.away, byToken);
+  const toOver = patchOutcomeByToken(match.total.over, byToken);
+  const toUnder = patchOutcomeByToken(match.total.under, byToken);
+
+  const changed =
+    mlHome.changed ||
+    mlDraw.changed ||
+    mlAway.changed ||
+    spHome.changed ||
+    spAway.changed ||
+    toOver.changed ||
+    toUnder.changed;
+  if (!changed) return { match, changed: false };
 
   return {
-    ...match,
-    moneyline: {
-      home: wcOutcomeFromPredict(
-        match.moneyline.home,
-        tradeMarkets.moneylineHome?.outcomes[0],
-        moneylineHomeObservedAt,
-      ),
-      draw: wcOutcomeFromPredict(
-        match.moneyline.draw,
-        tradeMarkets.moneylineDraw?.outcomes[0],
-        moneylineDrawObservedAt,
-      ),
-      away: wcOutcomeFromPredict(
-        match.moneyline.away,
-        tradeMarkets.moneylineAway?.outcomes[0],
-        moneylineAwayObservedAt,
-      ),
-    },
-    spread: {
-      ...match.spread,
-      home: wcOutcomeFromPredict(
-        match.spread.home,
-        spreadMarket?.outcomes[match.spread.line < 0 ? 0 : 1],
-        spreadObservedAt,
-      ),
-      away: wcOutcomeFromPredict(
-        match.spread.away,
-        spreadMarket?.outcomes[match.spread.line < 0 ? 1 : 0],
-        spreadObservedAt,
-      ),
-    },
-    total: {
-      ...match.total,
-      over: wcOutcomeFromPredict(
-        match.total.over,
-        tradeMarkets.total?.outcomes[0],
-        totalObservedAt,
-      ),
-      under: wcOutcomeFromPredict(
-        match.total.under,
-        tradeMarkets.total?.outcomes[1],
-        totalObservedAt,
-      ),
+    changed: true,
+    match: {
+      ...match,
+      moneyline: {
+        home: mlHome.outcome,
+        draw: mlDraw.outcome,
+        away: mlAway.outcome,
+      },
+      spread: {
+        ...match.spread,
+        home: spHome.outcome,
+        away: spAway.outcome,
+      },
+      total: {
+        ...match.total,
+        over: toOver.outcome,
+        under: toUnder.outcome,
+      },
     },
   };
 }
@@ -710,39 +731,43 @@ export function applyMarketUpdateToMatches(
     });
     if (eligiblePatches.length === 0) return match;
 
+    // Primary path: patch the displayed odds directly by provider token. Works
+    // whether or not the (heavy) tradeMarkets/tradeEvent objects are present.
+    const byToken = collectOutcomeTokenPatches(update, eligiblePatches);
+    const oddsResult = applyOddsPatchByToken(match, byToken);
+
+    // Keep the trade fast-path objects fresh while the list still carries them
+    // (older backend); both no-op once the list drops trade_event/trade_markets.
     const tradeMarketsResult = patchTradeMarkets(match.tradeMarkets, eligiblePatches);
     const tradeEventResult = patchTradeEvent(match.tradeEvent, eligiblePatches);
-    const matched = tradeMarketsResult.matched || tradeEventResult.matched;
+
+    const matched =
+      oddsResult.changed ||
+      tradeMarketsResult.matched ||
+      tradeEventResult.matched;
     if (!matched) return match;
 
-    const observedBySlug: Record<string, number> = {};
     for (const patch of eligiblePatches) {
       const observedAt = patchObservedAt(update, patch);
-      observedBySlug[patch.slug] = observedAt;
       const key = `${match.matchId}:${patch.slug}`;
       if (nextMeta === meta) nextMeta = { ...meta };
       nextMeta[key] = observedAt;
     }
 
-    if (!tradeMarketsResult.changed && !tradeEventResult.changed) {
+    if (
+      !oddsResult.changed &&
+      !tradeMarketsResult.changed &&
+      !tradeEventResult.changed
+    ) {
       return match;
     }
 
-    const nextMatch = tradeMarketsResult.changed
-      ? refreshCardOddsFromTradeMarkets(
-          {
-            ...match,
-            tradeMarkets: tradeMarketsResult.tradeMarkets,
-            tradeEvent: tradeEventResult.event,
-          },
-          observedBySlug,
-        )
-      : {
-          ...match,
-          tradeEvent: tradeEventResult.event,
-        };
     changedAnyMatch = true;
-    return nextMatch;
+    return {
+      ...oddsResult.match,
+      tradeMarkets: tradeMarketsResult.tradeMarkets,
+      tradeEvent: tradeEventResult.event,
+    };
   });
 
   return {

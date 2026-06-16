@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import type { WcMatchLiveVideo } from "../../types";
@@ -41,6 +41,58 @@ function useStreamMountGate(kickoffMs?: number): {
   };
 }
 
+/**
+ * Defer mounting the player until its container has been in (or near) the
+ * viewport and the browser is idle. The embedded HLS iframe pulls a video
+ * segment stream as soon as it mounts, so gating it keeps that bandwidth from
+ * competing with the initial list render even when a widget auto-opens.
+ */
+function useDeferredPlayback(): {
+  ref: React.RefObject<HTMLDivElement>;
+  ready: boolean;
+} {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || ready) return;
+
+    let idleId: number | undefined;
+    const start = () => setReady(true);
+    const scheduleStart = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(start, { timeout: 1500 });
+      } else {
+        idleId = window.setTimeout(start, 300);
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          scheduleStart();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      if (idleId == null) return;
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, [ready]);
+
+  return { ref, ready };
+}
+
 export function hasLiveVideos(videos?: WcMatchLiveVideo[] | null): boolean {
   return Boolean(videos?.some((video) => video.url && video.status === 1));
 }
@@ -70,6 +122,7 @@ export function LiveStreamPanel({
     });
   }, [videos]);
   const [active, setActive] = useState(0);
+  const { ref: playerRef, ready } = useDeferredPlayback();
   const { canMount, countdown } = useStreamMountGate(kickoffMs);
 
   useEffect(() => {
@@ -101,8 +154,11 @@ export function LiveStreamPanel({
         </div>
       )}
 
-      <div className="aspect-video w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0a0b]">
-        {canMount ? (
+      <div
+        ref={playerRef}
+        className="aspect-video w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0a0b]"
+      >
+        {canMount && ready ? (
           <iframe
             key={current.url}
             src={current.url}
@@ -113,7 +169,7 @@ export function LiveStreamPanel({
             sandbox="allow-scripts allow-same-origin allow-presentation"
             referrerPolicy="no-referrer"
           />
-        ) : (
+        ) : !canMount ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-4 text-center">
             <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
               {t("extend.worldcup.live")}
@@ -121,6 +177,10 @@ export function LiveStreamPanel({
             <span className="text-sm font-medium text-zinc-300">
               {t("extend.worldcup.liveCountdown", { time: countdown })}
             </span>
+          </div>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="h-7 w-7 animate-spin rounded-full border-2 border-zinc-700 border-t-[#c7ff2e]" />
           </div>
         )}
       </div>

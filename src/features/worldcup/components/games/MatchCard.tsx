@@ -234,6 +234,7 @@ function MatchCardImpl({
   widgetOpen = false,
   onOpen,
   onMarketPick,
+  onPrefetch,
   onLive,
   onToggleWidget,
 }: {
@@ -247,6 +248,8 @@ function MatchCardImpl({
   widgetOpen?: boolean;
   onOpen: (slug: string) => void;
   onMarketPick?: (match: WcMatch, marketCode: string, outcome: TradeOutcome) => void;
+  /** Warm the full match event ahead of a trade/detail interaction. */
+  onPrefetch?: (slug: string) => void;
   /** Desktop: select this match for the pinned right-rail widget. */
   onLive?: (match: WcMatch) => void;
   /** Mobile: toggle this card's inline live widget. */
@@ -518,6 +521,8 @@ function MatchCardImpl({
       tabIndex={0}
       onClick={() => onOpen(match.slug)}
       onKeyDown={(e) => e.key === "Enter" && onOpen(match.slug)}
+      onPointerEnter={() => onPrefetch?.(match.slug)}
+      onPointerDown={() => onPrefetch?.(match.slug)}
       className={cn(
         "group cursor-pointer overflow-hidden rounded-[14px] border bg-[rgba(24,24,27,0.4)] transition-colors [content-visibility:auto] [contain-intrinsic-size:auto_140px] hover:border-[rgba(63,63,70,0.8)]",
         highlighted
