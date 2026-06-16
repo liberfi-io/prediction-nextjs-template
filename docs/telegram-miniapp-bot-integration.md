@@ -23,6 +23,7 @@ https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=<start_param>
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-rAFF2026
+https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-gHctKD5O-rAFF2026
 ```
 
 Telegram 会把 `startapp` 传给 Mini App。前端会从以下来源读取：
@@ -31,7 +32,7 @@ Telegram 会把 `startapp` 传给 Mini App。前端会从以下来源读取：
 - URL/search/hash fallback：`tgWebAppStartParam`
 - URL/search/hash fallback：`startapp`
 
-Bot 不需要把 Telegram chat、user id 编码进 `start_param`。Mini App 会通过 Telegram WebApp context 获取 `WebAppChat` 和 Telegram user，再由 Privy 处理 Telegram 自动登录。
+Bot 不需要把 Telegram user id 编码进 `start_param`。Mini App 会通过 Telegram WebApp context 获取 Telegram user，再由 Privy 处理 Telegram 自动登录。群消息点击进入 Mini App 时，如果 Telegram WebApp context 无法提供群组 `chat.id`，Bot 可以按本文档第 5 节把群组 `chat.id` 编进 `start_param`。
 
 ## 2. start_param 总体限制
 
@@ -57,7 +58,9 @@ Telegram 对 `start_param` 有硬限制：
 
 ```text
 v1-wl-<matchId>
+v1-wl-<matchId>-g<chatIdBase62>
 v1-wl-<matchId>-r<referral>
+v1-wl-<matchId>-g<chatIdBase62>-r<referral>
 ```
 
 字段说明：
@@ -67,13 +70,16 @@ v1-wl-<matchId>-r<referral>
 | `v1` | 协议版本 | 固定 `v1` |
 | `wl` | World Cup list | 固定 `wl` |
 | `<matchId>` | 比赛编号 | `M12` |
+| `g<chatIdBase62>` | 可选群组 ID | `gHctKD5O` |
 | `r<referral>` | 可选返佣码 | `rAFF2026` |
 
 示例：
 
 ```text
 v1-wl-M12
+v1-wl-M12-gHctKD5O
 v1-wl-M12-rAFF2026
+v1-wl-M12-gHctKD5O-rAFF2026
 ```
 
 前端路由效果：
@@ -90,14 +96,18 @@ v1-wl-M12-rAFF2026
 
 ```text
 v1-wd-<matchId>
+v1-wd-<matchId>-g<chatIdBase62>
 v1-wd-<matchId>-r<referral>
+v1-wd-<matchId>-g<chatIdBase62>-r<referral>
 ```
 
 打开世界杯比赛详情页，并初始化 market/outcome：
 
 ```text
 v1-wd-<matchId>-<marketCode>-<outcomeCode>
+v1-wd-<matchId>-<marketCode>-<outcomeCode>-g<chatIdBase62>
 v1-wd-<matchId>-<marketCode>-<outcomeCode>-r<referral>
+v1-wd-<matchId>-<marketCode>-<outcomeCode>-g<chatIdBase62>-r<referral>
 ```
 
 字段说明：
@@ -109,13 +119,16 @@ v1-wd-<matchId>-<marketCode>-<outcomeCode>-r<referral>
 | `<matchId>` | 比赛编号 | `M12` |
 | `<marketCode>` | market 短码 | `mlh` |
 | `<outcomeCode>` | outcome 短码 | `y` / `n` |
+| `g<chatIdBase62>` | 可选群组 ID | `gHctKD5O` |
 | `r<referral>` | 可选返佣码 | `rAFF2026` |
 
 示例：
 
 ```text
 v1-wd-M12
+v1-wd-M12-gHctKD5O
 v1-wd-M12-rAFF2026
+v1-wd-M12-gHctKD5O-rAFF2026
 v1-wd-M12-mlh-y
 v1-wd-M12-mld-y
 v1-wd-M12-mla-y
@@ -123,7 +136,9 @@ v1-wd-M12-to-y
 v1-wd-M12-to25-y
 v1-wd-M12-sp-n
 v1-wd-M12-btts-y
+v1-wd-M12-mlh-y-gHctKD5O
 v1-wd-M12-mlh-y-rAFF2026
+v1-wd-M12-mlh-y-gHctKD5O-rAFF2026
 ```
 
 前端路由效果：
@@ -204,7 +219,40 @@ spp15 = home +1.5
 
 当前请不要生成 `sp15`、`spm15`、`spp15`。
 
-## 5. 返佣参数
+## 5. 群组参数
+
+当 Bot 在 Telegram 群里发送 Mini App 消息时，如果需要让后端下单记录关联到群组，请把群组 `chat.id` 编进 `start_param`。
+
+群组参数格式为：
+
+```text
+g<chatIdBase62>
+```
+
+示例：
+
+```text
+v1-wl-M12-gHctKD5O
+v1-wd-M12-mlh-y-gHctKD5O
+v1-wd-M12-mlh-y-gHctKD5O-rAFF2026
+```
+
+规则：
+
+- `chatIdBase62` 使用 `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz` 字母表。
+- Bot 侧对 Telegram 群 `chat.id` 取绝对值后做 base62 编码。
+- Mini App 服务端解码后会恢复为负数群组 ID，例如 `gHctKD5O` 解码为 `-1001234567890`。
+- 群组参数必须放在 referral 参数之前；referral 仍然必须是最后一段。
+- 如果 Telegram `initData.chat.id` 存在，服务端优先使用 `initData.chat.id`；仅当它缺失时，才使用 `start_param` 中的群组 ID。
+- `start_param` 中的群组 ID 只能作为群上下文提示，不能单独作为可信授权凭证；服务端仍会先校验 Telegram `initData` 签名。
+
+示例编码：
+
+| Telegram chat.id | abs(chat.id) | chatIdBase62 | start_param 字段 |
+| ---: | ---: | --- | --- |
+| `-1001234567890` | `1001234567890` | `HctKD5O` | `gHctKD5O` |
+
+## 6. 返佣参数
 
 返佣参数写在最后一段，格式为：
 
@@ -227,37 +275,53 @@ v1-wd-M12-mlh-y-rAFF2026
 - 前端收到后会调用现有 referral storage，遵循 first-touch 规则和 TTL。
 - `start_param` 来源在阶段一不作为可信归因凭证；最终绑定和落库仍以后端 referral/bind 与后续 Telegram initData 校验为准。
 
-## 6. 长度预算
+## 7. 长度预算
 
 当前格式的长度计算示例：
 
 | 用途 | start_param | 长度 |
 | --- | --- | ---: |
 | 列表定位 | `v1-wl-M12` | 9 |
+| 列表定位 + 群组 | `v1-wl-M12-gHctKD5O` | 18 |
 | 列表定位 + 返佣 | `v1-wl-M12-rAFF2026` | 18 |
+| 列表定位 + 群组 + 返佣 | `v1-wl-M12-gHctKD5O-rAFF2026` | 27 |
 | 详情默认 market | `v1-wd-M12` | 9 |
+| 详情默认 market + 群组 | `v1-wd-M12-gHctKD5O` | 18 |
 | 详情默认 market + 返佣 | `v1-wd-M12-rAFF2026` | 18 |
+| 详情默认 market + 群组 + 返佣 | `v1-wd-M12-gHctKD5O-rAFF2026` | 27 |
 | 详情 moneyline | `v1-wd-M12-mlh-y` | 15 |
+| 详情 moneyline + 群组 | `v1-wd-M12-mlh-y-gHctKD5O` | 24 |
 | 详情 moneyline + 返佣 | `v1-wd-M12-mlh-y-rAFF2026` | 24 |
+| 详情 moneyline + 群组 + 返佣 | `v1-wd-M12-mlh-y-gHctKD5O-rAFF2026` | 33 |
 | 详情 total 2.5 | `v1-wd-M12-to25-y` | 16 |
+| 详情 total 2.5 + 群组 | `v1-wd-M12-to25-y-gHctKD5O` | 25 |
 | 详情 total 2.5 + 返佣 | `v1-wd-M12-to25-y-rAFF2026` | 25 |
+| 详情 total 2.5 + 群组 + 返佣 | `v1-wd-M12-to25-y-gHctKD5O-rAFF2026` | 34 |
 | 详情 btts + 返佣 | `v1-wd-M12-btts-y-rAFF2026` | 25 |
+| 详情 btts + 群组 + 返佣 | `v1-wd-M12-btts-y-gHctKD5O-rAFF2026` | 34 |
 
 64 字符限制下，返佣码可用余量：
 
-- `v1-wl-M12-r<referral>`：最多 46 个 referral 字符。
-- `v1-wd-M12-r<referral>`：最多 46 个 referral 字符。
-- `v1-wd-M12-mlh-y-r<referral>`：最多 40 个 referral 字符。
-- `v1-wd-M12-to25-y-r<referral>`：最多 39 个 referral 字符。
-- `v1-wd-M12-btts-y-r<referral>`：最多 39 个 referral 字符。
+- `v1-wl-M12-r<referral>`：最多 53 个 referral 字符。
+- `v1-wl-M12-gHctKD5O-r<referral>`：最多 44 个 referral 字符。
+- `v1-wd-M12-r<referral>`：最多 53 个 referral 字符。
+- `v1-wd-M12-gHctKD5O-r<referral>`：最多 44 个 referral 字符。
+- `v1-wd-M12-mlh-y-r<referral>`：最多 47 个 referral 字符。
+- `v1-wd-M12-mlh-y-gHctKD5O-r<referral>`：最多 38 个 referral 字符。
+- `v1-wd-M12-to25-y-r<referral>`：最多 46 个 referral 字符。
+- `v1-wd-M12-to25-y-gHctKD5O-r<referral>`：最多 37 个 referral 字符。
+- `v1-wd-M12-btts-y-r<referral>`：最多 46 个 referral 字符。
+- `v1-wd-M12-btts-y-gHctKD5O-r<referral>`：最多 37 个 referral 字符。
 
 建议 Bot 侧把 referral 控制在 32 字符以内，留出未来扩展空间。
 
-## 7. 非 Telegram Web 环境 Query 参数
+`gHctKD5O` 是常见 Telegram supergroup ID `-1001234567890` 的示例编码，群组字段长度为 8。即使按 signed int64 最大值计算，`g<chatIdBase62>` 最长也只有 12 个字符；此时 `v1-wd-M104-to25-y-g<chatIdBase62>-r<32 字符 referral>` 刚好 64 字符。Bot 侧如果同时携带最大长度群组字段和 referral，建议把 referral 控制在 32 字符以内。
+
+## 8. 非 Telegram Web 环境 Query 参数
 
 为了方便普通浏览器和本地测试，世界杯页面同步支持 query 参数。
 
-### 7.1 列表页定位
+### 8.1 列表页定位
 
 ```text
 /world-cup?match=<matchId>
@@ -271,7 +335,7 @@ http://localhost:3001/world-cup?match=M12
 http://localhost:3001/world-cup?anchor=M12
 ```
 
-### 7.2 详情页初始化 market/outcome
+### 8.2 详情页初始化 market/outcome
 
 ```text
 /world-cup/match/<eventSlug>?market=<marketCode>&outcome=<yes|no>
@@ -285,9 +349,9 @@ http://localhost:3001/world-cup/match/fifwc-swe-tun-2026-06-14?market=to25&outco
 http://localhost:3001/world-cup/match/fifwc-swe-tun-2026-06-14?market=btts&outcome=yes
 ```
 
-## 8. 测试链接
+## 9. 测试链接
 
-### 8.1 Local Web
+### 9.1 Local Web
 
 ```text
 http://localhost:3001/world-cup?match=M12
@@ -301,31 +365,39 @@ http://localhost:3001/world-cup/match/fifwc-swe-tun-2026-06-14?market=sp&outcome
 http://localhost:3001/world-cup/match/fifwc-swe-tun-2026-06-14?market=btts&outcome=yes
 ```
 
-### 8.2 Local Telegram 参数模拟
+### 9.2 Local Telegram 参数模拟
 
 这些链接不需要真的在 Telegram 里打开，用来验证前端是否能从 `tgWebAppStartParam` fallback 解析：
 
 ```text
 http://localhost:3001/?tgWebAppStartParam=v1-wl-M12
+http://localhost:3001/?tgWebAppStartParam=v1-wl-M12-gHctKD5O
 http://localhost:3001/?tgWebAppStartParam=v1-wl-M12-rAFF2026
+http://localhost:3001/?tgWebAppStartParam=v1-wl-M12-gHctKD5O-rAFF2026
 http://localhost:3001/?tgWebAppStartParam=v1-wd-M12
 http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-mlh-y
+http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-mlh-y-gHctKD5O
 http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-to25-n
 http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-btts-y-rAFF2026
+http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-btts-y-gHctKD5O-rAFF2026
 ```
 
-### 8.3 Production Telegram Mini App
+### 9.3 Production Telegram Mini App
 
 ```text
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12
+https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-gHctKD5O
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-rAFF2026
+https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-gHctKD5O-rAFF2026
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y
+https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-gHctKD5O
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-to25-n
 https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-btts-y-rAFF2026
+https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-btts-y-gHctKD5O-rAFF2026
 ```
 
-### 8.4 Production Web fallback
+### 9.4 Production Web fallback
 
 ```text
 https://predict.liberfi.io/?tgWebAppStartParam=v1-wl-M12
@@ -334,7 +406,7 @@ https://predict.liberfi.io/world-cup?match=M12
 https://predict.liberfi.io/world-cup/match/fifwc-swe-tun-2026-06-14?market=mlh&outcome=yes
 ```
 
-### 8.5 Staging Web fallback
+### 9.5 Staging Web fallback
 
 ```text
 https://liberfi-prediction-kan5x1589-sgt-lab.vercel.app/?tgWebAppStartParam=v1-wl-M12
@@ -343,7 +415,7 @@ https://liberfi-prediction-kan5x1589-sgt-lab.vercel.app/world-cup?match=M12
 https://liberfi-prediction-kan5x1589-sgt-lab.vercel.app/world-cup/match/fifwc-swe-tun-2026-06-14?market=mlh&outcome=yes
 ```
 
-## 9. Bot 侧生成建议
+## 10. Bot 侧生成建议
 
 推荐 Bot 侧用固定函数生成，避免手写字符串。
 
@@ -351,17 +423,38 @@ https://liberfi-prediction-kan5x1589-sgt-lab.vercel.app/world-cup/match/fifwc-sw
 type Route = "wl" | "wd";
 type Outcome = "y" | "n";
 type MarketCode = "mlh" | "mld" | "mla" | "sp" | "to" | `to${number}` | "btts";
+const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 function assertSafeSegment(name: string, value: string, pattern: RegExp) {
   if (!pattern.test(value)) throw new Error(`Invalid ${name}: ${value}`);
 }
 
-export function buildWorldCupListStartParam(matchId: string, referral?: string) {
-  assertSafeSegment("matchId", matchId, /^M[0-9]+$/);
-  const parts = ["v1", "wl", matchId];
-  if (referral) {
-    assertSafeSegment("referral", referral, /^[A-Za-z0-9_]+$/);
-    parts.push(`r${referral}`);
+function encodeTelegramGroupChatId(chatId: number | bigint): string {
+  let value = typeof chatId === "bigint" ? chatId : BigInt(chatId);
+  if (value >= 0n) throw new Error(`Telegram group chatId must be negative: ${chatId}`);
+  value = -value;
+
+  let encoded = "";
+  while (value > 0n) {
+    encoded = BASE62_ALPHABET[Number(value % 62n)] + encoded;
+    value /= 62n;
+  }
+  return `g${encoded || "0"}`;
+}
+
+export function buildWorldCupListStartParam(input: {
+  matchId: string;
+  telegramGroupChatId?: number | bigint;
+  referral?: string;
+}) {
+  assertSafeSegment("matchId", input.matchId, /^M[0-9]+$/);
+  const parts = ["v1", "wl", input.matchId];
+  if (input.telegramGroupChatId !== undefined) {
+    parts.push(encodeTelegramGroupChatId(input.telegramGroupChatId));
+  }
+  if (input.referral) {
+    assertSafeSegment("referral", input.referral, /^[A-Za-z0-9_]+$/);
+    parts.push(`r${input.referral}`);
   }
   const value = parts.join("-");
   if (value.length > 64) throw new Error(`start_param too long: ${value.length}`);
@@ -372,6 +465,7 @@ export function buildWorldCupDetailStartParam(input: {
   matchId: string;
   market?: MarketCode;
   outcome?: Outcome;
+  telegramGroupChatId?: number | bigint;
   referral?: string;
 }) {
   assertSafeSegment("matchId", input.matchId, /^M[0-9]+$/);
@@ -381,6 +475,9 @@ export function buildWorldCupDetailStartParam(input: {
     assertSafeSegment("market", input.market, /^(?:mlh|mld|mla|sp|to|to[0-9]+|btts)$/);
     assertSafeSegment("outcome", input.outcome, /^[yn]$/);
     parts.push(input.market, input.outcome);
+  }
+  if (input.telegramGroupChatId !== undefined) {
+    parts.push(encodeTelegramGroupChatId(input.telegramGroupChatId));
   }
   if (input.referral) {
     assertSafeSegment("referral", input.referral, /^[A-Za-z0-9_]+$/);
@@ -392,7 +489,7 @@ export function buildWorldCupDetailStartParam(input: {
 }
 ```
 
-## 10. 当前比赛配置
+## 11. 当前比赛配置
 
 说明：
 
@@ -479,7 +576,7 @@ export function buildWorldCupDetailStartParam(input: {
 | M71 | J | Algeria vs. Austria | fifwc-alg-aut-2026-06-27 | fifwc-alg-aut-2026-06-27-alg | fifwc-alg-aut-2026-06-27-draw | fifwc-alg-aut-2026-06-27-aut | fifwc-alg-aut-2026-06-27-btts | fifwc-alg-aut-2026-06-27-spread-home-1pt5 | fifwc-alg-aut-2026-06-27-total-1pt5 |
 | M72 | J | Jordan vs. Argentina | fifwc-jor-arg-2026-06-27 | fifwc-jor-arg-2026-06-27-jor | fifwc-jor-arg-2026-06-27-draw | fifwc-jor-arg-2026-06-27-arg | fifwc-jor-arg-2026-06-27-btts | fifwc-jor-arg-2026-06-27-spread-away-2pt5 | fifwc-jor-arg-2026-06-27-total-4pt5 |
 
-## 11. 验收 Checklist
+## 12. 验收 Checklist
 
 Bot 侧接入完成后，至少验证以下 case：
 
@@ -491,5 +588,7 @@ Bot 侧接入完成后，至少验证以下 case：
 - `v1-wd-M12-mla-y`：进入详情页，选中 Tunisia moneyline YES。
 - `v1-wd-M12-to25-n`：进入详情页，选中 total 2.5 NO；如果该盘口不存在，前端 fallback 到默认 total。
 - `v1-wd-M12-btts-y-rAFF2026`：进入详情页，选中 BTTS YES，并捕获 referral。
+- `v1-wd-M12-btts-y-gHctKD5O-rAFF2026`：进入详情页，选中 BTTS YES，捕获 referral，并在 Telegram initData 校验通过后把 `tgChatId=-1001234567890` 写入 `tg_miniapp_context` cookie。
 - 非法 referral，例如 `v1-wl-M12-rAFF-2026`：应被前端忽略，因为 referral 含 `-`。
+- 非法群组参数，例如 `v1-wl-M12-g0`、`v1-wl-M12-gHct-KD5O`：应被前端忽略，服务端也不会从 `start_param` 解出 `tgChatId`。
 - 超过 64 字符的 `start_param`：应被 Bot 侧拒绝，不发送给 Telegram。

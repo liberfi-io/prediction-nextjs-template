@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
+import { parseStartParam } from "src/features/telegram-miniapp/startParam";
 import { verifyTelegramMiniAppInitData } from "src/libs/server/telegramMiniApp";
 
 interface TelegramMiniAppAuthRequest {
   initData?: string;
+  startParam?: string;
 }
 
 const DEFAULT_COOKIE_NAME = "tg_miniapp_context";
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { initData } = (await request.json()) as TelegramMiniAppAuthRequest;
+    const { initData, startParam } = (await request.json()) as TelegramMiniAppAuthRequest;
     if (!initData?.trim()) {
       return NextResponse.json(
         { success: false, error: "Missing Telegram initData" },
@@ -32,13 +34,24 @@ export async function POST(request: NextRequest) {
         DEFAULT_COOKIE_MAX_AGE_SECONDS,
       ),
     });
+    const parsedStartParam = startParam?.trim() ? parseStartParam(startParam) : null;
+    const tgChatId = context.tgChatId ?? parsedStartParam?.tgChatId;
+    const cookieContext = {
+      ...context,
+      ...(tgChatId ? { tgChatId } : {}),
+      ...(parsedStartParam?.tgChatId && !context.tgChatId
+        ? { tgChatSource: "start_param" }
+        : context.tgChatId
+          ? { tgChatSource: "init_data" }
+          : {}),
+    };
 
     const cookieMaxAge = numberFromEnv(
       process.env.TG_MINIAPP_COOKIE_MAX_AGE,
       DEFAULT_COOKIE_MAX_AGE_SECONDS,
     );
     const token = jwt.sign(
-      context,
+      cookieContext,
       process.env.TG_MINIAPP_COOKIE_SECRET || process.env.JWT_SECRET || botToken,
       {
         expiresIn: cookieMaxAge,
@@ -56,8 +69,9 @@ export async function POST(request: NextRequest) {
     });
 
     console.info("telegram miniapp initData verified", {
-      tgUserId: context.tgUserId,
-      tgChatId: context.tgChatId,
+      tgUserId: cookieContext.tgUserId,
+      tgChatId: cookieContext.tgChatId,
+      tgChatSource: cookieContext.tgChatSource,
     });
 
     return response;

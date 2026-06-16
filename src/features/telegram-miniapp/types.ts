@@ -8,6 +8,7 @@ export interface ParsedStartParam {
   target: string;
   market: string | null;
   outcome: TelegramStartOutcome | null;
+  tgChatId: number | null;
   referral: string | null;
 }
 
