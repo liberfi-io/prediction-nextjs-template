@@ -55,6 +55,14 @@ export interface WcOutcome {
   labelTrans?: string;
   /** Probability/price in [0,1]. */
   price: number;
+  /** Provider token id when returned by the BFF. */
+  tokenId?: string;
+  /** Realtime best bid in [0,1]. */
+  bestBid?: number;
+  /** Realtime best ask in [0,1]. */
+  bestAsk?: number;
+  /** Unix milliseconds for the market patch that last touched this outcome. */
+  marketObservedAt?: number;
   /** Optional team code for flag rendering in props. */
   teamCode?: string;
 }

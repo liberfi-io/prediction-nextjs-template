@@ -122,8 +122,69 @@ function groupItemTitle(m: PredictMarket): string {
   return typeof t === "string" ? t : "";
 }
 
+function finitePrice(v: unknown): number | undefined {
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+function samePrice(a: number | undefined, b: number | undefined): boolean {
+  return a !== undefined && b !== undefined && Math.abs(a - b) < 0.000001;
+}
+
+function binaryQuotes(m: PredictMarket):
+  | {
+      yesBid?: number;
+      yesAsk?: number;
+      noBid?: number;
+      noAsk?: number;
+    }
+  | undefined {
+  const yes = m.outcomes?.[0];
+  const no = m.outcomes?.[1];
+  if (!yes || !no) return undefined;
+  return {
+    yesBid: finitePrice(yes.best_bid),
+    yesAsk: finitePrice(yes.best_ask),
+    noBid: finitePrice(no.best_bid),
+    noAsk: finitePrice(no.best_ask),
+  };
+}
+
+/**
+ * Some World Cup snapshots carry impossible binary top-of-book states. When
+ * both outcome books are crossed, recover the YES side from the NO book.
+ */
+function correctedYesAsk(m: PredictMarket): number | undefined {
+  const q = binaryQuotes(m);
+  if (!q) return undefined;
+
+  // Exact duplicates are usually a copied NO book. Buying YES crosses NO bid.
+  if (
+    samePrice(q.yesBid, q.noBid) &&
+    samePrice(q.yesAsk, q.noAsk) &&
+    (q.yesBid ?? 0) > 0.5 &&
+    (q.yesAsk ?? 0) > 0.5
+  ) {
+    return q.noBid !== undefined ? 1 - q.noBid : undefined;
+  }
+
+  // If both bid and ask sums are far above one, the YES snapshot is inverted.
+  // The live YES ask matches the complement of the NO ask in these cases.
+  return (
+    q.yesBid !== undefined &&
+    q.yesAsk !== undefined &&
+    q.noBid !== undefined &&
+    q.noAsk !== undefined &&
+    q.yesBid + q.noBid > 1.1 &&
+    q.yesAsk + q.noAsk > 1.1
+  )
+    ? 1 - q.noAsk
+    : undefined;
+}
+
 /** YES (primary) outcome probability in [0,1]. */
 export function yesPrice(m: PredictMarket): number {
+  const corrected = correctedYesAsk(m);
+  if (corrected !== undefined) return corrected;
   return m.outcomes?.[0]?.price ?? m.outcomes?.[0]?.best_ask ?? 0;
 }
 
@@ -134,6 +195,8 @@ export function yesPrice(m: PredictMarket): number {
  * layered on top for the selected market).
  */
 export function yesAskPrice(m: PredictMarket): number {
+  const corrected = correctedYesAsk(m);
+  if (corrected !== undefined) return corrected;
   return m.outcomes?.[0]?.best_ask ?? m.outcomes?.[0]?.price ?? 0;
 }
 

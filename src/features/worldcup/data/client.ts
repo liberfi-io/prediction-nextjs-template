@@ -44,6 +44,7 @@ export interface WcOutcomeDto {
   /** Localized outcome name for the request language (Convention B). */
   name_trans?: string;
   price?: number;
+  best_bid?: number;
   best_ask?: number;
 }
 
@@ -134,6 +135,36 @@ export interface WorldcupMatchLiveUpdate {
   state: WcMatchLiveStateDto;
 }
 
+export interface WcOutcomePatchDto {
+  token_id?: string;
+  best_bid?: number;
+  best_ask?: number;
+}
+
+export interface WcMarketPatchDto {
+  slug: string;
+  outcomes: WcOutcomePatchDto[] | null;
+  observed_at?: number;
+}
+
+export interface WorldcupMatchMarketUpdate {
+  type: "match_market_update";
+  match_id: string;
+  event_slug: string;
+  markets: WcMarketPatchDto[] | null;
+  ts_ms?: number;
+}
+
+export type WorldcupMarketRealtimeMeta = Record<string, number>;
+
+export interface WorldcupMarketRealtimeState {
+  updates: Record<string, WorldcupMatchMarketUpdate>;
+}
+
+export const EMPTY_WORLDCUP_MARKET_REALTIME: WorldcupMarketRealtimeState = {
+  updates: {},
+};
+
 export type PredictEventWithWorldcupLive = PredictEvent & {
   live_state?: WcMatchLiveStateDto;
   live_videos?: WcMatchLiveVideoDto[] | null;
@@ -170,15 +201,30 @@ function outcomePrice(o?: WcOutcomeDto): number {
   return o ? num(o.price, o.best_ask) : 0;
 }
 
+function outcomeBase(
+  label: string,
+  outcome?: WcOutcomeDto,
+  extra: Partial<WcOutcome> = {},
+): WcOutcome {
+  return {
+    label,
+    labelTrans: outcome?.name_trans,
+    price: outcomePrice(outcome),
+    tokenId: outcome?.token_id,
+    bestBid: outcome?.best_bid,
+    bestAsk: outcome?.best_ask,
+    ...extra,
+  };
+}
+
 /**
  * Price of a binary market's primary ("Yes") side. Polymarket sports markets
  * label the primary outcome with the subject (team / "Draw (...)" / "O/U 2.5")
  * rather than literally "Yes", so we fall back to the first outcome.
  */
-function yesPrice(m: WcMarketDto): number {
+function primaryOutcome(m: WcMarketDto): WcOutcomeDto | undefined {
   const outcomes = m.outcomes ?? [];
-  const yes = outcomes.find((o) => o.name?.toLowerCase() === "yes");
-  return outcomePrice(yes ?? outcomes[0]);
+  return outcomes.find((o) => o.name?.toLowerCase() === "yes") ?? outcomes[0];
 }
 
 /**
@@ -207,32 +253,32 @@ function buildMoneyline(
   home: WcTeam,
   away: WcTeam,
 ): WcMoneyline {
-  let homeP = 0;
-  let drawP = 0;
-  let awayP = 0;
-  const leftover: number[] = [];
+  let homeO: WcOutcomeDto | undefined;
+  let drawO: WcOutcomeDto | undefined;
+  let awayO: WcOutcomeDto | undefined;
+  const leftover: WcOutcomeDto[] = [];
 
   for (const m of markets) {
     if (m.sports_market_type !== SMT_MONEYLINE) continue;
     const title = (m.group_item_title ?? "").trim().toLowerCase();
-    const p = yesPrice(m);
-    if (isDrawTitle(title)) drawP = p;
-    else if (homeKeys.has(title)) homeP = p;
-    else if (awayKeys.has(title)) awayP = p;
-    else leftover.push(p);
+    const outcome = primaryOutcome(m);
+    if (isDrawTitle(title)) drawO = outcome;
+    else if (homeKeys.has(title)) homeO = outcome;
+    else if (awayKeys.has(title)) awayO = outcome;
+    else if (outcome) leftover.push(outcome);
   }
 
   // Assign any unmatched markets to still-empty slots in encounter order.
-  for (const p of leftover) {
-    if (homeP === 0) homeP = p;
-    else if (awayP === 0) awayP = p;
-    else if (drawP === 0) drawP = p;
+  for (const outcome of leftover) {
+    if (!homeO) homeO = outcome;
+    else if (!awayO) awayO = outcome;
+    else if (!drawO) drawO = outcome;
   }
 
   return {
-    home: { label: home.code, teamCode: home.code, price: homeP },
-    draw: { label: "Draw", price: drawP },
-    away: { label: away.code, teamCode: away.code, price: awayP },
+    home: outcomeBase(home.code, homeO, { teamCode: home.code }),
+    draw: outcomeBase("Draw", drawO),
+    away: outcomeBase(away.code, awayO, { teamCode: away.code }),
   };
 }
 
@@ -262,8 +308,8 @@ function buildSpread(
       : best,
   );
   const outs = fav.outcomes ?? [];
-  const coverPrice = outcomePrice(outs[0]); // favourite covers -N.5
-  const otherPrice = outcomePrice(outs[1]); // other team at +N.5
+  const cover = outs[0]; // favourite covers -N.5
+  const other = outs[1]; // other team at +N.5
   const mag = Math.abs(num(fav.line)) || 1.5; // line magnitude, e.g. 1.5
 
   // outcomes[1] is the +N.5 (non-handicapped) side; whichever team it is, the
@@ -274,13 +320,13 @@ function buildSpread(
   return favIsHome
     ? {
         line: -mag,
-        home: { label: home.code, teamCode: home.code, price: coverPrice },
-        away: { label: away.code, teamCode: away.code, price: otherPrice },
+        home: outcomeBase(home.code, cover, { teamCode: home.code }),
+        away: outcomeBase(away.code, other, { teamCode: away.code }),
       }
     : {
         line: mag,
-        home: { label: home.code, teamCode: home.code, price: otherPrice },
-        away: { label: away.code, teamCode: away.code, price: coverPrice },
+        home: outcomeBase(home.code, other, { teamCode: home.code }),
+        away: outcomeBase(away.code, cover, { teamCode: away.code }),
       };
 }
 
@@ -295,16 +341,16 @@ function buildTotal(markets: WcMarketDto[]): WcTotal {
   }
   // The "under" outcome is named explicitly ("Under"); the over side is labelled
   // with the line itself ("O/U 2.5"), so it is simply the non-under outcome.
-  let overP = 0;
-  let underP = 0;
+  let over: WcOutcomeDto | undefined;
+  let under: WcOutcomeDto | undefined;
   for (const o of m.outcomes ?? []) {
-    if ((o.name ?? "").toLowerCase().includes("under")) underP = outcomePrice(o);
-    else overP = outcomePrice(o);
+    if ((o.name ?? "").toLowerCase().includes("under")) under = o;
+    else over = o;
   }
   return {
     line: num(m.line),
-    over: { label: "Over", price: overP },
-    under: { label: "Under", price: underP },
+    over: outcomeBase("Over", over),
+    under: outcomeBase("Under", under),
   };
 }
 
@@ -403,6 +449,363 @@ export function applyLiveStateToMatch(match: WcMatch, state: WcMatchLiveState): 
     liveState: state,
     liveVideos: match.liveVideos,
   };
+}
+
+type PredictOutcome = PredictMarket["outcomes"][number];
+type PredictOutcomeWithToken = PredictOutcome & {
+  token_id?: string;
+  tokenId?: string;
+};
+
+const TRADE_MARKET_KEYS: Array<keyof WcMatchTradeMarkets> = [
+  "moneylineHome",
+  "moneylineDraw",
+  "moneylineAway",
+  "spreadHome",
+  "spreadAway",
+  "spread",
+  "total",
+];
+
+function outcomeTokenID(outcome: PredictOutcome): string | undefined {
+  const withToken = outcome as PredictOutcomeWithToken;
+  return withToken.token_id ?? withToken.tokenId;
+}
+
+function patchForOutcome(
+  outcome: PredictOutcome,
+  patches: WcOutcomePatchDto[],
+  index: number,
+): WcOutcomePatchDto | undefined {
+  const tokenID = outcomeTokenID(outcome);
+  if (tokenID) {
+    const byToken = patches.find((patch) => patch.token_id === tokenID);
+    if (byToken) return byToken;
+  }
+  return patches[index];
+}
+
+function patchPredictMarket(
+  market: PredictMarket,
+  patch: WcMarketPatchDto,
+): { market: PredictMarket; changed: boolean; matched: boolean } {
+  if (market.slug !== patch.slug) {
+    return { market, changed: false, matched: false };
+  }
+
+  const outcomePatches = patch.outcomes ?? [];
+  if (outcomePatches.length === 0 || market.outcomes.length === 0) {
+    return { market, changed: false, matched: true };
+  }
+
+  let changed = false;
+  const outcomes = market.outcomes.map((outcome, index) => {
+    const outcomePatch = patchForOutcome(outcome, outcomePatches, index);
+    if (!outcomePatch) return outcome;
+
+    const nextBid = outcomePatch.best_bid ?? outcome.best_bid;
+    const nextAsk = outcomePatch.best_ask ?? outcome.best_ask;
+    if (nextBid === outcome.best_bid && nextAsk === outcome.best_ask) {
+      return outcome;
+    }
+
+    changed = true;
+    return {
+      ...outcome,
+      best_bid: nextBid,
+      best_ask: nextAsk,
+    };
+  });
+
+  return {
+    market: changed ? { ...market, outcomes } : market,
+    changed,
+    matched: true,
+  };
+}
+
+function patchTradeMarkets(
+  tradeMarkets: WcMatchTradeMarkets | undefined,
+  patches: WcMarketPatchDto[],
+): { tradeMarkets?: WcMatchTradeMarkets; changed: boolean; matched: boolean } {
+  if (!tradeMarkets) {
+    return { tradeMarkets, changed: false, matched: false };
+  }
+
+  let changed = false;
+  let matched = false;
+  let next = tradeMarkets;
+
+  for (const key of TRADE_MARKET_KEYS) {
+    const market = tradeMarkets[key];
+    if (!market) continue;
+    const patch = patches.find((candidate) => candidate.slug === market.slug);
+    if (!patch) continue;
+
+    const result = patchPredictMarket(market, patch);
+    matched = matched || result.matched;
+    if (!result.changed) continue;
+
+    if (next === tradeMarkets) next = { ...tradeMarkets };
+    next[key] = result.market;
+    changed = true;
+  }
+
+  return { tradeMarkets: next, changed, matched };
+}
+
+function patchTradeEvent(
+  event: PredictEvent | undefined,
+  patches: WcMarketPatchDto[],
+): { event?: PredictEvent; changed: boolean; matched: boolean } {
+  const markets = event?.markets;
+  if (!event || !markets?.length) {
+    return { event, changed: false, matched: false };
+  }
+
+  let changed = false;
+  let matched = false;
+  const nextMarkets = markets.map((market) => {
+    const patch = patches.find((candidate) => candidate.slug === market.slug);
+    if (!patch) return market;
+
+    const result = patchPredictMarket(market, patch);
+    matched = matched || result.matched;
+    changed = changed || result.changed;
+    return result.market;
+  });
+
+  return {
+    event: changed ? { ...event, markets: nextMarkets } : event,
+    changed,
+    matched,
+  };
+}
+
+function predictOutcomePrice(outcome: PredictOutcome | undefined, fallback: number): number {
+  return outcome ? num(outcome.best_ask, outcome.price, fallback) : fallback;
+}
+
+function wcOutcomeFromPredict(
+  current: WcOutcome,
+  outcome: PredictOutcome | undefined,
+  observedAt?: number,
+): WcOutcome {
+  if (!outcome) return current;
+  return {
+    ...current,
+    price: predictOutcomePrice(outcome, current.price),
+    bestBid: outcome.best_bid ?? current.bestBid,
+    bestAsk: outcome.best_ask ?? current.bestAsk,
+    marketObservedAt: observedAt ?? current.marketObservedAt,
+  };
+}
+
+function latestObservedAtFor(
+  market: PredictMarket | undefined,
+  observedBySlug: Record<string, number>,
+): number | undefined {
+  return market ? observedBySlug[market.slug] : undefined;
+}
+
+function refreshCardOddsFromTradeMarkets(
+  match: WcMatch,
+  observedBySlug: Record<string, number>,
+): WcMatch {
+  const tradeMarkets = match.tradeMarkets;
+  if (!tradeMarkets) return match;
+
+  const moneylineHomeObservedAt = latestObservedAtFor(
+    tradeMarkets.moneylineHome,
+    observedBySlug,
+  );
+  const moneylineDrawObservedAt = latestObservedAtFor(
+    tradeMarkets.moneylineDraw,
+    observedBySlug,
+  );
+  const moneylineAwayObservedAt = latestObservedAtFor(
+    tradeMarkets.moneylineAway,
+    observedBySlug,
+  );
+  const spreadMarket =
+    match.spread.line < 0 ? tradeMarkets.spreadHome : tradeMarkets.spreadAway;
+  const spreadObservedAt = latestObservedAtFor(spreadMarket, observedBySlug);
+  const totalObservedAt = latestObservedAtFor(tradeMarkets.total, observedBySlug);
+
+  return {
+    ...match,
+    moneyline: {
+      home: wcOutcomeFromPredict(
+        match.moneyline.home,
+        tradeMarkets.moneylineHome?.outcomes[0],
+        moneylineHomeObservedAt,
+      ),
+      draw: wcOutcomeFromPredict(
+        match.moneyline.draw,
+        tradeMarkets.moneylineDraw?.outcomes[0],
+        moneylineDrawObservedAt,
+      ),
+      away: wcOutcomeFromPredict(
+        match.moneyline.away,
+        tradeMarkets.moneylineAway?.outcomes[0],
+        moneylineAwayObservedAt,
+      ),
+    },
+    spread: {
+      ...match.spread,
+      home: wcOutcomeFromPredict(
+        match.spread.home,
+        spreadMarket?.outcomes[match.spread.line < 0 ? 0 : 1],
+        spreadObservedAt,
+      ),
+      away: wcOutcomeFromPredict(
+        match.spread.away,
+        spreadMarket?.outcomes[match.spread.line < 0 ? 1 : 0],
+        spreadObservedAt,
+      ),
+    },
+    total: {
+      ...match.total,
+      over: wcOutcomeFromPredict(
+        match.total.over,
+        tradeMarkets.total?.outcomes[0],
+        totalObservedAt,
+      ),
+      under: wcOutcomeFromPredict(
+        match.total.under,
+        tradeMarkets.total?.outcomes[1],
+        totalObservedAt,
+      ),
+    },
+  };
+}
+
+function patchObservedAt(
+  update: WorldcupMatchMarketUpdate,
+  patch: WcMarketPatchDto,
+): number {
+  return patch.observed_at ?? update.ts_ms ?? Date.now();
+}
+
+export function applyMarketUpdateToMatches(
+  matches: WcMatch[],
+  update: WorldcupMatchMarketUpdate,
+  meta: WorldcupMarketRealtimeMeta,
+): { matches: WcMatch[]; meta: WorldcupMarketRealtimeMeta } {
+  const patches = update.markets ?? [];
+  if (patches.length === 0) return { matches, meta };
+
+  let nextMeta = meta;
+  let changedAnyMatch = false;
+
+  const nextMatches = matches.map((match) => {
+    if (match.matchId !== update.match_id) return match;
+
+    const eligiblePatches = patches.filter((patch) => {
+      if (!patch.slug) return false;
+      const key = `${match.matchId}:${patch.slug}`;
+      const currentObservedAt = meta[key];
+      const incomingObservedAt = patchObservedAt(update, patch);
+      return !currentObservedAt || incomingObservedAt >= currentObservedAt;
+    });
+    if (eligiblePatches.length === 0) return match;
+
+    const tradeMarketsResult = patchTradeMarkets(match.tradeMarkets, eligiblePatches);
+    const tradeEventResult = patchTradeEvent(match.tradeEvent, eligiblePatches);
+    const matched = tradeMarketsResult.matched || tradeEventResult.matched;
+    if (!matched) return match;
+
+    const observedBySlug: Record<string, number> = {};
+    for (const patch of eligiblePatches) {
+      const observedAt = patchObservedAt(update, patch);
+      observedBySlug[patch.slug] = observedAt;
+      const key = `${match.matchId}:${patch.slug}`;
+      if (nextMeta === meta) nextMeta = { ...meta };
+      nextMeta[key] = observedAt;
+    }
+
+    if (!tradeMarketsResult.changed && !tradeEventResult.changed) {
+      return match;
+    }
+
+    const nextMatch = tradeMarketsResult.changed
+      ? refreshCardOddsFromTradeMarkets(
+          {
+            ...match,
+            tradeMarkets: tradeMarketsResult.tradeMarkets,
+            tradeEvent: tradeEventResult.event,
+          },
+          observedBySlug,
+        )
+      : {
+          ...match,
+          tradeEvent: tradeEventResult.event,
+        };
+    changedAnyMatch = true;
+    return nextMatch;
+  });
+
+  return {
+    matches: changedAnyMatch ? nextMatches : matches,
+    meta: nextMeta,
+  };
+}
+
+function realtimePatchObservedAt(
+  update: WorldcupMatchMarketUpdate,
+  patch: WcMarketPatchDto,
+): number {
+  return patch.observed_at ?? update.ts_ms ?? 0;
+}
+
+export function mergeMarketRealtimeState(
+  current: WorldcupMarketRealtimeState,
+  update: WorldcupMatchMarketUpdate,
+): WorldcupMarketRealtimeState {
+  const incomingPatches = update.markets ?? [];
+  if (!update.match_id || incomingPatches.length === 0) return current;
+
+  const existing = current.updates[update.match_id];
+  const bySlug = new Map<string, WcMarketPatchDto>();
+  for (const patch of existing?.markets ?? []) {
+    if (patch.slug) bySlug.set(patch.slug, patch);
+  }
+
+  let changed = false;
+  for (const patch of incomingPatches) {
+    if (!patch.slug) continue;
+    const previous = bySlug.get(patch.slug);
+    const incomingAt = realtimePatchObservedAt(update, patch);
+    const previousAt = previous
+      ? realtimePatchObservedAt(existing ?? update, previous)
+      : 0;
+    if (!previous || incomingAt >= previousAt) {
+      bySlug.set(patch.slug, patch);
+      changed = true;
+    }
+  }
+  if (!changed) return current;
+
+  return {
+    updates: {
+      ...current.updates,
+      [update.match_id]: {
+        ...update,
+        markets: [...bySlug.values()],
+      },
+    },
+  };
+}
+
+export function applyMarketRealtimeToMatches(
+  matches: WcMatch[],
+  state: WorldcupMarketRealtimeState,
+): WcMatch[] {
+  let next = matches;
+  for (const update of Object.values(state.updates)) {
+    next = applyMarketUpdateToMatches(next, update, {}).matches;
+  }
+  return next;
 }
 
 function adaptMatch(dto: WcMatchDto): WcMatch {
@@ -864,8 +1267,8 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
     const no = byName.get("no");
     // Yes/No are deterministic — translated client-side via i18n, not *_trans.
     outcomes = [
-      { label: "Yes", price: yes?.price ?? 0 },
-      { label: "No", price: no?.price ?? 0 },
+      outcomeBase("Yes", yes),
+      outcomeBase("No", no),
     ];
   } else {
     // Multi-candidate: one outcome per market (its candidate side), desc price.
@@ -878,10 +1281,9 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
         const label = m.group_item_title || lead.name;
         const team = getTeamByName(label);
         return {
-          label,
+          ...outcomeBase(label, lead),
           labelTrans: m.group_item_title_trans ?? lead.name_trans,
           teamCode: team?.code,
-          price: lead.price ?? 0,
         };
       })
       .filter((o): o is WcOutcome => o !== null)

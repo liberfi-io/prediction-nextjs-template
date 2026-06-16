@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn, toast } from "@liberfi.io/ui";
-import { applyLiveStateToMatch } from "../../data/client";
-import { useWorldcupLiveUpdates } from "../../data/live";
+import {
+  applyLiveStateToMatch,
+  applyMarketRealtimeToMatches,
+} from "../../data/client";
+import { useWorldcupRealtime } from "../../data/live";
 import { useWorldcupMatches, useWorldcupMatchEvent } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -258,14 +261,16 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   } = useWorldcupMatchEvent(
     tradeRequest?.event && tradeRequest.market ? "" : tradeRequest?.match.slug ?? "",
   );
-  const liveStates = useWorldcupLiveUpdates();
+  const { liveStates, marketState } = useWorldcupRealtime();
   const matches = useMemo(
-    () =>
-      rawMatches.map((m) => {
+    () => {
+      const marketMatches = applyMarketRealtimeToMatches(rawMatches, marketState);
+      return marketMatches.map((m) => {
         const liveState = liveStates[m.matchId];
         return liveState ? applyLiveStateToMatch(m, liveState) : m;
-      }),
-    [rawMatches, liveStates]
+      });
+    },
+    [rawMatches, liveStates, marketState]
   );
 
   const effectiveGroupBy = todayOnly ? "time" : groupBy;

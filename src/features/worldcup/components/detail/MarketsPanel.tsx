@@ -222,6 +222,13 @@ function GroupRow({
       : yesAskPrice(active.market);
   const odds = convertPrice(priceUnit, format);
   const single = options.length === 1;
+  const optionOdds = (option: MarketOption): string => {
+    const optionPrice =
+      option.market.slug === selectedSlug && liveSelectedPrice != null
+        ? liveSelectedPrice
+        : yesAskPrice(option.market);
+    return convertPrice(optionPrice, format);
+  };
 
   return (
     <div className="rounded-[10px] border border-zinc-800/70 bg-zinc-900/40 p-2.5">
@@ -244,13 +251,23 @@ function GroupRow({
           type="button"
           onClick={() => onSelect(options[0].market.slug)}
           className={cn(
-            "w-full rounded-[8px] border px-2.5 py-1.5 text-left text-xs font-medium transition-colors cursor-pointer",
+            "flex w-full items-center justify-between gap-2 rounded-[8px] border px-2.5 py-1.5 text-left text-xs font-medium transition-colors cursor-pointer",
             options[0].market.slug === selectedSlug
               ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
               : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
           )}
         >
-          {options[0].label}
+          <span className="min-w-0 truncate">{options[0].label}</span>
+          <span
+            className={cn(
+              "shrink-0 text-[10px] font-semibold tabular-nums",
+              options[0].market.slug === selectedSlug
+                ? "text-[#c7ff2e]/70"
+                : "text-zinc-500",
+            )}
+          >
+            {optionOdds(options[0])}
+          </span>
         </button>
       ) : (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -262,13 +279,21 @@ function GroupRow({
                 type="button"
                 onClick={() => onSelect(o.market.slug)}
                 className={cn(
-                  "shrink-0 rounded-[8px] border px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors cursor-pointer",
+                  "flex shrink-0 items-baseline gap-1.5 rounded-[8px] border px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors cursor-pointer",
                   selected
                     ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
                     : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
                 )}
               >
-                {o.label}
+                <span>{o.label}</span>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium",
+                    selected ? "text-[#c7ff2e]/70" : "text-zinc-500",
+                  )}
+                >
+                  {optionOdds(o)}
+                </span>
               </button>
             );
           })}

@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   adaptLiveState,
+  EMPTY_WORLDCUP_MARKET_REALTIME,
+  mergeMarketRealtimeState,
+  type WorldcupMarketRealtimeState,
+  type WorldcupMatchMarketUpdate,
   type WorldcupMatchLiveUpdate,
 } from "./client";
 import type { WcMatchLiveState } from "../types";
@@ -28,6 +32,15 @@ function isLiveUpdate(value: unknown): value is WorldcupMatchLiveUpdate {
   );
 }
 
+function isMarketUpdate(value: unknown): value is WorldcupMatchMarketUpdate {
+  const update = value as WorldcupMatchMarketUpdate;
+  return (
+    update?.type === "match_market_update" &&
+    typeof update.match_id === "string" &&
+    Array.isArray(update.markets)
+  );
+}
+
 function shouldReplace(
   current: WcMatchLiveState | undefined,
   incoming: WcMatchLiveState,
@@ -39,8 +52,16 @@ function shouldReplace(
   return incomingMs >= currentMs;
 }
 
-export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
+export interface WorldcupRealtimeState {
+  liveStates: Record<string, WcMatchLiveState>;
+  marketState: WorldcupMarketRealtimeState;
+}
+
+export function useWorldcupRealtime(): WorldcupRealtimeState {
   const [states, setStates] = useState<Record<string, WcMatchLiveState>>({});
+  const [marketState, setMarketState] = useState<WorldcupMarketRealtimeState>(
+    EMPTY_WORLDCUP_MARKET_REALTIME,
+  );
 
   useEffect(() => {
     const url = centrifugoURL();
@@ -61,6 +82,10 @@ export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
       });
     };
 
+    const applyMarketUpdate = (update: WorldcupMatchMarketUpdate) => {
+      setMarketState((current) => mergeMarketRealtimeState(current, update));
+    };
+
     const connect = () => {
       ws = new WebSocket(url);
       ws.onopen = () => {
@@ -76,7 +101,13 @@ export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
             return;
           }
           const data = msg.push?.pub?.data;
-          if (isLiveUpdate(data)) applyUpdate(data);
+          if (isLiveUpdate(data)) {
+            applyUpdate(data);
+            return;
+          }
+          if (isMarketUpdate(data)) {
+            applyMarketUpdate(data);
+          }
         } catch {
           // Ignore malformed realtime frames.
         }
@@ -101,5 +132,9 @@ export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
     };
   }, []);
 
-  return states;
+  return { liveStates: states, marketState };
+}
+
+export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
+  return useWorldcupRealtime().liveStates;
 }
