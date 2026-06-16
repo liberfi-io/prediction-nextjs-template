@@ -43,6 +43,7 @@ import { hasLiveVideos } from "../games/LiveStreamPanel";
 import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
 import { MatchBanner } from "./MatchBanner";
 import { MatchCenterTabs } from "./MatchCenterTabs";
+import { OddsFormatSelect } from "../OddsFormatSelect";
 import { MarketsPanel } from "./MarketsPanel";
 import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
@@ -470,6 +471,7 @@ export function WorldCupDetailPage({
               <MarketSwitcherFrame
                 title={t("extend.worldcup.detail.markets.title")}
                 onClose={() => setMarketsSheetOpen(false)}
+                actionBefore={<OddsFormatSelect />}
                 className="max-h-[80dvh] border-0 bg-transparent"
               >
                 <MarketsPanel
@@ -545,6 +547,7 @@ export function WorldCupDetailPage({
                   <UiPinIcon className="h-3.5 w-3.5" />
                 )
               }
+              actionBefore={<OddsFormatSelect />}
               className="max-h-[70vh]"
             >
               <MarketsPanel
@@ -567,6 +570,7 @@ export function WorldCupDetailPage({
               onAction={() => setMarketPanelPinned(false)}
               actionLabel={t("extend.worldcup.detail.markets.unpin")}
               actionIcon={<UnPinIcon className="h-3.5 w-3.5" />}
+              actionBefore={<OddsFormatSelect />}
               className="w-full xl:h-full xl:w-[320px]"
             >
               <MarketsPanel
@@ -650,6 +654,7 @@ function MarketSwitcherFrame({
   onAction,
   actionLabel,
   actionIcon,
+  actionBefore,
   className,
   children,
 }: {
@@ -658,6 +663,7 @@ function MarketSwitcherFrame({
   onAction?: () => void;
   actionLabel?: string;
   actionIcon?: ReactNode;
+  actionBefore?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
@@ -670,17 +676,22 @@ function MarketSwitcherFrame({
         className,
       )}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-3 py-2.5">
-        <span className="text-sm font-semibold text-zinc-100">{title}</span>
-        <button
-          type="button"
-          onClick={onAction ?? onClose}
-          aria-label={buttonLabel}
-          title={buttonLabel}
-          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-        >
-          {actionIcon ?? <CloseIcon />}
-        </button>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-100">
+          {title}
+        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {actionBefore}
+          <button
+            type="button"
+            onClick={onAction ?? onClose}
+            aria-label={buttonLabel}
+            title={buttonLabel}
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+          >
+            {actionIcon ?? <CloseIcon />}
+          </button>
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
