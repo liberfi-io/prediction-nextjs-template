@@ -312,8 +312,7 @@
       "oddsFormat": {
         "price": "Цена",
         "percentage": "Процент",
-        "decimal": "Десятичный",
-        "european": "Европейский",
+        "decimal": "Европейский",
         "american": "Американский",
         "fractional": "Дробный",
         "hongKong": "Гонконгский",

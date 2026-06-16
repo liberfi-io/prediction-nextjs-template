@@ -312,8 +312,7 @@
       "oddsFormat": {
         "price": "Preis",
         "percentage": "Prozentsatz",
-        "decimal": "Dezimal",
-        "european": "Europäisch",
+        "decimal": "Europäisch",
         "american": "Amerikanisch",
         "fractional": "Bruchteil",
         "hongKong": "HK",

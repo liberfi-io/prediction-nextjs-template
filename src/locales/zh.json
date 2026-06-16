@@ -279,8 +279,7 @@
       "oddsFormat": {
         "price": "價格",
         "percentage": "百分比",
-        "decimal": "小數",
-        "european": "欧式",
+        "decimal": "欧式",
         "american": "美式",
         "fractional": "分數",
         "hongKong": "香港",

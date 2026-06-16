@@ -3,7 +3,7 @@
  *
  * Ported from the reverse-engineered Polymarket bundle (see
  * `.plans/worldcup/research/01-odds-format-source.md`). A probability/price
- * `p ∈ (0,1)` is converted into one of 9 display formats. The math mirrors
+ * `p ∈ (0,1)` is converted into one of 8 display formats. The math mirrors
  * Polymarket's `convertPrice` so our numbers match theirs 1:1.
  */
 
@@ -11,7 +11,6 @@ export const ODDS_FORMATS = [
   "price",
   "percentage",
   "decimal",
-  "european",
   "american",
   "fractional",
   "hongKong",
@@ -25,7 +24,6 @@ export const ODDS_FORMAT_LABELS: Record<OddsFormat, string> = {
   price: "Price",
   percentage: "Percentage",
   decimal: "Decimal",
-  european: "European",
   american: "American",
   fractional: "Fractional",
   hongKong: "Hong Kong",
@@ -117,8 +115,7 @@ export function convertPrice(
   switch (outputMode) {
     case "american":
       return americanFromPrice(p, 0) ?? `${centsInt(p)}¢`;
-    case "decimal":
-    case "european": {
+    case "decimal": {
       const t = parsePrice(p);
       if (t == null || t === 0) return `${centsInt(p)}¢`;
       return fmt(1 / t, precision === 3 ? 3 : 2);

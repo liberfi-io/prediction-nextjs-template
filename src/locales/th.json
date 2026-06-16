@@ -310,8 +310,7 @@
       "oddsFormat": {
         "price": "ราคา",
         "percentage": "เปอร์เซ็นต์",
-        "decimal": "ทศนิยม",
-        "european": "ยุโรป",
+        "decimal": "ยุโรป",
         "american": "อเมริกัน",
         "fractional": "เศษส่วน",
         "hongKong": "ฮ่องกง",

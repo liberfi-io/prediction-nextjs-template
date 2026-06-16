@@ -310,8 +310,7 @@
       "oddsFormat": {
         "price": "Giá",
         "percentage": "Phần trăm",
-        "decimal": "Thập phân",
-        "european": "Châu Âu",
+        "decimal": "Châu Âu",
         "american": "Mỹ",
         "fractional": "Phân số",
         "hongKong": "HK",
