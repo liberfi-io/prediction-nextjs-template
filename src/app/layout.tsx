@@ -10,6 +10,9 @@ import { TelegramMiniAppSessionSync } from "../components/TelegramMiniAppSession
 import { initServerI18n } from "../i18n/initServerI18n";
 import { detectLanguage } from "../i18n/detectLanguage";
 
+const GA_MEASUREMENT_ID =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-482RQNZD1J";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -97,9 +100,7 @@ export default async function RootLayout({
         <AppLayout locale={locale}>{children}</AppLayout>
         <TelegramMiniAppSessionSync />
         {process.env.NODE_ENV === "production" && (
-          <GoogleAnalytics
-            GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
-          />
+          <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         )}
       </body>
     </html>

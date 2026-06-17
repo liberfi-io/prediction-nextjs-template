@@ -1,11 +1,25 @@
-"use client";
-
 import Script from "next/script";
 
-export function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_ID?: string }) {
+const GA_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]+$/;
+
+interface GoogleAnalyticsProps {
+  measurementId?: string;
+}
+
+/**
+ * Loads Google Analytics after the page has finished its critical work.
+ */
+export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
+  if (!measurementId || !GA_MEASUREMENT_ID_PATTERN.test(measurementId)) {
+    return null;
+  }
+
   return (
     <>
-      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
+      <Script
+        strategy="lazyOnload"
+        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+      />
       <Script
         strategy="lazyOnload"
         id="google-analytics"
@@ -14,10 +28,10 @@ export function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_ID?: str
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
+            gtag('config', '${measurementId}');
         `,
         }}
-      ></Script>
+      />
     </>
   );
 }
