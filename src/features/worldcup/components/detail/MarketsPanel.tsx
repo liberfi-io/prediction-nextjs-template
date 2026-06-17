@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
@@ -23,6 +23,7 @@ import {
   type MarketCategory,
   type MarketGroup,
   type MarketOption,
+  allGroups,
   findSelection,
   yesPrice,
   yesAskPrice,
@@ -118,9 +119,36 @@ export function MarketsPanel({
     }
     return [...bySlug.values()];
   }, [activeOnly, groups]);
+  // Every open market of the match, across all category tabs. Feeding the whole
+  // set to the price hook means switching tabs needs no fresh subscribe/fetch —
+  // the prices are already live and seeded.
+  const allOpenMarkets = useMemo(() => {
+    const bySlug = new Map<string, MarketOption["market"]>();
+    for (const group of allGroups(cats)) {
+      for (const option of group.options) {
+        if (option.market.status === "open") {
+          bySlug.set(option.market.slug, option.market);
+        }
+      }
+    }
+    return [...bySlug.values()];
+  }, [cats]);
+  // Markets in the current tab — seeded first so the visible tab fills before
+  // the rest stream in behind it.
+  const prioritySlugs = useMemo(
+    () =>
+      new Set(
+        visibleMarkets
+          .filter((market) => market.status === "open")
+          .map((market) => market.slug),
+      ),
+    [visibleMarkets],
+  );
   const orderbookPricesBySlug = useVisibleOrderbookPrices(
-    visibleMarkets,
+    allOpenMarkets,
     selectedMarket?.slug,
+    liveSelectedPrice,
+    prioritySlugs,
   );
 
   const sortOptions = (options: MarketOption[]): MarketOption[] => {
@@ -211,7 +239,6 @@ export function MarketsPanel({
             group={group}
             options={sortOptions(group.options)}
             selectedSlug={selectedSlug}
-            liveSelectedPrice={liveSelectedPrice}
             orderbookPricesBySlug={orderbookPricesBySlug}
             onSelect={onSelect}
             label={t(`extend.worldcup.detail.markets.type.${group.type_label}`)}
@@ -222,24 +249,38 @@ export function MarketsPanel({
   );
 }
 
+const SEED_CONCURRENCY = 6;
+
+/**
+ * Tracks the live YES best-ask for every open market of the match.
+ *
+ * All open markets (across category tabs) are subscribed at once and seeded via
+ * REST with bounded concurrency, so switching tabs needs no fresh
+ * subscribe/fetch — every market is already live and seeded. The selected
+ * market is excluded from the WS subscription (its book is owned by
+ * useRealtimeOrderbook / MobileTradeBar on the shared, un-ref-counted client)
+ * and instead has its live price mirrored into the map via `selectedPrice`.
+ */
 function useVisibleOrderbookPrices(
-  visibleMarkets: MarketOption["market"][],
+  markets: MarketOption["market"][],
   selectedSlug?: string,
+  selectedPrice?: number | null,
+  prioritySlugs?: Set<string>,
 ): Map<string, number> {
   const predictClient = usePredictClient();
   const { wsClient } = usePredictWsClient();
   const [pricesBySlug, setPricesBySlug] = useState<Map<string, number>>(
     () => new Map(),
   );
-  // Slugs already covered by a REST snapshot. Lets list changes fetch only the
-  // markets that newly entered the visible set instead of refetching all.
+  // Slugs already covered by a REST snapshot, so the seed only ever fetches a
+  // market once.
   const seededSlugsRef = useRef<Set<string>>(new Set());
 
   // Content-addressed list of (slug, source) pairs to track. Sorting + the JSON
   // round-trip yields a referentially stable value that only changes when the
   // actual set of markets changes, not on every parent re-render.
   const subscribedMarketsKey = useMemo(() => {
-    const markets = visibleMarkets
+    const list = markets
       .filter(
         (market) => market.status === "open" && market.slug !== selectedSlug,
       )
@@ -248,8 +289,8 @@ function useVisibleOrderbookPrices(
         source: (market.source ?? "polymarket") as ProviderSource,
       }))
       .sort((a, b) => a.slug.localeCompare(b.slug));
-    return JSON.stringify(markets);
-  }, [selectedSlug, visibleMarkets]);
+    return JSON.stringify(list);
+  }, [markets, selectedSlug]);
   const subscribedMarkets = useMemo(
     () =>
       JSON.parse(subscribedMarketsKey) as {
@@ -258,93 +299,97 @@ function useVisibleOrderbookPrices(
       }[],
     [subscribedMarketsKey],
   );
-  const subscribedSlugs = useMemo(
-    () => subscribedMarkets.map((market) => market.slug),
+  const subscribedSlugSet = useMemo(
+    () => new Set(subscribedMarkets.map((market) => market.slug)),
     [subscribedMarkets],
   );
-  const subscribedSlugSet = useMemo(
-    () => new Set(subscribedSlugs),
-    [subscribedSlugs],
-  );
 
-  // Live WS snapshots are authoritative; they always replace the local price.
-  const handleUpdate = useCallback(
-    (msg: WsDataMessage<WsOrderbookEvent>) => {
-      const slug = msg.data.market_slug;
-      if (!subscribedSlugSet.has(slug) || msg.data.outcome !== "yes") return;
+  // Latest valid-slug set, read by the long-lived WS listener so it does not
+  // re-register on every selection/category change.
+  const subscribedSlugSetRef = useRef(subscribedSlugSet);
+  subscribedSlugSetRef.current = subscribedSlugSet;
 
-      const orderbook: Orderbook = {
-        market_id: slug,
-        outcome: "yes",
-        bids: msg.data.bids,
-        asks: msg.data.asks,
-        spread: msg.data.spread,
-      };
-
-      const ask = pickBestAsk(orderbook, "yes");
-      setPricesBySlug((prev) => {
-        const next = new Map(prev);
-        if (ask != null && ask > 0) {
-          next.set(slug, ask);
-        } else {
-          next.delete(slug);
-        }
-        return next;
-      });
-    },
-    [subscribedSlugSet],
-  );
-
-  // REST seed: fetch an initial snapshot for newly visible markets so prices
-  // render before the first WS push (and as a fallback when WS is down). The
-  // seed never overwrites a slug that already has a price, so a late-arriving
-  // snapshot can't clobber a fresher WS value.
+  // REST seed: the server pushes no snapshot on subscribe, so fetch one for
+  // every not-yet-seeded market to render before the first WS push (and as a
+  // fallback when WS is down). Bounded concurrency keeps the burst small; the
+  // active tab is fetched first so it fills immediately while the rest stream in
+  // behind it. The seed never overwrites a slug that already has a (fresher) WS
+  // value.
   useEffect(() => {
-    const toSeed = subscribedMarkets.filter(
+    const pending = subscribedMarkets.filter(
       (market) => !seededSlugsRef.current.has(market.slug),
     );
-    if (toSeed.length === 0) return;
+    if (pending.length === 0) return;
+    pending.sort((a, b) => {
+      const pa = prioritySlugs?.has(a.slug) ? 0 : 1;
+      const pb = prioritySlugs?.has(b.slug) ? 0 : 1;
+      return pa - pb;
+    });
+
     let cancelled = false;
+    let cursor = 0;
+
+    const applySeed = (slug: string, price: number | null) => {
+      seededSlugsRef.current.add(slug);
+      if (cancelled || price == null || price <= 0) return;
+      setPricesBySlug((prev) => {
+        if (prev.has(slug)) return prev;
+        const next = new Map(prev);
+        next.set(slug, price);
+        return next;
+      });
+    };
+
+    const worker = async () => {
+      while (!cancelled) {
+        const index = cursor++;
+        if (index >= pending.length) return;
+        const market = pending[index];
+        try {
+          const orderbook = await predictClient.getOrderbook(
+            market.slug,
+            market.source,
+            "yes",
+          );
+          const price =
+            orderbook.market_id === market.slug && orderbook.outcome === "yes"
+              ? pickBestAsk(orderbook, "yes")
+              : null;
+          applySeed(market.slug, price);
+        } catch {
+          applySeed(market.slug, null);
+        }
+      }
+    };
 
     void Promise.allSettled(
-      toSeed.map(async (market) => {
-        const orderbook = await predictClient.getOrderbook(
-          market.slug,
-          market.source,
-          "yes",
-        );
-        if (orderbook.market_id !== market.slug || orderbook.outcome !== "yes") {
-          return { slug: market.slug, price: null };
-        }
-        return { slug: market.slug, price: pickBestAsk(orderbook, "yes") };
-      }),
-    ).then((results) => {
-      if (cancelled) return;
-      setPricesBySlug((prev) => {
-        let changed = false;
-        const next = new Map(prev);
-        for (const result of results) {
-          if (result.status !== "fulfilled") continue;
-          const { slug, price } = result.value;
-          seededSlugsRef.current.add(slug);
-          // A live WS value already won — never overwrite it with the snapshot.
-          if (next.has(slug)) continue;
-          if (price != null && price > 0) {
-            next.set(slug, price);
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    });
+      Array.from({ length: Math.min(SEED_CONCURRENCY, pending.length) }, () =>
+        worker(),
+      ),
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [predictClient, subscribedMarkets]);
+  }, [predictClient, prioritySlugs, subscribedMarkets]);
 
-  // Drop prices (and seed tracking) for markets no longer subscribed, so a slug
-  // that leaves and later returns is re-seeded with a fresh snapshot.
+  // Mirror the selected market's live best-ask into the same map so the panel
+  // reads one price source for every market. This keeps the price continuous
+  // when a market toggles between selected and visible, instead of briefly
+  // dropping to the stale static snapshot.
+  useEffect(() => {
+    if (!selectedSlug || selectedPrice == null || selectedPrice <= 0) return;
+    setPricesBySlug((prev) => {
+      if (prev.get(selectedSlug) === selectedPrice) return prev;
+      const next = new Map(prev);
+      next.set(selectedSlug, selectedPrice);
+      return next;
+    });
+  }, [selectedSlug, selectedPrice]);
+
+  // Drop prices (and seed tracking) for markets that left the match's set. The
+  // selected slug is retained even though it is excluded from the subscription,
+  // so its last live price survives until it rejoins.
   useEffect(() => {
     seededSlugsRef.current.forEach((slug) => {
       if (!subscribedSlugSet.has(slug)) seededSlugsRef.current.delete(slug);
@@ -353,7 +398,7 @@ function useVisibleOrderbookPrices(
       let changed = false;
       const next = new Map<string, number>();
       prev.forEach((price, slug) => {
-        if (subscribedSlugSet.has(slug)) {
+        if (subscribedSlugSet.has(slug) || slug === selectedSlug) {
           next.set(slug, price);
           return;
         }
@@ -361,12 +406,72 @@ function useVisibleOrderbookPrices(
       });
       return changed ? next : prev;
     });
-  }, [subscribedSlugSet]);
+  }, [selectedSlug, subscribedSlugSet]);
 
+  // Long-lived WS listener, registered once per client. Reads the valid-slug
+  // set from a ref so it survives selection/category changes without
+  // re-subscribing.
   useEffect(() => {
-    if (!wsClient || subscribedSlugs.length === 0) return;
-    return wsClient.subscribeOrderbook(subscribedSlugs, handleUpdate);
-  }, [handleUpdate, subscribedSlugs, wsClient]);
+    if (!wsClient) return;
+    return wsClient.on("orderbook", (msg: WsDataMessage<WsOrderbookEvent>) => {
+      const slug = msg.data.market_slug;
+      if (
+        !subscribedSlugSetRef.current.has(slug) ||
+        msg.data.outcome !== "yes"
+      ) {
+        return;
+      }
+      const orderbook: Orderbook = {
+        market_id: slug,
+        outcome: "yes",
+        bids: msg.data.bids,
+        asks: msg.data.asks,
+        spread: msg.data.spread,
+      };
+      const ask = pickBestAsk(orderbook, "yes");
+      setPricesBySlug((prev) => {
+        if (ask == null || ask <= 0) {
+          if (!prev.has(slug)) return prev;
+          const next = new Map(prev);
+          next.delete(slug);
+          return next;
+        }
+        if (prev.get(slug) === ask) return prev;
+        const next = new Map(prev);
+        next.set(slug, ask);
+        return next;
+      });
+    });
+  }, [wsClient]);
+
+  // Delta (un)subscribe: a selection or category change only toggles the slugs
+  // that actually entered/left the set instead of re-subscribing every market.
+  const wsSubscribedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!wsClient) return;
+    const current = wsSubscribedRef.current;
+    const added: string[] = [];
+    const removed: string[] = [];
+    subscribedSlugSet.forEach((slug) => {
+      if (!current.has(slug)) added.push(slug);
+    });
+    current.forEach((slug) => {
+      if (!subscribedSlugSet.has(slug)) removed.push(slug);
+    });
+    if (added.length > 0) wsClient.subscribe(["orderbook"], added);
+    if (removed.length > 0) wsClient.unsubscribe(["orderbook"], removed);
+    wsSubscribedRef.current = new Set(subscribedSlugSet);
+  }, [subscribedSlugSet, wsClient]);
+
+  // Tear down every subscription when the client changes or the panel unmounts.
+  useEffect(() => {
+    if (!wsClient) return;
+    return () => {
+      const all = Array.from(wsSubscribedRef.current);
+      if (all.length > 0) wsClient.unsubscribe(["orderbook"], all);
+      wsSubscribedRef.current = new Set();
+    };
+  }, [wsClient]);
 
   return pricesBySlug;
 }
@@ -375,7 +480,6 @@ function GroupRow({
   group,
   options,
   selectedSlug,
-  liveSelectedPrice,
   orderbookPricesBySlug,
   onSelect,
   label,
@@ -383,8 +487,6 @@ function GroupRow({
   group: MarketGroup;
   options: MarketOption[];
   selectedSlug: string;
-  /** Live YES best-ask (0–1) for the currently selected market, if any. */
-  liveSelectedPrice: number | null;
   orderbookPricesBySlug: Map<string, number>;
   onSelect: (slug: string) => void;
   label: string;
@@ -394,19 +496,18 @@ function GroupRow({
 
   if (options.length === 0) return null;
 
-  // Option odds use each market's YES best-ask, so they line up with the order
-  // book. For the active market that also drives the on-screen order book,
-  // prefer its live best ask.
-  const active =
-    options.find((o) => o.market.slug === selectedSlug) ?? options[0];
-  const priceForMarket = (market: MarketOption["market"]): number =>
-    market.slug === selectedSlug && liveSelectedPrice != null
-      ? liveSelectedPrice
-      : orderbookPricesBySlug.get(market.slug) ?? yesAskPrice(market);
-  const odds = convertPrice(priceForMarket(active.market), format);
   const single = options.length === 1;
-  const optionOdds = (option: MarketOption): string => {
-    return convertPrice(priceForMarket(option.market), format);
+  // Option odds use each market's live YES best-ask (mirrored into the map for
+  // the selected market too) so they line up with the order book. An open
+  // market whose first live price has not arrived yet shows nothing: the static
+  // snapshot drifts from the live book, so flashing it would make the price
+  // visibly jump once the real value loads. Closed markets keep their static
+  // settled price as the only available value.
+  const optionOdds = (option: MarketOption): string | null => {
+    const live = orderbookPricesBySlug.get(option.market.slug);
+    if (live != null) return convertPrice(live, format);
+    if (option.market.status === "open") return null;
+    return convertPrice(yesAskPrice(option.market), format);
   };
 
   return (
@@ -420,9 +521,6 @@ function GroupRow({
             {formatVolume(group.volume)} {t("extend.worldcup.volume")}
           </span>
         </div>
-        <span className="shrink-0 text-sm font-bold tabular-nums text-[#c7ff2e]">
-          {odds}
-        </span>
       </div>
 
       {single ? (
@@ -437,16 +535,11 @@ function GroupRow({
           )}
         >
           <span className="min-w-0 truncate">{options[0].label}</span>
-          <span
-            className={cn(
-              "shrink-0 text-[10px] font-semibold tabular-nums",
-              options[0].market.slug === selectedSlug
-                ? "text-[#c7ff2e]/70"
-                : "text-zinc-500",
-            )}
-          >
-            {optionOdds(options[0])}
-          </span>
+          {optionOdds(options[0]) != null && (
+            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-bearish">
+              {optionOdds(options[0])}
+            </span>
+          )}
         </button>
       ) : (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -465,14 +558,11 @@ function GroupRow({
                 )}
               >
                 <span>{o.label}</span>
-                <span
-                  className={cn(
-                    "text-[10px] font-medium",
-                    selected ? "text-[#c7ff2e]/70" : "text-zinc-500",
-                  )}
-                >
-                  {optionOdds(o)}
-                </span>
+                {optionOdds(o) != null && (
+                  <span className="text-[10px] font-medium text-bearish">
+                    {optionOdds(o)}
+                  </span>
+                )}
               </button>
             );
           })}
