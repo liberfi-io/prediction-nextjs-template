@@ -249,7 +249,9 @@ export function MarketsPanel({
   );
 }
 
-const SEED_CONCURRENCY = 6;
+// The batch orderbook endpoint caps a request at 100 markets; chunk so the
+// active tab's markets land in the first request.
+const SEED_BATCH_SIZE = 100;
 
 /**
  * Tracks the live YES best-ask for every open market of the match.
@@ -311,10 +313,10 @@ function useVisibleOrderbookPrices(
 
   // REST seed: the server pushes no snapshot on subscribe, so fetch one for
   // every not-yet-seeded market to render before the first WS push (and as a
-  // fallback when WS is down). Bounded concurrency keeps the burst small; the
-  // active tab is fetched first so it fills immediately while the rest stream in
-  // behind it. The seed never overwrites a slug that already has a (fresher) WS
-  // value.
+  // fallback when WS is down). A single batch request replaces the previous
+  // per-market fan-out; markets in the active tab are placed in the first chunk
+  // so they fill immediately while the rest stream in behind them. The seed
+  // never overwrites a slug that already has a (fresher) WS value.
   useEffect(() => {
     const pending = subscribedMarkets.filter(
       (market) => !seededSlugsRef.current.has(market.slug),
@@ -327,7 +329,6 @@ function useVisibleOrderbookPrices(
     });
 
     let cancelled = false;
-    let cursor = 0;
 
     const applySeed = (slug: string, price: number | null) => {
       seededSlugsRef.current.add(slug);
@@ -340,33 +341,41 @@ function useVisibleOrderbookPrices(
       });
     };
 
-    const worker = async () => {
-      while (!cancelled) {
-        const index = cursor++;
-        if (index >= pending.length) return;
-        const market = pending[index];
-        try {
-          const orderbook = await predictClient.getOrderbook(
-            market.slug,
-            market.source,
-            "yes",
-          );
+    const fetchChunk = async (
+      chunk: { slug: string; source: ProviderSource }[],
+    ) => {
+      try {
+        const results = await predictClient.getOrderbooks(
+          chunk.map((market) => ({
+            slug: market.slug,
+            source: market.source,
+            outcome: "yes" as const,
+          })),
+        );
+        if (cancelled) return;
+        const bySlug = new Map(results.map((result) => [result.slug, result]));
+        for (const market of chunk) {
+          const orderbook = bySlug.get(market.slug)?.orderbook;
           const price =
-            orderbook.market_id === market.slug && orderbook.outcome === "yes"
+            orderbook &&
+            orderbook.market_id === market.slug &&
+            orderbook.outcome === "yes"
               ? pickBestAsk(orderbook, "yes")
               : null;
           applySeed(market.slug, price);
-        } catch {
-          applySeed(market.slug, null);
         }
+      } catch {
+        if (cancelled) return;
+        for (const market of chunk) applySeed(market.slug, null);
       }
     };
 
-    void Promise.allSettled(
-      Array.from({ length: Math.min(SEED_CONCURRENCY, pending.length) }, () =>
-        worker(),
-      ),
-    );
+    void (async () => {
+      for (let i = 0; i < pending.length; i += SEED_BATCH_SIZE) {
+        if (cancelled) return;
+        await fetchChunk(pending.slice(i, i + SEED_BATCH_SIZE));
+      }
+    })();
 
     return () => {
       cancelled = true;
