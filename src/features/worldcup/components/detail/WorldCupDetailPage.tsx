@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   cn,
@@ -63,6 +65,10 @@ import { normalizeDeepLinkOutcome, resolveMarketDeepLink } from "./deepLink";
 
 /** Shared FIFA logo used for every event avatar on the World Cup detail page. */
 const FIFA_AVATAR = "/worldcup/fifa.webp";
+const marketPanelPinnedAtom = atomWithStorage(
+  "worldcup.detail.marketPanelPinned",
+  false,
+);
 
 /** Team name/code aliases used to orient spread handicaps to the home side. */
 function teamHint(match?: WcMatch): TeamHint | undefined {
@@ -168,7 +174,9 @@ export function WorldCupDetailPage({
   const [outcome, setOutcome] = useState<TradeOutcome>("yes");
   const [side, setSide] = useState<TradeSide>("buy");
   const [panelOpen, setPanelOpen] = useState(false);
-  const [marketPanelPinned, setMarketPanelPinned] = useState(false);
+  const [marketPanelPinned, setMarketPanelPinned] = useAtom(
+    marketPanelPinnedAtom,
+  );
 
   // Mobile-only UI state
   const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
