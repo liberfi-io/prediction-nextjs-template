@@ -1,10 +1,10 @@
 # Telegram Mini App Bot 对接文档
 
-本文档面向 Telegram Bot 开发同事，说明如何构造 Liberfi Prediction Mini App 的 `start_param`，以及如何用它打开世界杯比赛列表页、比赛详情页、初始化 market/outcome 和携带返佣参数。
+本文档面向 Telegram Bot 开发同事，说明如何构造 Liberfi Prediction Mini App 的 `start_param`，以及如何用它打开世界杯比赛列表页、比赛详情页、初始化 market/outcome、携带返佣参数和携带群组参数。
 
 当前 Mini App：
 
-- Bot Mini App URL: `https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App`
+- Bot Mini App URL: `NEXT_PUBLIC_TELEGRAM_MINI_APP_URL`，默认 `https://t.me/liberfi_live_bot/liberfi_prediction_app`
 - Production Web URL: `https://predict.liberfi.io`
 - Staging 临时部署 URL: `https://liberfi-prediction-kan5x1589-sgt-lab.vercel.app`
 - Local dev URL: `http://localhost:3001`
@@ -14,16 +14,18 @@
 Bot 侧打开 Mini App 时，把本文档定义的 `start_param` 放到 Telegram 的 `startapp` 参数：
 
 ```text
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=<start_param>
+<NEXT_PUBLIC_TELEGRAM_MINI_APP_URL>?startapp=<start_param>
 ```
 
 示例：
 
 ```text
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-rAFF2026
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-gHctKD5O-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-gHctKD5O
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wl-M12
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-mlh-y
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-mlh-y-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-mlh-y-gHctKD5O-rAFF2026
 ```
 
 Telegram 会把 `startapp` 传给 Mini App。前端会从以下来源读取：
@@ -52,7 +54,51 @@ Telegram 对 `start_param` 有硬限制：
 
 ## 3. start_param 文法
 
-### 3.1 列表页
+### 3.1 无页面路由
+
+只携带 referral code，不指定页面路由：
+
+```text
+v1-r<referral>
+v1-<referral>
+```
+
+只携带群组 ID，不指定页面路由：
+
+```text
+v1-g<chatIdBase62>
+```
+
+字段说明：
+
+| 字段 | 含义 | 示例 |
+| --- | --- | --- |
+| `v1` | 协议版本 | 固定 `v1` |
+| `r<referral>` | 推荐的 referral-only 格式 | `rAFF2026` |
+| `<referral>` | 兼容格式；仅在不被识别为 `g<chatIdBase62>` 时按 referral 解析 | `AFF2026` |
+| `g<chatIdBase62>` | chat-only 格式 | `gHctKD5O` |
+
+示例：
+
+```text
+v1-rAFF2026
+v1-AFF2026
+v1-gHctKD5O
+```
+
+前端路由效果：
+
+```text
+/world-cup
+```
+
+说明：
+
+- 无页面路由的 `start_param` 只用于捕获 referral 或群组上下文，打开后会进入默认世界杯页面。
+- 新生成的 referral-only 链接必须使用 `v1-r<referral>`，避免 referral code 以 `g` 开头时和 chat-only 格式冲突。
+- `v1-<referral>` 仅用于兼容旧链接；如果第二段能被解析为 `g<chatIdBase62>`，会优先按 chat-only 处理。
+
+### 3.2 列表页
 
 打开世界杯比赛列表页，并定位到某个比赛卡片：
 
@@ -90,7 +136,7 @@ v1-wl-M12-gHctKD5O-rAFF2026
 
 注意：当前列表页临时隐藏了已完赛的 `M1`、`M2`。如果 deep link 指向 `M1` 或 `M2`，页面仍会进入 `/world-cup`，但列表中没有可滚动定位的卡片。
 
-### 3.2 详情页
+### 3.3 详情页
 
 打开世界杯比赛详情页，只指定比赛，不指定 market/outcome：
 
@@ -274,6 +320,8 @@ v1-wd-M12-mlh-y-rAFF2026
 - 不允许包含 `-`，因为 `-` 是字段分隔符。
 - 前端收到后会调用现有 referral storage，遵循 first-touch 规则和 TTL。
 - `start_param` 来源在阶段一不作为可信归因凭证；最终绑定和落库仍以后端 referral/bind 与后续 Telegram initData 校验为准。
+- referral 页面在 Telegram Mini App 环境中生成邀请链接时，会使用 `NEXT_PUBLIC_TELEGRAM_MINI_APP_URL` 作为 base URL，并生成 `startapp=v1-r<referral>`。
+- referral 页面不在 Telegram Mini App 环境中时，仍保持普通 Web 链接格式：`/?invite=<referral>`。
 
 ## 7. 长度预算
 
@@ -370,6 +418,9 @@ http://localhost:3001/world-cup/match/fifwc-swe-tun-2026-06-14?market=btts&outco
 这些链接不需要真的在 Telegram 里打开，用来验证前端是否能从 `tgWebAppStartParam` fallback 解析：
 
 ```text
+http://localhost:3001/?tgWebAppStartParam=v1-rAFF2026
+http://localhost:3001/?tgWebAppStartParam=v1-AFF2026
+http://localhost:3001/?tgWebAppStartParam=v1-gHctKD5O
 http://localhost:3001/?tgWebAppStartParam=v1-wl-M12
 http://localhost:3001/?tgWebAppStartParam=v1-wl-M12-gHctKD5O
 http://localhost:3001/?tgWebAppStartParam=v1-wl-M12-rAFF2026
@@ -385,16 +436,18 @@ http://localhost:3001/?tgWebAppStartParam=v1-wd-M12-btts-y-gHctKD5O-rAFF2026
 ### 9.3 Production Telegram Mini App
 
 ```text
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-gHctKD5O
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-rAFF2026
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wl-M12-gHctKD5O-rAFF2026
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-mlh-y-gHctKD5O
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-to25-n
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-btts-y-rAFF2026
-https://t.me/LiberfiWCLiveBot/Liberfi_Prediction_App?startapp=v1-wd-M12-btts-y-gHctKD5O-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-gHctKD5O
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wl-M12
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wl-M12-gHctKD5O
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wl-M12-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wl-M12-gHctKD5O-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-mlh-y
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-mlh-y-gHctKD5O
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-to25-n
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-btts-y-rAFF2026
+https://t.me/liberfi_live_bot/liberfi_prediction_app?startapp=v1-wd-M12-btts-y-gHctKD5O-rAFF2026
 ```
 
 ### 9.4 Production Web fallback
@@ -424,6 +477,9 @@ type Route = "wl" | "wd";
 type Outcome = "y" | "n";
 type MarketCode = "mlh" | "mld" | "mla" | "sp" | "to" | `to${number}` | "btts";
 const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const TELEGRAM_MINI_APP_URL =
+  process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL ||
+  "https://t.me/liberfi_live_bot/liberfi_prediction_app";
 
 function assertSafeSegment(name: string, value: string, pattern: RegExp) {
   if (!pattern.test(value)) throw new Error(`Invalid ${name}: ${value}`);
@@ -440,6 +496,25 @@ function encodeTelegramGroupChatId(chatId: number | bigint): string {
     value /= 62n;
   }
   return `g${encoded || "0"}`;
+}
+
+function buildTelegramMiniAppUrl(startParam: string): string {
+  const url = new URL(TELEGRAM_MINI_APP_URL);
+  url.searchParams.set("startapp", startParam);
+  return url.toString();
+}
+
+export function buildReferralOnlyStartParam(referral: string) {
+  assertSafeSegment("referral", referral, /^[A-Za-z0-9_]+$/);
+  const value = `v1-r${referral}`;
+  if (value.length > 64) throw new Error(`start_param too long: ${value.length}`);
+  return value;
+}
+
+export function buildChatOnlyStartParam(chatId: number | bigint) {
+  const value = `v1-${encodeTelegramGroupChatId(chatId)}`;
+  if (value.length > 64) throw new Error(`start_param too long: ${value.length}`);
+  return value;
 }
 
 export function buildWorldCupListStartParam(input: {
@@ -487,6 +562,12 @@ export function buildWorldCupDetailStartParam(input: {
   if (value.length > 64) throw new Error(`start_param too long: ${value.length}`);
   return value;
 }
+```
+
+referral 页面在 Telegram Mini App 环境中等价于：
+
+```ts
+buildTelegramMiniAppUrl(buildReferralOnlyStartParam(inviteCode));
 ```
 
 ## 11. 当前比赛配置

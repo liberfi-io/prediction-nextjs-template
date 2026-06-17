@@ -13,11 +13,22 @@ interface ParsedStartParamSuffix {
   referral: string | null;
 }
 
+const EMPTY_START_PARAM: Pick<ParsedStartParam, "market" | "outcome" | "tgChatId" | "referral"> = {
+  market: null,
+  outcome: null,
+  tgChatId: null,
+  referral: null,
+};
+
 function parseReferral(segment: string): string | null {
   if (!segment.startsWith("r")) return null;
   const referral = segment.slice(1);
   if (!referral || !REFERRAL_RE.test(referral)) return null;
   return referral;
+}
+
+function parseBareReferral(segment: string): string | null {
+  return REFERRAL_RE.test(segment) ? segment : null;
 }
 
 function parseTelegramChatId(segment: string): number | null {
@@ -73,6 +84,17 @@ export function parseStartParam(value: string): ParsedStartParam | null {
 
   const parts = raw.split("-");
   if (parts[0] !== "v1") return null;
+
+  if (parts.length === 2) {
+    const tgChatId = parseTelegramChatId(parts[1]);
+    if (tgChatId) {
+      return { version: "v1", route: null, target: null, ...EMPTY_START_PARAM, tgChatId };
+    }
+
+    const referral = parseReferral(parts[1]) ?? parseBareReferral(parts[1]);
+    if (!referral) return null;
+    return { version: "v1", route: null, target: null, ...EMPTY_START_PARAM, referral };
+  }
 
   const route = parts[1];
   const target = parts[2];

@@ -125,7 +125,12 @@ export function HomeLaunchRedirect() {
       return;
     }
 
-    if (parsed.route === "wl") {
+    if (!parsed.route) {
+      redirectTo(DEFAULT_HREF);
+      return;
+    }
+
+    if (parsed.route === "wl" && parsed.target) {
       redirectTo(listHref(parsed.target));
       return;
     }
@@ -134,6 +139,11 @@ export function HomeLaunchRedirect() {
     // from the static schedule and jump straight to the detail page with zero
     // network. This is the common deep-link case and avoids fetching the whole
     // matches list on `/` (the original cause of the WebKit "spinner forever").
+    if (!parsed.target) {
+      redirectTo(DEFAULT_HREF);
+      return;
+    }
+
     const staticSlug = matchSlugById(parsed.target);
     if (staticSlug) {
       redirectTo(detailHref(staticSlug, parsed));
@@ -152,6 +162,11 @@ export function HomeLaunchRedirect() {
 
   useEffect(() => {
     if (!pending) return;
+    const target = pending.target;
+    if (!target) {
+      redirectTo(DEFAULT_HREF);
+      return;
+    }
 
     if (targetMatch) {
       redirectTo(detailHref(targetMatch.slug, pending));
@@ -161,7 +176,7 @@ export function HomeLaunchRedirect() {
     // Lookup finished without a match (hidden / unknown id, or backend down):
     // fall back to the list anchored on the requested match id.
     if (isFetched || isError) {
-      redirectTo(listHref(pending.target));
+      redirectTo(listHref(target));
       return;
     }
 
@@ -169,7 +184,7 @@ export function HomeLaunchRedirect() {
     // splash forever. If the lookup resolves first, the effect re-runs and one
     // of the branches above clears this timer.
     const timer = setTimeout(() => {
-      redirectTo(listHref(pending.target));
+      redirectTo(listHref(target));
     }, WD_LOOKUP_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [isError, isFetched, pending, targetMatch]);

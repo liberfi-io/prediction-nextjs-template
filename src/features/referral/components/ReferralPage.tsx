@@ -10,7 +10,7 @@
  * the Web Share API on mobile.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useAuth } from "@liberfi.io/wallet-connector";
 import { usePredictWallet } from "@liberfi.io/ui-predict";
@@ -25,6 +25,11 @@ import {
   useReferralConfig,
 } from "../hooks";
 import { formatMicroUsd, microToUsd } from "../api";
+import {
+  getTelegramWebApp,
+  peekTelegramStartParam,
+  readTelegramInitData,
+} from "../../telegram-miniapp/launchParams";
 
 const CARD_STYLE: React.CSSProperties = {
   border: "1px solid rgba(39,39,42,1)",
@@ -38,8 +43,32 @@ const ACCENT = "#c7ff2e";
 // of the 4-significant-digit compaction of formatAmountInUsd. ROUND_DOWN on a
 // <=6dp value is lossless; pad defaults to false so trailing zeros are trimmed.
 const REBATE_USD_FORMAT = { prefix: "$", short: false, precision: 6 } as const;
+const DEFAULT_TELEGRAM_MINI_APP_URL = "https://t.me/liberfi_live_bot/liberfi_prediction_app";
+const SAFE_REFERRAL_RE = /^[A-Za-z0-9_]+$/;
 
-function buildInviteLink(code: string): string {
+function isTelegramMiniAppEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(getTelegramWebApp() || readTelegramInitData() || peekTelegramStartParam());
+}
+
+function buildTelegramInviteLink(code: string): string | null {
+  if (!SAFE_REFERRAL_RE.test(code)) return null;
+  try {
+    const url = new URL(
+      process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL || DEFAULT_TELEGRAM_MINI_APP_URL,
+    );
+    url.searchParams.set("startapp", `v1-r${code}`);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildInviteLink(code: string, isTelegramMiniApp: boolean): string {
+  if (isTelegramMiniApp) {
+    const telegramLink = buildTelegramInviteLink(code);
+    if (telegramLink) return telegramLink;
+  }
   if (typeof window === "undefined") return `?invite=${code}`;
   return `${window.location.origin}/?invite=${encodeURIComponent(code)}`;
 }
@@ -67,13 +96,23 @@ export function ReferralPage() {
   const claim = useClaimRebate(eoa);
 
   const [tab, setTab] = useState<"invited" | "trades">("invited");
+  const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
+
+  useEffect(() => {
+    setIsTelegramMiniApp(isTelegramMiniAppEnvironment());
+  }, []);
 
   const ratioPct = useMemo(() => {
     const r = config?.commission_ratio ?? inviteCode?.rebate_ratio ?? 0;
     return Math.round(r * 100);
   }, [config?.commission_ratio, inviteCode?.rebate_ratio]);
 
-  const inviteLink = inviteCode?.invite_code ? buildInviteLink(inviteCode.invite_code) : "";
+  const inviteLink = useMemo(
+    () => inviteCode?.invite_code
+      ? buildInviteLink(inviteCode.invite_code, isTelegramMiniApp)
+      : "",
+    [inviteCode?.invite_code, isTelegramMiniApp],
+  );
 
   if (!isAuthenticated) {
     return (

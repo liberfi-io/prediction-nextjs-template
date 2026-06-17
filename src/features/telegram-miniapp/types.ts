@@ -4,8 +4,8 @@ export type TelegramStartOutcome = "y" | "n";
 
 export interface ParsedStartParam {
   version: "v1";
-  route: TelegramStartRoute;
-  target: string;
+  route: TelegramStartRoute | null;
+  target: string | null;
   market: string | null;
   outcome: TelegramStartOutcome | null;
   tgChatId: number | null;
