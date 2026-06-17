@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   useRealtimeOrderbook,
   usePredictClient,
-  orderbookQueryKey,
+  usePredictWsClient,
   pickBestAsk,
+} from "@liberfi.io/react-predict";
+import type {
+  Orderbook,
+  ProviderSource,
+  WsDataMessage,
+  WsOrderbookEvent,
 } from "@liberfi.io/react-predict";
 import { convertPrice } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
@@ -47,7 +52,6 @@ export function MarketsPanel({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const predictClient = usePredictClient();
 
   const [sort, setSort] = useState<SortKey>("default");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -114,36 +118,10 @@ export function MarketsPanel({
     }
     return [...bySlug.values()];
   }, [activeOnly, groups]);
-  const visibleOrderbooks = useQueries({
-    queries: visibleMarkets.map((market) => ({
-      queryKey: orderbookQueryKey(
-        market.slug,
-        market.source ?? "polymarket",
-        "yes",
-      ),
-      queryFn: () =>
-        predictClient.getOrderbook(
-          market.slug,
-          market.source ?? "polymarket",
-          "yes",
-        ),
-      enabled: market.status === "open",
-      refetchInterval: 5_000,
-      staleTime: 1_000,
-    })),
-  });
-  const orderbookPricesBySlug = useMemo(() => {
-    const prices = new Map<string, number>();
-    visibleOrderbooks.forEach((result, index) => {
-      const market = visibleMarkets[index];
-      const orderbook = result.data;
-      if (!market || orderbook?.market_id !== market.slug) return;
-      if (orderbook.outcome !== "yes") return;
-      const ask = pickBestAsk(orderbook, "yes");
-      if (ask != null && ask > 0) prices.set(market.slug, ask);
-    });
-    return prices;
-  }, [visibleMarkets, visibleOrderbooks]);
+  const orderbookPricesBySlug = useVisibleOrderbookPrices(
+    visibleMarkets,
+    selectedMarket?.slug,
+  );
 
   const sortOptions = (options: MarketOption[]): MarketOption[] => {
     const filtered = activeOnly
@@ -242,6 +220,155 @@ export function MarketsPanel({
       </div>
     </div>
   );
+}
+
+function useVisibleOrderbookPrices(
+  visibleMarkets: MarketOption["market"][],
+  selectedSlug?: string,
+): Map<string, number> {
+  const predictClient = usePredictClient();
+  const { wsClient } = usePredictWsClient();
+  const [pricesBySlug, setPricesBySlug] = useState<Map<string, number>>(
+    () => new Map(),
+  );
+  // Slugs already covered by a REST snapshot. Lets list changes fetch only the
+  // markets that newly entered the visible set instead of refetching all.
+  const seededSlugsRef = useRef<Set<string>>(new Set());
+
+  // Content-addressed list of (slug, source) pairs to track. Sorting + the JSON
+  // round-trip yields a referentially stable value that only changes when the
+  // actual set of markets changes, not on every parent re-render.
+  const subscribedMarketsKey = useMemo(() => {
+    const markets = visibleMarkets
+      .filter(
+        (market) => market.status === "open" && market.slug !== selectedSlug,
+      )
+      .map((market) => ({
+        slug: market.slug,
+        source: (market.source ?? "polymarket") as ProviderSource,
+      }))
+      .sort((a, b) => a.slug.localeCompare(b.slug));
+    return JSON.stringify(markets);
+  }, [selectedSlug, visibleMarkets]);
+  const subscribedMarkets = useMemo(
+    () =>
+      JSON.parse(subscribedMarketsKey) as {
+        slug: string;
+        source: ProviderSource;
+      }[],
+    [subscribedMarketsKey],
+  );
+  const subscribedSlugs = useMemo(
+    () => subscribedMarkets.map((market) => market.slug),
+    [subscribedMarkets],
+  );
+  const subscribedSlugSet = useMemo(
+    () => new Set(subscribedSlugs),
+    [subscribedSlugs],
+  );
+
+  // Live WS snapshots are authoritative; they always replace the local price.
+  const handleUpdate = useCallback(
+    (msg: WsDataMessage<WsOrderbookEvent>) => {
+      const slug = msg.data.market_slug;
+      if (!subscribedSlugSet.has(slug) || msg.data.outcome !== "yes") return;
+
+      const orderbook: Orderbook = {
+        market_id: slug,
+        outcome: "yes",
+        bids: msg.data.bids,
+        asks: msg.data.asks,
+        spread: msg.data.spread,
+      };
+
+      const ask = pickBestAsk(orderbook, "yes");
+      setPricesBySlug((prev) => {
+        const next = new Map(prev);
+        if (ask != null && ask > 0) {
+          next.set(slug, ask);
+        } else {
+          next.delete(slug);
+        }
+        return next;
+      });
+    },
+    [subscribedSlugSet],
+  );
+
+  // REST seed: fetch an initial snapshot for newly visible markets so prices
+  // render before the first WS push (and as a fallback when WS is down). The
+  // seed never overwrites a slug that already has a price, so a late-arriving
+  // snapshot can't clobber a fresher WS value.
+  useEffect(() => {
+    const toSeed = subscribedMarkets.filter(
+      (market) => !seededSlugsRef.current.has(market.slug),
+    );
+    if (toSeed.length === 0) return;
+    let cancelled = false;
+
+    void Promise.allSettled(
+      toSeed.map(async (market) => {
+        const orderbook = await predictClient.getOrderbook(
+          market.slug,
+          market.source,
+          "yes",
+        );
+        if (orderbook.market_id !== market.slug || orderbook.outcome !== "yes") {
+          return { slug: market.slug, price: null };
+        }
+        return { slug: market.slug, price: pickBestAsk(orderbook, "yes") };
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setPricesBySlug((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const result of results) {
+          if (result.status !== "fulfilled") continue;
+          const { slug, price } = result.value;
+          seededSlugsRef.current.add(slug);
+          // A live WS value already won — never overwrite it with the snapshot.
+          if (next.has(slug)) continue;
+          if (price != null && price > 0) {
+            next.set(slug, price);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [predictClient, subscribedMarkets]);
+
+  // Drop prices (and seed tracking) for markets no longer subscribed, so a slug
+  // that leaves and later returns is re-seeded with a fresh snapshot.
+  useEffect(() => {
+    seededSlugsRef.current.forEach((slug) => {
+      if (!subscribedSlugSet.has(slug)) seededSlugsRef.current.delete(slug);
+    });
+    setPricesBySlug((prev) => {
+      let changed = false;
+      const next = new Map<string, number>();
+      prev.forEach((price, slug) => {
+        if (subscribedSlugSet.has(slug)) {
+          next.set(slug, price);
+          return;
+        }
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [subscribedSlugSet]);
+
+  useEffect(() => {
+    if (!wsClient || subscribedSlugs.length === 0) return;
+    return wsClient.subscribeOrderbook(subscribedSlugs, handleUpdate);
+  }, [handleUpdate, subscribedSlugs, wsClient]);
+
+  return pricesBySlug;
 }
 
 function GroupRow({
