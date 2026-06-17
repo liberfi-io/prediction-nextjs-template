@@ -38,7 +38,7 @@ import {
 import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
 import { adaptLiveVideos, applyLiveStateToMatch } from "../../data/client";
-import { useWorldcupLiveUpdates } from "../../data/live";
+import { useWorldcupMatchLive } from "../../data/live";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import type { WcMatch } from "../../types";
 import { hasLiveVideos } from "../games/LiveStreamPanel";
@@ -142,7 +142,11 @@ export function WorldCupDetailPage({
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
-  const liveStates = useWorldcupLiveUpdates();
+  const found = useMemo(
+    () => matches.find((m) => m.slug === id),
+    [matches, id],
+  );
+  const liveState = useWorldcupMatchLive(found?.matchId);
   // Force every event avatar on this page — the header and the buy/sell trade
   // panel (which derives its icon from event.image_url) — to the FIFA logo.
   const event = useMemo(
@@ -150,11 +154,9 @@ export function WorldCupDetailPage({
     [rawEvent],
   );
   const match = useMemo(() => {
-    const found = matches.find((m) => m.slug === id);
     if (!found) return undefined;
-    const liveState = liveStates[found.matchId];
     return liveState ? applyLiveStateToMatch(found, liveState) : found;
-  }, [matches, liveStates, id]);
+  }, [found, liveState]);
   const liveVideos = useMemo(() => {
     const eventVideos = adaptLiveVideos(event?.live_videos);
     return eventVideos.length > 0 ? eventVideos : match?.liveVideos;

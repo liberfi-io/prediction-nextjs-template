@@ -12,6 +12,7 @@ import {
 import type { WcMatchLiveState } from "../types";
 
 const CHANNEL = "worldcup.matches";
+const MATCH_CHANNEL_PREFIX = "worldcup.match.";
 const DEFAULT_WS_URL = "ws://localhost:8003/connection/websocket?format=json";
 
 function centrifugoURL(): string | null {
@@ -137,4 +138,76 @@ export function useWorldcupRealtime(): WorldcupRealtimeState {
 
 export function useWorldcupLiveUpdates(): Record<string, WcMatchLiveState> {
   return useWorldcupRealtime().liveStates;
+}
+
+/**
+ * Subscribe to a single match's live state via its per-match Centrifugo channel
+ * (`worldcup.match.<matchId>.live`). Unlike {@link useWorldcupRealtime}, this
+ * only receives the one match the detail page cares about and never parses the
+ * market-update fan-out, so the detail page no longer rides the whole-tournament
+ * broadcast. Returns `undefined` until the first live frame arrives.
+ */
+export function useWorldcupMatchLive(
+  matchId: string | undefined,
+): WcMatchLiveState | undefined {
+  const [state, setState] = useState<WcMatchLiveState | undefined>(undefined);
+
+  useEffect(() => {
+    setState(undefined);
+    const url = centrifugoURL();
+    if (!matchId || !url || typeof WebSocket === "undefined") return;
+
+    const channel = `${MATCH_CHANNEL_PREFIX}${matchId}.live`;
+    let closed = false;
+    let reconnectTimer: number | undefined;
+    let ws: WebSocket | undefined;
+    let attempt = 0;
+
+    const applyUpdate = (update: WorldcupMatchLiveUpdate) => {
+      const next = adaptLiveState(update.state);
+      if (!next || next.matchId !== matchId) return;
+      setState((current) => (shouldReplace(current, next) ? next : current));
+    };
+
+    const connect = () => {
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        attempt = 0;
+        if (!ws) return;
+        send(ws, { id: 1, connect: {} });
+      };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(String(event.data));
+          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
+            send(ws, { id: 2, subscribe: { channel } });
+            return;
+          }
+          const data = msg.push?.pub?.data;
+          if (isLiveUpdate(data)) applyUpdate(data);
+        } catch {
+          // Ignore malformed realtime frames.
+        }
+      };
+      ws.onclose = () => {
+        if (closed) return;
+        const delay = Math.min(1000 * 2 ** attempt, 15000);
+        attempt += 1;
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
+      ws.onerror = () => {
+        ws?.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, [matchId]);
+
+  return state;
 }
