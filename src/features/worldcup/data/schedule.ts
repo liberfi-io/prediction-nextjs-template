@@ -95,9 +95,25 @@ export const MATCH_SLUG_BY_ID: Record<string, string> = Object.fromEntries(
   GROUP_MATCHES.map(([matchId, , , , , slug]) => [matchId, slug]),
 );
 
+export const WORLD_CUP_MATCH_SLUGS = new Set(
+  GROUP_MATCHES.map(([, , , , , slug]) => slug),
+);
+
 /** Resolve a matchId to its detail slug from the static schedule, or null. */
 export function matchSlugById(matchId: string): string | null {
   return MATCH_SLUG_BY_ID[matchId] ?? null;
+}
+
+/** Resolve a group-stage match or child event slug to the owning match slug. */
+export function worldcupMatchSlugFromEventSlug(slug: string): string | null {
+  if (WORLD_CUP_MATCH_SLUGS.has(slug)) return slug;
+
+  // Current child event slugs are prefixed by the canonical match slug, e.g.
+  // `fifwc-mex-rsa-2026-06-11-total-corners`.
+  for (const matchSlug of WORLD_CUP_MATCH_SLUGS) {
+    if (slug.startsWith(`${matchSlug}-`)) return matchSlug;
+  }
+  return null;
 }
 
 /** [matchId, round, homeLabel, awayLabel, kickoffMs, venue, city]. */

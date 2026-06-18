@@ -17,6 +17,20 @@ export function normalizeDeepLinkOutcome(
   return null;
 }
 
+export function isWorldcupMarketCode(value: string): boolean {
+  return (
+    value === "mlh" ||
+    value === "mld" ||
+    value === "mla" ||
+    value === "sp" ||
+    value === "sph" ||
+    value === "spa" ||
+    value === "to" ||
+    /^to[0-9]+$/.test(value) ||
+    value === "btts"
+  );
+}
+
 function groupOf(cats: CategorizedMarkets, type: MarketGroup["type"]) {
   return allGroups(cats).find((group) => group.type === type);
 }

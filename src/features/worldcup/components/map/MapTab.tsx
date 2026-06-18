@@ -39,7 +39,7 @@ export function MapTab() {
             <button
               key={`${o.label}-${i}`}
               type="button"
-              onClick={() => router.push(`/polymarket/${winner.slug}`)}
+              onClick={() => router.push(`/event/${winner.slug}`)}
               className="flex items-center gap-3 rounded-[10px] border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900/70"
             >
               <span className="w-5 shrink-0 text-sm font-semibold tabular-nums text-zinc-500">

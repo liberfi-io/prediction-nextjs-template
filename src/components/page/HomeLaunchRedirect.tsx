@@ -29,12 +29,12 @@ const DEFAULT_HREF = "/world-cup";
 const WD_LOOKUP_TIMEOUT_MS = 2500;
 
 function detailHref(slug: string, parsed: ParsedStartParam): string {
-  if (!parsed.market || !parsed.outcome) return `/world-cup/match/${slug}`;
+  if (!parsed.market || !parsed.outcome) return `/event/${slug}`;
   const params = new URLSearchParams({
     market: parsed.market,
     outcome: toQueryOutcome(parsed.outcome),
   });
-  return `/world-cup/match/${slug}?${params.toString()}`;
+  return `/event/${slug}?${params.toString()}`;
 }
 
 function listHref(target: string): string {

@@ -580,9 +580,9 @@ function positionSubtitle(position: WalletTokenPnl): string {
 /**
  * Wraps a market title in a link to its event detail page when the
  * locally-enriched event slug is available; otherwise renders plain text.
- * Smart-money data is Polymarket-sourced, so the route is always the
- * `/polymarket/{slug}` display path. `stopPropagation` keeps the link from
- * triggering any enclosing row-level click handlers.
+ * Smart-money data is Polymarket-sourced, so links use the unified event detail
+ * route. `stopPropagation` keeps the link from triggering any enclosing
+ * row-level click handlers.
  */
 function PositionRow({ position, last }: { position: WalletTokenPnl; last: boolean }) {
   const { t } = useTranslation();

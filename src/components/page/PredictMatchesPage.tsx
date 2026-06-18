@@ -30,7 +30,7 @@ import type {
   MatchMarketFlat,
   ProviderSource,
 } from "@liberfi.io/react-predict";
-import { toDisplaySource } from "./predict-source";
+import { predictEventHref } from "./predict-source";
 
 /**
  * v1.1 forward-compat shape — the published `@liberfi.io/react-predict`
@@ -98,12 +98,12 @@ function pickInternalTarget(rawMatch: MatchMarketFlat): {
 function buildInternalHref(match: MatchMarketFlat): string | undefined {
   const target = pickInternalTarget(match);
   if (!target?.slug) return undefined;
-  return `/${toDisplaySource(target.source)}/${target.slug}`;
+  return predictEventHref({ slug: target.slug, source: target.source });
 }
 
 function buildLegHref(leg: MatchLegLite): string | undefined {
   if (!leg?.event_slug) return undefined;
-  return `/${toDisplaySource(leg.source)}/${leg.event_slug}`;
+  return predictEventHref({ slug: leg.event_slug, source: leg.source });
 }
 
 export function PredictMatchesPage() {

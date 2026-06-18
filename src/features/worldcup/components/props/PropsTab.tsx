@@ -10,6 +10,7 @@ import type {
   PredictMarket,
 } from "@liberfi.io/react-predict";
 import { useTranslation } from "@liberfi.io/i18n";
+import { predictEventHref } from "src/components/page/predict-source";
 import { useWorldcupProps } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcOutcome, WcProp } from "../../types";
@@ -89,7 +90,7 @@ export function PropsTab() {
     [propEvents, isEn, t],
   );
 
-  const href = (event: PredictEvent) => `/polymarket/${event.slug}`;
+  const href = (event: PredictEvent) => predictEventHref(event);
   const open = (event: PredictEvent) =>
     window.open(href(event), "_blank", "noopener,noreferrer");
 

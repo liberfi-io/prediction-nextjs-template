@@ -293,7 +293,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       : windowedMatches;
   }, [effectiveGroupBy, matches, nowMs, todayOnly]);
   const onOpen = useCallback(
-    (slug: string) => router.push(`/world-cup/match/${slug}`),
+    (slug: string) => router.push(`/event/${slug}`),
     [router]
   );
   const handleMarketPick = useCallback(

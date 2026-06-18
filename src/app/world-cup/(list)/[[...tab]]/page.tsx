@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
+import { notFound } from "next/navigation";
 import { WorldCupPage } from "src/features/worldcup/components/WorldCupPage";
 import { WorldCupTabSkeleton } from "src/features/worldcup/components/skeletons";
 import { normalizeTab, type WcTab } from "src/features/worldcup/tabs";
@@ -86,6 +87,8 @@ async function WorldCupTabContent({ tab }: { tab: WcTab }) {
  */
 export default async function Page({ params }: PageProps) {
   const { tab } = await params;
+  if ((tab?.length ?? 0) > 1) notFound();
+
   const active = normalizeTab(tab?.[0]);
 
   return (

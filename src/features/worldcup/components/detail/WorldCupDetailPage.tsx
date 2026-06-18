@@ -123,11 +123,14 @@ function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
 export function WorldCupDetailPage({
   id,
   initialMarket = null,
+  initialMarketSlug = null,
   initialOutcome = null,
 }: {
   id: string;
   /** Deep-link market short code from the entry URL (`?market=`). */
   initialMarket?: string | null;
+  /** Exact market slug from a canonical `/event/{matchSlug}?market=...` URL. */
+  initialMarketSlug?: string | null;
   /** Deep-link outcome short code from the entry URL (`?outcome=`). */
   initialOutcome?: string | null;
 }) {
@@ -195,9 +198,11 @@ export function WorldCupDetailPage({
   }, [mobileTab, showLiveTab]);
 
   const deepLinkMarket = initialMarket?.trim() || null;
+  const exactInitialMarketSlug = initialMarketSlug?.trim() || null;
   const deepLinkOutcome = initialOutcome?.trim() || null;
   const hasCompleteDeepLink = Boolean(
-    deepLinkMarket && normalizeDeepLinkOutcome(deepLinkOutcome),
+    exactInitialMarketSlug ||
+      (deepLinkMarket && normalizeDeepLinkOutcome(deepLinkOutcome)),
   );
 
   // Resolve the active selection, falling back to the first open market.
@@ -211,6 +216,24 @@ export function WorldCupDetailPage({
     if (!selectedSlug && selection)
       setSelectedSlug(selection.option.market.slug);
   }, [selectedSlug, selection]);
+
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    if (!exactInitialMarketSlug) return;
+
+    const hasOptions = allGroups(cats).some(
+      (group) => group.options.length > 0,
+    );
+    if (!hasOptions) return;
+
+    deepLinkAppliedRef.current = true;
+    const resolved = findSelection(cats, exactInitialMarketSlug);
+    if (!resolved) return;
+
+    setSelectedSlug(exactInitialMarketSlug);
+    setOutcome(normalizeDeepLinkOutcome(deepLinkOutcome) ?? "yes");
+    setSide("buy");
+  }, [cats, deepLinkOutcome, exactInitialMarketSlug]);
 
   useEffect(() => {
     if (deepLinkAppliedRef.current) return;
