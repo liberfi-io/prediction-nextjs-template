@@ -533,43 +533,53 @@ function GroupRow({
       </div>
 
       {single ? (
-        <button
-          type="button"
-          onClick={() => onSelect(options[0].market.slug)}
-          className={cn(
-            "flex w-full items-center justify-between gap-2 rounded-[8px] border px-2.5 py-1.5 text-left text-xs font-medium transition-colors cursor-pointer",
-            options[0].market.slug === selectedSlug
-              ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
-              : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
-          )}
-        >
-          <span className="min-w-0 truncate">{options[0].label}</span>
-          {optionOdds(options[0]) != null && (
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-bearish">
-              {optionOdds(options[0])}
-            </span>
-          )}
-        </button>
+        (() => {
+          const odds = optionOdds(options[0]);
+          return (
+            <button
+              type="button"
+              onClick={() => onSelect(options[0].market.slug)}
+              className={cn(
+                "flex w-full flex-col items-center justify-center gap-1 rounded-[8px] border px-3 py-2 text-center transition-colors cursor-pointer",
+                options[0].market.slug === selectedSlug
+                  ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
+                  : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
+              )}
+            >
+              <span className="min-w-0 max-w-full truncate text-xs font-medium leading-tight">
+                {options[0].label}
+              </span>
+              {odds != null && (
+                <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                  {odds}
+                </span>
+              )}
+            </button>
+          );
+        })()
       ) : (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="grid grid-cols-3 gap-1.5">
           {options.map((o) => {
             const selected = o.market.slug === selectedSlug;
+            const odds = optionOdds(o);
             return (
               <button
                 key={o.market.slug}
                 type="button"
                 onClick={() => onSelect(o.market.slug)}
                 className={cn(
-                  "flex shrink-0 items-baseline gap-1.5 rounded-[8px] border px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors cursor-pointer",
+                  "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
                   selected
                     ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
                     : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
                 )}
               >
-                <span>{o.label}</span>
-                {optionOdds(o) != null && (
-                  <span className="text-[10px] font-medium text-bearish">
-                    {optionOdds(o)}
+                <span className="max-w-full truncate text-xs font-medium leading-tight">
+                  {o.label}
+                </span>
+                {odds != null && (
+                  <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                    {odds}
                   </span>
                 )}
               </button>

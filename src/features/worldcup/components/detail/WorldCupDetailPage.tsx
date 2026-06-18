@@ -341,6 +341,15 @@ export function WorldCupDetailPage({
     setTradeSheetOpen(true);
   }, []);
 
+  const handleMobileMarketSelect = useCallback(
+    (slug: string) => {
+      handleSelect(slug);
+      setMarketsSheetOpen(false);
+      setTradeSheetOpen(true);
+    },
+    [handleSelect],
+  );
+
   if (isLoading && !event) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-sm text-zinc-500">
@@ -554,10 +563,7 @@ export function WorldCupDetailPage({
                   cats={cats}
                   activeCategory={activeCategory}
                   selectedSlug={selectedSlug}
-                  onSelect={(slug) => {
-                    handleSelect(slug);
-                    setMarketsSheetOpen(false);
-                  }}
+                  onSelect={handleMobileMarketSelect}
                   className="flex-1 border-0 bg-transparent"
                 />
               </MarketSwitcherFrame>
