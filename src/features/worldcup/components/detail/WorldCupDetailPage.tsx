@@ -83,18 +83,39 @@ type TranslatedMarket = PredictMarket & {
   question_trans?: unknown;
   outcomes?: TranslatedOutcome[];
 };
+type WorldCupTranslate = (key: `extend.${string}`) => string;
 
 function translatedText(base: string | undefined, translated: unknown): string | undefined {
   return typeof translated === "string" && translated.trim() ? translated : base;
 }
 
-function withTranslatedEventTitle(event: PredictEvent): PredictEvent {
+function withTranslatedEventTitle(
+  event: PredictEvent,
+  titleOverride?: string,
+): PredictEvent {
+  if (titleOverride && titleOverride !== event.title) return { ...event, title: titleOverride };
   const translated = event as TranslatedEvent;
   const title = translatedText(event.title, translated.title_trans);
   return title && title !== event.title ? { ...event, title } : event;
 }
 
-function withTranslatedMarketText(market: PredictMarket): PredictMarket {
+function localizeKnownLabel(label: string | undefined, hint?: TeamHint): string | undefined {
+  if (!label || !hint) return label;
+  const normalized = label.trim().toLowerCase();
+  if (hint.homeLabel && hint.homeKeys.has(normalized)) return hint.homeLabel;
+  if (hint.awayLabel && hint.awayKeys.has(normalized)) return hint.awayLabel;
+  if (hint.drawLabel && (normalized === "draw" || normalized === "tie" || normalized === "平")) {
+    return hint.drawLabel;
+  }
+  if (hint.yesLabel && normalized === "yes") return hint.yesLabel;
+  if (hint.noLabel && normalized === "no") return hint.noLabel;
+  return label;
+}
+
+function withTranslatedMarketText(
+  market: PredictMarket,
+  hint?: TeamHint,
+): PredictMarket {
   const translatedMarket = market as TranslatedMarket;
   const question =
     translatedText(market.question, translatedMarket.question_trans) ?? market.question;
@@ -105,23 +126,49 @@ function withTranslatedMarketText(market: PredictMarket): PredictMarket {
       outcome.label,
       translatedOutcome.label_trans ?? translatedOutcome.name_trans,
     );
-    if (!label || label === outcome.label) return outcome;
+    const displayLabel = localizeKnownLabel(label, hint);
+    if (!displayLabel || displayLabel === outcome.label) return outcome;
     changed = true;
-    return { ...outcome, label };
+    return { ...outcome, label: displayLabel };
   });
 
   return changed ? { ...market, question, outcomes } : market;
 }
 
 /** Team name/code aliases used to orient spread handicaps to the home side. */
-function teamHint(match?: WcMatch): TeamHint | undefined {
+function teamHint(match?: WcMatch, t?: WorldCupTranslate): TeamHint | undefined {
   if (!match) return undefined;
   const keys = (...vals: string[]) =>
     new Set(vals.filter(Boolean).map((s) => s.trim().toLowerCase()));
+  const homeLabel = t?.(`extend.worldcup.teamName.${match.home.code.toLowerCase()}`);
+  const awayLabel = t?.(`extend.worldcup.teamName.${match.away.code.toLowerCase()}`);
   return {
-    homeKeys: keys(match.home.name, match.home.code, match.home.nameZh),
-    awayKeys: keys(match.away.name, match.away.code, match.away.nameZh),
+    homeKeys: keys(match.home.name, match.home.code, match.home.nameZh, homeLabel ?? ""),
+    awayKeys: keys(match.away.name, match.away.code, match.away.nameZh, awayLabel ?? ""),
+    homeLabel,
+    awayLabel,
+    drawLabel: t?.("extend.worldcup.draw"),
+    yesLabel: t?.("extend.worldcup.detail.trade.yes"),
+    noLabel: t?.("extend.worldcup.detail.trade.no"),
+    firstHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.first_half_totals"),
+    secondHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.second_half_totals"),
+    totalCornersLabel: t?.("extend.worldcup.detail.markets.type.total_corners"),
+    firstHalfTotalCornersLabel: t?.(
+      "extend.worldcup.detail.markets.type.soccer_first_half_total_corners",
+    ),
+    secondHalfTotalCornersLabel: t?.(
+      "extend.worldcup.detail.markets.type.soccer_second_half_total_corners",
+    ),
+    playerGoalsLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_goals"),
+    goalkeeperSavesLabel: t?.(
+      "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves",
+    ),
   };
+}
+
+function matchTitle(match: WcMatch | undefined, hint: TeamHint | undefined): string | undefined {
+  if (!match || !hint?.homeLabel || !hint.awayLabel) return undefined;
+  return `${hint.homeLabel} vs. ${hint.awayLabel}`;
 }
 
 /**
@@ -133,8 +180,12 @@ function teamHint(match?: WcMatch): TeamHint | undefined {
  * outcome's label is touched; prices, slug, ids and outcome ordering (which the
  * trade/order-book logic keys off by index) stay intact.
  */
-function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
-  const displayMarket = withTranslatedMarketText(withSettledOutcomePrices(market));
+function withCleanLabel(
+  market: PredictMarket,
+  label: string,
+  hint?: TeamHint,
+): PredictMarket {
+  const displayMarket = withTranslatedMarketText(withSettledOutcomePrices(market), hint);
   const outcomes = displayMarket.outcomes?.length
     ? [{ ...displayMarket.outcomes[0], label }, ...displayMarket.outcomes.slice(1)]
     : displayMarket.outcomes;
@@ -179,6 +230,7 @@ export function WorldCupDetailPage({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
+  const translate = t as WorldCupTranslate;
   const [oddsFormat] = useOddsFormat();
   const { isDesktop } = useScreen();
   const { onOpen: openFundWallet } =
@@ -213,9 +265,10 @@ export function WorldCupDetailPage({
     [showLiveTab],
   );
 
+  const hint = useMemo(() => teamHint(match, translate), [match, translate]);
   const cats = useMemo(
-    () => categorizeMarkets(event?.markets ?? [], teamHint(match)),
-    [event?.markets, match],
+    () => categorizeMarkets(event?.markets ?? [], hint),
+    [event?.markets, hint],
   );
 
   const [selectedSlug, setSelectedSlug] = useState("");
@@ -418,9 +471,9 @@ export function WorldCupDetailPage({
 
   const selectedMarket = selection?.option.market;
   const selectedDisplayMarket = selectedMarket
-    ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket))
+    ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket), hint)
     : selectedMarket;
-  const displayEvent = withTranslatedEventTitle(event);
+  const displayEvent = withTranslatedEventTitle(event, matchTitle(match, hint));
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)
@@ -459,7 +512,7 @@ export function WorldCupDetailPage({
     ? {
         ...displayEvent,
         markets: selectedGroup.options.map((o) =>
-          withCleanLabel(o.market, optionDisplayLabel(o.label)),
+          withCleanLabel(o.market, optionDisplayLabel(o.label), hint),
         ),
       }
     : displayEvent;
@@ -469,7 +522,7 @@ export function WorldCupDetailPage({
   // 0.001 tail asks do not render as 1000.00 decimal odds.
   const tradeMarket =
     selectedDisplayMarket && selection
-      ? withCleanLabel(selectedDisplayMarket, selectedLabel)
+      ? withCleanLabel(selectedDisplayMarket, selectedLabel, hint)
       : selectedDisplayMarket;
 
   // -------------------------------------------------------------------------

@@ -19,6 +19,7 @@ import { formatLine } from "../../odds/convert-price";
 
 export type SportsMarketType =
   | "moneyline"
+  | "soccer_match_winner"
   | "spreads"
   | "totals"
   | "both_teams_to_score"
@@ -97,6 +98,18 @@ export interface CategorizedMarkets {
 export interface TeamHint {
   homeKeys: Set<string>;
   awayKeys: Set<string>;
+  homeLabel?: string;
+  awayLabel?: string;
+  drawLabel?: string;
+  yesLabel?: string;
+  noLabel?: string;
+  firstHalfTotalsLabel?: string;
+  secondHalfTotalsLabel?: string;
+  totalCornersLabel?: string;
+  firstHalfTotalCornersLabel?: string;
+  secondHalfTotalCornersLabel?: string;
+  playerGoalsLabel?: string;
+  goalkeeperSavesLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,8 +139,20 @@ function groupItemTitleTrans(m: PredictMarket): string {
   const direct = (m as PredictMarket & { group_item_title_trans?: unknown })
     .group_item_title_trans;
   if (typeof direct === "string") return direct;
-  const metaValue = meta(m, "polymarket.groupItemTitleTrans");
-  return typeof metaValue === "string" ? metaValue : "";
+  for (const key of [
+    "polymarket.groupItemTitleTrans",
+    "polymarket.groupItemTitle_trans",
+    "polymarket.group_item_title_trans",
+  ]) {
+    const metaValue = meta(m, key);
+    if (typeof metaValue === "string") return metaValue;
+  }
+  return "";
+}
+
+function questionTrans(m: PredictMarket): string {
+  const direct = (m as PredictMarket & { question_trans?: unknown }).question_trans;
+  return typeof direct === "string" ? direct : "";
 }
 
 function finitePrice(v: unknown): number | undefined {
@@ -220,12 +245,82 @@ function cleanTitle(raw: string): string {
   return (idx > 0 ? raw.slice(0, idx) : raw).trim();
 }
 
+function normalizeLabel(raw: string): string {
+  return cleanTitle(raw).trim().toLowerCase();
+}
+
+function escapeRegExp(raw: string): string {
+  return raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceKnownTeamLabels(raw: string, hint?: TeamHint): string {
+  if (!hint) return raw;
+  let next = raw;
+  const replaceAll = (keys: Set<string>, label?: string) => {
+    if (!label) return;
+    const sorted = [...keys].filter(Boolean).sort((a, b) => b.length - a.length);
+    for (const key of sorted) {
+      const boundary = key.length <= 3 ? "\\b" : "";
+      next = next.replace(
+        new RegExp(`${boundary}${escapeRegExp(key)}${boundary}`, "gi"),
+        label,
+      );
+    }
+  };
+  replaceAll(hint.homeKeys, hint.homeLabel);
+  replaceAll(hint.awayKeys, hint.awayLabel);
+  return next;
+}
+
+function localizeKnownLabel(raw: string, hint?: TeamHint): string {
+  if (!hint) return raw;
+  const normalized = normalizeLabel(raw);
+  if (hint.homeLabel && hint.homeKeys.has(normalized)) return hint.homeLabel;
+  if (hint.awayLabel && hint.awayKeys.has(normalized)) return hint.awayLabel;
+  if (hint.drawLabel && (normalized === "draw" || normalized === "tie" || normalized === "平")) {
+    return hint.drawLabel;
+  }
+  if (hint.yesLabel && normalized === "yes") return hint.yesLabel;
+  if (hint.noLabel && normalized === "no") return hint.noLabel;
+
+  const lineLabel = (label: string | undefined, line: string | undefined) =>
+    label && line ? `${label} ${line}` : undefined;
+  const thresholdLabel = (threshold: string | undefined, label: string | undefined) =>
+    threshold && label ? `${threshold}+ ${label}` : undefined;
+
+  const fixed =
+    lineLabel(hint.firstHalfTotalsLabel, normalized.match(/^1st half o\/u\s+(.+)$/)?.[1]) ??
+    lineLabel(hint.secondHalfTotalsLabel, normalized.match(/^2nd half o\/u\s+(.+)$/)?.[1]) ??
+    lineLabel(hint.totalCornersLabel, normalized.match(/^total corners o\/u\s+(.+)$/)?.[1]) ??
+    lineLabel(
+      hint.firstHalfTotalCornersLabel,
+      normalized.match(/^1st half total corners o\/u\s+(.+)$/)?.[1],
+    ) ??
+    lineLabel(
+      hint.secondHalfTotalCornersLabel,
+      normalized.match(/^2nd half total corners o\/u\s+(.+)$/)?.[1],
+    ) ??
+    thresholdLabel(normalized.match(/^(\d+(?:\.\d+)?)\+\s+goals?$/)?.[1], hint.playerGoalsLabel) ??
+    thresholdLabel(
+      normalized.match(/^(\d+(?:\.\d+)?)\+\s+saves?$/)?.[1],
+      hint.goalkeeperSavesLabel,
+    );
+  if (fixed) return fixed;
+
+  return replaceKnownTeamLabels(raw, hint);
+}
+
 /**
  * Best human label for a market: localized cleaned group title when present,
  * else base group title / question.
  */
-function marketLabel(m: PredictMarket): string {
-  return cleanTitle(groupItemTitleTrans(m) || groupItemTitle(m)) || m.question || m.slug;
+function marketLabel(m: PredictMarket, hint?: TeamHint): string {
+  const label =
+    cleanTitle(groupItemTitleTrans(m) || groupItemTitle(m)) ||
+    questionTrans(m) ||
+    m.question ||
+    m.slug;
+  return localizeKnownLabel(label, hint);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,11 +342,20 @@ function spreadFavoursHome(m: PredictMarket, hint?: TeamHint): boolean {
   return true;
 }
 
-function buildMoneyline(markets: PredictMarket[]): MarketGroup {
-  // Keep ingestion order (home / draw / away) for a stable selector layout.
+function buildMoneyline(markets: PredictMarket[], hint?: TeamHint): MarketGroup {
   const options = markets.map(
-    (m, i): MarketOption => ({ market: m, label: marketLabel(m), sort: i }),
-  );
+    (m, i): MarketOption => {
+      const text = `${groupItemTitle(m)} ${groupItemTitleTrans(m)} ${m.question}`.toLowerCase();
+      const label = marketLabel(m, hint);
+      let sort = i;
+      if (hint) {
+        if (isDrawTitle(text)) sort = 1;
+        else if ([...hint.homeKeys].some((key) => key && text.includes(key))) sort = 0;
+        else if ([...hint.awayKeys].some((key) => key && text.includes(key))) sort = 2;
+      }
+      return { market: m, label, sort };
+    },
+  ).sort((a, b) => a.sort - b.sort);
   return {
     key: "moneyline",
     type: "moneyline",
@@ -259,6 +363,10 @@ function buildMoneyline(markets: PredictMarket[]): MarketGroup {
     options,
     volume: sumVolume(markets),
   };
+}
+
+function isDrawTitle(title: string): boolean {
+  return title.startsWith("draw") || title.startsWith("tie") || title.includes("平");
 }
 
 function buildSpreads(markets: PredictMarket[], hint?: TeamHint): MarketGroup {
@@ -298,13 +406,14 @@ function buildTotalsList(
   key: string,
   type: SportsMarketType,
   markets: PredictMarket[],
+  hint?: TeamHint,
 ): MarketGroup {
   const options = markets
     .map((m): MarketOption => {
       const line = marketLine(m);
       return {
         market: m,
-        label: marketLabel(m),
+        label: marketLabel(m, hint),
         sort: line ?? Number.MAX_SAFE_INTEGER,
       };
     })
@@ -317,12 +426,13 @@ function buildSingle(
   key: string,
   type: SportsMarketType,
   markets: PredictMarket[],
+  hint?: TeamHint,
 ): MarketGroup {
   return {
     key,
     type,
     type_label: type,
-    options: markets.map((m, i) => ({ market: m, label: marketLabel(m), sort: i })),
+    options: markets.map((m, i) => ({ market: m, label: marketLabel(m, hint), sort: i })),
     volume: sumVolume(markets),
   };
 }
@@ -339,6 +449,7 @@ function buildList(
   type: SportsMarketType,
   markets: PredictMarket[],
   typeLabel: SportsMarketType = type,
+  hint?: TeamHint,
 ): MarketGroup {
   // Exact-score options carry an "Exact Score: " prefix (e.g.
   // "Exact Score: 2-0"); drop it so only the scoreline shows everywhere it is
@@ -346,7 +457,7 @@ function buildList(
   const stripPrefix = type === "soccer_exact_score";
   const options = markets
     .map((m): MarketOption => {
-      const raw = marketLabel(m);
+      const raw = marketLabel(m, hint);
       return {
         market: m,
         label: stripPrefix ? stripLabelPrefix(raw) : raw,
@@ -362,11 +473,14 @@ function buildTypedLists(
   types: SportsMarketType[],
   byType: Map<SportsMarketType, PredictMarket[]>,
   typeLabel?: SportsMarketType,
+  hint?: TeamHint,
 ): MarketGroup[] {
   const groups: MarketGroup[] = [];
   for (const type of types) {
     const markets = byType.get(type);
-    if (markets?.length) groups.push(buildList(`${prefix}:${type}`, type, markets, typeLabel));
+    if (markets?.length) {
+      groups.push(buildList(`${prefix}:${type}`, type, markets, typeLabel, hint));
+    }
   }
   return groups;
 }
@@ -392,30 +506,39 @@ export function categorizeMarkets(
   }
 
   const gameLines: MarketGroup[] = [];
-  const moneyline = byType.get("moneyline");
-  if (moneyline?.length) gameLines.push(buildMoneyline(moneyline));
+  const moneyline = [
+    ...(byType.get("moneyline") ?? []),
+    ...(byType.get("soccer_match_winner") ?? []),
+  ];
+  if (moneyline.length) gameLines.push(buildMoneyline(moneyline, hint));
   const btts = byType.get("both_teams_to_score");
-  if (btts?.length) gameLines.push(buildSingle("btts", "both_teams_to_score", btts));
+  if (btts?.length) gameLines.push(buildSingle("btts", "both_teams_to_score", btts, hint));
   const spreads = byType.get("spreads");
   if (spreads?.length) gameLines.push(buildSpreads(spreads, hint));
   const totals = byType.get("totals");
   if (totals?.length) gameLines.push(buildTotals(totals));
   const firstToScore = byType.get("soccer_first_to_score");
   if (firstToScore?.length) {
-    gameLines.push(buildList("first_to_score", "soccer_first_to_score", firstToScore));
+    gameLines.push(
+      buildList("first_to_score", "soccer_first_to_score", firstToScore, undefined, hint),
+    );
   }
   const teamTotals = byType.get("soccer_team_totals");
   if (teamTotals?.length) {
-    gameLines.push(buildTotalsList("team_totals", "soccer_team_totals", teamTotals));
+    gameLines.push(buildTotalsList("team_totals", "soccer_team_totals", teamTotals, hint));
   }
 
   const exactScore: MarketGroup[] = [];
   const exact = byType.get("soccer_exact_score");
-  if (exact?.length) exactScore.push(buildList("exact_score", "soccer_exact_score", exact));
+  if (exact?.length) {
+    exactScore.push(buildList("exact_score", "soccer_exact_score", exact, undefined, hint));
+  }
 
   const halftime: MarketGroup[] = [];
   const ht = byType.get("soccer_halftime_result");
-  if (ht?.length) halftime.push(buildList("halftime", "soccer_halftime_result", ht));
+  if (ht?.length) {
+    halftime.push(buildList("halftime", "soccer_halftime_result", ht, undefined, hint));
+  }
   const firstHalfBTTS = byType.get("both_teams_to_score_first_half");
   if (firstHalfBTTS?.length) {
     halftime.push(
@@ -423,13 +546,14 @@ export function categorizeMarkets(
         "btts_first_half",
         "both_teams_to_score_first_half",
         firstHalfBTTS,
+        hint,
       ),
     );
   }
   const firstHalfTotals = byType.get("first_half_totals");
   if (firstHalfTotals?.length) {
     halftime.push(
-      buildTotalsList("first_half_totals", "first_half_totals", firstHalfTotals),
+      buildTotalsList("first_half_totals", "first_half_totals", firstHalfTotals, hint),
     );
   }
   const firstHalfTeamTotals = byType.get("soccer_first_half_team_totals");
@@ -439,11 +563,18 @@ export function categorizeMarkets(
         "first_half_team_totals",
         "soccer_first_half_team_totals",
         firstHalfTeamTotals,
+        hint,
       ),
     );
   }
 
-  const secondHalf = buildTypedLists("second_half", ["soccer_second_half_result"], byType);
+  const secondHalf = buildTypedLists(
+    "second_half",
+    ["soccer_second_half_result"],
+    byType,
+    undefined,
+    hint,
+  );
   const secondHalfBTTS = byType.get("both_teams_to_score_second_half");
   if (secondHalfBTTS?.length) {
     secondHalf.push(
@@ -451,13 +582,14 @@ export function categorizeMarkets(
         "btts_second_half",
         "both_teams_to_score_second_half",
         secondHalfBTTS,
+        hint,
       ),
     );
   }
   const secondHalfTotals = byType.get("second_half_totals");
   if (secondHalfTotals?.length) {
     secondHalf.push(
-      buildTotalsList("second_half_totals", "second_half_totals", secondHalfTotals),
+      buildTotalsList("second_half_totals", "second_half_totals", secondHalfTotals, hint),
     );
   }
   const secondHalfTeamTotals = byType.get("soccer_second_half_team_totals");
@@ -467,6 +599,7 @@ export function categorizeMarkets(
         "second_half_team_totals",
         "soccer_second_half_team_totals",
         secondHalfTeamTotals,
+        hint,
       ),
     );
   }
@@ -482,27 +615,42 @@ export function categorizeMarkets(
       "soccer_first_corner",
     ],
     byType,
+    undefined,
+    hint,
   );
 
   const goals = buildTypedLists(
     "goals",
     ["soccer_player_goals", "soccer_player_goals_plus_assists"],
     byType,
+    undefined,
+    hint,
   );
-  const assists = buildTypedLists("assists", ["soccer_player_assists"], byType);
+  const assists = buildTypedLists(
+    "assists",
+    ["soccer_player_assists"],
+    byType,
+    undefined,
+    hint,
+  );
   const shots = buildTypedLists(
     "shots",
     ["soccer_player_shots", "soccer_player_shots_on_target"],
     byType,
+    undefined,
+    hint,
   );
   const saves = buildTypedLists(
     "saves",
     ["soccer_player_goalkeeper_saves"],
     byType,
+    undefined,
+    hint,
   );
 
   const knownTypes = new Set<SportsMarketType>([
     "moneyline",
+    "soccer_match_winner",
     "both_teams_to_score",
     "spreads",
     "totals",
@@ -532,7 +680,7 @@ export function categorizeMarkets(
   ]);
   const otherMarkets = markets.filter((m) => !knownTypes.has(sportsType(m)));
   const other = otherMarkets.length
-    ? [buildList("other", "other", otherMarkets)]
+    ? [buildList("other", "other", otherMarkets, "other", hint)]
     : [];
 
   return {

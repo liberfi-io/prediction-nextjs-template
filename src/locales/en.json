@@ -497,6 +497,7 @@
           },
           "type": {
             "moneyline": "Moneyline",
+            "soccer_match_winner": "Match Winner",
             "spreads": "Spreads",
             "totals": "Totals",
             "both_teams_to_score": "Both Teams to Score",

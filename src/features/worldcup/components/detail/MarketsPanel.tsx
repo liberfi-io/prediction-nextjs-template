@@ -547,7 +547,7 @@ function GroupRow({
               )}
             >
               <span className="min-w-0 max-w-full truncate text-xs font-medium leading-tight">
-                {options[0].label}
+                {label}
               </span>
               {odds != null && (
                 <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
