@@ -514,11 +514,17 @@
             "soccer_player_goals_short": "득점",
             "soccer_player_goals_plus_assists": "득점 + 도움",
             "soccer_player_assists": "선수 도움",
+            "soccer_player_assists_short": "도움",
             "soccer_player_shots": "선수 슈팅",
+            "soccer_player_shots_short": "슈팅",
             "soccer_player_shots_on_target": "유효 슈팅",
             "soccer_player_goalkeeper_saves": "골키퍼 세이브",
             "soccer_player_goalkeeper_saves_short": "세이브",
             "other": "기타"
+          },
+          "option": {
+            "neither": "없음",
+            "anyOtherScore": "기타 스코어"
           }
         }
       },

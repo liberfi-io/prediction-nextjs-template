@@ -78,8 +78,11 @@ const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
   "total_corners",
   "soccer_first_half_total_corners",
   "soccer_second_half_total_corners",
+  "soccer_team_total_corners",
   "soccer_player_goals",
   "soccer_player_goalkeeper_saves",
+  "soccer_player_assists",
+  "soccer_player_shots",
 ]);
 const marketPanelPinnedAtom = atomWithStorage(
   "worldcup.detail.marketPanelPinned",
@@ -165,6 +168,7 @@ function teamHint(match?: WcMatch, t?: WorldCupTranslate): TeamHint | undefined 
     firstHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.first_half_totals"),
     secondHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.second_half_totals"),
     totalCornersLabel: t?.("extend.worldcup.detail.markets.type.total_corners"),
+    teamTotalCornersLabel: t?.("extend.worldcup.detail.markets.type.total_corners"),
     firstHalfTotalCornersLabel: t?.(
       "extend.worldcup.detail.markets.type.soccer_first_half_total_corners",
     ),
@@ -179,6 +183,10 @@ function teamHint(match?: WcMatch, t?: WorldCupTranslate): TeamHint | undefined 
     goalkeeperSavesShortLabel: t?.(
       "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves_short",
     ),
+    playerAssistsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_assists_short"),
+    playerShotsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_shots_short"),
+    neitherLabel: t?.("extend.worldcup.detail.markets.option.neither"),
+    anyOtherScoreLabel: t?.("extend.worldcup.detail.markets.option.anyOtherScore"),
   };
 }
 

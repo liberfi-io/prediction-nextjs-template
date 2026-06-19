@@ -516,11 +516,17 @@
             "soccer_player_goals_short": "голы",
             "soccer_player_goals_plus_assists": "Голы + передачи",
             "soccer_player_assists": "Передачи игрока",
+            "soccer_player_assists_short": "передачи",
             "soccer_player_shots": "Удары игрока",
+            "soccer_player_shots_short": "удары",
             "soccer_player_shots_on_target": "Удары в створ",
             "soccer_player_goalkeeper_saves": "Сейвы вратаря",
             "soccer_player_goalkeeper_saves_short": "сейвы",
             "other": "Другое"
+          },
+          "option": {
+            "neither": "Ни один",
+            "anyOtherScore": "Любой другой счет"
           }
         }
       },

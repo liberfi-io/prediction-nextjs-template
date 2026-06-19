@@ -516,11 +516,17 @@
             "soccer_player_goals_short": "gol",
             "soccer_player_goals_plus_assists": "Gol + assist",
             "soccer_player_assists": "Assist giocatore",
+            "soccer_player_assists_short": "assist",
             "soccer_player_shots": "Tiri giocatore",
+            "soccer_player_shots_short": "tiri",
             "soccer_player_shots_on_target": "Tiri in porta",
             "soccer_player_goalkeeper_saves": "Parate portiere",
             "soccer_player_goalkeeper_saves_short": "parate",
             "other": "Altro"
+          },
+          "option": {
+            "neither": "Nessuno",
+            "anyOtherScore": "Qualsiasi altro risultato"
           }
         }
       },

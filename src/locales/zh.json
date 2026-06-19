@@ -489,11 +489,17 @@
             "soccer_player_goals_short": "进球",
             "soccer_player_goals_plus_assists": "進球 + 助攻",
             "soccer_player_assists": "球員助攻",
+            "soccer_player_assists_short": "助攻",
             "soccer_player_shots": "球員射門",
+            "soccer_player_shots_short": "射门",
             "soccer_player_shots_on_target": "射正",
             "soccer_player_goalkeeper_saves": "守門員撲救",
             "soccer_player_goalkeeper_saves_short": "扑救",
             "other": "其他"
+          },
+          "option": {
+            "neither": "无",
+            "anyOtherScore": "其他比分"
           }
         }
       },

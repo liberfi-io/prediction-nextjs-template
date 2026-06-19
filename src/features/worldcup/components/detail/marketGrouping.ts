@@ -106,12 +106,17 @@ export interface TeamHint {
   firstHalfTotalsLabel?: string;
   secondHalfTotalsLabel?: string;
   totalCornersLabel?: string;
+  teamTotalCornersLabel?: string;
   firstHalfTotalCornersLabel?: string;
   secondHalfTotalCornersLabel?: string;
   playerGoalsLabel?: string;
   goalkeeperSavesLabel?: string;
   playerGoalsShortLabel?: string;
   goalkeeperSavesShortLabel?: string;
+  playerAssistsShortLabel?: string;
+  playerShotsShortLabel?: string;
+  neitherLabel?: string;
+  anyOtherScoreLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +290,10 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
   }
   if (hint.yesLabel && normalized === "yes") return hint.yesLabel;
   if (hint.noLabel && normalized === "no") return hint.noLabel;
+  if (hint.neitherLabel && normalized === "neither") return hint.neitherLabel;
+  if (hint.anyOtherScoreLabel && normalized === "any other score") {
+    return hint.anyOtherScoreLabel;
+  }
 
   const lineLabel = (
     label: string | undefined,
@@ -317,6 +326,11 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
       undefined,
     ) ??
     lineLabel(
+      hint.teamTotalCornersLabel,
+      normalized.match(/^(?:.+?\s+)?corners:?\s+o\/u\s+(.+)$/)?.[1],
+      withLocalizedTeams.match(new RegExp(`^${teamPrefix}corners:?\\s+o/u\\s+.+$`, "i"))?.[1],
+    ) ??
+    lineLabel(
       hint.firstHalfTotalCornersLabel,
       normalized.match(/^1st half total corners:?\s+o\/u\s+(.+)$/)?.[1],
       undefined,
@@ -333,6 +347,14 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
     thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+saves?$/i),
       hint.goalkeeperSavesShortLabel,
+    ) ??
+    thresholdLabel(
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+assists?$/i),
+      hint.playerAssistsShortLabel,
+    ) ??
+    thresholdLabel(
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+shots?$/i),
+      hint.playerShotsShortLabel,
     );
   if (fixed) return fixed;
 

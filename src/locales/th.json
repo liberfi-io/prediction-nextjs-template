@@ -514,11 +514,17 @@
             "soccer_player_goals_short": "ประตู",
             "soccer_player_goals_plus_assists": "ประตู + แอสซิสต์",
             "soccer_player_assists": "แอสซิสต์ของผู้เล่น",
+            "soccer_player_assists_short": "แอสซิสต์",
             "soccer_player_shots": "การยิงของผู้เล่น",
+            "soccer_player_shots_short": "ยิง",
             "soccer_player_shots_on_target": "ยิงเข้ากรอบ",
             "soccer_player_goalkeeper_saves": "ผู้รักษาประตูเซฟ",
             "soccer_player_goalkeeper_saves_short": "เซฟ",
             "other": "อื่นๆ"
+          },
+          "option": {
+            "neither": "ไม่มี",
+            "anyOtherScore": "สกอร์อื่น ๆ"
           }
         }
       },
