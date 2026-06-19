@@ -23,6 +23,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useAtomValue } from "jotai";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   LocaleCode,
@@ -96,6 +97,7 @@ import { predictEventHref } from "./page/predict-source";
 import { getQueryClient } from "../libs/queryClient";
 import { ENABLE_KALSHI } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
+import { MpChatPrivyAutoLogin } from "./MpChatPrivyAutoLogin";
 import {
   FundWalletModal,
   FUND_WALLET_MODAL_ID,
@@ -116,6 +118,7 @@ import {
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
+import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -233,6 +236,7 @@ export function AppLayout({
     <>
       <QueryClientProvider client={queryClient}>
         <AuthProviders>
+          <MpChatPrivyAutoLogin />
           <LocaleProvider
             locale={locale}
             supportedLanguages={SUPPORTED_LANG_CODES}
@@ -1130,6 +1134,7 @@ function BalanceDropdownContent({
 function PredictAccountControl() {
   const { t } = useTranslation();
   const { status, signIn, signOut } = useAuth();
+  const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
   const {
     kalshiUsdcBalance,
     polymarketUsdcBalance,
@@ -1417,6 +1422,19 @@ function PredictAccountControl() {
     initialLoading,
   };
 
+  // Transitioning (signing in / out): show a compact spinner.
+  if (
+    mpChatAutoLoginPending ||
+    status === "authenticating" ||
+    status === "deauthenticating"
+  ) {
+    return (
+      <div className="flex items-center justify-center w-8 h-8">
+        <Spinner size="sm" color="current" className="text-zinc-500" />
+      </div>
+    );
+  }
+
   // Logged out: show the sign-in CTA in place of the balance trigger.
   if (status === "unauthenticated") {
     return (
@@ -1428,15 +1446,6 @@ function PredictAccountControl() {
         <SignInIcon width={14} height={14} />
         {t("common.signIn")}
       </button>
-    );
-  }
-
-  // Transitioning (signing in / out): show a compact spinner.
-  if (status === "authenticating" || status === "deauthenticating") {
-    return (
-      <div className="flex items-center justify-center w-8 h-8">
-        <Spinner size="sm" color="current" className="text-zinc-500" />
-      </div>
     );
   }
 

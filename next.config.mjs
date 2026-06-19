@@ -38,6 +38,18 @@ const nextConfig = {
         __dirname,
         "node_modules/@tanstack/react-query",
       ),
+      ...(useLocalSdk
+        ? {
+            "@privy-io/react-auth$": path.resolve(
+              __dirname,
+              "node_modules/@privy-io/react-auth",
+            ),
+            "@privy-io/react-auth/solana$": path.resolve(
+              __dirname,
+              "node_modules/@privy-io/react-auth/dist/esm/solana.mjs",
+            ),
+          }
+        : {}),
     };
 
     config.resolve.alias = {
