@@ -63,12 +63,24 @@ import {
   allGroups,
   defaultSelection,
   findSelection,
+  type SportsMarketType,
   type TeamHint,
 } from "./marketGrouping";
 import { normalizeDeepLinkOutcome, resolveMarketDeepLink } from "./deepLink";
 
 /** Shared FIFA logo used for every event avatar on the World Cup detail page. */
 const FIFA_AVATAR = "/worldcup/fifa.webp";
+const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
+  "first_half_totals",
+  "soccer_first_half_team_totals",
+  "second_half_totals",
+  "soccer_second_half_team_totals",
+  "total_corners",
+  "soccer_first_half_total_corners",
+  "soccer_second_half_total_corners",
+  "soccer_player_goals",
+  "soccer_player_goalkeeper_saves",
+]);
 const marketPanelPinnedAtom = atomWithStorage(
   "worldcup.detail.marketPanelPinned",
   false,
@@ -500,10 +512,15 @@ export function WorldCupDetailPage({
       ? `${groupLabel} (${optionLabel})`
       : groupLabel;
   };
+  const selectedSurfaceLabel = (optionLabel: string) => {
+    if (!selectedGroup) return groupLabel;
+    if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
+    return optionDisplayLabel(optionLabel);
+  };
 
   const selectedLabel =
     selectedGroup && selection
-      ? optionDisplayLabel(selection.option.label)
+      ? selectedSurfaceLabel(selection.option.label)
       : displayEvent.title;
 
   // The chart plots every market in the selected group (e.g. 3 moneyline lines,
