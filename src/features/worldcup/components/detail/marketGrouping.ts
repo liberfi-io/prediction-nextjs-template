@@ -122,6 +122,14 @@ function groupItemTitle(m: PredictMarket): string {
   return typeof t === "string" ? t : "";
 }
 
+function groupItemTitleTrans(m: PredictMarket): string {
+  const direct = (m as PredictMarket & { group_item_title_trans?: unknown })
+    .group_item_title_trans;
+  if (typeof direct === "string") return direct;
+  const metaValue = meta(m, "polymarket.groupItemTitleTrans");
+  return typeof metaValue === "string" ? metaValue : "";
+}
+
 function finitePrice(v: unknown): number | undefined {
   return typeof v === "number" && Number.isFinite(v) ? v : undefined;
 }
@@ -205,13 +213,19 @@ export function yesAskPrice(m: PredictMarket): number {
 
 /** Strip the trailing " (...)" qualifier Polymarket appends to group titles. */
 function cleanTitle(raw: string): string {
-  const idx = raw.indexOf(" (");
+  const asciiIdx = raw.indexOf(" (");
+  const fullWidthIdx = raw.indexOf("（");
+  const candidates = [asciiIdx, fullWidthIdx].filter((idx) => idx > 0);
+  const idx = candidates.length ? Math.min(...candidates) : -1;
   return (idx > 0 ? raw.slice(0, idx) : raw).trim();
 }
 
-/** Best human label for a market: cleaned group title, else question. */
+/**
+ * Best human label for a market: localized cleaned group title when present,
+ * else base group title / question.
+ */
 function marketLabel(m: PredictMarket): string {
-  return cleanTitle(groupItemTitle(m)) || m.question || m.slug;
+  return cleanTitle(groupItemTitleTrans(m) || groupItemTitle(m)) || m.question || m.slug;
 }
 
 // ---------------------------------------------------------------------------

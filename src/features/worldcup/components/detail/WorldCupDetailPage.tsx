@@ -22,7 +22,11 @@ import {
   UnPinIcon,
   useScreen,
 } from "@liberfi.io/ui";
-import type { PredictMarket, ProviderSource } from "@liberfi.io/react-predict";
+import type {
+  PredictEvent,
+  PredictMarket,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
   EventMarketDetailWidget,
@@ -70,6 +74,45 @@ const marketPanelPinnedAtom = atomWithStorage(
   false,
 );
 
+type TranslatedEvent = PredictEvent & { title_trans?: unknown };
+type TranslatedOutcome = PredictMarket["outcomes"][number] & {
+  label_trans?: unknown;
+  name_trans?: unknown;
+};
+type TranslatedMarket = PredictMarket & {
+  question_trans?: unknown;
+  outcomes?: TranslatedOutcome[];
+};
+
+function translatedText(base: string | undefined, translated: unknown): string | undefined {
+  return typeof translated === "string" && translated.trim() ? translated : base;
+}
+
+function withTranslatedEventTitle(event: PredictEvent): PredictEvent {
+  const translated = event as TranslatedEvent;
+  const title = translatedText(event.title, translated.title_trans);
+  return title && title !== event.title ? { ...event, title } : event;
+}
+
+function withTranslatedMarketText(market: PredictMarket): PredictMarket {
+  const translatedMarket = market as TranslatedMarket;
+  const question =
+    translatedText(market.question, translatedMarket.question_trans) ?? market.question;
+  let changed = question !== market.question;
+  const outcomes = market.outcomes?.map((outcome) => {
+    const translatedOutcome = outcome as TranslatedOutcome;
+    const label = translatedText(
+      outcome.label,
+      translatedOutcome.label_trans ?? translatedOutcome.name_trans,
+    );
+    if (!label || label === outcome.label) return outcome;
+    changed = true;
+    return { ...outcome, label };
+  });
+
+  return changed ? { ...market, question, outcomes } : market;
+}
+
 /** Team name/code aliases used to orient spread handicaps to the home side. */
 function teamHint(match?: WcMatch): TeamHint | undefined {
   if (!match) return undefined;
@@ -91,7 +134,7 @@ function teamHint(match?: WcMatch): TeamHint | undefined {
  * trade/order-book logic keys off by index) stay intact.
  */
 function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
-  const displayMarket = withSettledOutcomePrices(market);
+  const displayMarket = withTranslatedMarketText(withSettledOutcomePrices(market));
   const outcomes = displayMarket.outcomes?.length
     ? [{ ...displayMarket.outcomes[0], label }, ...displayMarket.outcomes.slice(1)]
     : displayMarket.outcomes;
@@ -375,8 +418,9 @@ export function WorldCupDetailPage({
 
   const selectedMarket = selection?.option.market;
   const selectedDisplayMarket = selectedMarket
-    ? withSettledOutcomePrices(selectedMarket)
+    ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket))
     : selectedMarket;
+  const displayEvent = withTranslatedEventTitle(event);
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)
@@ -403,7 +447,7 @@ export function WorldCupDetailPage({
   const selectedLabel =
     selectedGroup && selection
       ? optionDisplayLabel(selection.option.label)
-      : event.title;
+      : displayEvent.title;
 
   // The chart plots every market in the selected group (e.g. 3 moneyline lines,
   // or the single totals line), reusing EventPriceChart's multi-market support.
@@ -413,12 +457,12 @@ export function WorldCupDetailPage({
   // Polymarket's verbose "Draw (Mexico vs. South Africa)".
   const chartEvent = selectedGroup
     ? {
-        ...event,
+        ...displayEvent,
         markets: selectedGroup.options.map((o) =>
           withCleanLabel(o.market, optionDisplayLabel(o.label)),
         ),
       }
-    : event;
+    : displayEvent;
 
   // Trade form title mirrors the selected trigger text ("Buy Yes · Moneyline
   // (Draw)"). Display surfaces use settled prices for closed markets so stale
@@ -439,7 +483,7 @@ export function WorldCupDetailPage({
       // last content row is never hidden behind it when scrolled to the end.
       <div className="flex w-full flex-col gap-4 pb-4">
         <DetailHeader
-          event={event}
+          event={displayEvent}
           market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
           panelOpen={marketsSheetOpen}
@@ -579,7 +623,7 @@ export function WorldCupDetailPage({
             title={t(`extend.worldcup.detail.trade.${side}`)}
           >
             <TradePanel
-              event={event}
+              event={displayEvent}
               market={tradeMarket ?? selectedMarket}
               outcome={outcome}
               side={side}
@@ -602,7 +646,7 @@ export function WorldCupDetailPage({
       {/* LEFT BLOCK: header + main row + activity (aside spans this whole block) */}
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <DetailHeader
-          event={event}
+          event={displayEvent}
           market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
           panelOpen={panelOpen}
@@ -704,7 +748,7 @@ export function WorldCupDetailPage({
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-2 lg:w-[360px]">
           <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
             <TradePanel
-              event={event}
+              event={displayEvent}
               market={tradeMarket ?? selectedMarket}
               outcome={outcome}
               side={side}
