@@ -51,6 +51,21 @@ function readUrlParam(key: string): string | null {
   return fromHash?.trim() ? fromHash : null;
 }
 
+function readUrlStartParam(): string | null {
+  return (
+    readUrlParam("mpWebAppStartParam") ||
+    readUrlParam("mpChatWebAppStartParam") ||
+    readUrlParam("startapp")
+  );
+}
+
+function readInitDataParam(key: string): string | null {
+  const initData = readMpChatInitData();
+  if (!initData?.trim()) return null;
+  const value = new URLSearchParams(initData).get(key);
+  return value?.trim() ? value : null;
+}
+
 export function isMpChatMiniAppEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_MPCHAT_MINIAPP === "true";
 }
@@ -73,8 +88,9 @@ export function peekMpChatStartParam(): string | null {
   return (
     asString(unsafe.start_param) ??
     asString(unsafe.startParam) ??
-    readUrlParam("mpWebAppStartParam") ??
-    readUrlParam("startapp")
+    readUrlStartParam() ??
+    readInitDataParam("start_param") ??
+    readInitDataParam("startParam")
   );
 }
 
@@ -85,7 +101,7 @@ export function isLikelyMpChatLaunch(): boolean {
     window.MpChat?.WebApp ||
       readUrlParam("mpWebAppData") ||
       readUrlParam("mpChatWebAppData") ||
-      readUrlParam("mpWebAppStartParam"),
+      readUrlStartParam(),
   );
 }
 
