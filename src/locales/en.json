@@ -519,11 +519,13 @@
             "soccer_first_half_total_corners": "1st Half Total Corners",
             "soccer_first_corner": "First Corner",
             "soccer_player_goals": "Player Goals",
+            "soccer_player_goals_short": "goals",
             "soccer_player_goals_plus_assists": "Goals + Assists",
             "soccer_player_assists": "Player Assists",
             "soccer_player_shots": "Player Shots",
             "soccer_player_shots_on_target": "Shots on Target",
             "soccer_player_goalkeeper_saves": "Goalkeeper Saves",
+            "soccer_player_goalkeeper_saves_short": "saves",
             "other": "Other"
           }
         }

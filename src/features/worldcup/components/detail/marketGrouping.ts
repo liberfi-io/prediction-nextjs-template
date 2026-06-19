@@ -110,6 +110,8 @@ export interface TeamHint {
   secondHalfTotalCornersLabel?: string;
   playerGoalsLabel?: string;
   goalkeeperSavesLabel?: string;
+  playerGoalsShortLabel?: string;
+  goalkeeperSavesShortLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -326,11 +328,11 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
     ) ??
     thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+goals?$/i),
-      hint.playerGoalsLabel,
+      hint.playerGoalsShortLabel,
     ) ??
     thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+saves?$/i),
-      hint.goalkeeperSavesLabel,
+      hint.goalkeeperSavesShortLabel,
     );
   if (fixed) return fixed;
 

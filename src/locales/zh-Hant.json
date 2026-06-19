@@ -519,11 +519,13 @@
             "soccer_first_half_total_corners": "上半場角球總數",
             "soccer_first_corner": "首個角球",
             "soccer_player_goals": "球員進球",
+            "soccer_player_goals_short": "進球",
             "soccer_player_goals_plus_assists": "進球 + 助攻",
             "soccer_player_assists": "球員助攻",
             "soccer_player_shots": "球員射門",
             "soccer_player_shots_on_target": "射正",
             "soccer_player_goalkeeper_saves": "守門員撲救",
+            "soccer_player_goalkeeper_saves_short": "撲救",
             "other": "其他"
           }
         }

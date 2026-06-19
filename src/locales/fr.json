@@ -511,11 +511,13 @@
             "soccer_first_half_total_corners": "Corners totaux 1re mi-temps",
             "soccer_first_corner": "Premier corner",
             "soccer_player_goals": "Buts du joueur",
+            "soccer_player_goals_short": "buts",
             "soccer_player_goals_plus_assists": "Buts + passes décisives",
             "soccer_player_assists": "Passes décisives du joueur",
             "soccer_player_shots": "Tirs du joueur",
             "soccer_player_shots_on_target": "Tirs cadrés",
             "soccer_player_goalkeeper_saves": "Arrêts du gardien",
+            "soccer_player_goalkeeper_saves_short": "arrêts",
             "other": "Autre"
           }
         }

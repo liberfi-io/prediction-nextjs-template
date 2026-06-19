@@ -513,11 +513,13 @@
             "soccer_first_half_total_corners": "Escanteios totais do 1º tempo",
             "soccer_first_corner": "Primeiro escanteio",
             "soccer_player_goals": "Gols do jogador",
+            "soccer_player_goals_short": "gols",
             "soccer_player_goals_plus_assists": "Gols + assistências",
             "soccer_player_assists": "Assistências do jogador",
             "soccer_player_shots": "Finalizações do jogador",
             "soccer_player_shots_on_target": "Finalizações no alvo",
             "soccer_player_goalkeeper_saves": "Defesas do goleiro",
+            "soccer_player_goalkeeper_saves_short": "defesas",
             "other": "Outros"
           }
         }

@@ -511,11 +511,13 @@
             "soccer_first_half_total_corners": "전반 코너킥 합계",
             "soccer_first_corner": "첫 코너킥",
             "soccer_player_goals": "선수 득점",
+            "soccer_player_goals_short": "득점",
             "soccer_player_goals_plus_assists": "득점 + 도움",
             "soccer_player_assists": "선수 도움",
             "soccer_player_shots": "선수 슈팅",
             "soccer_player_shots_on_target": "유효 슈팅",
             "soccer_player_goalkeeper_saves": "골키퍼 세이브",
+            "soccer_player_goalkeeper_saves_short": "세이브",
             "other": "기타"
           }
         }

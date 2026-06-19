@@ -160,8 +160,12 @@ function teamHint(match?: WcMatch, t?: WorldCupTranslate): TeamHint | undefined 
       "extend.worldcup.detail.markets.type.soccer_second_half_total_corners",
     ),
     playerGoalsLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_goals"),
+    playerGoalsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_goals_short"),
     goalkeeperSavesLabel: t?.(
       "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves",
+    ),
+    goalkeeperSavesShortLabel: t?.(
+      "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves_short",
     ),
   };
 }

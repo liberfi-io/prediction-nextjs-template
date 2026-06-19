@@ -513,11 +513,13 @@
             "soccer_first_half_total_corners": "Córners totales 1.ª mitad",
             "soccer_first_corner": "Primer córner",
             "soccer_player_goals": "Goles del jugador",
+            "soccer_player_goals_short": "goles",
             "soccer_player_goals_plus_assists": "Goles + asistencias",
             "soccer_player_assists": "Asistencias del jugador",
             "soccer_player_shots": "Tiros del jugador",
             "soccer_player_shots_on_target": "Tiros a puerta",
             "soccer_player_goalkeeper_saves": "Paradas del portero",
+            "soccer_player_goalkeeper_saves_short": "paradas",
             "other": "Otros"
           }
         }
