@@ -283,7 +283,7 @@ function MatchCardImpl({
     onMarketPick?.(match, marketCode, outcome);
   };
   const marketsDisabled = match.status === "final" || Boolean(match.liveState?.ended);
-  const hasLive = hasLiveVideos(match.liveVideos);
+  const hasLive = hasLiveVideos(match.liveVideos, match);
   const [panelTab, setPanelTab] = useState<CardPanelTab>(
     hasLive ? "live" : ENABLE_WORLD_CUP_MATCH_CENTER ? "center" : "news",
   );

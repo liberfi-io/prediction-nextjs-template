@@ -94,7 +94,11 @@ function useDeferredPlayback(): {
   return { ref, ready };
 }
 
-export function hasLiveVideos(videos?: WcMatchLiveVideo[] | null): boolean {
+export function hasLiveVideos(
+  videos?: WcMatchLiveVideo[] | null,
+  match?: Pick<WcMatch, "status" | "liveState"> | null,
+): boolean {
+  if (match?.status === "final" || match?.liveState?.ended) return false;
   return Boolean(videos?.some((video) => video.url && video.status === 1));
 }
 

@@ -275,7 +275,7 @@ export function WorldCupDetailPage({
     const eventVideos = adaptLiveVideos(event?.live_videos);
     return eventVideos.length > 0 ? eventVideos : match?.liveVideos;
   }, [event?.live_videos, match?.liveVideos]);
-  const showLiveTab = hasLiveVideos(liveVideos);
+  const showLiveTab = hasLiveVideos(liveVideos, match);
   const mobileTabs = useMemo(
     () => MOBILE_TABS.filter((tab) => tab.key !== "live" || showLiveTab),
     [showLiveTab],

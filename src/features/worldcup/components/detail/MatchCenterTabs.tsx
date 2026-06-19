@@ -43,7 +43,7 @@ export function MatchCenterTabs({
   hideTabs?: boolean;
 }) {
   const { t } = useTranslation();
-  const showLive = hasLiveVideos(liveVideos);
+  const showLive = hasLiveVideos(liveVideos, match);
   const tabs = useMemo<CenterTab[]>(
     () => {
       const centerTabs: CenterTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
