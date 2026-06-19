@@ -24,6 +24,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: "/api/.well-known/jwks.json",
+        destination: "/api/well-known/jwks",
+      },
+      {
         source: "/predict-api/:path*",
         destination: process.env.PREDICT_URL + "/:path*",
       },
