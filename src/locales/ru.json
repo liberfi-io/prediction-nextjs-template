@@ -335,6 +335,10 @@
         "spread": "Фора",
         "total": "Тотал"
       },
+      "totalSide": {
+        "over": "Больше",
+        "under": "Меньше"
+      },
       "advanceProbability": "Продвижение",
       "team": "Команда",
       "collapse": "Свернуть",

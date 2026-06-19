@@ -333,6 +333,10 @@
         "spread": "Écart",
         "total": "Total"
       },
+      "totalSide": {
+        "over": "Plus de",
+        "under": "Moins de"
+      },
       "advanceProbability": "Avancer",
       "team": "Équipe",
       "collapse": "Réduire",

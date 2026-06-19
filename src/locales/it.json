@@ -335,6 +335,10 @@
         "spread": "Spread",
         "total": "Totale"
       },
+      "totalSide": {
+        "over": "Over",
+        "under": "Under"
+      },
       "advanceProbability": "Avanza",
       "team": "Squadra",
       "collapse": "Comprimi",

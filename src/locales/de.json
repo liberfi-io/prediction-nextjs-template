@@ -335,6 +335,10 @@
         "spread": "Spread",
         "total": "Gesamt"
       },
+      "totalSide": {
+        "over": "Über",
+        "under": "Unter"
+      },
       "advanceProbability": "Vorrücken",
       "team": "Team",
       "collapse": "Einklappen",

@@ -333,6 +333,10 @@
         "spread": "สเปรด",
         "total": "รวม"
       },
+      "totalSide": {
+        "over": "สูงกว่า",
+        "under": "ต่ำกว่า"
+      },
       "advanceProbability": "ล่วงหน้า",
       "team": "ทีม",
       "collapse": "ย่อ",

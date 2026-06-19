@@ -333,6 +333,10 @@
         "spread": "Spread",
         "total": "Tổng"
       },
+      "totalSide": {
+        "over": "Tài",
+        "under": "Xỉu"
+      },
       "advanceProbability": "Tiến lên",
       "team": "Đội",
       "collapse": "Thu gọn",

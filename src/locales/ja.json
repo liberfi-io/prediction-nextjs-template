@@ -333,6 +333,10 @@
         "spread": "スプレッド",
         "total": "合計"
       },
+      "totalSide": {
+        "over": "オーバー",
+        "under": "アンダー"
+      },
       "advanceProbability": "進出",
       "team": "チーム",
       "collapse": "折りたたむ",

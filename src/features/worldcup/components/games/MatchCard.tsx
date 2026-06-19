@@ -18,6 +18,7 @@ import { MarketNewsWidget } from "../detail/feeds/MarketNewsWidget";
 
 type PillColors = { bg: string; text: string; shadow: string };
 type CardPanelTab = "live" | "center" | "news" | "comments";
+type WorldCupTranslate = (key: `extend.${string}`, options?: Record<string, unknown>) => string;
 
 // Neutral fill for non-moneyline buttons. Solid enough to read as an enabled
 // control (the old translucent zinc looked disabled).
@@ -52,6 +53,10 @@ function teamColors(hex: string): PillColors {
   return { bg: hex, text: textOn(hex), shadow: darken(hex, 0.48) };
 }
 
+function teamName(t: WorldCupTranslate, team: WcTeam): string {
+  return t(`extend.worldcup.teamName.${team.code.toLowerCase()}`);
+}
+
 /**
  * A single odds button — solid fill with an elevated drop-shadow that
  * "presses" on hover, matching the single-market buy buttons on the market
@@ -59,6 +64,7 @@ function teamColors(hex: string): PillColors {
  */
 function Pill({
   label,
+  labelSuffix,
   price,
   format,
   variant = "fade",
@@ -69,6 +75,7 @@ function Pill({
   onClick,
 }: {
   label: string;
+  labelSuffix?: string;
   price: number;
   format: OddsFormat;
   variant?: OddsNumberVariant;
@@ -117,8 +124,11 @@ function Pill({
         } as React.CSSProperties
       }
     >
-      <span className="truncate text-[11px] font-semibold uppercase tracking-wide opacity-75">
-        {label}
+      <span className="flex min-w-0 items-baseline gap-1 text-[11px] font-semibold uppercase tracking-wide opacity-75">
+        <span className="min-w-0 truncate">{label}</span>
+        {labelSuffix ? (
+          <span className="shrink-0 tabular-nums">{labelSuffix}</span>
+        ) : null}
       </span>
       <span className="shrink-0 text-sm font-bold tabular-nums">
         {price > 0 ? (
@@ -152,7 +162,7 @@ function Matchup({
   mode?: "compact" | "full";
 }) {
   const { t: _t } = useTranslation();
-  const t = _t as (key: string, options?: Record<string, unknown>) => string;
+  const t = _t as WorldCupTranslate;
   const showScore = (match.status === "live" || match.status === "final") && Boolean(match.liveScore);
   if (mode === "full") {
     const teamBlock = (team: WcTeam, side: "home" | "away") => (
@@ -164,7 +174,7 @@ function Matchup({
       >
         {side === "home" && <TeamFlag team={team} size={28} />}
         <span className="truncate text-sm font-semibold text-zinc-100">
-          {t("extend.worldcup.teamName." + team.code.toLowerCase())}
+          {teamName(t, team)}
         </span>
         {side === "away" && <TeamFlag team={team} size={28} />}
       </div>
@@ -188,7 +198,7 @@ function Matchup({
       <TeamFlag team={team} size={28} />
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="truncate text-sm font-semibold text-zinc-100">
-          {t("extend.worldcup.teamName." + team.code.toLowerCase())}
+          {teamName(t, team)}
         </span>
         {showScore && (
           <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-300">
@@ -281,12 +291,16 @@ function MatchCardImpl({
 
   const homeColors = teamColors(match.home.color);
   const awayColors = teamColors(match.away.color);
-  const drawLabel = t("extend.worldcup.draw");
+  const drawLabel = translate("extend.worldcup.draw");
+  const homeLabel = teamName(translate, match.home);
+  const awayLabel = teamName(translate, match.away);
+  const overLabel = translate("extend.worldcup.totalSide.over");
+  const underLabel = translate("extend.worldcup.totalSide.under");
 
   const moneylineCol = (tall: boolean) => (
     <>
       <Pill
-        label={match.home.code}
+        label={homeLabel}
         price={ml.home.price}
         format={format}
         variant="fade"
@@ -306,7 +320,7 @@ function MatchCardImpl({
         onClick={(e) => pickMarket(e, "mld", "yes", ml.draw.price)}
       />
       <Pill
-        label={match.away.code}
+        label={awayLabel}
         price={ml.away.price}
         format={format}
         variant="fade"
@@ -327,7 +341,8 @@ function MatchCardImpl({
   const spreadCol = (
     <>
       <Pill
-        label={`${match.home.code} ${formatLine(spread.line)}`}
+        label={homeLabel}
+        labelSuffix={formatLine(spread.line)}
         price={spread.home.price}
         format={format}
         variant="roll"
@@ -339,7 +354,8 @@ function MatchCardImpl({
         }
       />
       <Pill
-        label={`${match.away.code} ${formatLine(-spread.line)}`}
+        label={awayLabel}
+        labelSuffix={formatLine(-spread.line)}
         price={spread.away.price}
         format={format}
         variant="roll"
@@ -356,7 +372,7 @@ function MatchCardImpl({
   const totalCol = (
     <>
       <Pill
-        label={`O ${total.line}`}
+        label={`${overLabel} ${total.line}`}
         price={total.over.price}
         format={format}
         variant="roll"
@@ -366,7 +382,7 @@ function MatchCardImpl({
         onClick={(e) => pickMarket(e, totalMarketCode, "yes", total.over.price)}
       />
       <Pill
-        label={`U ${total.line}`}
+        label={`${underLabel} ${total.line}`}
         price={total.under.price}
         format={format}
         variant="roll"

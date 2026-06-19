@@ -333,6 +333,10 @@
         "spread": "스프레드",
         "total": "토탈"
       },
+      "totalSide": {
+        "over": "오버",
+        "under": "언더"
+      },
       "advanceProbability": "진출",
       "team": "팀",
       "collapse": "축소",
