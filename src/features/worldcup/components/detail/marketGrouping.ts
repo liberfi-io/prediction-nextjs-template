@@ -275,6 +275,7 @@ function replaceKnownTeamLabels(raw: string, hint?: TeamHint): string {
 function localizeKnownLabel(raw: string, hint?: TeamHint): string {
   if (!hint) return raw;
   const normalized = normalizeLabel(raw);
+  const withLocalizedTeams = replaceKnownTeamLabels(cleanTitle(raw), hint);
   if (hint.homeLabel && hint.homeKeys.has(normalized)) return hint.homeLabel;
   if (hint.awayLabel && hint.awayKeys.has(normalized)) return hint.awayLabel;
   if (hint.drawLabel && (normalized === "draw" || normalized === "tie" || normalized === "平")) {
@@ -283,22 +284,40 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
   if (hint.yesLabel && normalized === "yes") return hint.yesLabel;
   if (hint.noLabel && normalized === "no") return hint.noLabel;
 
-  const lineLabel = (label: string | undefined, line: string | undefined) =>
-    label && line ? `${label} ${line}` : undefined;
+  const lineLabel = (
+    label: string | undefined,
+    line: string | undefined,
+    team: string | undefined,
+  ) => label && line ? `${team ? `${team} ` : ""}${label} ${line}` : undefined;
   const thresholdLabel = (threshold: string | undefined, label: string | undefined) =>
     threshold && label ? `${threshold}+ ${label}` : undefined;
+  const teamPrefix = "(.+?)\\s+";
 
   const fixed =
-    lineLabel(hint.firstHalfTotalsLabel, normalized.match(/^1st half o\/u\s+(.+)$/)?.[1]) ??
-    lineLabel(hint.secondHalfTotalsLabel, normalized.match(/^2nd half o\/u\s+(.+)$/)?.[1]) ??
-    lineLabel(hint.totalCornersLabel, normalized.match(/^total corners o\/u\s+(.+)$/)?.[1]) ??
+    lineLabel(
+      hint.firstHalfTotalsLabel,
+      normalized.match(/^(?:.+?\s+)?1st half o\/u\s+(.+)$/)?.[1],
+      withLocalizedTeams.match(new RegExp(`^${teamPrefix}1st half o/u\\s+.+$`, "i"))?.[1],
+    ) ??
+    lineLabel(
+      hint.secondHalfTotalsLabel,
+      normalized.match(/^(?:.+?\s+)?2nd half o\/u\s+(.+)$/)?.[1],
+      withLocalizedTeams.match(new RegExp(`^${teamPrefix}2nd half o/u\\s+.+$`, "i"))?.[1],
+    ) ??
+    lineLabel(
+      hint.totalCornersLabel,
+      normalized.match(/^total corners:?\s+o\/u\s+(.+)$/)?.[1],
+      undefined,
+    ) ??
     lineLabel(
       hint.firstHalfTotalCornersLabel,
-      normalized.match(/^1st half total corners o\/u\s+(.+)$/)?.[1],
+      normalized.match(/^1st half total corners:?\s+o\/u\s+(.+)$/)?.[1],
+      undefined,
     ) ??
     lineLabel(
       hint.secondHalfTotalCornersLabel,
-      normalized.match(/^2nd half total corners o\/u\s+(.+)$/)?.[1],
+      normalized.match(/^2nd half total corners:?\s+o\/u\s+(.+)$/)?.[1],
+      undefined,
     ) ??
     thresholdLabel(normalized.match(/^(\d+(?:\.\d+)?)\+\s+goals?$/)?.[1], hint.playerGoalsLabel) ??
     thresholdLabel(
@@ -307,7 +326,7 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
     );
   if (fixed) return fixed;
 
-  return replaceKnownTeamLabels(raw, hint);
+  return withLocalizedTeams;
 }
 
 /**
