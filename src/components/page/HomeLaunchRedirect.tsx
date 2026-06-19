@@ -5,7 +5,10 @@ import { Spinner } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "src/features/worldcup/data/queries";
 import { matchSlugById } from "src/features/worldcup/data/schedule";
 import { storeInviteCode } from "src/features/referral/storage";
-import { readMpChatMiniAppContext } from "src/features/mpchat-miniapp/launchParams";
+import {
+  isLikelyMpChatLaunch,
+  readMpChatMiniAppContext,
+} from "src/features/mpchat-miniapp/launchParams";
 import {
   readTelegramMiniAppContext,
   readyTelegramWebApp,
@@ -28,6 +31,8 @@ const DEFAULT_HREF = "/world-cup";
 // sit pending indefinitely (neither resolving nor erroring). When this fires we
 // give up on the slug and fall back to the list anchored on the match id.
 const WD_LOOKUP_TIMEOUT_MS = 2500;
+const MP_START_PARAM_RETRY_MS = 600;
+const MP_START_PARAM_RETRY_INTERVAL_MS = 50;
 
 function detailHref(slug: string, parsed: ParsedStartParam): string {
   if (!parsed.market || !parsed.outcome) return `/event/${slug}`;
@@ -124,48 +129,73 @@ export function HomeLaunchRedirect() {
   } = useWorldcupMatches({ enabled: Boolean(needsMatchLookup) });
 
   useEffect(() => {
+    let cancelled = false;
     readyTelegramWebApp();
 
-    const startParam = readMiniAppStartParam();
-    const parsed = startParam ? parseStartParam(startParam) : null;
+    const resolveStartParam = (startParam: string | null) => {
+      if (cancelled) return;
+      const parsed = startParam ? parseStartParam(startParam) : null;
 
-    if (parsed?.referral) {
-      storeInviteCode(parsed.referral);
+      if (parsed?.referral) {
+        storeInviteCode(parsed.referral);
+      }
+
+      if (!parsed) {
+        redirectTo(DEFAULT_HREF);
+        return;
+      }
+
+      if (!parsed.route) {
+        redirectTo(DEFAULT_HREF);
+        return;
+      }
+
+      if (parsed.route === "wl" && parsed.target) {
+        redirectTo(listHref(parsed.target));
+        return;
+      }
+
+      // `wd`: the matchId→slug mapping is fixed for group matches, so resolve it
+      // from the static schedule and jump straight to the detail page with zero
+      // network. This is the common deep-link case and avoids fetching the whole
+      // matches list on `/` (the original cause of the WebKit "spinner forever").
+      if (!parsed.target) {
+        redirectTo(DEFAULT_HREF);
+        return;
+      }
+
+      const staticSlug = matchSlugById(parsed.target);
+      if (staticSlug) {
+        redirectTo(detailHref(staticSlug, parsed));
+        return;
+      }
+
+      // Unknown id (e.g. a knockout fixture not yet resolved): fall back to the
+      // live matches lookup, bounded by the timeout safety net below.
+      setPending(parsed);
+    };
+
+    const firstStartParam = readMiniAppStartParam();
+    if (firstStartParam || !isLikelyMpChatLaunch()) {
+      resolveStartParam(firstStartParam);
+      return () => {
+        cancelled = true;
+      };
     }
 
-    if (!parsed) {
-      redirectTo(DEFAULT_HREF);
-      return;
-    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const nextStartParam = readMiniAppStartParam();
+      if (nextStartParam || Date.now() - startedAt >= MP_START_PARAM_RETRY_MS) {
+        window.clearInterval(timer);
+        resolveStartParam(nextStartParam);
+      }
+    }, MP_START_PARAM_RETRY_INTERVAL_MS);
 
-    if (!parsed.route) {
-      redirectTo(DEFAULT_HREF);
-      return;
-    }
-
-    if (parsed.route === "wl" && parsed.target) {
-      redirectTo(listHref(parsed.target));
-      return;
-    }
-
-    // `wd`: the matchId→slug mapping is fixed for group matches, so resolve it
-    // from the static schedule and jump straight to the detail page with zero
-    // network. This is the common deep-link case and avoids fetching the whole
-    // matches list on `/` (the original cause of the WebKit "spinner forever").
-    if (!parsed.target) {
-      redirectTo(DEFAULT_HREF);
-      return;
-    }
-
-    const staticSlug = matchSlugById(parsed.target);
-    if (staticSlug) {
-      redirectTo(detailHref(staticSlug, parsed));
-      return;
-    }
-
-    // Unknown id (e.g. a knockout fixture not yet resolved): fall back to the
-    // live matches lookup, bounded by the timeout safety net below.
-    setPending(parsed);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   const targetMatch = useMemo(() => {

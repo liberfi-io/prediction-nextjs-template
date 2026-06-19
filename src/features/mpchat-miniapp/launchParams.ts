@@ -26,6 +26,10 @@ declare global {
     MpChat?: {
       WebApp?: MpChatWebApp;
     };
+    JSBridge?: {
+      call?: unknown;
+    };
+    initWebApp?: unknown;
   }
 }
 
@@ -99,6 +103,8 @@ export function isLikelyMpChatLaunch(): boolean {
   if (typeof window === "undefined") return false;
   return Boolean(
     window.MpChat?.WebApp ||
+      typeof window.initWebApp === "function" ||
+      typeof window.JSBridge?.call === "function" ||
       readUrlParam("mpWebAppData") ||
       readUrlParam("mpChatWebAppData") ||
       readUrlStartParam(),

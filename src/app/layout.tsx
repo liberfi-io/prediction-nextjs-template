@@ -98,9 +98,9 @@ export default async function RootLayout({
         */}
         <Script src="/telegram-web-app.js" strategy="afterInteractive" />
         {/*
-          MPChat WebApp SDK. Self-hosted for the same reason as the Telegram
-          SDK above: the MiniApp launch path depends on `window.MpChat.WebApp`
-          being available reliably inside an in-app WebView.
+          MPChat WebApp SDK. Keep this non-blocking for normal web traffic; the
+          `/` launch redirect has URL fallbacks and a bounded MP-only retry for
+          SDK-provided start params.
 
           To refresh: re-download `public/mpchat-web-app.js` from
           https://mp.net/i/mpchat-web-app.js.
