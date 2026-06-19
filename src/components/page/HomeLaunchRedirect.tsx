@@ -5,6 +5,7 @@ import { Spinner } from "@liberfi.io/ui";
 import { useWorldcupMatches } from "src/features/worldcup/data/queries";
 import { matchSlugById } from "src/features/worldcup/data/schedule";
 import { storeInviteCode } from "src/features/referral/storage";
+import { readMpChatMiniAppContext } from "src/features/mpchat-miniapp/launchParams";
 import {
   readTelegramMiniAppContext,
   readyTelegramWebApp,
@@ -42,21 +43,35 @@ function listHref(target: string): string {
 }
 
 /**
- * Carry the Telegram launch hash (`#tgWebAppData=...`) across the redirect.
+ * Carry the Mini App launch hash across the redirect.
  *
- * Telegram delivers the mini-app launch payload — including the `initData`
- * that Privy needs for silent Telegram login — only in the URL hash. Privy
- * reads `window.location.hash` directly and bails unless it still starts with
- * `#tgWebAppData`. Navigating to a hash-less URL before Privy consumes it would
- * silently kill auto-login, so we append the original launch hash; Privy clears
- * it itself once login completes. Routing ignores the hash, so this is inert
- * for navigation.
+ * Telegram and MPChat can deliver the launch payload — including the `initData`
+ * needed for silent login — in the URL hash. Navigating to a hash-less URL
+ * before auth consumes it would silently kill auto-login, so we append the
+ * original launch hash. Routing ignores the hash, so this is inert for
+ * navigation.
  */
 function withLaunchHash(href: string): string {
   if (typeof window === "undefined") return href;
   if (href.includes("#")) return href;
   const hash = window.location.hash;
-  return hash.startsWith("#tgWebAppData") ? `${href}${hash}` : href;
+  return isMiniAppLaunchHash(hash) ? `${href}${hash}` : href;
+}
+
+function isMiniAppLaunchHash(hash: string): boolean {
+  return (
+    hash.startsWith("#tgWebAppData") ||
+    hash.startsWith("#mpWebAppData") ||
+    hash.startsWith("#mpChatWebAppData")
+  );
+}
+
+function readMiniAppStartParam(): string | null {
+  const telegramContext = readTelegramMiniAppContext();
+  if (telegramContext?.startParam) return telegramContext.startParam;
+
+  const mpChatContext = readMpChatMiniAppContext();
+  return mpChatContext?.startParam || null;
 }
 
 /**
@@ -87,13 +102,13 @@ function LaunchSplash() {
 }
 
 /**
- * Client splash rendered at `/`. Telegram delivers `start_param` only in the
- * client-side URL hash / `initData`, so the server can never know the deep-link
- * target — resolution must happen here, after mount. We parse the start param,
- * capture any referral, then hard-redirect (`location.replace`) to the real
- * destination so the home entry is swapped out of history (no back-button trap,
- * no list flash) and the target renders via SSR instead of a contended RSC
- * fetch (see {@link redirectTo}).
+ * Client splash rendered at `/`. Mini Apps deliver `start_param` only in the
+ * client-side launch payload, so the server can never know the deep-link target
+ * — resolution must happen here, after mount. We parse the start param, capture
+ * any referral, then hard-redirect (`location.replace`) to the real destination
+ * so the home entry is swapped out of history (no back-button trap, no list
+ * flash) and the target renders via SSR instead of a contended RSC fetch (see
+ * {@link redirectTo}).
  *
  * `wd` (match detail) usually resolves its matchId→slug from the static
  * schedule with zero network; only unknown ids fall back to a live lookup.
@@ -111,10 +126,8 @@ export function HomeLaunchRedirect() {
   useEffect(() => {
     readyTelegramWebApp();
 
-    const context = readTelegramMiniAppContext();
-    const parsed = context?.startParam
-      ? parseStartParam(context.startParam)
-      : null;
+    const startParam = readMiniAppStartParam();
+    const parsed = startParam ? parseStartParam(startParam) : null;
 
     if (parsed?.referral) {
       storeInviteCode(parsed.referral);

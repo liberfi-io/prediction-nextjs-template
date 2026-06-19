@@ -92,12 +92,13 @@ export function isLikelyMpChatLaunch(): boolean {
 export function readMpChatMiniAppContext(): MpChatMiniAppContext | null {
   const webApp = getMpChatWebApp();
   const initData = readMpChatInitData();
-  if (!webApp && !initData) return null;
+  const startParam = peekMpChatStartParam();
+  if (!webApp && !initData && !startParam) return null;
 
   const unsafe = webApp?.initDataUnsafe ?? {};
   return {
     initData: initData ?? "",
-    startParam: peekMpChatStartParam(),
+    startParam,
     queryId: asString(unsafe.query_id) ?? asString(unsafe.queryId) ?? undefined,
     botId: asString(unsafe.bot_id) ?? asString(unsafe.botId) ?? undefined,
     nonce: asString(unsafe.nonce) ?? undefined,
