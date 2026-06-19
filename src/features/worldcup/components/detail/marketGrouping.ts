@@ -289,8 +289,13 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
     line: string | undefined,
     team: string | undefined,
   ) => label && line ? `${team ? `${team} ` : ""}${label} ${line}` : undefined;
-  const thresholdLabel = (threshold: string | undefined, label: string | undefined) =>
-    threshold && label ? `${threshold}+ ${label}` : undefined;
+  const thresholdLabel = (
+    match: RegExpMatchArray | null,
+    label: string | undefined,
+  ) => {
+    if (!match?.[2] || !label) return undefined;
+    return `${match[1] ? `${match[1]}: ` : ""}${match[2]}+ ${label}`;
+  };
   const teamPrefix = "(.+?)\\s+";
 
   const fixed =
@@ -319,9 +324,12 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
       normalized.match(/^2nd half total corners:?\s+o\/u\s+(.+)$/)?.[1],
       undefined,
     ) ??
-    thresholdLabel(normalized.match(/^(\d+(?:\.\d+)?)\+\s+goals?$/)?.[1], hint.playerGoalsLabel) ??
     thresholdLabel(
-      normalized.match(/^(\d+(?:\.\d+)?)\+\s+saves?$/)?.[1],
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+goals?$/i),
+      hint.playerGoalsLabel,
+    ) ??
+    thresholdLabel(
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+saves?$/i),
       hint.goalkeeperSavesLabel,
     );
   if (fixed) return fixed;
