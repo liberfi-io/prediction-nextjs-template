@@ -49,11 +49,21 @@ export async function getTelegramExternalJwt(): Promise<string | undefined> {
       body: JSON.stringify({}),
       credentials: "same-origin",
     });
-    if (!response.ok) return undefined;
+    if (!response.ok) {
+      console.info("[tg-login] token fetch failed", { status: response.status });
+      return undefined;
+    }
 
     const result = (await response.json()) as { mode?: string; token?: string };
+    console.info("[tg-login] token fetch ok", {
+      mode: result.mode,
+      hasToken: Boolean(result.token),
+    });
     return result.mode === "custom_jwt" ? result.token : undefined;
-  } catch {
+  } catch (error: unknown) {
+    console.info("[tg-login] token fetch threw", {
+      message: error instanceof Error ? error.message : String(error),
+    });
     return undefined;
   }
 }

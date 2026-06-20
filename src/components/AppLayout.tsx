@@ -1143,6 +1143,13 @@ function PredictAccountControl() {
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
   const telegramAutoLoginPending = useAtomValue(telegramMiniAppAutoLoginPendingAtom);
   const polymarketAutoSetupPending = useAtomValue(polymarketAutoSetupPendingAtom);
+  useEffect(() => {
+    console.info("[tg-login] account-control gate", {
+      authStatus: status,
+      mpChatAutoLoginPending,
+      telegramAutoLoginPending,
+    });
+  }, [status, mpChatAutoLoginPending, telegramAutoLoginPending]);
   const {
     kalshiUsdcBalance,
     polymarketUsdcBalance,

@@ -70,10 +70,16 @@ export function TelegramPrivyAutoLogin() {
 
     let cancelled = false;
     setBootstrapLoading(true);
+    console.info("[tg-login] bootstrap fetch start");
     void fetchTelegramMiniAppBootstrap()
       .then((result) => {
         if (cancelled) return;
-        setBootstrap(result ?? { mode: "unsupported", reason: "BOOTSTRAP_FAILED" });
+        const resolved = result ?? { mode: "unsupported" as const, reason: "BOOTSTRAP_FAILED" };
+        console.info("[tg-login] bootstrap result", {
+          mode: resolved.mode,
+          reason: "reason" in resolved ? resolved.reason : undefined,
+        });
+        setBootstrap(resolved);
       })
       .finally(() => {
         if (!cancelled) setBootstrapLoading(false);
@@ -98,12 +104,27 @@ export function TelegramPrivyAutoLogin() {
     enabled: jwtAuthEnabled,
     subscribe,
     getExternalJwt: getTelegramExternalJwt,
+    onAuthenticated: () => {
+      console.info("[tg-login] jwt onAuthenticated");
+    },
+    onUnauthenticated: () => {
+      console.info("[tg-login] jwt onUnauthenticated");
+    },
     onError: (error) => {
-      console.warn("telegram privy jwt auth failed", {
+      console.warn("[tg-login] jwt auth failed", {
         message: error instanceof Error ? error.message : String(error),
       });
     },
   });
+
+  useEffect(() => {
+    console.info("[tg-login] jwtAuth state", {
+      enabled: jwtAuthEnabled,
+      jwtState: jwtAuth.state.status,
+      authStatus: status,
+      userId: user?.id ?? null,
+    });
+  }, [jwtAuthEnabled, jwtAuth.state.status, status, user?.id]);
 
   useEffect(() => {
     if (!isTelegramLaunch) {
@@ -112,21 +133,30 @@ export function TelegramPrivyAutoLogin() {
     }
 
     if (bootstrap?.mode === "unsupported") {
+      console.info("[tg-login] pending=false (unsupported)");
       setAutoLoginPending(false);
       return;
     }
 
     if (status === "authenticated") {
+      console.info("[tg-login] pending=false (authenticated)");
       setAutoLoginPending(false);
       return;
     }
 
-    setAutoLoginPending(
+    const pending =
       bootstrapLoading ||
-        !bootstrap ||
-        jwtAuth.state.status === "initial" ||
-        jwtAuth.state.status === "loading",
-    );
+      !bootstrap ||
+      jwtAuth.state.status === "initial" ||
+      jwtAuth.state.status === "loading";
+    console.info("[tg-login] pending compute", {
+      pending,
+      bootstrapLoading,
+      hasBootstrap: Boolean(bootstrap),
+      jwtState: jwtAuth.state.status,
+      authStatus: status,
+    });
+    setAutoLoginPending(pending);
   }, [
     bootstrap,
     bootstrapLoading,
