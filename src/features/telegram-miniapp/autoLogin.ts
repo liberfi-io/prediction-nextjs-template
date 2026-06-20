@@ -24,12 +24,17 @@ export async function fetchTelegramMiniAppBootstrap(): Promise<
       }
     : {};
 
+  // Telegram WebViews (WebKit especially) can leave a fetch pending forever
+  // during Privy's cold-start burst. Bound it so bootstrap always settles.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch("/api/auth/telegram-miniapp/bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       credentials: "same-origin",
+      signal: controller.signal,
     });
     const result = (await response.json().catch(() => undefined)) as
       | TelegramMiniAppBootstrap
@@ -38,6 +43,8 @@ export async function fetchTelegramMiniAppBootstrap(): Promise<
     return result;
   } catch {
     return undefined;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

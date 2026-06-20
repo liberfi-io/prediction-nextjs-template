@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { useSigners, useSyncJwtBasedAuthState } from "@privy-io/react-auth";
 import { ChainNamespace } from "@liberfi.io/types";
@@ -33,6 +33,7 @@ export function TelegramPrivyAutoLogin() {
   const [detectionComplete, setDetectionComplete] = useState(false);
   const [bootstrap, setBootstrap] = useState<TelegramMiniAppBootstrap | null>(null);
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
+  const bootstrapStartedRef = useRef(false);
 
   useEffect(() => {
     if (isLikelyTelegramMiniAppLaunch()) {
@@ -64,17 +65,20 @@ export function TelegramPrivyAutoLogin() {
   }, [setAutoLoginPending]);
 
   useEffect(() => {
-    if (!isTelegramLaunch || !detectionComplete || bootstrap || bootstrapLoading) {
-      return;
-    }
+    if (!isTelegramLaunch || !detectionComplete) return;
+    // Fire exactly once via a ref guard. Do NOT gate on `bootstrapLoading`
+    // state here: toggling it inside an effect that also depends on it triggers
+    // a re-render whose cleanup cancels the in-flight fetch, deadlocking with
+    // `bootstrapLoading` stuck true and `bootstrap` stuck null.
+    if (bootstrapStartedRef.current) return;
+    bootstrapStartedRef.current = true;
 
-    let cancelled = false;
     setBootstrapLoading(true);
     console.info("[tg-login] bootstrap fetch start");
     void fetchTelegramMiniAppBootstrap()
       .then((result) => {
-        if (cancelled) return;
-        const resolved = result ?? { mode: "unsupported" as const, reason: "BOOTSTRAP_FAILED" };
+        const resolved =
+          result ?? { mode: "unsupported" as const, reason: "BOOTSTRAP_FAILED" };
         console.info("[tg-login] bootstrap result", {
           mode: resolved.mode,
           reason: "reason" in resolved ? resolved.reason : undefined,
@@ -82,13 +86,9 @@ export function TelegramPrivyAutoLogin() {
         setBootstrap(resolved);
       })
       .finally(() => {
-        if (!cancelled) setBootstrapLoading(false);
+        setBootstrapLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bootstrap, bootstrapLoading, detectionComplete, isTelegramLaunch]);
+  }, [detectionComplete, isTelegramLaunch]);
 
   const jwtAuthEnabled =
     isTelegramLaunch &&
