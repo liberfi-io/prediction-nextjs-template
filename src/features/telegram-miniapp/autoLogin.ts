@@ -9,6 +9,13 @@ export type TelegramMiniAppBootstrap =
       token: string;
     }
   | {
+      mode: "legacy_native_telegram";
+      telegramUserId: string;
+      privyUserId: string;
+      subject: string;
+      linkToken: string;
+    }
+  | {
       mode: "unsupported";
       reason?: string;
       telegramUserId?: string;

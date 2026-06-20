@@ -40,17 +40,18 @@ export async function POST(request: NextRequest) {
     const customUser = await privyClient.getUserByCustomAuthId(subject);
 
     if (telegramUser && (!customUser || customUser.id !== telegramUser.id)) {
-      return NextResponse.json(
-        {
-          mode: "unsupported",
-          reason: "TELEGRAM_LEGACY_USER_NOT_MIGRATED",
-          telegramUserId: context.tgUserId,
-          privyUserId: telegramUser.id,
-          ...(customUser ? { customAuthPrivyUserId: customUser.id } : {}),
-          expectedCustomUserId: subject,
-        },
-        { status: 409 },
-      );
+      // Legacy native Telegram user without a matching custom_auth account.
+      // The server SDK cannot append a linked account, so we hand the client a
+      // link token: it logs the legacy user in natively, then attaches
+      // custom_auth in place via linkWithCustomJwt (opportunistic upgrade).
+      // No custom_jwt session cookie here, so token refresh never mints for legacy.
+      return NextResponse.json({
+        mode: "legacy_native_telegram",
+        telegramUserId: context.tgUserId,
+        privyUserId: telegramUser.id,
+        subject,
+        linkToken: signTelegramPrivyJwt({ ...context, subject }),
+      });
     }
 
     const sessionContext = { ...context, authMode: "custom_jwt" as const, subject };
