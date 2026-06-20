@@ -24,16 +24,13 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAtomValue } from "jotai";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LocaleCode,
-  LocaleProvider,
   useTranslation,
   useLocale,
   useChangeLocale,
   useLocaleContext,
-  i18n,
-  defaultNS,
 } from "@liberfi.io/i18n";
 import {
   PredictClient,
@@ -94,7 +91,6 @@ import {
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { predictEventHref } from "./page/predict-source";
-import { getQueryClient } from "../libs/queryClient";
 import { ENABLE_KALSHI } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
 import { AutoSetupPolymarketDepositWallet } from "./AutoSetupPolymarketDepositWallet";
@@ -117,15 +113,10 @@ import {
   pollTransaction,
   type PolymarketRelayConfig,
 } from "../lib/polymarket-relay";
-import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
-import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
 import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
 import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniapp/state";
 import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
-for (const [code, bundle] of Object.entries(i18nResources)) {
-  i18n.addResourceBundle(code, defaultNS, bundle, true, true);
-}
 
 const NoPrefetchLink: LinkComponentType = (props) => (
   <Link prefetch={false} {...props} />
@@ -222,40 +213,18 @@ const navItemsConfig: Omit<NavItem, "label">[] = [
 // Root
 // ---------------------------------------------------------------------------
 
-export function AppLayout({
-  children,
-  locale,
-}: PropsWithChildren<{ locale: LocaleCode }>) {
-  const localeApplied = useRef(false);
-  if (!localeApplied.current) {
-    if (i18n.language !== locale) {
-      i18n.changeLanguage(locale);
-    }
-    localeApplied.current = true;
-  }
-
-  const queryClient = getQueryClient();
-
+export function AppLayout({ children }: PropsWithChildren) {
   return (
     <>
-      <QueryClientProvider client={queryClient}>
-        <AuthProviders>
-          <TelegramPrivyAutoLogin />
-          <MpChatPrivyAutoLogin />
-          <LocaleProvider
-            locale={locale}
-            supportedLanguages={SUPPORTED_LANG_CODES}
-            convertDetectedLanguage={toSupportedLang}
-            resources={i18nResources}
-          >
-            <ServiceProviders>
-              <PageShell>{children}</PageShell>
-              <StyledToaster />
-              <PredictSearchModal />
-            </ServiceProviders>
-          </LocaleProvider>
-        </AuthProviders>
-      </QueryClientProvider>
+      <AuthProviders>
+        <TelegramPrivyAutoLogin />
+        <MpChatPrivyAutoLogin />
+        <ServiceProviders>
+          <PageShell>{children}</PageShell>
+          <StyledToaster />
+          <PredictSearchModal />
+        </ServiceProviders>
+      </AuthProviders>
     </>
   );
 }

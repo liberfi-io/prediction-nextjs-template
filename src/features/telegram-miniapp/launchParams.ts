@@ -86,6 +86,24 @@ export function peekTelegramStartParam(): string | null {
   return asString(unsafe.start_param) || readUrlStartParam();
 }
 
+/**
+ * Mini App `start_param` value that routes a launch to the wallet recovery
+ * flow instead of the normal app. Legacy Telegram users (whose embedded wallet
+ * predates the custom-JWT migration) open the app with this deep link to
+ * re-authenticate against their original Privy user and attach the server
+ * session signer to that wallet.
+ */
+export const RECOVERY_START_PARAM = "recovery_tg";
+
+/**
+ * True when the current launch should enter the recovery flow. Read from the
+ * Mini App `start_param` (with the same URL-hash fallback as the other readers,
+ * so it is reliable from first paint before the Telegram SDK finishes loading).
+ */
+export function isTelegramRecoveryLaunch(): boolean {
+  return peekTelegramStartParam() === RECOVERY_START_PARAM;
+}
+
 export function readTelegramMiniAppContext(): TelegramMiniAppContext | null {
   const webApp = getTelegramWebApp();
   const urlStartParam = readUrlStartParam();

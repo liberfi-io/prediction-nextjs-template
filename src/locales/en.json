@@ -6,6 +6,16 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "recovery": {
+      "connecting": "Connecting your account…",
+      "recovering": "Restoring your wallet access…",
+      "done": "Recovery complete",
+      "doneHint": "Your funds are safe. No further action is needed.",
+      "error": "We couldn't finish just now",
+      "errorHint": "Please try again in a moment.",
+      "waitHint": "This only takes a few seconds.",
+      "retry": "Try again"
+    },
     "header": {
       "predict": "Predict",
       "language": "Switch Language",

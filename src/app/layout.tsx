@@ -5,7 +5,7 @@ import { Inter, DM_Sans } from "next/font/google";
 import { defaultNS } from "@liberfi.io/i18n/server";
 import { CONFIG } from "../config";
 import { GoogleAnalytics } from "../components/GoogleAnalytics";
-import { AppLayout } from "../components/AppLayout";
+import { RootProviders } from "../components/RootProviders";
 import { TelegramMiniAppSessionSync } from "../components/TelegramMiniAppSessionSync";
 import { initServerI18n } from "../i18n/initServerI18n";
 import { detectLanguage } from "../i18n/detectLanguage";
@@ -108,7 +108,7 @@ export default async function RootLayout({
         {process.env.NEXT_PUBLIC_ENABLE_MPCHAT_MINIAPP === "true" && (
           <Script src="/mpchat-web-app.js" strategy="afterInteractive" />
         )}
-        <AppLayout locale={locale}>{children}</AppLayout>
+        <RootProviders locale={locale}>{children}</RootProviders>
         <TelegramMiniAppSessionSync />
         {process.env.NODE_ENV === "production" && (
           <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />

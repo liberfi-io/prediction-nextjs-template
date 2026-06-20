@@ -10,6 +10,7 @@ import {
   readMpChatMiniAppContext,
 } from "src/features/mpchat-miniapp/launchParams";
 import {
+  isTelegramRecoveryLaunch,
   readTelegramMiniAppContext,
   readyTelegramWebApp,
 } from "src/features/telegram-miniapp/launchParams";
@@ -131,6 +132,18 @@ export function HomeLaunchRedirect() {
   useEffect(() => {
     let cancelled = false;
     readyTelegramWebApp();
+
+    // Wallet recovery deep link wins before any normal start-param parsing:
+    // `recovery_tg` is not a `v1-...` deep link, so it must be intercepted here
+    // or it would fall through to the default redirect. Carry the launch hash
+    // (`withLaunchHash` inside `redirectTo`) so the recovery page's native
+    // Telegram login can still read `initData`.
+    if (isTelegramRecoveryLaunch()) {
+      redirectTo("/recovery");
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const resolveStartParam = (startParam: string | null) => {
       if (cancelled) return;
