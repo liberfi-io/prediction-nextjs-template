@@ -49,12 +49,17 @@ export async function fetchTelegramMiniAppBootstrap(): Promise<
 }
 
 export async function getTelegramExternalJwt(): Promise<string | undefined> {
+  // WebViews can leave a fetch pending forever during Privy's cold-start burst.
+  // Bound it so the JWT sync never stalls on a hung request.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch("/api/auth/telegram-miniapp/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
       credentials: "same-origin",
+      signal: controller.signal,
     });
     if (!response.ok) {
       console.info("[tg-login] token fetch failed", { status: response.status });
@@ -72,5 +77,7 @@ export async function getTelegramExternalJwt(): Promise<string | undefined> {
       message: error instanceof Error ? error.message : String(error),
     });
     return undefined;
+  } finally {
+    clearTimeout(timer);
   }
 }
