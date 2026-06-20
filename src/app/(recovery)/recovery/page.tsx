@@ -33,9 +33,21 @@ function parsePolicyIds(value: string | undefined): string[] | undefined {
  */
 const SESSION_RESET_KEY = "recovery:session-reset";
 
+function readInitDataAgeSeconds(): number | null {
+  if (typeof window === "undefined") return null;
+  const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } })
+    .Telegram;
+  const initData = tg?.WebApp?.initData;
+  if (!initData) return null;
+  const params = new URLSearchParams(initData);
+  const authDate = Number(params.get("auth_date"));
+  if (!authDate) return null;
+  return Math.round(Date.now() / 1000 - authDate);
+}
+
 function RecoveryFlow() {
   const { t } = useTranslation();
-  const { ready, authenticated, logout } = usePrivy();
+  const { ready, authenticated, user, logout } = usePrivy();
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
 
@@ -141,6 +153,34 @@ function RecoveryFlow() {
     setPhase("connecting");
   }, []);
 
+  // Temporary diagnostics: surface live state so a stuck recovery can be
+  // inspected from inside the Telegram webview without a console.
+  const initDataAge = readInitDataAgeSeconds();
+  const embeddedAddress = wallets.find(
+    (wallet) => wallet.walletClientType === "privy" && wallet.address,
+  )?.address;
+  useEffect(() => {
+    console.log("[recovery] state", {
+      ready,
+      authenticated,
+      userId: user?.id,
+      wallets: wallets.length,
+      embeddedAddress,
+      cleanSession,
+      phase,
+      initDataAge,
+    });
+  }, [
+    ready,
+    authenticated,
+    user?.id,
+    wallets.length,
+    embeddedAddress,
+    cleanSession,
+    phase,
+    initDataAge,
+  ]);
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0b] px-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
@@ -206,6 +246,14 @@ function RecoveryFlow() {
             {t("extend.recovery.retry", { defaultValue: "Try again" })}
           </button>
         )}
+
+        <pre className="mt-4 w-full whitespace-pre-wrap break-words rounded-lg bg-white/5 p-3 text-left font-mono text-[10px] leading-relaxed text-white/40">
+          {`ready=${ready} auth=${authenticated}
+user=${user?.id ?? "-"}
+wallets=${wallets.length} evm=${embeddedAddress ?? "-"}
+clean=${cleanSession} phase=${phase}
+initDataAge=${initDataAge ?? "-"}s`}
+        </pre>
       </div>
     </div>
   );
