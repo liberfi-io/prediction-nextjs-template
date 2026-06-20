@@ -19,11 +19,6 @@ function parsePolicyIds(value: string | undefined): string[] | undefined {
   return policyIds?.length ? policyIds : undefined;
 }
 
-function isAlreadyAttached(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /already|exists|duplicate/i.test(message);
-}
-
 /**
  * Wallet recovery page.
  *
@@ -44,6 +39,7 @@ function RecoveryFlow() {
   const { addSigners } = useSigners();
 
   const [phase, setPhase] = useState<RecoveryPhase>("connecting");
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const loginStartedRef = useRef(false);
   const provisionStartedRef = useRef(false);
 
@@ -95,12 +91,13 @@ function RecoveryFlow() {
         await logout().catch(() => undefined);
         setPhase("done");
       })
-      .catch(async (error: unknown) => {
-        if (isAlreadyAttached(error)) {
-          await logout().catch(() => undefined);
-          setPhase("done");
-          return;
-        }
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        // Surface the real failure: without this, the cause is invisible from
+        // inside the Telegram Mini App. Do NOT swallow it as a false success.
+        console.error("[recovery] addSigners failed", error);
+        setErrorDetail(message);
         setPhase("error");
       });
   }, [authenticated, wallets, addSigners, logout, signerId, policyIds]);
@@ -108,6 +105,7 @@ function RecoveryFlow() {
   const handleRetry = useCallback(() => {
     loginStartedRef.current = false;
     provisionStartedRef.current = false;
+    setErrorDetail(null);
     setPhase("connecting");
   }, []);
 
@@ -160,6 +158,12 @@ function RecoveryFlow() {
                   })}
           </p>
         </div>
+
+        {phase === "error" && errorDetail && (
+          <p className="max-w-full break-words font-mono text-[11px] leading-snug text-white/30">
+            {errorDetail}
+          </p>
+        )}
 
         {phase === "error" && (
           <button
