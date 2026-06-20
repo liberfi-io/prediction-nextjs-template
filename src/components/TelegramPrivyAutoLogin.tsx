@@ -1,13 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom } from "jotai";
-import {
-  useLinkJwtAccount,
-  useLoginWithTelegram,
-  useSigners,
-  useSyncJwtBasedAuthState,
-} from "@privy-io/react-auth";
+import { useSigners, useSyncJwtBasedAuthState } from "@privy-io/react-auth";
 import { ChainNamespace } from "@liberfi.io/types";
 import { useAuth, useWallets } from "@liberfi.io/wallet-connector";
 import {
@@ -38,11 +33,6 @@ export function TelegramPrivyAutoLogin() {
   const [detectionComplete, setDetectionComplete] = useState(false);
   const [bootstrap, setBootstrap] = useState<TelegramMiniAppBootstrap | null>(null);
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
-  const [legacyLoginFailed, setLegacyLoginFailed] = useState(false);
-  const { login: loginWithTelegram } = useLoginWithTelegram();
-  const { linkWithCustomJwt } = useLinkJwtAccount();
-  const legacyLoginTriggeredRef = useRef(false);
-  const legacyLinkAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (isLikelyTelegramMiniAppLaunch()) {
@@ -115,50 +105,6 @@ export function TelegramPrivyAutoLogin() {
     },
   });
 
-  // Legacy native Telegram user: auto-trigger a one-time native login so we can
-  // attach custom_auth in place afterwards. Only this component initiates login,
-  // and only in the legacy branch, so it never races the custom_jwt flow.
-  useEffect(() => {
-    if (bootstrap?.mode !== "legacy_native_telegram") return;
-    if (legacyLoginTriggeredRef.current) return;
-    if (status === "authenticated" || status === "authenticating") return;
-
-    legacyLoginTriggeredRef.current = true;
-    void loginWithTelegram().catch((error: unknown) => {
-      console.warn("telegram legacy native login failed", {
-        message: error instanceof Error ? error.message : String(error),
-      });
-      setLegacyLoginFailed(true);
-    });
-  }, [bootstrap, loginWithTelegram, status]);
-
-  // Once the legacy user is authenticated natively, silently attach the
-  // custom_auth account so future cold starts go through seamless custom JWT.
-  useEffect(() => {
-    if (bootstrap?.mode !== "legacy_native_telegram") return;
-    if (status !== "authenticated" || !user?.id) return;
-    if (legacyLinkAttemptedRef.current) return;
-
-    const { linkToken, telegramUserId } = bootstrap;
-    const storageKey = `telegram-link:${telegramUserId}:${user.id}`;
-    if (localStorage.getItem(storageKey) === "done") {
-      legacyLinkAttemptedRef.current = true;
-      return;
-    }
-
-    legacyLinkAttemptedRef.current = true;
-    void linkWithCustomJwt(linkToken)
-      .then(() => localStorage.setItem(storageKey, "done"))
-      .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
-        if (/already|linked|exists/i.test(message)) {
-          localStorage.setItem(storageKey, "done");
-          return;
-        }
-        console.warn("telegram legacy custom auth link failed", { message });
-      });
-  }, [bootstrap, linkWithCustomJwt, status, user?.id]);
-
   useEffect(() => {
     if (!isTelegramLaunch) {
       setAutoLoginPending(false);
@@ -175,11 +121,6 @@ export function TelegramPrivyAutoLogin() {
       return;
     }
 
-    if (bootstrap?.mode === "legacy_native_telegram") {
-      setAutoLoginPending(!legacyLoginFailed);
-      return;
-    }
-
     setAutoLoginPending(
       bootstrapLoading ||
         !bootstrap ||
@@ -191,7 +132,6 @@ export function TelegramPrivyAutoLogin() {
     bootstrapLoading,
     isTelegramLaunch,
     jwtAuth.state.status,
-    legacyLoginFailed,
     setAutoLoginPending,
     status,
   ]);

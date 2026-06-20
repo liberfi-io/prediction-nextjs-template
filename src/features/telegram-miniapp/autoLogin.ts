@@ -4,23 +4,13 @@ export type TelegramMiniAppBootstrap =
   | {
       mode: "custom_jwt";
       telegramUserId: string;
-      privyUserId?: string;
       subject: string;
       token: string;
-    }
-  | {
-      mode: "legacy_native_telegram";
-      telegramUserId: string;
-      privyUserId: string;
-      subject: string;
-      linkToken: string;
     }
   | {
       mode: "unsupported";
       reason?: string;
       telegramUserId?: string;
-      privyUserId?: string;
-      expectedCustomUserId?: string;
     };
 
 export async function fetchTelegramMiniAppBootstrap(): Promise<

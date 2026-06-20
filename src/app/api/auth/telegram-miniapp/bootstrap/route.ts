@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseStartParam } from "src/features/telegram-miniapp/startParam";
-import { privyClient } from "src/libs/privyClient";
 import {
   getTelegramSessionCookieName,
   getTelegramSessionMaxAge,
@@ -36,29 +35,14 @@ export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => ({}))) as TelegramMiniAppBootstrapRequest;
     const context = resolveTelegramContext(request, body, botToken);
     const subject = buildTelegramPrivySubject(context);
-    const telegramUser = await privyClient.getUserByTelegramUserId(context.tgUserId);
-    const customUser = await privyClient.getUserByCustomAuthId(subject);
 
-    if (telegramUser && (!customUser || customUser.id !== telegramUser.id)) {
-      // Legacy native Telegram user without a matching custom_auth account.
-      // The server SDK cannot append a linked account, so we hand the client a
-      // link token: it logs the legacy user in natively, then attaches
-      // custom_auth in place via linkWithCustomJwt (opportunistic upgrade).
-      // No custom_jwt session cookie here, so token refresh never mints for legacy.
-      return NextResponse.json({
-        mode: "legacy_native_telegram",
-        telegramUserId: context.tgUserId,
-        privyUserId: telegramUser.id,
-        subject,
-        linkToken: signTelegramPrivyJwt({ ...context, subject }),
-      });
-    }
-
+    // Telegram Mini App login is custom-JWT only. The stable `custom_auth`
+    // subject means Privy idempotently logs the same user in (created on first
+    // login, reused on return), so no Privy server lookup is needed here.
     const sessionContext = { ...context, authMode: "custom_jwt" as const, subject };
     const response = NextResponse.json({
       mode: "custom_jwt",
       telegramUserId: context.tgUserId,
-      ...(customUser ? { privyUserId: customUser.id } : {}),
       subject,
       token: signTelegramPrivyJwt(sessionContext),
     });

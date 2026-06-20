@@ -12,6 +12,10 @@ import {
   isMpChatMiniAppEnabled,
   readMpChatInitData,
 } from "src/features/mpchat-miniapp/launchParams";
+import {
+  getTelegramWebApp,
+  readTelegramInitData,
+} from "src/features/telegram-miniapp/launchParams";
 import { mpChatAutoLoginPendingAtom } from "src/features/mpchat-miniapp/state";
 import { usePrivySessionSignerProvisioning } from "src/features/privy-session-signers/usePrivySessionSignerProvisioning";
 
@@ -19,16 +23,39 @@ const MPCHAT_DETECTION_TIMEOUT_MS = 5000;
 const MPCHAT_DETECTION_INTERVAL_MS = 100;
 const JWT_RESYNC_INTERVAL_MS = 60 * 1000;
 
+/**
+ * Strong Telegram Mini App signal. MPChat and Telegram share loose launch hints
+ * (e.g. `startapp`, an injected `JSBridge`), so MPChat auto-login can misfire
+ * inside a genuine Telegram launch and hammer `/api/auth/mpchat-miniapp/login`
+ * with no MPChat session (401), pinning the loading spinner. When Telegram's own
+ * SDK object or `tgWebAppData` is present we are unambiguously in a Telegram
+ * launch, so MPChat must stand down and let `TelegramPrivyAutoLogin` own login.
+ */
+function isTelegramMiniAppLaunch(): boolean {
+  return Boolean(getTelegramWebApp() || readTelegramInitData());
+}
+
 export function MpChatPrivyAutoLogin() {
   const { status, user } = useAuth();
   const wallets = useWallets();
   const { addSigners } = useSigners();
   const [, setAutoLoginPending] = useAtom(mpChatAutoLoginPendingAtom);
-  const [isMpChatLaunch, setIsMpChatLaunch] = useState(() => isLikelyMpChatLaunch());
+  const [isMpChatLaunch, setIsMpChatLaunch] = useState(
+    () => isLikelyMpChatLaunch() && !isTelegramMiniAppLaunch(),
+  );
   const [detectionComplete, setDetectionComplete] = useState(() => !isMpChatMiniAppEnabled());
 
   useEffect(() => {
     if (!isMpChatMiniAppEnabled()) {
+      setIsMpChatLaunch(false);
+      setDetectionComplete(true);
+      setAutoLoginPending(false);
+      return;
+    }
+
+    // Telegram launch wins: never run the MPChat flow alongside Telegram, or its
+    // sessionless login attempt 401s and traps the spinner.
+    if (isTelegramMiniAppLaunch()) {
       setIsMpChatLaunch(false);
       setDetectionComplete(true);
       setAutoLoginPending(false);
@@ -44,6 +71,16 @@ export function MpChatPrivyAutoLogin() {
 
     const startedAt = Date.now();
     const interval = window.setInterval(() => {
+      // Telegram's SDK loads `afterInteractive`, so a Telegram launch can surface
+      // mid-poll. Bail the moment it does, before any MPChat login attempt.
+      if (isTelegramMiniAppLaunch()) {
+        setIsMpChatLaunch(false);
+        setDetectionComplete(true);
+        setAutoLoginPending(false);
+        window.clearInterval(interval);
+        return;
+      }
+
       if (getMpChatWebApp() || readMpChatInitData()) {
         setIsMpChatLaunch(true);
         setDetectionComplete(true);
