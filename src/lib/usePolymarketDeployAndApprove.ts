@@ -68,6 +68,10 @@ export function usePolymarketDeployAndApprove(): () => Promise<void> {
       throw new Error("EVM wallet not connected");
     }
 
+    if (polymarketWalletDeployed && polymarketTokenApproved) {
+      return;
+    }
+
     await evmWallet.switchChain("137" as never);
 
     const provider = await evmWallet.getEip1193Provider();

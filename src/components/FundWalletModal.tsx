@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import encodeQR from "@paulmillr/qr";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   balanceQueryKey,
@@ -45,6 +46,7 @@ import {
   ChevronLeftIcon,
   XCloseIcon,
   toast,
+  Spinner,
 } from "@liberfi.io/ui";
 import {
   AsyncModal,
@@ -68,6 +70,7 @@ import {
   type DepositChainConfig,
   type DepositChainKey,
 } from "../lib/polymarket-deposit-chains";
+import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
 import { polymarketSetupQueryKey } from "@liberfi.io/react-predict";
 
 export const FUND_WALLET_MODAL_ID = "fund-prediction-wallet";
@@ -404,6 +407,7 @@ function MainScreen({
     polymarketSetupLoading,
     evmAddress,
   } = usePredictWallet();
+  const polymarketAutoSetupPending = useAtomValue(polymarketAutoSetupPendingAtom);
 
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
@@ -516,9 +520,12 @@ function MainScreen({
 
   const isSolana = selectedWallet === "solana";
   const balance = isSolana ? kalshiUsdcBalance : polymarketUsdcBalance;
+  const polymarketSetupBusy =
+    polymarketSetupLoading || polymarketAutoSetupPending;
 
   const needsKyc = isSolana && !kalshiKycVerified;
   const needsSetup = !isSolana && !polymarketSetupVerified;
+  const setupInProgress = !isSolana && polymarketSetupBusy && needsSetup;
   const needsPrerequisite = needsKyc || needsSetup;
 
   return (
@@ -547,27 +554,40 @@ function MainScreen({
 
         {needsPrerequisite ? (
           <div className="flex flex-col items-center gap-4 py-6">
-            <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
+            <div
+              className={cn(
+                "w-14 h-14 rounded-full flex items-center justify-center",
+                setupInProgress ? "bg-[#c7ff2e]/10" : "bg-amber-500/10",
+              )}
+            >
+              {setupInProgress ? (
+                <Spinner size="sm" color="current" className="text-[#c7ff2e]" />
+              ) : (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              )}
             </div>
             <p className="text-sm text-zinc-400 text-center">
               {needsKyc
                 ? t("extend.predict.kyc.unverified")
-                : t("extend.predict.setup.unverified")}
+                : setupInProgress
+                  ? t("extend.predict.setup.verifying")
+                  : t("extend.predict.setup.unverified")}
             </p>
-            <button
-              type="button"
-              onClick={() => needsKyc ? setIsKycModalOpen(true) : setIsSetupModalOpen(true)}
-              className="px-6 py-2.5 rounded-[10px] bg-[#c7ff2e]/10 border border-[#c7ff2e]/25 text-[#c7ff2e] hover:bg-[#c7ff2e]/20 hover:border-[#c7ff2e]/40 text-sm font-semibold transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
-              {needsKyc
-                ? t("extend.predict.kyc.unverifiedShort")
-                : t("extend.predict.setup.unverifiedShort")}
-            </button>
+            {!setupInProgress && (
+              <button
+                type="button"
+                onClick={() => needsKyc ? setIsKycModalOpen(true) : setIsSetupModalOpen(true)}
+                className="px-6 py-2.5 rounded-[10px] bg-[#c7ff2e]/10 border border-[#c7ff2e]/25 text-[#c7ff2e] hover:bg-[#c7ff2e]/20 hover:border-[#c7ff2e]/40 text-sm font-semibold transition-colors cursor-pointer focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                {needsKyc
+                  ? t("extend.predict.kyc.unverifiedShort")
+                  : t("extend.predict.setup.unverifiedShort")}
+              </button>
+            )}
           </div>
         ) : (
           <>

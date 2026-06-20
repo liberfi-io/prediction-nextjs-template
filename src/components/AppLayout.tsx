@@ -97,6 +97,7 @@ import { predictEventHref } from "./page/predict-source";
 import { getQueryClient } from "../libs/queryClient";
 import { ENABLE_KALSHI } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
+import { AutoSetupPolymarketDepositWallet } from "./AutoSetupPolymarketDepositWallet";
 import { MpChatPrivyAutoLogin } from "./MpChatPrivyAutoLogin";
 import { TelegramPrivyAutoLogin } from "./TelegramPrivyAutoLogin";
 import {
@@ -121,6 +122,7 @@ import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
 import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
 import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniapp/state";
+import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -393,6 +395,7 @@ function PageShell({ children }: PropsWithChildren) {
   return (
     <PredictWalletProvider enabled enableKalshi={ENABLE_KALSHI}>
       <PredictWsConnector />
+      <AutoSetupPolymarketDepositWallet />
       <Suspense fallback={null}>
         <ReferralCapture />
       </Suspense>
@@ -1139,6 +1142,7 @@ function PredictAccountControl() {
   const { status, signIn, signOut } = useAuth();
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
   const telegramAutoLoginPending = useAtomValue(telegramMiniAppAutoLoginPendingAtom);
+  const polymarketAutoSetupPending = useAtomValue(polymarketAutoSetupPendingAtom);
   const {
     kalshiUsdcBalance,
     polymarketUsdcBalance,
@@ -1200,6 +1204,8 @@ function PredictAccountControl() {
     balanceLoading &&
     kalshiUsdcBalance === null &&
     polymarketUsdcBalance === null;
+  const polymarketSetupBusy =
+    polymarketSetupLoading || polymarketAutoSetupPending;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
@@ -1407,7 +1413,7 @@ function PredictAccountControl() {
     polymarketUsdcBalance,
     kalshiKycLoading,
     kalshiKycVerified,
-    polymarketSetupLoading,
+    polymarketSetupLoading: polymarketSetupBusy,
     polymarketSetupVerified,
     onKycOpen: () => setIsKycModalOpen(true),
     onSetupOpen: () => setIsSetupModalOpen(true),
