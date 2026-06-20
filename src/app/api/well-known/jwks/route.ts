@@ -4,7 +4,7 @@ import { getTelegramPrivyPublicJwk } from "src/libs/server/telegramPrivyJwt";
 
 export async function GET() {
   const keys: JsonWebKey[] = [];
-  const keyIds = new Set<string>();
+  const keyIds = new Map<string, string>();
 
   pushConfiguredJwk(keys, keyIds, "MPCHAT_PRIVY_JWT_PRIVATE_KEY", getMpChatPrivyPublicJwk);
   pushConfiguredJwk(keys, keyIds, "TELEGRAM_PRIVY_JWT_PRIVATE_KEY", getTelegramPrivyPublicJwk);
@@ -14,18 +14,22 @@ export async function GET() {
 
 function pushConfiguredJwk(
   keys: JsonWebKey[],
-  keyIds: Set<string>,
+  keyIds: Map<string, string>,
   privateKeyEnv: string,
   getJwk: () => JsonWebKey & { kid: string },
 ) {
   if (!process.env[privateKeyEnv]) return;
   try {
     const jwk = getJwk();
-    if (keyIds.has(jwk.kid)) {
-      console.error("duplicate privy jwks kid ignored", { kid: jwk.kid });
+    const fingerprint = getPublicJwkFingerprint(jwk);
+    const existingFingerprint = keyIds.get(jwk.kid);
+    if (existingFingerprint) {
+      if (existingFingerprint !== fingerprint) {
+        console.error("conflicting privy jwks kid ignored", { kid: jwk.kid, privateKeyEnv });
+      }
       return;
     }
-    keyIds.add(jwk.kid);
+    keyIds.set(jwk.kid, fingerprint);
     keys.push(jwk);
   } catch (error: unknown) {
     console.error("privy jwk generation failed", {
@@ -33,4 +37,17 @@ function pushConfiguredJwk(
       message: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+function getPublicJwkFingerprint(jwk: JsonWebKey): string {
+  return JSON.stringify({
+    alg: jwk.alg,
+    crv: jwk.crv,
+    e: jwk.e,
+    kty: jwk.kty,
+    n: jwk.n,
+    use: jwk.use,
+    x: jwk.x,
+    y: jwk.y,
+  });
 }
