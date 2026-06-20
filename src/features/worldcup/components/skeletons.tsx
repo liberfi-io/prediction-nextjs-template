@@ -261,3 +261,151 @@ export function WorldCupTabSkeleton({ tab }: { tab: WcTab }) {
     </>
   );
 }
+
+function DetailHeaderSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={cx("size-10 shrink-0 rounded-lg", PULSE)} />
+          <div className={cx("size-10 shrink-0 rounded-lg", PULSE)} />
+          <div className="min-w-0 flex-1 pt-1">
+            <div className={cx("h-5 w-[min(72vw,420px)] rounded", PULSE)} />
+            <div className="mt-2 flex items-center gap-1.5">
+              <div className={cx("h-3 w-12 rounded", PULSE)} />
+              <div className={cx("h-3 w-16 rounded", PULSE)} />
+            </div>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 lg:justify-end">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-start gap-1 lg:items-end">
+              <div className={cx("h-2.5 w-14 rounded", PULSE)} />
+              <div className={cx("h-3 w-12 rounded", PULSE)} />
+            </div>
+          ))}
+          <div className={cx("h-7 w-16 rounded-lg", PULSE)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChartSkeleton() {
+  return (
+    <div className={cx("min-h-[320px] flex-1 p-3", CARD)}>
+      <div className="mb-4 flex items-center justify-between">
+        <div className={cx("h-4 w-32 rounded", PULSE)} />
+        <div className={cx("h-7 w-24 rounded-lg", PULSE)} />
+      </div>
+      <div className="flex h-[248px] items-end gap-2">
+        {Array.from({ length: 18 }).map((_, i) => (
+          <div
+            key={i}
+            className={cx("flex-1 rounded-t", PULSE)}
+            style={{ height: `${36 + ((i * 17) % 58)}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MatchCenterSkeleton() {
+  return (
+    <div className={cx("flex min-h-[320px] flex-col gap-3 p-3", CARD)}>
+      <div className="flex gap-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={cx("h-7 w-20 rounded-lg", PULSE)} />
+        ))}
+      </div>
+      <div className={cx("h-32 rounded-[10px]", PULSE)} />
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className={cx("h-8 rounded", PULSE)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TradeSkeleton() {
+  return (
+    <div className={cx("p-3", CARD)}>
+      <div className="mb-3 flex gap-2">
+        <div className={cx("h-9 flex-1 rounded-lg", PULSE)} />
+        <div className={cx("h-9 flex-1 rounded-lg", PULSE)} />
+      </div>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i}>
+            <div className={cx("mb-1.5 h-3 w-16 rounded", PULSE)} />
+            <div className={cx("h-10 rounded-lg", PULSE)} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderbookSkeleton() {
+  return (
+    <div className={cx("min-h-[360px] p-3", CARD)}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className={cx("h-4 w-24 rounded", PULSE)} />
+        <div className={cx("h-7 w-20 rounded-lg", PULSE)} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {Array.from({ length: 18 }).map((_, i) => (
+          <div key={i} className={cx("h-6 rounded", PULSE)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className={cx("p-3", CARD)}>
+      <div className="mb-3 flex gap-1">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={cx("h-8 w-24 rounded-lg", PULSE)} />
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className={cx("h-9 rounded", PULSE)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** World Cup match detail shell: header, chart, match center, trade and orderbook. */
+export function WorldCupDetailSkeleton() {
+  return (
+    <div className="w-full pb-16">
+      <div className="w-full px-3 pt-4 sm:px-6">
+        <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <DetailHeaderSkeleton />
+            <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
+                <div className={cx("h-20 rounded-[12px]", PULSE)} />
+                <ChartSkeleton />
+              </div>
+              <div className="w-full shrink-0 xl:w-[440px]">
+                <MatchCenterSkeleton />
+              </div>
+            </div>
+            <ActivitySkeleton />
+          </div>
+          <aside className="hidden w-full shrink-0 flex-col gap-4 lg:flex lg:sticky lg:top-2 lg:w-[360px]">
+            <TradeSkeleton />
+            <OrderbookSkeleton />
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}

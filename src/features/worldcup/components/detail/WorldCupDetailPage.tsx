@@ -55,6 +55,7 @@ import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
 import { TradeModal } from "src/components/TradeModal";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
+import { WorldCupDetailSkeleton } from "../skeletons";
 import { convertPrice } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import {
@@ -471,11 +472,7 @@ export function WorldCupDetailPage({
   );
 
   if (isLoading && !event) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center text-sm text-zinc-500">
-        {t("extend.worldcup.detail.loading")}
-      </div>
-    );
+    return <WorldCupDetailSkeleton />;
   }
 
   if (!event) {
