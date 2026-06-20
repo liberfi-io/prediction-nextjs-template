@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePrivy, useWallets, useSigners } from "@privy-io/react-auth";
+import {
+  usePrivy,
+  useLoginWithTelegram,
+  useWallets,
+  useSigners,
+} from "@privy-io/react-auth";
 import { useTranslation } from "@liberfi.io/i18n";
 import { Spinner, VerifiedIcon } from "@liberfi.io/ui";
 import {
@@ -50,6 +55,23 @@ function RecoveryFlow() {
   const { ready, authenticated, user, logout } = usePrivy();
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
+
+  // Observe the seamless Telegram flow without triggering the web widget: we
+  // never call login(), only watch onComplete/onError + state to see why the
+  // session does not finalize.
+  const { state: tgState } = useLoginWithTelegram({
+    onComplete: (params) => {
+      console.log("[recovery] tg onComplete", {
+        userId: params?.user?.id,
+        isNewUser: params?.isNewUser,
+        wasAlreadyAuthenticated: params?.wasAlreadyAuthenticated,
+      });
+    },
+    onError: (error) => {
+      console.error("[recovery] tg onError", error);
+      setErrorDetail(`tg: ${String(error)}`);
+    },
+  });
 
   const [phase, setPhase] = useState<RecoveryPhase>("connecting");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
@@ -252,6 +274,7 @@ function RecoveryFlow() {
 user=${user?.id ?? "-"}
 wallets=${wallets.length} evm=${embeddedAddress ?? "-"}
 clean=${cleanSession} phase=${phase}
+tgState=${tgState?.status ?? "-"}
 initDataAge=${initDataAge ?? "-"}s`}
         </pre>
       </div>
