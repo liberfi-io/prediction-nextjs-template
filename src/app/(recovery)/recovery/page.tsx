@@ -56,10 +56,12 @@ function RecoveryFlow() {
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
 
-  // Observe the seamless Telegram flow without triggering the web widget: we
-  // never call login(), only watch onComplete/onError + state to see why the
-  // session does not finalize.
-  const { state: tgState } = useLoginWithTelegram({
+  // Seamless Telegram login. The provider has seamless auth enabled in the
+  // Privy dashboard, but because Privy mounts late (after the `/` -> /recovery
+  // client redirect) it does not zero-click auto-login on mount. Calling
+  // login() inside the Mini App context makes the SDK complete via initData
+  // (no web widget) instead of staying stuck at `initial`.
+  const { login: telegramLogin, state: tgState } = useLoginWithTelegram({
     onComplete: (params) => {
       console.log("[recovery] tg onComplete", {
         userId: params?.user?.id,
@@ -80,6 +82,7 @@ function RecoveryFlow() {
   const [cleanSession, setCleanSession] = useState(false);
   const sessionDecisionRef = useRef(false);
   const provisionStartedRef = useRef(false);
+  const loginStartedRef = useRef(false);
 
   const signerId = process.env.NEXT_PUBLIC_PRIVY_SESSION_SIGNER_ID;
   const policyIds = parsePolicyIds(
@@ -121,6 +124,21 @@ function RecoveryFlow() {
     // seamless login that authenticates as the native Telegram user.
     setCleanSession(true);
   }, [ready, authenticated, logout]);
+
+  // On a clean, unauthenticated session, explicitly kick off the seamless
+  // Telegram login once. With seamless enabled + Mini App context this resolves
+  // via initData without showing the web widget.
+  useEffect(() => {
+    if (!cleanSession) return;
+    if (authenticated) return;
+    if (loginStartedRef.current) return;
+    loginStartedRef.current = true;
+    console.log("[recovery] telegramLogin() start");
+    void Promise.resolve(telegramLogin()).catch((error: unknown) => {
+      console.error("[recovery] telegramLogin() threw", error);
+      setErrorDetail(`tgLogin: ${String(error)}`);
+    });
+  }, [cleanSession, authenticated, telegramLogin]);
 
   // Once seamlessly logged into the legacy user, attach the server session
   // signer to the embedded EVM wallet (the Polymarket deposit-wallet owner).
@@ -170,6 +188,7 @@ function RecoveryFlow() {
     }
     sessionDecisionRef.current = false;
     provisionStartedRef.current = false;
+    loginStartedRef.current = false;
     setCleanSession(false);
     setErrorDetail(null);
     setPhase("connecting");
