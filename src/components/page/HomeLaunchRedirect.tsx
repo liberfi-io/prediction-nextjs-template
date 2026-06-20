@@ -10,6 +10,7 @@ import {
   readMpChatMiniAppContext,
 } from "src/features/mpchat-miniapp/launchParams";
 import {
+  getTelegramWebApp,
   isTelegramRecoveryLaunch,
   readTelegramMiniAppContext,
   readyTelegramWebApp,
@@ -70,6 +71,32 @@ function isMiniAppLaunchHash(hash: string): boolean {
     hash.startsWith("#mpWebAppData") ||
     hash.startsWith("#mpChatWebAppData")
   );
+}
+
+/**
+ * Build the `/recovery` destination with a guaranteed `#tgWebAppData=` hash.
+ *
+ * Privy's seamless Telegram login only fires when `window.location.hash` starts
+ * with `#tgWebAppData=` (it never reads `window.Telegram.WebApp.initData`). On
+ * iOS Telegram the launch payload arrives through the native bridge into
+ * `WebApp.initData`, NOT the URL hash, so a plain redirect lands on a hash-less
+ * `/recovery` where seamless never triggers. We reconstruct the canonical hash
+ * (`encodeURIComponent(initData)`) here — where `WebApp` is already populated
+ * (the recovery start param was just read from it) — so the recovery document
+ * loads with the hash present from its first byte. Recovery-only: the main app
+ * authenticates via custom JWT and must not pick up a native-Telegram session.
+ */
+function recoveryHref(): string {
+  const base = "/recovery";
+  if (typeof window === "undefined") return base;
+
+  const existing = window.location.hash;
+  if (existing.startsWith("#tgWebAppData")) return `${base}${existing}`;
+
+  const initData = getTelegramWebApp()?.initData;
+  if (initData) return `${base}#tgWebAppData=${encodeURIComponent(initData)}`;
+
+  return base;
 }
 
 function readMiniAppStartParam(): string | null {
@@ -135,11 +162,11 @@ export function HomeLaunchRedirect() {
 
     // Wallet recovery deep link wins before any normal start-param parsing:
     // `recovery_tg` is not a `v1-...` deep link, so it must be intercepted here
-    // or it would fall through to the default redirect. Carry the launch hash
-    // (`withLaunchHash` inside `redirectTo`) so the recovery page's native
-    // Telegram login can still read `initData`.
+    // or it would fall through to the default redirect. Use `recoveryHref()`
+    // (not the generic `redirectTo`) so a `#tgWebAppData=` hash is synthesized
+    // from `WebApp.initData` when missing — Privy's seamless login depends on it.
     if (isTelegramRecoveryLaunch()) {
-      redirectTo("/recovery");
+      window.location.replace(recoveryHref());
       return () => {
         cancelled = true;
       };

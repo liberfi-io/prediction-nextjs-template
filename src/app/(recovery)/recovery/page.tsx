@@ -56,12 +56,13 @@ function RecoveryFlow() {
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
 
-  // Seamless Telegram login. The provider has seamless auth enabled in the
-  // Privy dashboard, but because Privy mounts late (after the `/` -> /recovery
-  // client redirect) it does not zero-click auto-login on mount. Calling
-  // login() inside the Mini App context makes the SDK complete via initData
-  // (no web widget) instead of staying stuck at `initial`.
-  const { login: telegramLogin, state: tgState } = useLoginWithTelegram({
+  // Observe the seamless Telegram flow. We never call login(): inside a Mini
+  // App that hits the web login widget (`window.Telegram.Login.auth`), which
+  // does not exist in the Telegram webview and throws. Seamless auto-login is
+  // driven entirely by Privy reading the `#tgWebAppData=` launch hash (which
+  // HomeLaunchRedirect now guarantees is present), so here we only watch its
+  // state + onComplete/onError.
+  const { state: tgState } = useLoginWithTelegram({
     onComplete: (params) => {
       console.log("[recovery] tg onComplete", {
         userId: params?.user?.id,
@@ -82,7 +83,6 @@ function RecoveryFlow() {
   const [cleanSession, setCleanSession] = useState(false);
   const sessionDecisionRef = useRef(false);
   const provisionStartedRef = useRef(false);
-  const loginStartedRef = useRef(false);
 
   const signerId = process.env.NEXT_PUBLIC_PRIVY_SESSION_SIGNER_ID;
   const policyIds = parsePolicyIds(
@@ -124,21 +124,6 @@ function RecoveryFlow() {
     // seamless login that authenticates as the native Telegram user.
     setCleanSession(true);
   }, [ready, authenticated, logout]);
-
-  // On a clean, unauthenticated session, explicitly kick off the seamless
-  // Telegram login once. With seamless enabled + Mini App context this resolves
-  // via initData without showing the web widget.
-  useEffect(() => {
-    if (!cleanSession) return;
-    if (authenticated) return;
-    if (loginStartedRef.current) return;
-    loginStartedRef.current = true;
-    console.log("[recovery] telegramLogin() start");
-    void Promise.resolve(telegramLogin()).catch((error: unknown) => {
-      console.error("[recovery] telegramLogin() threw", error);
-      setErrorDetail(`tgLogin: ${String(error)}`);
-    });
-  }, [cleanSession, authenticated, telegramLogin]);
 
   // Once seamlessly logged into the legacy user, attach the server session
   // signer to the embedded EVM wallet (the Polymarket deposit-wallet owner).
@@ -188,7 +173,6 @@ function RecoveryFlow() {
     }
     sessionDecisionRef.current = false;
     provisionStartedRef.current = false;
-    loginStartedRef.current = false;
     setCleanSession(false);
     setErrorDetail(null);
     setPhase("connecting");
@@ -197,6 +181,9 @@ function RecoveryFlow() {
   // Temporary diagnostics: surface live state so a stuck recovery can be
   // inspected from inside the Telegram webview without a console.
   const initDataAge = readInitDataAgeSeconds();
+  const hasTgHash =
+    typeof window !== "undefined" &&
+    window.location.hash.startsWith("#tgWebAppData");
   const embeddedAddress = wallets.find(
     (wallet) => wallet.walletClientType === "privy" && wallet.address,
   )?.address;
@@ -293,7 +280,7 @@ function RecoveryFlow() {
 user=${user?.id ?? "-"}
 wallets=${wallets.length} evm=${embeddedAddress ?? "-"}
 clean=${cleanSession} phase=${phase}
-tgState=${tgState?.status ?? "-"}
+tgState=${tgState?.status ?? "-"} tgHash=${hasTgHash}
 initDataAge=${initDataAge ?? "-"}s`}
         </pre>
       </div>
