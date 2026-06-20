@@ -1,14 +1,20 @@
-import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 import { parseStartParam } from "src/features/telegram-miniapp/startParam";
-import { verifyTelegramMiniAppInitData } from "src/libs/server/telegramMiniApp";
+import {
+  getTelegramSessionCookieName,
+  getTelegramSessionSecret,
+  numberFromEnv,
+  signTelegramSession,
+  type VerifiedTelegramMiniAppContext,
+  verifyTelegramMiniAppInitData,
+  verifyTelegramSession,
+} from "src/libs/server/telegramMiniApp";
 
 interface TelegramMiniAppAuthRequest {
   initData?: string;
   startParam?: string;
 }
 
-const DEFAULT_COOKIE_NAME = "tg_miniapp_context";
 const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 export async function POST(request: NextRequest) {
@@ -35,32 +41,28 @@ export async function POST(request: NextRequest) {
       ),
     });
     const parsedStartParam = startParam?.trim() ? parseStartParam(startParam) : null;
-    const tgChatId = context.tgChatId ?? parsedStartParam?.tgChatId;
-    const cookieContext = {
+    const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
+    const cookieContext = preserveExistingAuthSession(request, botToken, {
       ...context,
       ...(tgChatId ? { tgChatId } : {}),
       ...(parsedStartParam?.tgChatId && !context.tgChatId
-        ? { tgChatSource: "start_param" }
+        ? { tgChatSource: "start_param" as const }
         : context.tgChatId
-          ? { tgChatSource: "init_data" }
+          ? { tgChatSource: "init_data" as const }
           : {}),
-    };
+    });
 
     const cookieMaxAge = numberFromEnv(
       process.env.TG_MINIAPP_COOKIE_MAX_AGE,
       DEFAULT_COOKIE_MAX_AGE_SECONDS,
     );
-    const token = jwt.sign(
+    const token = signTelegramSession(
       cookieContext,
-      process.env.TG_MINIAPP_COOKIE_SECRET || process.env.JWT_SECRET || botToken,
-      {
-        expiresIn: cookieMaxAge,
-        algorithm: "HS256",
-      },
+      getTelegramSessionSecret(botToken),
     );
 
     const response = NextResponse.json({ success: true });
-    response.cookies.set(process.env.TG_MINIAPP_COOKIE_NAME || DEFAULT_COOKIE_NAME, token, {
+    response.cookies.set(getTelegramSessionCookieName(), token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -86,7 +88,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function numberFromEnv(value: string | undefined, fallback: number): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function stringifyId(value: number | null | undefined): string | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
+}
+
+function preserveExistingAuthSession(
+  request: NextRequest,
+  botToken: string,
+  nextContext: VerifiedTelegramMiniAppContext,
+): VerifiedTelegramMiniAppContext {
+  const sessionToken = request.cookies.get(getTelegramSessionCookieName())?.value;
+  if (!sessionToken) return nextContext;
+
+  try {
+    const existingContext = verifyTelegramSession(
+      sessionToken,
+      getTelegramSessionSecret(botToken),
+    );
+    if (existingContext.tgUserId !== nextContext.tgUserId) return nextContext;
+
+    return {
+      ...nextContext,
+      authMode: existingContext.authMode,
+      subject: existingContext.subject,
+    };
+  } catch {
+    return nextContext;
+  }
 }

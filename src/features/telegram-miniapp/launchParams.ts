@@ -67,6 +67,11 @@ export function readTelegramInitData(): string | null {
   return asString(getTelegramWebApp()?.initData) ?? readUrlParam("tgWebAppData");
 }
 
+export function isLikelyTelegramMiniAppLaunch(): boolean {
+  if (getTelegramWebApp() || readTelegramInitData()) return true;
+  return Boolean(readUrlStartParam());
+}
+
 export function readyTelegramWebApp(): void {
   getTelegramWebApp()?.ready?.();
 }

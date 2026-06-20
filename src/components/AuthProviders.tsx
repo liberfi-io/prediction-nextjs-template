@@ -48,7 +48,6 @@ export function AuthProviders({ children }: PropsWithChildren) {
           "discord",
           "github",
           "wallet",
-          "telegram"
         ],
         embeddedWallets: {
           ethereum: {

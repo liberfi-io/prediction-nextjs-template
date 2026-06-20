@@ -53,6 +53,7 @@ import {
   PredictWalletProvider,
   KycModal,
   SetupModal,
+  usePredictWallet,
 } from "@liberfi.io/ui-predict";
 import {
   useAuth,
@@ -92,12 +93,12 @@ import {
   type NavItem,
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { usePredictWallet } from "@liberfi.io/ui-predict";
 import { predictEventHref } from "./page/predict-source";
 import { getQueryClient } from "../libs/queryClient";
 import { ENABLE_KALSHI } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
 import { MpChatPrivyAutoLogin } from "./MpChatPrivyAutoLogin";
+import { TelegramPrivyAutoLogin } from "./TelegramPrivyAutoLogin";
 import {
   FundWalletModal,
   FUND_WALLET_MODAL_ID,
@@ -119,6 +120,7 @@ import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
 import { ReferralCapture } from "../features/referral/components/ReferralCapture";
 import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
+import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniapp/state";
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
 }
@@ -236,6 +238,7 @@ export function AppLayout({
     <>
       <QueryClientProvider client={queryClient}>
         <AuthProviders>
+          <TelegramPrivyAutoLogin />
           <MpChatPrivyAutoLogin />
           <LocaleProvider
             locale={locale}
@@ -1135,6 +1138,7 @@ function PredictAccountControl() {
   const { t } = useTranslation();
   const { status, signIn, signOut } = useAuth();
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
+  const telegramAutoLoginPending = useAtomValue(telegramMiniAppAutoLoginPendingAtom);
   const {
     kalshiUsdcBalance,
     polymarketUsdcBalance,
@@ -1425,6 +1429,7 @@ function PredictAccountControl() {
   // Transitioning (signing in / out): show a compact spinner.
   if (
     mpChatAutoLoginPending ||
+    telegramAutoLoginPending ||
     status === "authenticating" ||
     status === "deauthenticating"
   ) {
