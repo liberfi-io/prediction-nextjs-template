@@ -40,7 +40,10 @@ function RecoveryFlow() {
 
   const [phase, setPhase] = useState<RecoveryPhase>("connecting");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const loginStartedRef = useRef(false);
+  // Becomes true only after OUR fresh native-Telegram login resolves, so the
+  // provisioning step never runs against a stale/bled session.
+  const [loginDone, setLoginDone] = useState(false);
+  const flowStartedRef = useRef(false);
   const provisionStartedRef = useRef(false);
 
   const signerId = process.env.NEXT_PUBLIC_PRIVY_SESSION_SIGNER_ID;
@@ -53,20 +56,34 @@ function RecoveryFlow() {
     expandTelegramWebApp();
   }, []);
 
-  // Trigger native Telegram login once Privy is ready. Seamless Mini App login
-  // may already authenticate the user; if not, call `login()` explicitly.
+  // The Privy session is shared per app id across the whole origin, so a user
+  // who is already signed into the main app via custom JWT would otherwise be
+  // reused here — and that identity does NOT own the legacy embedded wallet.
+  // Always start from a clean slate: drop any existing session, then perform a
+  // fresh native-Telegram login so we authenticate as the legacy user that
+  // actually owns the wallet.
   useEffect(() => {
-    if (!ready || authenticated) return;
-    if (loginStartedRef.current) return;
-    loginStartedRef.current = true;
-    void login().catch(() => {
-      setPhase("error");
-    });
-  }, [ready, authenticated, login]);
+    if (!ready) return;
+    if (flowStartedRef.current) return;
+    flowStartedRef.current = true;
+    void (async () => {
+      try {
+        if (authenticated) {
+          await logout().catch(() => undefined);
+        }
+        await login();
+        setLoginDone(true);
+      } catch (error) {
+        console.error("[recovery] telegram login failed", error);
+        setPhase("error");
+      }
+    })();
+  }, [ready, authenticated, login, logout]);
 
   // Once logged into the legacy user, attach the server session signer to the
   // embedded EVM wallet (the Polymarket deposit-wallet owner).
   useEffect(() => {
+    if (!loginDone) return;
     if (!authenticated) return;
     if (provisionStartedRef.current) return;
 
@@ -100,11 +117,12 @@ function RecoveryFlow() {
         setErrorDetail(message);
         setPhase("error");
       });
-  }, [authenticated, wallets, addSigners, logout, signerId, policyIds]);
+  }, [loginDone, authenticated, wallets, addSigners, logout, signerId, policyIds]);
 
   const handleRetry = useCallback(() => {
-    loginStartedRef.current = false;
+    flowStartedRef.current = false;
     provisionStartedRef.current = false;
+    setLoginDone(false);
     setErrorDetail(null);
     setPhase("connecting");
   }, []);
