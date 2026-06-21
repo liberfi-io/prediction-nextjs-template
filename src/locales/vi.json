@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "Xác minh bảo mật",
+      "description": "Hoàn tất xác minh để tiếp tục.",
+      "retry": "Thử lại",
+      "verifying": "Đang xác minh...",
+      "failed": "Xác minh thất bại. Vui lòng thử lại.",
+      "unavailable": "Xác minh bảo mật hiện không khả dụng. Vui lòng thử lại sau."
+    },
     "header": {
       "predict": "Dự Đoán",
       "language": "Chuyển Ngôn Ngữ",

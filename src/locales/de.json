@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "Sicherheitsprüfung",
+      "description": "Schließen Sie die Prüfung ab, um fortzufahren.",
+      "retry": "Erneut versuchen",
+      "verifying": "Wird geprüft...",
+      "failed": "Prüfung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "unavailable": "Die Sicherheitsprüfung ist nicht verfügbar. Bitte versuchen Sie es später erneut."
+    },
     "header": {
       "predict": "Prognostizieren",
       "language": "Sprache wechseln",

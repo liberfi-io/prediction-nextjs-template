@@ -96,6 +96,7 @@ import { AuthProviders } from "./AuthProviders";
 import { AutoSetupPolymarketDepositWallet } from "./AutoSetupPolymarketDepositWallet";
 import { MpChatPrivyAutoLogin } from "./MpChatPrivyAutoLogin";
 import { TelegramPrivyAutoLogin } from "./TelegramPrivyAutoLogin";
+import { MiniAppCaptchaGate } from "../features/miniapp-captcha/MiniAppCaptchaGate";
 import {
   FundWalletModal,
   FUND_WALLET_MODAL_ID,
@@ -217,13 +218,15 @@ export function AppLayout({ children }: PropsWithChildren) {
   return (
     <>
       <AuthProviders>
-        <TelegramPrivyAutoLogin />
-        <MpChatPrivyAutoLogin />
-        <ServiceProviders>
-          <PageShell>{children}</PageShell>
-          <StyledToaster />
-          <PredictSearchModal />
-        </ServiceProviders>
+        <MiniAppCaptchaGate>
+          <TelegramPrivyAutoLogin />
+          <MpChatPrivyAutoLogin />
+          <ServiceProviders>
+            <PageShell>{children}</PageShell>
+            <StyledToaster />
+            <PredictSearchModal />
+          </ServiceProviders>
+        </MiniAppCaptchaGate>
       </AuthProviders>
     </>
   );

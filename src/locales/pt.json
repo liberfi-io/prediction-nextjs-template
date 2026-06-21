@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "Verificação de segurança",
+      "description": "Conclua a verificação para continuar.",
+      "retry": "Tentar novamente",
+      "verifying": "Verificando...",
+      "failed": "A verificação falhou. Tente novamente.",
+      "unavailable": "A verificação de segurança está indisponível. Tente novamente mais tarde."
+    },
     "header": {
       "predict": "Prever",
       "language": "Mudar Idioma",

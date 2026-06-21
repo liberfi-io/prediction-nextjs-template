@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "セキュリティ認証",
+      "description": "続行するには認証を完了してください。",
+      "retry": "再試行",
+      "verifying": "認証中...",
+      "failed": "認証に失敗しました。もう一度お試しください。",
+      "unavailable": "セキュリティ認証を利用できません。後でもう一度お試しください。"
+    },
     "header": {
       "predict": "予測",
       "language": "言語を切り替える",

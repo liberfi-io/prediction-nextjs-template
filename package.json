@@ -24,6 +24,7 @@
     "@liberfi.io/utils": "^0.2.52",
     "@liberfi.io/wallet-connector": "^0.2.52",
     "@liberfi.io/wallet-connector-privy": "^1.1.50",
+    "@marsidev/react-turnstile": "^1.5.3",
     "@number-flow/react": "^0.6.0",
     "@paulmillr/qr": "^0.2.1",
     "@privy-io/react-auth": "^3.16.0",

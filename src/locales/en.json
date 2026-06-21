@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "Security verification",
+      "description": "Complete the verification to continue.",
+      "retry": "Retry",
+      "verifying": "Verifying...",
+      "failed": "Verification failed. Please try again.",
+      "unavailable": "Security verification is unavailable. Please try again later."
+    },
     "recovery": {
       "connecting": "Connecting your account…",
       "recovering": "Restoring your wallet access…",

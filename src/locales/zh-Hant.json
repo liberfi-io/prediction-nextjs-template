@@ -6,6 +6,14 @@
       "en": "English",
       "zh": "繁體中文"
     },
+    "miniAppCaptcha": {
+      "title": "安全驗證",
+      "description": "完成驗證後即可繼續。",
+      "retry": "重試",
+      "verifying": "驗證中...",
+      "failed": "驗證失敗，請再試一次。",
+      "unavailable": "安全驗證暫時不可用，請稍後再試。"
+    },
     "recovery": {
       "connecting": "正在連接您的帳戶…",
       "recovering": "正在恢復您的錢包存取…",
