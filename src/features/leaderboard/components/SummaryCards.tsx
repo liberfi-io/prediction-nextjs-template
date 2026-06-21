@@ -41,6 +41,10 @@ import type {
 
 const EMPTY_VALUE = "N/A";
 
+function transText(trans: string | undefined, base: string | undefined): string {
+  return trans || base || "";
+}
+
 // ---------------------------------------------------------------------------
 // Card 1 — TOTAL VALUE
 // ---------------------------------------------------------------------------
@@ -279,12 +283,16 @@ export function YieldRiskCard({
         label={t("extend.leaderboard.detail.bestTrade")}
         marketQuestion={summary.bestTradeMarketQuestion}
         eventSlug={summary.bestTradeEventSlug}
+        eventTitle={summary.bestTradeEventTitle}
+        eventTitleTrans={summary.bestTradeEventTitleTrans}
         pnl={summary.bestTradePnl}
       />
       <TradeHighlight
         label={t("extend.leaderboard.detail.worstTrade")}
         marketQuestion={summary.worstTradeMarketQuestion}
         eventSlug={summary.worstTradeEventSlug}
+        eventTitle={summary.worstTradeEventTitle}
+        eventTitleTrans={summary.worstTradeEventTitleTrans}
         pnl={summary.worstTradePnl}
       />
 
@@ -454,14 +462,19 @@ function TradeHighlight({
   label,
   marketQuestion,
   eventSlug,
+  eventTitle,
+  eventTitleTrans,
   pnl,
 }: {
   label: string;
   marketQuestion?: string;
   eventSlug?: string;
+  eventTitle?: string;
+  eventTitleTrans?: string;
   pnl: number;
 }) {
-  if (!marketQuestion) return null;
+  const title = transText(eventTitleTrans, eventTitle) || marketQuestion;
+  if (!title) return null;
 
   return (
     <div className="mt-3 border-t border-zinc-800/60 pt-3">
@@ -474,10 +487,10 @@ function TradeHighlight({
           prefetch={false}
           className="line-clamp-1 text-xs text-zinc-300 transition-colors hover:text-white hover:underline"
         >
-          {marketQuestion}
+          {title}
         </Link>
       ) : (
-        <span className="line-clamp-1 text-xs text-zinc-300">{marketQuestion}</span>
+        <span className="line-clamp-1 text-xs text-zinc-300">{title}</span>
       )}
       <div className={cn("mt-0.5 text-sm font-semibold tabular-nums", pnlColorClass(pnl))}>
         {formatSignedUsd(pnl)}

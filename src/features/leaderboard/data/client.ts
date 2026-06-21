@@ -117,10 +117,14 @@ interface WalletPnlSummaryDto {
   best_trade_outcome?: string;
   best_trade_pnl?: string;
   best_trade_event_slug?: string;
+  best_trade_event_title?: string;
+  best_trade_event_title_trans?: string;
   worst_trade_market_question?: string;
   worst_trade_outcome?: string;
   worst_trade_pnl?: string;
   worst_trade_event_slug?: string;
+  worst_trade_event_title?: string;
+  worst_trade_event_title_trans?: string;
   last_activity_ts?: string;
   state_quality?: string;
 }
@@ -131,7 +135,9 @@ interface WalletTokenPnlDto {
   event_slug?: string;
   market_id?: string;
   market_question: string;
+  market_question_trans?: string;
   outcome: string;
+  outcome_trans?: string;
   tags?: string[] | null;
   status?: string;
   market_resolved?: number;
@@ -157,9 +163,11 @@ interface WalletTokenPnlDto {
   state_quality?: string;
   // Best-effort local enrichment (see LocalMarketRef).
   event_title?: string;
+  event_title_trans?: string;
   event_image_url?: string;
   market_image_url?: string;
   market_description?: string;
+  market_description_trans?: string;
 }
 
 interface WalletDailyPnlDto {
@@ -203,19 +211,23 @@ interface WalletActivityDto {
   wallet: string;
   type: string;
   outcome: string;
+  outcome_trans?: string;
   quantity: string;
   amount: string;
   price: string;
   market_question?: string;
+  market_question_trans?: string;
   condition_id?: string;
   token_id?: string;
   event_slug?: string;
   activity_ts?: string;
   // Best-effort local enrichment (see LocalMarketRef).
   event_title?: string;
+  event_title_trans?: string;
   event_image_url?: string;
   market_image_url?: string;
   market_description?: string;
+  market_description_trans?: string;
 }
 
 interface WalletActivitiesDto {
@@ -325,10 +337,14 @@ function adaptSummary(d: WalletPnlSummaryDto): WalletPnlSummary {
     bestTradeOutcome: d.best_trade_outcome,
     bestTradePnl: num(d.best_trade_pnl),
     bestTradeEventSlug: d.best_trade_event_slug,
+    bestTradeEventTitle: d.best_trade_event_title,
+    bestTradeEventTitleTrans: d.best_trade_event_title_trans,
     worstTradeMarketQuestion: d.worst_trade_market_question,
     worstTradeOutcome: d.worst_trade_outcome,
     worstTradePnl: num(d.worst_trade_pnl),
     worstTradeEventSlug: d.worst_trade_event_slug,
+    worstTradeEventTitle: d.worst_trade_event_title,
+    worstTradeEventTitleTrans: d.worst_trade_event_title_trans,
     lastActivityTs: d.last_activity_ts,
     stateQuality: d.state_quality,
   };
@@ -341,7 +357,9 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     eventSlug: d.event_slug,
     marketId: d.market_id,
     marketQuestion: d.market_question,
+    marketQuestionTrans: d.market_question_trans,
     outcome: d.outcome,
+    outcomeTrans: d.outcome_trans,
     tags: d.tags ?? [],
     status: d.status as WalletTokenPnl["status"],
     marketResolved: d.market_resolved,
@@ -366,9 +384,11 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     lastActivityTs: d.last_activity_ts,
     stateQuality: d.state_quality,
     eventTitle: d.event_title,
+    eventTitleTrans: d.event_title_trans,
     eventImageUrl: d.event_image_url,
     marketImageUrl: d.market_image_url,
     marketDescription: d.market_description,
+    marketDescriptionTrans: d.market_description_trans,
   };
 }
 
@@ -414,18 +434,22 @@ function adaptActivity(d: WalletActivityDto): WalletActivity {
     wallet: d.wallet,
     type: d.type,
     outcome: d.outcome,
+    outcomeTrans: d.outcome_trans,
     quantity: num(d.quantity),
     amount: num(d.amount),
     price: num(d.price),
     marketQuestion: d.market_question,
+    marketQuestionTrans: d.market_question_trans,
     conditionId: d.condition_id,
     tokenId: d.token_id,
     eventSlug: d.event_slug,
     activityTs: d.activity_ts,
     eventTitle: d.event_title,
+    eventTitleTrans: d.event_title_trans,
     eventImageUrl: d.event_image_url,
     marketImageUrl: d.market_image_url,
     marketDescription: d.market_description,
+    marketDescriptionTrans: d.market_description_trans,
   };
 }
 

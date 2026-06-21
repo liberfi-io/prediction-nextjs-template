@@ -103,11 +103,15 @@ export interface WalletPnlSummary {
   bestTradePnl: number;
   /** Local-enriched event slug for the best trade's market; links to event detail when present. */
   bestTradeEventSlug?: string;
+  bestTradeEventTitle?: string;
+  bestTradeEventTitleTrans?: string;
   worstTradeMarketQuestion?: string;
   worstTradeOutcome?: string;
   worstTradePnl: number;
   /** Local-enriched event slug for the worst trade's market; links to event detail when present. */
   worstTradeEventSlug?: string;
+  worstTradeEventTitle?: string;
+  worstTradeEventTitleTrans?: string;
   lastActivityTs?: string;
   stateQuality?: string;
 }
@@ -120,9 +124,11 @@ export interface WalletPnlSummary {
  */
 export interface LocalMarketRef {
   eventTitle?: string;
+  eventTitleTrans?: string;
   eventImageUrl?: string;
   marketImageUrl?: string;
   marketDescription?: string;
+  marketDescriptionTrans?: string;
 }
 
 /** Position lifecycle status (upstream-computed). */
@@ -135,7 +141,9 @@ export interface WalletTokenPnl extends LocalMarketRef {
   eventSlug?: string;
   marketId?: string;
   marketQuestion: string;
+  marketQuestionTrans?: string;
   outcome: string;
+  outcomeTrans?: string;
   /** Category / product tags this position belongs to (e.g. worldcup_2026). */
   tags: string[];
   /**
@@ -220,10 +228,12 @@ export interface WalletActivity extends LocalMarketRef {
   wallet: string;
   type: string;
   outcome: string;
+  outcomeTrans?: string;
   quantity: number;
   amount: number;
   price: number;
   marketQuestion?: string;
+  marketQuestionTrans?: string;
   conditionId?: string;
   tokenId?: string;
   eventSlug?: string;

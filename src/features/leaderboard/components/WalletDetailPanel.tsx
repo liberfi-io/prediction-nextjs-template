@@ -79,6 +79,10 @@ const ROW_ESTIMATE = 64;
 const TABLE_GRID =
   "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_96px_88px_88px_78px_62px]";
 
+function transText(trans: string | undefined, base: string | undefined): string {
+  return trans || base || "";
+}
+
 export function WalletDetailPanel({
   wallet,
   interval,
@@ -405,7 +409,11 @@ function PositionsTable({
   const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
   const q = query.trim().toLowerCase();
   const rows = q
-    ? allTokens.filter((tk) => (tk.marketQuestion || "").toLowerCase().includes(q))
+    ? allTokens.filter((tk) =>
+        transText(tk.marketQuestionTrans, tk.marketQuestion)
+          .toLowerCase()
+          .includes(q),
+      )
     : allTokens;
 
   const count = rows.length + (hasNextPage ? 1 : 0);
@@ -572,7 +580,8 @@ function MarketAvatar({
  * slug as a best-effort label.
  */
 function positionSubtitle(position: WalletTokenPnl): string {
-  if (position.eventTitle) return position.eventTitle;
+  const title = transText(position.eventTitleTrans, position.eventTitle);
+  if (title) return title;
   if (position.eventSlug) return position.eventSlug.replace(/-/g, " ");
   return "";
 }
@@ -597,6 +606,8 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
     position.outcome.toLowerCase() === "no"
       ? "bg-bearish/10 text-bearish"
       : "bg-bullish/10 text-bullish";
+  const marketQuestion = transText(position.marketQuestionTrans, position.marketQuestion);
+  const outcome = transText(position.outcomeTrans, position.outcome);
 
   return (
     <div className={cn("px-3 py-3", !last && "border-b border-zinc-800/40")}>
@@ -612,7 +623,7 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
               slug={position.eventSlug}
               className="line-clamp-1 text-sm font-medium text-zinc-100"
             >
-              {position.marketQuestion || "—"}
+              {marketQuestion || "—"}
             </EventTitleLink>
             {positionSubtitle(position) && (
               <div className="line-clamp-1 text-[11px] uppercase tracking-wide text-zinc-600">
@@ -623,7 +634,7 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
         </div>
         <div className="text-center">
           <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", sideMeta)}>
-            {position.outcome || "—"}
+            {outcome || "—"}
           </span>
         </div>
         <div className="text-right text-sm tabular-nums text-zinc-300">
@@ -684,7 +695,7 @@ function ActivityList({
 
   const q = query.trim().toLowerCase();
   const activities = (data?.pages.flatMap((p) => p.activities) ?? []).filter(
-    (a) => !q || (a.marketQuestion || "").toLowerCase().includes(q),
+    (a) => !q || transText(a.marketQuestionTrans, a.marketQuestion).toLowerCase().includes(q),
   );
 
   const count = activities.length + (hasNextPage ? 1 : 0);
@@ -755,6 +766,8 @@ function activityTypeMeta(type: string): { key: ActivityTypeLabelKey; className:
 function ActivityRow({ activity, last }: { activity: WalletActivity; last: boolean }) {
   const { t } = useTranslation();
   const meta = activityTypeMeta(activity.type);
+  const marketQuestion = transText(activity.marketQuestionTrans, activity.marketQuestion);
+  const outcome = transText(activity.outcomeTrans, activity.outcome);
 
   return (
     <div className={cn("flex items-center gap-3 px-3 py-3", !last && "border-b border-zinc-800/40")}>
@@ -768,13 +781,13 @@ function ActivityRow({ activity, last }: { activity: WalletActivity; last: boole
           slug={activity.eventSlug}
           className="line-clamp-1 text-sm font-medium text-zinc-100"
         >
-          {activity.marketQuestion || activity.outcome || "—"}
+          {marketQuestion || outcome || "—"}
         </EventTitleLink>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
           <span className={cn("rounded px-1.5 py-0.5 font-medium", meta.className)}>
             {t(meta.key)}
           </span>
-          {activity.outcome && <span className="text-zinc-400">{activity.outcome}</span>}
+          {outcome && <span className="text-zinc-400">{outcome}</span>}
           <span className="tabular-nums">
             {formatPrice(activity.price)} ·{" "}
             {activity.quantity.toLocaleString("en-US", { maximumFractionDigits: 2 })}
