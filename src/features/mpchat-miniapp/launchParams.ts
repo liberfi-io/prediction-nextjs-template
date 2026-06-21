@@ -9,6 +9,7 @@ interface MpChatWebApp {
   initDataUnsafe?: {
     start_param?: unknown;
     startParam?: unknown;
+    startapp?: unknown;
     query_id?: unknown;
     queryId?: unknown;
     bot_id?: unknown;
@@ -92,9 +93,11 @@ export function peekMpChatStartParam(): string | null {
   return (
     asString(unsafe.start_param) ??
     asString(unsafe.startParam) ??
+    asString(unsafe.startapp) ??
     readUrlStartParam() ??
     readInitDataParam("start_param") ??
-    readInitDataParam("startParam")
+    readInitDataParam("startParam") ??
+    readInitDataParam("startapp")
   );
 }
 
@@ -105,10 +108,22 @@ export function isLikelyMpChatLaunch(): boolean {
     window.MpChat?.WebApp ||
       typeof window.initWebApp === "function" ||
       typeof window.JSBridge?.call === "function" ||
+      isLikelyMpChatReferrer() ||
       readUrlParam("mpWebAppData") ||
       readUrlParam("mpChatWebAppData") ||
       readUrlStartParam(),
   );
+}
+
+function isLikelyMpChatReferrer(): boolean {
+  if (typeof document === "undefined" || !document.referrer) return false;
+
+  try {
+    const hostname = new URL(document.referrer).hostname;
+    return hostname === "mp.net" || hostname.endsWith(".mp.net");
+  } catch {
+    return false;
+  }
 }
 
 export function readMpChatMiniAppContext(): MpChatMiniAppContext | null {

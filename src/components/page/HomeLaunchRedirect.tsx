@@ -12,6 +12,7 @@ import {
 import {
   getTelegramWebApp,
   isTelegramRecoveryLaunch,
+  readTelegramInitData,
   readTelegramMiniAppContext,
   readyTelegramWebApp,
 } from "src/features/telegram-miniapp/launchParams";
@@ -33,8 +34,8 @@ const DEFAULT_HREF = "/world-cup";
 // sit pending indefinitely (neither resolving nor erroring). When this fires we
 // give up on the slug and fall back to the list anchored on the match id.
 const WD_LOOKUP_TIMEOUT_MS = 2500;
-const MP_START_PARAM_RETRY_MS = 600;
-const MP_START_PARAM_RETRY_INTERVAL_MS = 50;
+const MP_START_PARAM_RETRY_MS = 5000;
+const MP_START_PARAM_RETRY_INTERVAL_MS = 100;
 
 function detailHref(slug: string, parsed: ParsedStartParam): string {
   if (!parsed.market || !parsed.outcome) return `/event/${slug}`;
@@ -105,6 +106,10 @@ function readMiniAppStartParam(): string | null {
 
   const mpChatContext = readMpChatMiniAppContext();
   return mpChatContext?.startParam || null;
+}
+
+function hasStrongTelegramLaunchSignal(): boolean {
+  return Boolean(readTelegramInitData());
 }
 
 /**
@@ -216,7 +221,11 @@ export function HomeLaunchRedirect() {
     };
 
     const firstStartParam = readMiniAppStartParam();
-    if (firstStartParam || !isLikelyMpChatLaunch()) {
+    if (
+      firstStartParam ||
+      hasStrongTelegramLaunchSignal() ||
+      !isLikelyMpChatLaunch()
+    ) {
       resolveStartParam(firstStartParam);
       return () => {
         cancelled = true;
