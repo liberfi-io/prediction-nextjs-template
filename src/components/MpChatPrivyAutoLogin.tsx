@@ -7,7 +7,6 @@ import { ChainNamespace } from "@liberfi.io/types";
 import { useAuth, useWallets } from "@liberfi.io/wallet-connector";
 import { getMpChatExternalJwt } from "src/features/mpchat-miniapp/autoLogin";
 import {
-  getMpChatWebApp,
   isLikelyMpChatLaunch,
   isMpChatMiniAppEnabled,
   readMpChatInitData,
@@ -80,7 +79,7 @@ export function MpChatPrivyAutoLogin() {
         return;
       }
 
-      if (getMpChatWebApp() || readMpChatInitData()) {
+      if (readMpChatInitData()) {
         setIsMpChatLaunch(true);
         setDetectionComplete(true);
         setAutoLoginPending(true);

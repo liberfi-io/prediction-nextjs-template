@@ -105,13 +105,11 @@ export function isLikelyMpChatLaunch(): boolean {
   if (!isMpChatMiniAppEnabled()) return false;
   if (typeof window === "undefined") return false;
   return Boolean(
-    window.MpChat?.WebApp ||
-      typeof window.initWebApp === "function" ||
-      typeof window.JSBridge?.call === "function" ||
-      isLikelyMpChatReferrer() ||
+    isLikelyMpChatReferrer() ||
       readUrlParam("mpWebAppData") ||
       readUrlParam("mpChatWebAppData") ||
-      readUrlStartParam(),
+      readUrlParam("mpWebAppStartParam") ||
+      readUrlParam("mpChatWebAppStartParam"),
   );
 }
 
