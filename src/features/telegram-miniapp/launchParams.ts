@@ -68,7 +68,7 @@ export function readTelegramInitData(): string | null {
 }
 
 export function isLikelyTelegramMiniAppLaunch(): boolean {
-  if (getTelegramWebApp() || readTelegramInitData()) return true;
+  if (readTelegramInitData()) return true;
   return Boolean(readUrlStartParam());
 }
 

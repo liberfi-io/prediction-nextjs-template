@@ -13,7 +13,6 @@ import {
   readMpChatInitData,
 } from "src/features/mpchat-miniapp/launchParams";
 import {
-  getTelegramWebApp,
   readTelegramInitData,
 } from "src/features/telegram-miniapp/launchParams";
 import { mpChatAutoLoginPendingAtom } from "src/features/mpchat-miniapp/state";
@@ -27,12 +26,12 @@ const JWT_RESYNC_INTERVAL_MS = 60 * 1000;
  * Strong Telegram Mini App signal. MPChat and Telegram share loose launch hints
  * (e.g. `startapp`, an injected `JSBridge`), so MPChat auto-login can misfire
  * inside a genuine Telegram launch and hammer `/api/auth/mpchat-miniapp/login`
- * with no MPChat session (401), pinning the loading spinner. When Telegram's own
- * SDK object or `tgWebAppData` is present we are unambiguously in a Telegram
- * launch, so MPChat must stand down and let `TelegramPrivyAutoLogin` own login.
+ * with no MPChat session (401), pinning the loading spinner. When Telegram
+ * initData is present we are unambiguously in a Telegram launch, so MPChat must
+ * stand down and let `TelegramPrivyAutoLogin` own login.
  */
 function isTelegramMiniAppLaunch(): boolean {
-  return Boolean(getTelegramWebApp() || readTelegramInitData());
+  return Boolean(readTelegramInitData());
 }
 
 export function MpChatPrivyAutoLogin() {
