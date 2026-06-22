@@ -37,99 +37,6 @@ const WD_LOOKUP_TIMEOUT_MS = 2500;
 const MP_START_PARAM_RETRY_MS = 5000;
 const MP_START_PARAM_RETRY_INTERVAL_MS = 100;
 
-function sanitizeInitData(value: string | null | undefined): Record<string, unknown> | null {
-  if (!value) return null;
-  const params = new URLSearchParams(value);
-  return {
-    length: value.length,
-    keys: Array.from(params.keys()).slice(0, 30),
-    start_param: params.get("start_param"),
-    startParam: params.get("startParam"),
-    startapp: params.get("startapp"),
-    auth_date: params.get("auth_date"),
-    hasHash: params.has("hash"),
-    hasUser: params.has("user"),
-    hasChat: params.has("chat"),
-  };
-}
-
-function safeMiniAppUser(value: unknown): unknown {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  return {
-    id: record.id,
-    username: record.username,
-    language_code: record.language_code,
-    languageCode: record.languageCode,
-  };
-}
-
-function miniAppSnapshot() {
-  if (typeof window === "undefined") return null;
-  const telegramWebApp = window.Telegram?.WebApp;
-  const mpChatWebApp = window.MpChat?.WebApp;
-  const mpChatWebAppRecord = (mpChatWebApp ?? {}) as Record<string, unknown>;
-  const mpUnsafe = mpChatWebApp?.initDataUnsafe ?? {};
-  const tgUnsafe = telegramWebApp?.initDataUnsafe ?? {};
-
-  return {
-    href: window.location.href,
-    origin: window.location.origin,
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hashPrefix: window.location.hash.slice(0, 80),
-    referrer: document.referrer,
-    hasTelegramWebApp: Boolean(telegramWebApp),
-    telegram: {
-      initSource: telegramWebApp ? "present" : "missing",
-      initData: sanitizeInitData(telegramWebApp?.initData),
-      unsafeStartParam: tgUnsafe.start_param,
-      unsafeChatType: tgUnsafe.chat_type,
-      hasUser: Boolean(tgUnsafe.user),
-      user: safeMiniAppUser(tgUnsafe.user),
-    },
-    hasMpChatWebApp: Boolean(mpChatWebApp),
-    hasMpChatReady: Boolean(mpChatWebAppRecord.ready),
-    hasJSBridge: Boolean(window.JSBridge),
-    hasInitWebApp: Boolean(window.initWebApp),
-    mpchat: {
-      initSource: mpChatWebAppRecord.initSource,
-      initError: mpChatWebAppRecord.initError,
-      initData: sanitizeInitData(mpChatWebApp?.initData),
-      unsafeStartParam: mpUnsafe.start_param,
-      unsafeStartParamCamel: mpUnsafe.startParam,
-      unsafeStartapp: mpUnsafe.startapp,
-      unsafeChatType: mpUnsafe.chat_type ?? mpUnsafe.chatType,
-      botId: mpUnsafe.bot_id ?? mpUnsafe.botId,
-      nonce: mpUnsafe.nonce,
-      hasUser: Boolean(mpUnsafe.user),
-      user: safeMiniAppUser(mpUnsafe.user),
-    },
-  };
-}
-
-function reportMiniAppLaunch(stage: string, detail?: Record<string, unknown>): void {
-  if (typeof window === "undefined") return;
-  const payload = {
-    stage,
-    detail,
-    snapshot: miniAppSnapshot(),
-  };
-
-  const body = JSON.stringify(payload);
-  if (navigator.sendBeacon) {
-    const blob = new Blob([body], { type: "application/json" });
-    if (navigator.sendBeacon("/api/debug/miniapp-launch", blob)) return;
-  }
-
-  void fetch("/api/debug/miniapp-launch", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
-}
-
 function detailHref(slug: string, parsed: ParsedStartParam): string {
   if (!parsed.market || !parsed.outcome) return `/event/${slug}`;
   const params = new URLSearchParams({
@@ -221,7 +128,6 @@ function hasStrongTelegramLaunchSignal(): boolean {
  * scheduling entirely, so it always fires.
  */
 function redirectTo(href: string): void {
-  reportMiniAppLaunch("redirect", { href });
   window.location.replace(withLaunchHash(href));
 }
 
@@ -258,11 +164,6 @@ export function HomeLaunchRedirect() {
   useEffect(() => {
     let cancelled = false;
     readyTelegramWebApp();
-    reportMiniAppLaunch("mount", {
-      isLikelyMpChatLaunch: isLikelyMpChatLaunch(),
-      startParam: readMiniAppStartParam(),
-      hasStrongTelegramLaunchSignal: hasStrongTelegramLaunchSignal(),
-    });
 
     // Wallet recovery deep link wins before any normal start-param parsing:
     // `recovery_tg` is not a `v1-...` deep link, so it must be intercepted here
@@ -270,7 +171,6 @@ export function HomeLaunchRedirect() {
     // (not the generic `redirectTo`) so a `#tgWebAppData=` hash is synthesized
     // from `WebApp.initData` when missing — Privy's seamless login depends on it.
     if (isTelegramRecoveryLaunch()) {
-      reportMiniAppLaunch("telegram-recovery", { href: recoveryHref() });
       window.location.replace(recoveryHref());
       return () => {
         cancelled = true;
@@ -280,11 +180,6 @@ export function HomeLaunchRedirect() {
     const resolveStartParam = (startParam: string | null) => {
       if (cancelled) return;
       const parsed = startParam ? parseStartParam(startParam) : null;
-      reportMiniAppLaunch("resolve-start-param", {
-        startParam,
-        parsed,
-        staticSlug: parsed?.target ? matchSlugById(parsed.target) : null,
-      });
 
       if (parsed?.referral) {
         storeInviteCode(parsed.referral);
@@ -326,11 +221,6 @@ export function HomeLaunchRedirect() {
     };
 
     const firstStartParam = readMiniAppStartParam();
-    reportMiniAppLaunch("first-read", {
-      firstStartParam,
-      isLikelyMpChatLaunch: isLikelyMpChatLaunch(),
-      hasStrongTelegramLaunchSignal: hasStrongTelegramLaunchSignal(),
-    });
     if (
       firstStartParam ||
       hasStrongTelegramLaunchSignal() ||
@@ -347,10 +237,6 @@ export function HomeLaunchRedirect() {
       const nextStartParam = readMiniAppStartParam();
       if (nextStartParam || Date.now() - startedAt >= MP_START_PARAM_RETRY_MS) {
         window.clearInterval(timer);
-        reportMiniAppLaunch("mp-retry-finish", {
-          nextStartParam,
-          elapsedMs: Date.now() - startedAt,
-        });
         resolveStartParam(nextStartParam);
       }
     }, MP_START_PARAM_RETRY_INTERVAL_MS);
