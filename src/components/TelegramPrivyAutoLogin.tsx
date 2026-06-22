@@ -11,7 +11,6 @@ import {
   type TelegramMiniAppBootstrap,
 } from "src/features/telegram-miniapp/autoLogin";
 import {
-  getTelegramWebApp,
   isLikelyTelegramMiniAppLaunch,
   readTelegramInitData,
 } from "src/features/telegram-miniapp/launchParams";
@@ -45,7 +44,7 @@ export function TelegramPrivyAutoLogin() {
 
     const startedAt = Date.now();
     const interval = window.setInterval(() => {
-      if (getTelegramWebApp() || readTelegramInitData()) {
+      if (readTelegramInitData() || isLikelyTelegramMiniAppLaunch()) {
         setIsTelegramLaunch(true);
         setDetectionComplete(true);
         setAutoLoginPending(true);
