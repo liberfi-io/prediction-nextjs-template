@@ -26,12 +26,10 @@ import {
 } from "../hooks";
 import { formatMicroUsd, microToUsd } from "../api";
 import {
-  getTelegramWebApp,
   peekTelegramStartParam,
   readTelegramInitData,
 } from "../../telegram-miniapp/launchParams";
 import {
-  getMpChatWebApp,
   isLikelyMpChatLaunch,
   readMpChatInitData,
 } from "../../mpchat-miniapp/launchParams";
@@ -55,13 +53,13 @@ type InviteLinkPlatform = "telegram" | "mpchat" | "web";
 
 function isTelegramMiniAppEnvironment(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(getTelegramWebApp() || readTelegramInitData() || peekTelegramStartParam());
+  return Boolean(readTelegramInitData() || peekTelegramStartParam());
 }
 
 function detectInviteLinkPlatform(): InviteLinkPlatform {
   if (isTelegramMiniAppEnvironment()) return "telegram";
   if (typeof window === "undefined") return "web";
-  if (getMpChatWebApp() || readMpChatInitData() || isLikelyMpChatLaunch()) return "mpchat";
+  if (readMpChatInitData() || isLikelyMpChatLaunch()) return "mpchat";
   return "web";
 }
 
