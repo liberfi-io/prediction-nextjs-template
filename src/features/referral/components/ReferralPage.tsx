@@ -30,6 +30,11 @@ import {
   peekTelegramStartParam,
   readTelegramInitData,
 } from "../../telegram-miniapp/launchParams";
+import {
+  getMpChatWebApp,
+  isLikelyMpChatLaunch,
+  readMpChatInitData,
+} from "../../mpchat-miniapp/launchParams";
 
 const CARD_STYLE: React.CSSProperties = {
   border: "1px solid rgba(39,39,42,1)",
@@ -44,11 +49,20 @@ const ACCENT = "#c7ff2e";
 // <=6dp value is lossless; pad defaults to false so trailing zeros are trimmed.
 const REBATE_USD_FORMAT = { prefix: "$", short: false, precision: 6 } as const;
 const DEFAULT_TELEGRAM_MINI_APP_URL = "https://t.me/liberfi_live_bot/liberfi_prediction_app";
+const DEFAULT_MPCHAT_MINI_APP_URL = "https://mp.net/liberfi_live_bot/liberfi_prediction_app";
 const SAFE_REFERRAL_RE = /^[A-Za-z0-9_]+$/;
+type InviteLinkPlatform = "telegram" | "mpchat" | "web";
 
 function isTelegramMiniAppEnvironment(): boolean {
   if (typeof window === "undefined") return false;
   return Boolean(getTelegramWebApp() || readTelegramInitData() || peekTelegramStartParam());
+}
+
+function detectInviteLinkPlatform(): InviteLinkPlatform {
+  if (isTelegramMiniAppEnvironment()) return "telegram";
+  if (typeof window === "undefined") return "web";
+  if (getMpChatWebApp() || readMpChatInitData() || isLikelyMpChatLaunch()) return "mpchat";
+  return "web";
 }
 
 function buildTelegramInviteLink(code: string): string | null {
@@ -64,8 +78,24 @@ function buildTelegramInviteLink(code: string): string | null {
   }
 }
 
-function buildInviteLink(code: string, isTelegramMiniApp: boolean): string {
-  if (isTelegramMiniApp) {
+function buildMpChatInviteLink(code: string): string | null {
+  const baseUrl = process.env.NEXT_PUBLIC_MPCHAT_MINI_APP_URL || DEFAULT_MPCHAT_MINI_APP_URL;
+  if (!baseUrl || !SAFE_REFERRAL_RE.test(code)) return null;
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("startapp", `v1-r${code}`);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildInviteLink(code: string, platform: InviteLinkPlatform): string {
+  if (platform === "mpchat") {
+    const mpChatLink = buildMpChatInviteLink(code);
+    if (mpChatLink) return mpChatLink;
+  }
+  if (platform === "telegram") {
     const telegramLink = buildTelegramInviteLink(code);
     if (telegramLink) return telegramLink;
   }
@@ -96,10 +126,11 @@ export function ReferralPage() {
   const claim = useClaimRebate(eoa);
 
   const [tab, setTab] = useState<"invited" | "trades">("invited");
-  const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
+  const [inviteLinkPlatform, setInviteLinkPlatform] =
+    useState<InviteLinkPlatform>("web");
 
   useEffect(() => {
-    setIsTelegramMiniApp(isTelegramMiniAppEnvironment());
+    setInviteLinkPlatform(detectInviteLinkPlatform());
   }, []);
 
   const ratioPct = useMemo(() => {
@@ -109,9 +140,9 @@ export function ReferralPage() {
 
   const inviteLink = useMemo(
     () => inviteCode?.invite_code
-      ? buildInviteLink(inviteCode.invite_code, isTelegramMiniApp)
+      ? buildInviteLink(inviteCode.invite_code, inviteLinkPlatform)
       : "",
-    [inviteCode?.invite_code, isTelegramMiniApp],
+    [inviteCode?.invite_code, inviteLinkPlatform],
   );
 
   if (!isAuthenticated) {
