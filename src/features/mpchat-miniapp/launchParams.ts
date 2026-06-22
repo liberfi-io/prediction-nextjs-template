@@ -42,6 +42,20 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function normalizeStartParam(value: string | null): string | null {
+  if (!value) return null;
+  const raw = value.trim();
+  if (!raw.includes("=")) return raw;
+
+  const params = new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw);
+  return (
+    asString(params.get("startapp")) ??
+    asString(params.get("start_param")) ??
+    asString(params.get("startParam")) ??
+    raw
+  );
+}
+
 function paramsFromHash(): URLSearchParams {
   if (typeof window === "undefined") return new URLSearchParams();
   const hash = window.location.hash.replace(/^#/, "");
@@ -90,14 +104,14 @@ export function readMpChatInitData(): string | null {
 
 export function peekMpChatStartParam(): string | null {
   const unsafe = getMpChatWebApp()?.initDataUnsafe ?? {};
-  return (
+  return normalizeStartParam(
     asString(unsafe.start_param) ??
-    asString(unsafe.startParam) ??
-    asString(unsafe.startapp) ??
-    readUrlStartParam() ??
-    readInitDataParam("start_param") ??
-    readInitDataParam("startParam") ??
-    readInitDataParam("startapp")
+      asString(unsafe.startParam) ??
+      asString(unsafe.startapp) ??
+      readUrlStartParam() ??
+      readInitDataParam("start_param") ??
+      readInitDataParam("startParam") ??
+      readInitDataParam("startapp"),
   );
 }
 
