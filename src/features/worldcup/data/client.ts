@@ -196,9 +196,9 @@ function num(...vals: Array<number | undefined>): number {
   return 0;
 }
 
-/** Probability of an outcome (price, falling back to best ask). */
+/** Displayed buy price for an outcome, falling back to the mark price. */
 function outcomePrice(o?: WcOutcomeDto): number {
-  return o ? num(o.price, o.best_ask) : 0;
+  return o ? num(o.best_ask, o.price) : 0;
 }
 
 function outcomeBase(
