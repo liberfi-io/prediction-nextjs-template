@@ -4,8 +4,8 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
-  usePositions,
-  useInfiniteOrders,
+  usePositionsMulti,
+  useOrdersMulti,
   useInfiniteTrades,
   useCancelOrder,
   usePolymarket,
@@ -40,6 +40,10 @@ import {
 } from "@liberfi.io/wallet-connector";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
+import {
+  getCancelOrderConfirmationMessages,
+  useCancelOrderResultConfirmation,
+} from "../../features/trade-feedback/cancelOrderConfirmation";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -72,10 +76,13 @@ export function EventActivitySection({
     [event.markets],
   );
 
-  const { data: positionsData, isLoading: positionsLoading } = usePositions({
-    source: event.source,
-    user: walletAddress ?? "",
-  });
+  const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti(
+    {
+      kalshi_user: event.source === "kalshi" ? walletAddress : undefined,
+      polymarket_user: event.source === "polymarket" ? walletAddress : undefined,
+    },
+    { refetchInterval: false },
+  );
 
   const filteredPositions = useMemo(() => {
     if (!positionsData?.positions || !walletAddress) return [];
@@ -379,7 +386,7 @@ function EventOrdersPanel({
   walletAddress: string;
   marketSlugs: string[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const wallets = useWallets();
   const evmWallet = useMemo(
@@ -458,32 +465,54 @@ function EventOrdersPanel({
     };
   }, [isPoly, credentials]);
 
+  const confirmCancelOrder = useCancelOrderResultConfirmation();
+  const cancelResultMessages = useMemo(
+    () => getCancelOrderConfirmationMessages(t, i18n),
+    [i18n, t],
+  );
+
   const cancelMutation = useCancelOrder(
     cancelGetHeaders,
     {
-      onSuccess: () => toast.success(t("extend.portfolio.cancelSuccess")),
+      onSuccess: (_data, vars) => {
+        void confirmCancelOrder({
+          source: vars.source,
+          user: walletAddress,
+          kalshiUser: source === "kalshi" ? walletAddress : undefined,
+          polymarketUser: source === "polymarket" ? walletAddress : undefined,
+          orderId: vars.id,
+          messages: cancelResultMessages,
+          getOrdersHeaders: polymarketGetHeaders,
+        });
+      },
       onError: () => toast.error(t("extend.portfolio.cancelFailed")),
     },
   );
 
   const credentialsReady = !isPoly || !!polymarketGetHeaders;
-  const { data, isLoading: queryLoading } =
-    useInfiniteOrders(
-      { source, wallet_address: walletAddress },
-      isPoly ? { getHeaders: polymarketGetHeaders } : undefined,
-    );
+  const { data, isLoading: queryLoading } = useOrdersMulti(
+    {
+      kalshi_user: source === "kalshi" ? walletAddress : undefined,
+      polymarket_user: source === "polymarket" ? walletAddress : undefined,
+    },
+    isPoly ? { getHeaders: polymarketGetHeaders } : undefined,
+    { enabled: credentialsReady && Boolean(walletAddress), refetchInterval: false },
+  );
   const isLoading = queryLoading || !credentialsReady;
 
   const orders = useMemo(() => {
-    const all = data?.pages?.flatMap((p) => p.items) ?? [];
+    const all = data?.orders ?? [];
     const openStatuses = new Set(["live", "open", "submitted", "pending"]);
     let filtered = all.filter((o) => openStatuses.has(o.status));
     if (marketSlugs.length > 0) {
       const slugSet = new Set(marketSlugs);
-      filtered = filtered.filter((o) => o.market_id && slugSet.has(o.market_id));
+      filtered = filtered.filter((o) => {
+        const slug = o.market?.slug ?? o.market_id;
+        return !slug || slugSet.has(slug);
+      });
     }
     return filtered;
-  }, [data?.pages, marketSlugs]);
+  }, [data, marketSlugs]);
 
   const handleCancel = useCallback(
     (order: PredictOrder) => {

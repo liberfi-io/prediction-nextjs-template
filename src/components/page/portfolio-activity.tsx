@@ -31,6 +31,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
 import { Shimmer } from "./portfolio-skeleton";
 import { ENABLE_KALSHI } from "../../libs/featureFlags";
+import {
+  getCancelOrderConfirmationMessages,
+  useCancelOrderResultConfirmation,
+} from "../../features/trade-feedback/cancelOrderConfirmation";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -486,7 +490,7 @@ export function OrdersPanel({
   evmAddr: string;
   fill?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const wallets = useWallets();
   const evmWallet = useMemo(
@@ -495,6 +499,11 @@ export function OrdersPanel({
   );
   const { polymarketSafeAddress } = usePredictWallet();
   const { credentials, authenticate } = usePolymarket();
+  const confirmCancelOrder = useCancelOrderResultConfirmation();
+  const cancelResultMessages = useMemo(
+    () => getCancelOrderConfirmationMessages(t, i18n),
+    [i18n, t],
+  );
 
   // Auto-authenticate with Polymarket to obtain L2 HMAC credentials.
   // Privy embedded wallets sign silently — no user popup.
@@ -566,8 +575,16 @@ export function OrdersPanel({
         : undefined,
     },
     {
-      onSuccess: () => {
-        toast.success(t("extend.portfolio.cancelSuccess"));
+      onSuccess: (_data, vars) => {
+        void confirmCancelOrder({
+          source: vars.source,
+          user: vars.source === "kalshi" ? solanaAddr : evmAddr,
+          kalshiUser: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
+          polymarketUser: evmAddr || undefined,
+          orderId: vars.id,
+          messages: cancelResultMessages,
+          getOrdersHeaders: polymarketGetHeaders,
+        });
       },
       onError: () => {
         toast.error(t("extend.portfolio.cancelFailed"));
@@ -582,7 +599,7 @@ export function OrdersPanel({
       polymarket_user: evmAddr || undefined,
     },
     { getHeaders: polymarketGetHeaders },
-    { enabled: credentialsReady },
+    { enabled: credentialsReady && Boolean(evmAddr), refetchInterval: false },
   );
   const isLoading = queryLoading || !credentialsReady;
 
