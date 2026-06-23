@@ -16,6 +16,7 @@ import type {
   WsOrderbookEvent,
 } from "@liberfi.io/react-predict";
 import { convertPrice } from "../../odds/convert-price";
+import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { formatVolume } from "../util";
 import {
@@ -514,9 +515,11 @@ function GroupRow({
   // settled price as the only available value.
   const optionOdds = (option: MarketOption): string | null => {
     const live = orderbookPricesBySlug.get(option.market.slug);
-    if (live != null) return convertPrice(live, format);
+    const livePrice = displayableBuyPrice(live);
+    if (livePrice !== null) return convertPrice(livePrice, format);
     if (option.market.status === "open") return null;
-    return convertPrice(yesAskPrice(option.market), format);
+    const settledPrice = displayableBuyPrice(yesAskPrice(option.market));
+    return settledPrice === null ? null : convertPrice(settledPrice, format);
   };
 
   return (
@@ -549,11 +552,9 @@ function GroupRow({
               <span className="min-w-0 max-w-full truncate text-xs font-medium leading-tight">
                 {label}
               </span>
-              {odds != null && (
-                <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
-                  {odds}
-                </span>
-              )}
+              <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                {odds ?? "--"}
+              </span>
             </button>
           );
         })()
@@ -577,11 +578,9 @@ function GroupRow({
                 <span className="max-w-full truncate text-xs font-medium leading-tight">
                   {o.label}
                 </span>
-                {odds != null && (
-                  <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
-                    {odds}
-                  </span>
-                )}
+                <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                  {odds ?? "--"}
+                </span>
               </button>
             );
           })}

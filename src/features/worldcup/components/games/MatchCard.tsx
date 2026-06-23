@@ -15,6 +15,7 @@ import { formatKickoff, formatVolume } from "../util";
 import { SportsWidget } from "./SportsWidget";
 import { hasLiveVideos, LiveStreamPanel } from "./LiveStreamPanel";
 import { MarketNewsWidget } from "../detail/feeds/MarketNewsWidget";
+import { displayableBuyPrice } from "../../odds/displayable-price";
 
 type PillColors = { bg: string; text: string; shadow: string };
 type CardPanelTab = "live" | "center" | "news" | "comments";
@@ -76,7 +77,7 @@ function Pill({
 }: {
   label: string;
   labelSuffix?: string;
-  price: number;
+  price: number | null | undefined;
   format: OddsFormat;
   variant?: OddsNumberVariant;
   colors: PillColors;
@@ -86,6 +87,7 @@ function Pill({
   disabled?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 }) {
+  const displayPrice = displayableBuyPrice(price);
   const handleEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     const el = e.currentTarget;
@@ -131,10 +133,10 @@ function Pill({
         ) : null}
       </span>
       <span className="shrink-0 text-sm font-bold tabular-nums">
-        {price > 0 ? (
-          <OddsNumber value={convertPrice(price, format)} variant={variant} />
+        {displayPrice !== null ? (
+          <OddsNumber value={convertPrice(displayPrice, format)} variant={variant} />
         ) : (
-          "—"
+          "--"
         )}
       </span>
     </button>

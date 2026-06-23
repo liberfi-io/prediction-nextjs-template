@@ -8,6 +8,7 @@ import type {
   PredictMarket,
   ProviderSource,
 } from "@liberfi.io/react-predict";
+import { pickBestAsk, useRealtimeOrderbook } from "@liberfi.io/react-predict";
 import {
   TradeFormWidget,
   SellFormWidget,
@@ -15,7 +16,13 @@ import {
   type TradeSide,
 } from "@liberfi.io/ui-predict";
 import { convertPrice } from "../../odds/convert-price";
+import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
+
+function staticBuyPrice(market: PredictMarket, outcome: TradeOutcome): number | null {
+  const target = market.outcomes[outcome === "yes" ? 0 : 1];
+  return displayableBuyPrice(target?.best_ask ?? target?.price);
+}
 
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
@@ -43,9 +50,21 @@ export function TradePanel({
 }) {
   const { t } = useTranslation();
   const [format] = useOddsFormat();
+  const { data: buyOrderbook } = useRealtimeOrderbook(
+    { slug: market.slug, source: market.source, outcome },
+    { enabled: side === "buy" && market.status === "open" },
+  );
+  const liveBuyAsk = pickBestAsk(buyOrderbook, outcome);
+  const buyPrice =
+    liveBuyAsk == null
+      ? staticBuyPrice(market, outcome)
+      : displayableBuyPrice(liveBuyAsk);
   const oddsFormatter = useCallback(
-    (price: number) => convertPrice(price, format),
-    [format],
+    (price: number) =>
+      side === "buy" && buyPrice === null && displayableBuyPrice(price) === null
+        ? "--"
+        : convertPrice(price, format),
+    [buyPrice, format, side],
   );
 
   return (
