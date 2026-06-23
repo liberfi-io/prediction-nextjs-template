@@ -553,7 +553,7 @@ function GroupRow({
                 {label}
               </span>
               <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
-                {odds ?? "--"}
+                {odds ?? "-"}
               </span>
             </button>
           );
@@ -579,7 +579,7 @@ function GroupRow({
                   {o.label}
                 </span>
                 <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
-                  {odds ?? "--"}
+                  {odds ?? "-"}
                 </span>
               </button>
             );

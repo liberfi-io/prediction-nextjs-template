@@ -62,7 +62,7 @@ export function TradePanel({
   const oddsFormatter = useCallback(
     (price: number) =>
       side === "buy" && buyPrice === null && displayableBuyPrice(price) === null
-        ? "--"
+        ? "-"
         : convertPrice(price, format),
     [buyPrice, format, side],
   );

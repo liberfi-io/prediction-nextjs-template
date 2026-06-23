@@ -136,7 +136,7 @@ function Pill({
         {displayPrice !== null ? (
           <OddsNumber value={convertPrice(displayPrice, format)} variant={variant} />
         ) : (
-          "--"
+          "-"
         )}
       </span>
     </button>
