@@ -515,6 +515,14 @@ function formatCents(cents: number): string {
   });
 }
 
+function formatMaybeCents(cents: number, loaded: boolean): string {
+  return loaded ? `$${formatCents(cents)}` : "--";
+}
+
+function formatMaybeUsdc(amount: number | null, loaded: boolean): string {
+  return loaded && amount != null ? `$${formatUsdc(amount)}` : "--";
+}
+
 // Small rounded icon chip shared by dropdown rows (balance / positions /
 // menu actions), matching the quick-link / sign-out chip style.
 function RowIconChip({ children }: { children: React.ReactNode }) {
@@ -601,7 +609,9 @@ function WalletEntry({
   kind,
   status,
   balance,
+  balanceLoaded,
   positionsCents,
+  positionsLoaded,
   onVerify,
   onDeposit,
   onWithdraw,
@@ -613,7 +623,9 @@ function WalletEntry({
   kind: "kyc" | "setup";
   status: "verified" | "verifying" | "unverified";
   balance: number | null;
+  balanceLoaded: boolean;
   positionsCents: number;
+  positionsLoaded: boolean;
   onVerify: () => void;
   onDeposit: () => void;
   onWithdraw: () => void;
@@ -740,14 +752,14 @@ function WalletEntry({
           <WalletInfoRow
             icon={<DollarIcon width={14} height={14} />}
             label={t("extend.predict.account.availableBalance")}
-            value={`$${formatUsdc(balance ?? 0)}`}
+            value={formatMaybeUsdc(balance, balanceLoaded)}
           />
           <WalletInfoRow
             icon={
               <ChartLineIcon width={14} height={14} className="text-bullish" />
             }
             label={t("extend.predict.account.positions")}
-            value={`$${formatCents(positionsCents)}`}
+            value={formatMaybeCents(positionsCents, positionsLoaded)}
           />
           <WalletMenuRow
             icon={<ReceiveOutlinedIcon width={14} height={14} />}
@@ -875,6 +887,8 @@ interface BalanceDropdownProps {
   evmAddress?: string;
   kalshiUsdcBalance: number | null;
   polymarketUsdcBalance: number | null;
+  kalshiBalanceLoaded: boolean;
+  polymarketBalanceLoaded: boolean;
   kalshiKycLoading: boolean;
   kalshiKycVerified: boolean;
   polymarketSetupLoading: boolean;
@@ -893,7 +907,9 @@ interface BalanceDropdownProps {
   cashTotalCents: number;
   positionsCents: number;
   portfolioTotalCents: number;
-  initialLoading: boolean;
+  cashLoaded: boolean;
+  positionsLoaded: boolean;
+  portfolioLoaded: boolean;
 }
 
 function BalanceDropdownContent({
@@ -901,6 +917,8 @@ function BalanceDropdownContent({
   evmAddress,
   kalshiUsdcBalance,
   polymarketUsdcBalance,
+  kalshiBalanceLoaded,
+  polymarketBalanceLoaded,
   kalshiKycLoading,
   kalshiKycVerified,
   polymarketSetupLoading,
@@ -919,7 +937,9 @@ function BalanceDropdownContent({
   cashTotalCents,
   positionsCents,
   portfolioTotalCents,
-  initialLoading,
+  cashLoaded,
+  positionsLoaded,
+  portfolioLoaded,
 }: BalanceDropdownProps) {
   const { t } = useTranslation();
 
@@ -943,7 +963,9 @@ function BalanceDropdownContent({
                   : "unverified"
             }
             balance={kalshiUsdcBalance}
+            balanceLoaded={kalshiBalanceLoaded}
             positionsCents={kalshiPositionsCents}
+            positionsLoaded={positionsLoaded}
             onVerify={onKycOpen}
             onDeposit={onKalshiDeposit}
             onWithdraw={onKalshiWithdraw}
@@ -970,7 +992,9 @@ function BalanceDropdownContent({
                   : "unverified"
             }
             balance={polymarketUsdcBalance}
+            balanceLoaded={polymarketBalanceLoaded}
             positionsCents={polymarketPositionsCents}
+            positionsLoaded={positionsLoaded}
             onVerify={onSetupOpen}
             onDeposit={onPolymarketDeposit}
             onWithdraw={onPolymarketWithdraw}
@@ -998,7 +1022,7 @@ function BalanceDropdownContent({
               </span>
             </div>
             <span className="text-sm font-medium text-zinc-100 tabular-nums">
-              {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
+              {formatMaybeCents(cashTotalCents, cashLoaded)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
@@ -1015,7 +1039,7 @@ function BalanceDropdownContent({
               </span>
             </div>
             <span className="text-sm font-medium text-zinc-100 tabular-nums">
-              ${formatCents(positionsCents)}
+              {formatMaybeCents(positionsCents, positionsLoaded)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-[10px]">
@@ -1028,7 +1052,7 @@ function BalanceDropdownContent({
               </span>
             </div>
             <span className="text-sm font-bold text-[#c7ff2e] tabular-nums">
-              {initialLoading ? "..." : `$${formatCents(portfolioTotalCents)}`}
+              {formatMaybeCents(portfolioTotalCents, portfolioLoaded)}
             </span>
           </div>
         </div>
@@ -1136,7 +1160,6 @@ function PredictAccountControl() {
     polymarketWalletKind,
     polymarketWalletDeployed,
     polymarketDepositWalletAddress,
-    isLoading: balanceLoading,
   } = usePredictWallet();
   const queryClient = useQueryClient();
   const wallets = useWallets();
@@ -1148,7 +1171,7 @@ function PredictAccountControl() {
   const router = useRouter();
   const { isMobile } = useScreen();
 
-  const { data: positionsData } = usePositionsMulti({
+  const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
     kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
     polymarket_user: evmAddress || undefined,
   });
@@ -1156,6 +1179,9 @@ function PredictAccountControl() {
   const cashKalshiCents = toCents(kalshiUsdcBalance ?? 0);
   const cashPolymarketCents = toCents(polymarketUsdcBalance ?? 0);
   const cashTotalCents = cashKalshiCents + cashPolymarketCents;
+  const kalshiBalanceLoaded = !ENABLE_KALSHI || kalshiUsdcBalance != null;
+  const polymarketBalanceLoaded = polymarketUsdcBalance != null;
+  const cashLoaded = kalshiBalanceLoaded && polymarketBalanceLoaded;
 
   // Split open-positions market value per venue so each WalletEntry can show
   // its own "持仓" line; the aggregate still drives the Positions / Portfolio
@@ -1179,10 +1205,9 @@ function PredictAccountControl() {
 
   const portfolioTotalCents = cashTotalCents + positionsCents;
 
-  const initialLoading =
-    balanceLoading &&
-    kalshiUsdcBalance === null &&
-    polymarketUsdcBalance === null;
+  const positionsLoaded =
+    !positionsLoading && Array.isArray(positionsData?.positions);
+  const portfolioLoaded = cashLoaded && positionsLoaded;
   const polymarketSetupBusy =
     polymarketSetupLoading || polymarketAutoSetupPending;
 
@@ -1390,6 +1415,8 @@ function PredictAccountControl() {
     evmAddress,
     kalshiUsdcBalance,
     polymarketUsdcBalance,
+    kalshiBalanceLoaded,
+    polymarketBalanceLoaded,
     kalshiKycLoading,
     kalshiKycVerified,
     polymarketSetupLoading: polymarketSetupBusy,
@@ -1408,7 +1435,9 @@ function PredictAccountControl() {
     cashTotalCents,
     positionsCents,
     portfolioTotalCents,
-    initialLoading,
+    cashLoaded,
+    positionsLoaded,
+    portfolioLoaded,
   };
 
   // Transitioning (signing in / out): show a compact spinner.
@@ -1455,7 +1484,7 @@ function PredictAccountControl() {
         <div className="flex items-center gap-1.5" title="Cash Balance">
           <DollarIcon width={16} height={16} aria-hidden="true" />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
-            {initialLoading ? "..." : `$${formatCents(cashTotalCents)}`}
+            {formatMaybeCents(cashTotalCents, cashLoaded)}
           </span>
         </div>
         <div className="w-px h-4 bg-zinc-700/40" />
@@ -1467,7 +1496,7 @@ function PredictAccountControl() {
             aria-hidden="true"
           />
           <span className="text-xs font-medium text-zinc-100 tabular-nums">
-            ${formatCents(positionsCents)}
+            {formatMaybeCents(positionsCents, positionsLoaded)}
           </span>
         </div>
         {!isMobile && (
