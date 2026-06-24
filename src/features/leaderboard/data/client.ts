@@ -497,6 +497,37 @@ export const walletActivitiesQueryKey = (
   tag?: string | null,
 ) => ["leaderboard", "wallet-activities", wallet, interval ?? "all", tag || "all"] as const;
 
+export const portfolioPnlQueryKey = (
+  user: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) => ["portfolio", "pnl", user, interval ?? "all", tag || "all"] as const;
+
+export const portfolioDailyPnlQueryKey = (
+  user: string,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) => ["portfolio", "daily-pnl", user, interval ?? "all", tag || "all"] as const;
+
+export const portfolioPositionsQueryKey = (
+  user: string,
+  sortBy?: PositionSortField,
+  order?: SortOrder,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+  status?: PositionStatus,
+) =>
+  [
+    "portfolio",
+    "positions",
+    user,
+    sortBy ?? "default",
+    order ?? "default",
+    interval ?? "all",
+    tag || "all",
+    status ?? "all",
+  ] as const;
+
 // ---------------------------------------------------------------------------
 // Fetchers
 // ---------------------------------------------------------------------------
@@ -579,6 +610,22 @@ export async function fetchWalletPnl(
   ).then(adaptWalletPnl);
 }
 
+/** Fetch + adapt the connected user's portfolio PNL detail. */
+export async function fetchPortfolioPnl(
+  baseUrl: string,
+  user: string,
+  opts: { lang?: string; interval?: LeaderboardInterval; tag?: string | null } = {},
+): Promise<WalletPnlDetail> {
+  const params = new URLSearchParams({ user });
+  if (opts.tag) params.set("tag", opts.tag);
+  if (opts.interval) params.set("interval", opts.interval);
+  return getJson<WalletPnlDto>(
+    baseUrl,
+    `portfolio/pnl?${params.toString()}`,
+    opts.lang,
+  ).then(adaptWalletPnl);
+}
+
 /** Fetch + adapt a wallet's 7-day daily PNL chart series. */
 export async function fetchWalletDailyPnl(
   baseUrl: string,
@@ -593,6 +640,22 @@ export async function fetchWalletDailyPnl(
   return getJson<WalletDailyPnlResponseDto>(
     baseUrl,
     `wallets/${encodeURIComponent(wallet)}/pnl/daily${qs ? `?${qs}` : ""}`,
+    opts.lang,
+  ).then(adaptWalletDailyPnl);
+}
+
+/** Fetch + adapt the connected user's portfolio daily PNL chart series. */
+export async function fetchPortfolioDailyPnl(
+  baseUrl: string,
+  user: string,
+  opts: { lang?: string; interval?: LeaderboardInterval; tag?: string | null } = {},
+): Promise<WalletDailyPnlDetail> {
+  const params = new URLSearchParams({ user });
+  if (opts.tag) params.set("tag", opts.tag);
+  if (opts.interval) params.set("interval", opts.interval);
+  return getJson<WalletDailyPnlResponseDto>(
+    baseUrl,
+    `portfolio/pnl/daily?${params.toString()}`,
     opts.lang,
   ).then(adaptWalletDailyPnl);
 }
@@ -624,6 +687,36 @@ export async function fetchWalletPositions(
   return getJson<WalletPositionsDto>(
     baseUrl,
     `wallets/${encodeURIComponent(wallet)}/positions?${params.toString()}`,
+    opts.lang,
+  ).then(adaptPositions);
+}
+
+/** Fetch + adapt a page of the connected user's portfolio token PNL positions. */
+export async function fetchPortfolioPositions(
+  baseUrl: string,
+  user: string,
+  opts: {
+    sortBy?: PositionSortField;
+    order?: SortOrder;
+    status?: PositionStatus;
+    limit?: number;
+    cursor?: string;
+    lang?: string;
+    interval?: LeaderboardInterval;
+    tag?: string | null;
+  } = {},
+): Promise<WalletPositionsPage> {
+  const params = new URLSearchParams({ user });
+  if (opts.tag) params.set("tag", opts.tag);
+  if (opts.interval) params.set("interval", opts.interval);
+  if (opts.sortBy) params.set("sort_by", opts.sortBy);
+  if (opts.order) params.set("order", opts.order);
+  if (opts.status) params.set("status", opts.status);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  return getJson<WalletPositionsDto>(
+    baseUrl,
+    `portfolio/positions?${params.toString()}`,
     opts.lang,
   ).then(adaptPositions);
 }

@@ -18,7 +18,7 @@ import { ENABLE_KALSHI } from "../../libs/featureFlags";
 import { cn } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { FUND_WALLET_MODAL_ID, type FundWalletParams } from "../FundWalletModal";
-import { useWalletPnl } from "../../features/leaderboard/data/queries";
+import { usePortfolioPnl } from "../../features/leaderboard/data/queries";
 import {
   PerformanceBiasCard,
   TotalValueCard,
@@ -91,11 +91,16 @@ function PortfolioContent() {
     });
   };
 
-  // Smart-money PNL is indexed by the on-chain Polymarket wallet (the deposit
-  // wallet, or the legacy Gnosis Safe), never the connected EOA. Resolve it via
-  // the Polymarket setup status so the summary cards query the same wallet that
-  // actually holds the user's positions; passing the raw EOA returns no PNL.
-  const { polymarketWalletAddress, polymarketWalletKind } = usePredictWallet();
+  // The user-facing portfolio summary uses the connected EOA as input and lets
+  // prediction-server resolve the active Polymarket wallet for ChainStream.
+  // Keep the setup wallet in the audit log only; the tradeable positions list
+  // below already uses the EOA and server-side active-wallet resolution.
+  const {
+    evmAddress: predictEvmAddress,
+    polymarketWalletAddress,
+    polymarketWalletKind,
+  } = usePredictWallet();
+  const portfolioPnlUser = predictEvmAddress ?? evmAddr;
 
   const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
     kalshi_user: ENABLE_KALSHI ? solanaAddr || undefined : undefined,
@@ -114,11 +119,18 @@ function PortfolioContent() {
         eoaEvm: evmAddr || null,
         eoaSolana: solanaAddr || null,
         polymarketWalletKind: polymarketWalletKind ?? null,
-        pnlWallet: polymarketWalletAddress ?? null,
+        setupWallet: polymarketWalletAddress ?? null,
+        pnlPortfolioUser: portfolioPnlUser || null,
         positionsPolymarketUser: evmAddr || null,
       }),
     );
-  }, [evmAddr, solanaAddr, polymarketWalletKind, polymarketWalletAddress]);
+  }, [
+    evmAddr,
+    solanaAddr,
+    polymarketWalletKind,
+    polymarketWalletAddress,
+    portfolioPnlUser,
+  ]);
 
   const allPositions = positionsData?.positions ?? [];
   const positionsCount = allPositions.length;
@@ -172,7 +184,7 @@ function PortfolioContent() {
       </div>
 
       {/* Summary panels — total value / performance & bias / yield & risk */}
-      <PortfolioSummary wallet={polymarketWalletAddress ?? ""} />
+      <PortfolioSummary user={portfolioPnlUser} />
 
       {/* Tab + list section: fill remaining viewport on mobile, flex-fill on tablet+ */}
       <div className="flex h-[calc(100dvh-var(--scaffold-header-height)-var(--scaffold-footer-height))] flex-col sm:h-auto sm:min-h-0 sm:flex-1">
@@ -216,16 +228,17 @@ function PortfolioContent() {
 
 const SUMMARY_GRID = "mb-4 grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-3";
 
-function PortfolioSummary({ wallet }: { wallet: string }) {
+function PortfolioSummary({ user }: { user: string }) {
   const { t } = useTranslation();
-  // Panels are driven by the resolved on-chain Polymarket wallet (deposit wallet
-  // or legacy Safe, not the EOA) via the ChainStream smart-money PNL endpoint;
-  // Kalshi is not represented here.
-  const { data, isError } = useWalletPnl(wallet || undefined);
+  // Panels are driven by portfolio-specific ChainStream proxy endpoints. The
+  // backend resolves the connected EOA to the active Polymarket wallet, and the
+  // card subqueries use the same portfolio namespace.
+  const { data, isError } = usePortfolioPnl(user || undefined);
+  const wallet = data?.wallet ?? "";
 
   // Until the connected EVM wallet resolves (or the query is in flight) show the
   // card skeletons so the layout does not shift.
-  if (!wallet || !data) {
+  if (!user || !wallet || !data) {
     if (isError) {
       return (
         <div className={SUMMARY_GRID}>
@@ -246,9 +259,9 @@ function PortfolioSummary({ wallet }: { wallet: string }) {
 
   return (
     <div className={SUMMARY_GRID}>
-      <TotalValueCard summary={data.summary} wallet={wallet} />
+      <TotalValueCard summary={data.summary} wallet={wallet} user={user} mode="portfolio" />
       <PerformanceBiasCard summary={data.summary} />
-      <YieldRiskCard summary={data.summary} wallet={wallet} tag={data.tag} />
+      <YieldRiskCard summary={data.summary} wallet={wallet} user={user} mode="portfolio" tag={data.tag} />
     </div>
   );
 }

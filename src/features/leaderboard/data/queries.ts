@@ -25,12 +25,18 @@ import type {
 } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
+  fetchPortfolioDailyPnl,
+  fetchPortfolioPnl,
+  fetchPortfolioPositions,
   fetchSmartLeaderboard,
   fetchWalletActivities,
   fetchWalletDailyPnl,
   fetchWalletPnl,
   fetchWalletPositions,
   leaderboardQueryKey,
+  portfolioDailyPnlQueryKey,
+  portfolioPnlQueryKey,
+  portfolioPositionsQueryKey,
   walletActivitiesQueryKey,
   walletDailyPnlQueryKey,
   walletPnlQueryKey,
@@ -88,6 +94,26 @@ export function useWalletPnl(
   });
 }
 
+/** Fetch the connected user's portfolio PNL detail. */
+export function usePortfolioPnl(
+  user: string | undefined,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) {
+  const lang = useApiLang();
+  return useQuery({
+    queryKey: [...portfolioPnlQueryKey(user ?? "", interval, tag), lang],
+    queryFn: () =>
+      fetchPortfolioPnl(CLIENT_BASE, user as string, {
+        lang,
+        interval,
+        tag,
+      }),
+    enabled: Boolean(user),
+    staleTime: WALLET_STALE_MS,
+  });
+}
+
 /** Fetch a selected wallet's daily PNL chart series. */
 export function useWalletDailyPnl(
   wallet: string | undefined,
@@ -104,6 +130,26 @@ export function useWalletDailyPnl(
         tag,
       }),
     enabled: Boolean(wallet),
+    staleTime: WALLET_STALE_MS,
+  });
+}
+
+/** Fetch the connected user's portfolio daily PNL chart series. */
+export function usePortfolioDailyPnl(
+  user: string | undefined,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+) {
+  const lang = useApiLang();
+  return useQuery({
+    queryKey: [...portfolioDailyPnlQueryKey(user ?? "", interval, tag), lang],
+    queryFn: () =>
+      fetchPortfolioDailyPnl(CLIENT_BASE, user as string, {
+        lang,
+        interval,
+        tag,
+      }),
+    enabled: Boolean(user),
     staleTime: WALLET_STALE_MS,
   });
 }
@@ -147,6 +193,44 @@ export function useWalletPositions(
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor || undefined,
     enabled: Boolean(wallet),
+    staleTime: WALLET_STALE_MS,
+    placeholderData: undefined,
+  });
+}
+
+/**
+ * Infinite, cursor-paginated token PNL positions for the connected user's
+ * portfolio. This is for summary-card exposure, not the tradeable
+ * portfolio list below the cards.
+ */
+export function usePortfolioPositions(
+  user: string | undefined,
+  sortBy?: PositionSortField,
+  order?: SortOrder,
+  interval?: LeaderboardInterval,
+  tag?: string | null,
+  status?: PositionStatus,
+) {
+  const lang = useApiLang();
+  return useInfiniteQuery({
+    queryKey: [
+      ...portfolioPositionsQueryKey(user ?? "", sortBy, order, interval, tag, status),
+      lang,
+    ],
+    queryFn: ({ pageParam }) =>
+      fetchPortfolioPositions(CLIENT_BASE, user as string, {
+        sortBy,
+        order,
+        status,
+        limit: POSITIONS_PAGE_SIZE,
+        cursor: pageParam,
+        lang,
+        interval,
+        tag,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor || undefined,
+    enabled: Boolean(user),
     staleTime: WALLET_STALE_MS,
     placeholderData: undefined,
   });

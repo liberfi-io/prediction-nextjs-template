@@ -22,7 +22,12 @@ import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import { predictEventHref } from "src/components/page/predict-source";
-import { useWalletDailyPnl, useWalletPositions } from "../data/queries";
+import {
+  usePortfolioDailyPnl,
+  usePortfolioPositions,
+  useWalletDailyPnl,
+  useWalletPositions,
+} from "../data/queries";
 import {
   formatAgeMs,
   formatPercent,
@@ -52,16 +57,30 @@ function transText(trans: string | undefined, base: string | undefined): string 
 export function TotalValueCard({
   summary,
   wallet,
+  user,
+  mode = "wallet",
   interval,
   tag,
 }: {
   summary: WalletPnlSummary;
   wallet?: string;
+  user?: string;
+  mode?: "wallet" | "portfolio";
   interval?: LeaderboardInterval;
   tag?: string | null;
 }) {
   const { t } = useTranslation();
-  const { data, isError, isLoading } = useWalletDailyPnl(wallet, interval, tag);
+  const walletDaily = useWalletDailyPnl(
+    mode === "wallet" ? wallet : undefined,
+    interval,
+    tag,
+  );
+  const portfolioDaily = usePortfolioDailyPnl(
+    mode === "portfolio" ? user : undefined,
+    interval,
+    tag,
+  );
+  const dailyQuery = mode === "portfolio" ? portfolioDaily : walletDaily;
 
   return (
     <Card title={t("extend.leaderboard.detail.totalValue")}>
@@ -104,9 +123,9 @@ export function TotalValueCard({
       </div>
       {wallet && (
         <SevenDayPnlChart
-          dailyPnls={data?.dailyPnls ?? []}
-          isError={isError}
-          isLoading={isLoading}
+          dailyPnls={dailyQuery.data?.dailyPnls ?? []}
+          isError={dailyQuery.isError}
+          isLoading={dailyQuery.isLoading}
           label={t("extend.leaderboard.detail.sevenDayPnl")}
         />
       )}
@@ -220,12 +239,16 @@ function LiveAge({
 export function YieldRiskCard({
   summary,
   wallet,
+  user,
+  mode = "wallet",
   interval,
   requestTag,
   tag,
 }: {
   summary: WalletPnlSummary;
   wallet: string;
+  user?: string;
+  mode?: "wallet" | "portfolio";
   interval?: LeaderboardInterval;
   requestTag?: string | null;
   tag: string;
@@ -233,10 +256,24 @@ export function YieldRiskCard({
   const { t } = useTranslation();
   // Pull the first positions page just to compute the exposure mix; the tab
   // body fetches/manages the full paginated list separately.
-  const { data } = useWalletPositions(wallet, undefined, undefined, interval, requestTag);
+  const walletPositions = useWalletPositions(
+    mode === "wallet" ? wallet : undefined,
+    undefined,
+    undefined,
+    interval,
+    requestTag,
+  );
+  const portfolioPositions = usePortfolioPositions(
+    mode === "portfolio" ? user : undefined,
+    undefined,
+    undefined,
+    interval,
+    requestTag,
+  );
+  const positionsQuery = mode === "portfolio" ? portfolioPositions : walletPositions;
   const exposure = useMemo(
-    () => buildExposure(data?.pages.flatMap((p) => p.tokens) ?? [], tag),
-    [data, tag],
+    () => buildExposure(positionsQuery.data?.pages.flatMap((p) => p.tokens) ?? [], tag),
+    [positionsQuery.data, tag],
   );
 
   const metrics: { label: string; value: string }[] = [
