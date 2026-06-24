@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { LinkComponentType } from "@liberfi.io/ui";
@@ -30,6 +30,11 @@ import type {
   MatchMarketFlat,
   ProviderSource,
 } from "@liberfi.io/react-predict";
+import {
+  matchMarketAnalyticsParams,
+  trackMatchListView,
+  trackOrderClick,
+} from "../../lib/analytics";
 import { predictEventHref } from "./predict-source";
 
 /**
@@ -109,9 +114,18 @@ function buildLegHref(leg: MatchLegLite): string | undefined {
 export function PredictMatchesPage() {
   const router = useRouter();
 
+  useEffect(() => {
+    trackMatchListView({ listName: "matches" });
+  }, []);
+
   const handleSelectMatch = useCallback(
     (match: MatchMarketFlat) => {
       const href = buildInternalHref(match);
+      trackOrderClick({
+        ...matchMarketAnalyticsParams(match),
+        providerSource: pickInternalTarget(match)?.source,
+        surface: "matches_list",
+      });
       if (href) router.push(href);
     },
     [router],
@@ -123,8 +137,14 @@ export function PredictMatchesPage() {
   );
 
   const handleSelectLeg = useCallback(
-    (_match: MatchMarketFlat, leg: MatchLegLite) => {
+    (match: MatchMarketFlat, leg: MatchLegLite) => {
       const href = buildLegHref(leg);
+      trackOrderClick({
+        ...matchMarketAnalyticsParams(match),
+        eventSlug: leg.event_slug,
+        providerSource: leg.source,
+        surface: "matches_list",
+      });
       if (href) router.push(href);
     },
     [router],

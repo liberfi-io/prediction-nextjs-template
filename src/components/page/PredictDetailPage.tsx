@@ -15,6 +15,7 @@ import {
   type FundWalletParams,
 } from "../FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
+import { trackMatchDetailView } from "../../lib/analytics";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
 
@@ -28,6 +29,14 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
+
+  useEffect(() => {
+    trackMatchDetailView({
+      eventSlug: id,
+      source,
+      surface: "prediction_detail",
+    });
+  }, [id, source]);
 
   const walletAddress =
     source === "kalshi"

@@ -32,6 +32,13 @@ import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { TradeModal } from "src/components/TradeModal";
 import { TradePanel } from "../detail/TradePanel";
 import {
+  predictEventAnalyticsParams,
+  predictMarketAnalyticsParams,
+  trackMatchListView,
+  trackOrderClick,
+  worldCupMatchAnalyticsParams,
+} from "src/lib/analytics";
+import {
   categorizeMarkets,
   findSelection,
   type MarketGroup,
@@ -248,6 +255,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   const [tradeRequest, setTradeRequest] = useState<TradeRequest | null>(null);
   const [tradeSide, setTradeSide] = useState<TradeSide>("buy");
   const scrolledTargetRef = useRef<string | null>(null);
+  const trackedListViewRef = useRef(false);
   const pendingStageScrollRef = useRef(false);
   const highlightTimeoutRef = useRef<number | null>(null);
   const widgetTouchedRef = useRef(false);
@@ -292,6 +300,17 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       ? windowedMatches.filter((m) => !isHiddenFromTimeList(m, nowMs))
       : windowedMatches;
   }, [effectiveGroupBy, matches, nowMs, todayOnly]);
+
+  useEffect(() => {
+    if (trackedListViewRef.current || isPending) return;
+    trackedListViewRef.current = true;
+    trackMatchListView({
+      listName: "world_cup_matches",
+      matchCount: displayMatches.length,
+      mode,
+    });
+  }, [displayMatches.length, isPending, mode]);
+
   const onOpen = useCallback(
     (slug: string) => router.push(`/event/${slug}`),
     [router]
@@ -300,6 +319,14 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
     (match: WcMatch, marketCode: string, outcome: TradeOutcome) => {
       const market = tradeMarketForCode(match, marketCode);
       const event = match.tradeEvent;
+      trackOrderClick({
+        ...worldCupMatchAnalyticsParams(match),
+        ...(event ? predictEventAnalyticsParams(event) : {}),
+        ...(market ? predictMarketAnalyticsParams(market) : {}),
+        outcome,
+        side: "buy",
+        surface: "world_cup_list",
+      });
       setTradeRequest({
         match,
         marketCode,

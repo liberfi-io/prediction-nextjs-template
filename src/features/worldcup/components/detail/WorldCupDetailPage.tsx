@@ -55,6 +55,13 @@ import { TradePanel } from "./TradePanel";
 import { MobileTradeBar } from "./MobileTradeBar";
 import { TradeModal } from "src/components/TradeModal";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
+import {
+  predictEventAnalyticsParams,
+  predictMarketAnalyticsParams,
+  trackMatchDetailView,
+  trackOrderClick,
+  worldCupMatchAnalyticsParams,
+} from "src/lib/analytics";
 import { WorldCupDetailSkeleton } from "../skeletons";
 import { convertPrice } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
@@ -402,19 +409,21 @@ export function WorldCupDetailPage({
     setMarketsSheetOpen(true);
   }, [cats, hasCompleteDeepLink, isDesktop]);
 
+  useEffect(() => {
+    if (!event) return;
+    trackMatchDetailView({
+      eventSlug: event.slug,
+      source: event.source,
+      surface: "world_cup_detail",
+      marketSlug: initialMarketSlug ?? undefined,
+    });
+  }, [event, initialMarketSlug]);
+
   const handleSelect = useCallback((slug: string) => {
     setSelectedSlug(slug);
     setOutcome("yes");
     setSide("buy");
   }, []);
-
-  const handleTradeAction = useCallback(
-    (_market: unknown, oc: TradeOutcome, sd: TradeSide) => {
-      setOutcome(oc);
-      setSide(sd);
-    },
-    [],
-  );
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {
@@ -454,13 +463,6 @@ export function WorldCupDetailPage({
     (price: number) => convertPrice(price, oddsFormat),
     [oddsFormat],
   );
-
-  // Open the trade modal pre-selected to a tapped outcome (buy).
-  const handleMobileTradePick = useCallback((oc: TradeOutcome) => {
-    setOutcome(oc);
-    setSide("buy");
-    setTradeSheetOpen(true);
-  }, []);
 
   const handleMobileMarketSelect = useCallback(
     (slug: string) => {
@@ -550,6 +552,37 @@ export function WorldCupDetailPage({
     selectedDisplayMarket && selection
       ? withCleanLabel(selectedDisplayMarket, selectedLabel, hint)
       : selectedDisplayMarket;
+
+  const trackCurrentOrderClick = (params: {
+    outcome: TradeOutcome;
+    side: TradeSide;
+  }) => {
+    trackOrderClick({
+      ...(match ? worldCupMatchAnalyticsParams(match) : {}),
+      ...predictEventAnalyticsParams(displayEvent),
+      ...(tradeMarket ? predictMarketAnalyticsParams(tradeMarket) : {}),
+      outcome: params.outcome,
+      side: params.side,
+      surface: "world_cup_detail",
+    });
+  };
+
+  const handleTradeAction = (
+    _market: PredictMarket,
+    oc: TradeOutcome,
+    sd: TradeSide,
+  ) => {
+    trackCurrentOrderClick({ outcome: oc, side: sd });
+    setOutcome(oc);
+    setSide(sd);
+  };
+
+  const handleMobileTradePick = (oc: TradeOutcome) => {
+    trackCurrentOrderClick({ outcome: oc, side: "buy" });
+    setOutcome(oc);
+    setSide("buy");
+    setTradeSheetOpen(true);
+  };
 
   // -------------------------------------------------------------------------
   // Mobile layout: single column with one flat tab row (order book + match
