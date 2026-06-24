@@ -18,6 +18,10 @@ import { convertPrice } from "../../odds/convert-price";
 import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 
+function formatBuyOddsPrice(price: number, format: Parameters<typeof convertPrice>[1]): string {
+  return displayableBuyPrice(price) === null ? "-" : convertPrice(price, format);
+}
+
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
  * form. Shared by the desktop right-rail aside and the trade modal so both
@@ -46,9 +50,7 @@ export function TradePanel({
   const [format] = useOddsFormat();
   const oddsFormatter = useCallback(
     (price: number) =>
-      side === "buy" && displayableBuyPrice(price) === null
-        ? "-"
-        : convertPrice(price, format),
+      side === "buy" ? formatBuyOddsPrice(price, format) : convertPrice(price, format),
     [format, side],
   );
 
