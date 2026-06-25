@@ -20,11 +20,13 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
   type RefObject,
 } from "react";
+import type { PredictMarket } from "@liberfi.io/react-predict";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -47,6 +49,16 @@ import {
   pnlColorClass,
   shortAddress,
 } from "../format";
+import { useWorldcupMatches } from "../../worldcup/data/queries";
+import { resolveWorldcupEventAttribution } from "../../worldcup/data/resolve-event-attribution";
+import {
+  FIFA_AVATAR,
+  buildWorldcupTeamHint,
+  worldcupMatchTitle,
+  type WorldCupTranslate,
+} from "../../worldcup/display";
+import { marketLabel as worldcupMarketLabel } from "../../worldcup/components/detail/marketGrouping";
+import type { WcMatch } from "../../worldcup/types";
 import type {
   LeaderboardInterval,
   PositionSortField,
@@ -81,6 +93,116 @@ const TABLE_GRID =
 
 function transText(trans: string | undefined, base: string | undefined): string {
   return trans || base || "";
+}
+
+type LeaderboardDisplayItem = Pick<
+  WalletTokenPnl | WalletActivity,
+  | "eventSlug"
+  | "eventTitle"
+  | "eventTitleTrans"
+  | "eventImageUrl"
+  | "marketImageUrl"
+  | "marketQuestion"
+  | "marketQuestionTrans"
+  | "outcome"
+  | "outcomeTrans"
+  | "conditionId"
+  | "tokenId"
+  | "event"
+  | "market"
+>;
+type WorldcupMatchBySlug = Map<string, WcMatch>;
+type LeaderboardDisplay = {
+  title: string;
+  subtitle: string;
+  imageUrl?: string;
+};
+
+function leaderboardEventTitle(item: LeaderboardDisplayItem): string {
+  return (
+    transText(item.event?.titleTrans, item.event?.title) ||
+    transText(item.eventTitleTrans, item.eventTitle) ||
+    transText(item.market?.questionTrans, item.market?.question) ||
+    transText(item.marketQuestionTrans, item.marketQuestion) ||
+    "—"
+  );
+}
+
+function leaderboardOutcomeLabel(item: LeaderboardDisplayItem): string {
+  const outcome = item.market?.outcomes?.[0];
+  return (
+    transText(outcome?.labelTrans, outcome?.label) ||
+    transText(item.outcomeTrans, item.outcome) ||
+    ""
+  );
+}
+
+function leaderboardMarketQuestion(item: LeaderboardDisplayItem): string {
+  return (
+    transText(item.market?.questionTrans, item.market?.question) ||
+    transText(item.marketQuestionTrans, item.marketQuestion) ||
+    leaderboardOutcomeLabel(item)
+  );
+}
+
+function worldcupMatchSlugForLeaderboardItem(item: LeaderboardDisplayItem): string | null {
+  if (item.event?.worldcupMatchSlug) return item.event.worldcupMatchSlug;
+  const slug = item.market?.eventSlug || item.event?.slug || item.eventSlug;
+  if (!slug) return null;
+  return resolveWorldcupEventAttribution(slug)?.matchSlug ?? null;
+}
+
+function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | undefined {
+  const market = item.market;
+  if (!market) return undefined;
+  return {
+    slug: market.slug || item.conditionId || item.tokenId || "",
+    event_slug: market.eventSlug || item.eventSlug || "",
+    question: market.question || item.marketQuestion || "",
+    question_trans: market.questionTrans,
+    image_url: market.imageUrl,
+    outcomes: (market.outcomes ?? []).map((outcome) => ({
+      label: outcome.label || "",
+      label_trans: outcome.labelTrans,
+    })),
+    provider_meta: market.providerMeta,
+  } as PredictMarket;
+}
+
+function leaderboardDisplay(
+  item: LeaderboardDisplayItem,
+  worldcupMatchBySlug: WorldcupMatchBySlug,
+  translate: WorldCupTranslate,
+): LeaderboardDisplay {
+  const matchSlug = worldcupMatchSlugForLeaderboardItem(item);
+  const match = matchSlug ? worldcupMatchBySlug.get(matchSlug) : undefined;
+  if (match) {
+    const hint = buildWorldcupTeamHint(match, translate);
+    const market = toWorldcupPredictMarket(item);
+    return {
+      title: worldcupMatchTitle(match, hint) ?? leaderboardEventTitle(item),
+      subtitle: market ? worldcupMarketLabel(market, hint) : leaderboardMarketQuestion(item),
+      imageUrl: FIFA_AVATAR,
+    };
+  }
+
+  return {
+    title: leaderboardEventTitle(item),
+    subtitle: leaderboardOutcomeLabel(item),
+    imageUrl: item.market?.imageUrl || item.marketImageUrl || item.event?.imageUrl || item.eventImageUrl,
+  };
+}
+
+function useWorldcupMatchBySlug(items: LeaderboardDisplayItem[], enabled = true): WorldcupMatchBySlug {
+  const hasWorldcupRows = useMemo(
+    () => enabled && items.some((item) => Boolean(worldcupMatchSlugForLeaderboardItem(item))),
+    [enabled, items],
+  );
+  const { data } = useWorldcupMatches({ enabled: hasWorldcupRows });
+  return useMemo(
+    () => new Map((data ?? []).map((match) => [match.slug, match])),
+    [data],
+  );
 }
 
 export function WalletDetailPanel({
@@ -387,6 +509,7 @@ function PositionsTable({
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
+  const translate = t as WorldCupTranslate;
   const {
     data,
     isLoading,
@@ -407,12 +530,14 @@ function PositionsTable({
   // The backend already filters by lifecycle status (holding / closed); only
   // the local market-question search is applied client-side.
   const allTokens = data?.pages.flatMap((p) => p.tokens) ?? [];
+  const worldcupMatchBySlug = useWorldcupMatchBySlug(allTokens);
   const q = query.trim().toLowerCase();
   const rows = q
     ? allTokens.filter((tk) =>
-        transText(tk.marketQuestionTrans, tk.marketQuestion)
-          .toLowerCase()
-          .includes(q),
+        [
+          leaderboardDisplay(tk, worldcupMatchBySlug, translate).title,
+          leaderboardDisplay(tk, worldcupMatchBySlug, translate).subtitle,
+        ].some((text) => text.toLowerCase().includes(q)),
       )
     : allTokens;
 
@@ -500,7 +625,11 @@ function PositionsTable({
                       {t("extend.leaderboard.loading")}
                     </div>
                   ) : (
-                    <PositionRow position={p} last={vItem.index === rows.length - 1} />
+                    <PositionRow
+                      position={p}
+                      last={vItem.index === rows.length - 1}
+                      worldcupMatchBySlug={worldcupMatchBySlug}
+                    />
                   )}
                 </div>
               );
@@ -575,26 +704,23 @@ function MarketAvatar({
 }
 
 /**
- * Subtitle shown under a position's market question: the locally-enriched
- * (localized) event title when available, otherwise the de-slugified event
- * slug as a best-effort label.
- */
-function positionSubtitle(position: WalletTokenPnl): string {
-  const title = transText(position.eventTitleTrans, position.eventTitle);
-  if (title) return title;
-  if (position.eventSlug) return position.eventSlug.replace(/-/g, " ");
-  return "";
-}
-
-/**
  * Wraps a market title in a link to its event detail page when the
  * locally-enriched event slug is available; otherwise renders plain text.
  * Smart-money data is Polymarket-sourced, so links use the unified event detail
  * route. `stopPropagation` keeps the link from triggering any enclosing
  * row-level click handlers.
  */
-function PositionRow({ position, last }: { position: WalletTokenPnl; last: boolean }) {
+function PositionRow({
+  position,
+  last,
+  worldcupMatchBySlug,
+}: {
+  position: WalletTokenPnl;
+  last: boolean;
+  worldcupMatchBySlug: WorldcupMatchBySlug;
+}) {
   const { t } = useTranslation();
+  const display = leaderboardDisplay(position, worldcupMatchBySlug, t as WorldCupTranslate);
   const status = positionStatus(position);
   const statusMeta = {
     open: { label: t("extend.leaderboard.detail.status.open"), cls: "bg-zinc-700/40 text-zinc-300" },
@@ -606,7 +732,6 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
     position.outcome.toLowerCase() === "no"
       ? "bg-bearish/10 text-bearish"
       : "bg-bullish/10 text-bullish";
-  const marketQuestion = transText(position.marketQuestionTrans, position.marketQuestion);
   const outcome = transText(position.outcomeTrans, position.outcome);
 
   return (
@@ -614,7 +739,7 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
       <div className={cn("grid", TABLE_GRID, "items-center gap-1.5")}>
         <div className="flex min-w-0 items-center gap-2.5">
           <MarketAvatar
-            src={position.marketImageUrl || position.eventImageUrl}
+            src={display.imageUrl}
             seed={position.conditionId || position.tokenId || position.eventSlug}
             size={34}
           />
@@ -623,11 +748,11 @@ function PositionRow({ position, last }: { position: WalletTokenPnl; last: boole
               slug={position.eventSlug}
               className="line-clamp-1 text-sm font-medium text-zinc-100"
             >
-              {marketQuestion || "—"}
+              {display.title || "—"}
             </EventTitleLink>
-            {positionSubtitle(position) && (
+            {display.subtitle && (
               <div className="line-clamp-1 text-[11px] uppercase tracking-wide text-zinc-600">
-                {positionSubtitle(position)}
+                {display.subtitle}
               </div>
             )}
           </div>
@@ -690,12 +815,20 @@ function ActivityList({
   scrollRef: RefObject<HTMLDivElement>;
 }) {
   const { t } = useTranslation();
+  const translate = t as WorldCupTranslate;
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useWalletActivities(wallet, interval, tag);
 
+  const allActivities = data?.pages.flatMap((p) => p.activities) ?? [];
+  const worldcupMatchBySlug = useWorldcupMatchBySlug(allActivities);
   const q = query.trim().toLowerCase();
-  const activities = (data?.pages.flatMap((p) => p.activities) ?? []).filter(
-    (a) => !q || transText(a.marketQuestionTrans, a.marketQuestion).toLowerCase().includes(q),
+  const activities = allActivities.filter(
+    (a) =>
+      !q ||
+      [
+        leaderboardDisplay(a, worldcupMatchBySlug, translate).title,
+        leaderboardDisplay(a, worldcupMatchBySlug, translate).subtitle,
+      ].some((text) => text.toLowerCase().includes(q)),
   );
 
   const count = activities.length + (hasNextPage ? 1 : 0);
@@ -737,7 +870,11 @@ function ActivityList({
                   {t("extend.leaderboard.loading")}
                 </div>
               ) : (
-                <ActivityRow activity={a} last={vItem.index === activities.length - 1} />
+                <ActivityRow
+                  activity={a}
+                  last={vItem.index === activities.length - 1}
+                  worldcupMatchBySlug={worldcupMatchBySlug}
+                />
               )}
             </div>
           );
@@ -763,16 +900,24 @@ function activityTypeMeta(type: string): { key: ActivityTypeLabelKey; className:
   return { key: "extend.leaderboard.activity.buy", className: "bg-bullish/10 text-bullish" };
 }
 
-function ActivityRow({ activity, last }: { activity: WalletActivity; last: boolean }) {
+function ActivityRow({
+  activity,
+  last,
+  worldcupMatchBySlug,
+}: {
+  activity: WalletActivity;
+  last: boolean;
+  worldcupMatchBySlug: WorldcupMatchBySlug;
+}) {
   const { t } = useTranslation();
   const meta = activityTypeMeta(activity.type);
-  const marketQuestion = transText(activity.marketQuestionTrans, activity.marketQuestion);
+  const display = leaderboardDisplay(activity, worldcupMatchBySlug, t as WorldCupTranslate);
   const outcome = transText(activity.outcomeTrans, activity.outcome);
 
   return (
     <div className={cn("flex items-center gap-3 px-3 py-3", !last && "border-b border-zinc-800/40")}>
       <MarketAvatar
-        src={activity.marketImageUrl || activity.eventImageUrl}
+        src={display.imageUrl}
         seed={activity.conditionId || activity.tokenId || activity.eventSlug}
         size={34}
       />
@@ -781,8 +926,11 @@ function ActivityRow({ activity, last }: { activity: WalletActivity; last: boole
           slug={activity.eventSlug}
           className="line-clamp-1 text-sm font-medium text-zinc-100"
         >
-          {marketQuestion || outcome || "—"}
+          {display.title || "—"}
         </EventTitleLink>
+        {display.subtitle && (
+          <div className="line-clamp-1 text-xs text-zinc-400">{display.subtitle}</div>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
           <span className={cn("rounded px-1.5 py-0.5 font-medium", meta.className)}>
             {t(meta.key)}

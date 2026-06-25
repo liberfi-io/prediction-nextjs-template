@@ -75,9 +75,13 @@ import {
   type TeamHint,
 } from "./marketGrouping";
 import { normalizeDeepLinkOutcome, resolveMarketDeepLink } from "./deepLink";
+import {
+  FIFA_AVATAR,
+  buildWorldcupTeamHint,
+  worldcupMatchTitle,
+  type WorldCupTranslate,
+} from "../../display";
 
-/** Shared FIFA logo used for every event avatar on the World Cup detail page. */
-const FIFA_AVATAR = "/worldcup/fifa.webp";
 const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
   "first_half_totals",
   "soccer_first_half_team_totals",
@@ -106,7 +110,6 @@ type TranslatedMarket = PredictMarket & {
   question_trans?: unknown;
   outcomes?: TranslatedOutcome[];
 };
-type WorldCupTranslate = (key: `extend.${string}`) => string;
 
 function translatedText(base: string | undefined, translated: unknown): string | undefined {
   return typeof translated === "string" && translated.trim() ? translated : base;
@@ -156,51 +159,6 @@ function withTranslatedMarketText(
   });
 
   return changed ? { ...market, question, outcomes } : market;
-}
-
-/** Team name/code aliases used to orient spread handicaps to the home side. */
-function teamHint(match?: WcMatch, t?: WorldCupTranslate): TeamHint | undefined {
-  if (!match) return undefined;
-  const keys = (...vals: string[]) =>
-    new Set(vals.filter(Boolean).map((s) => s.trim().toLowerCase()));
-  const homeLabel = t?.(`extend.worldcup.teamName.${match.home.code.toLowerCase()}`);
-  const awayLabel = t?.(`extend.worldcup.teamName.${match.away.code.toLowerCase()}`);
-  return {
-    homeKeys: keys(match.home.name, match.home.code, match.home.nameZh, homeLabel ?? ""),
-    awayKeys: keys(match.away.name, match.away.code, match.away.nameZh, awayLabel ?? ""),
-    homeLabel,
-    awayLabel,
-    drawLabel: t?.("extend.worldcup.draw"),
-    yesLabel: t?.("extend.worldcup.detail.trade.yes"),
-    noLabel: t?.("extend.worldcup.detail.trade.no"),
-    firstHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.first_half_totals"),
-    secondHalfTotalsLabel: t?.("extend.worldcup.detail.markets.type.second_half_totals"),
-    totalCornersLabel: t?.("extend.worldcup.detail.markets.type.total_corners"),
-    teamTotalCornersLabel: t?.("extend.worldcup.detail.markets.type.total_corners"),
-    firstHalfTotalCornersLabel: t?.(
-      "extend.worldcup.detail.markets.type.soccer_first_half_total_corners",
-    ),
-    secondHalfTotalCornersLabel: t?.(
-      "extend.worldcup.detail.markets.type.soccer_second_half_total_corners",
-    ),
-    playerGoalsLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_goals"),
-    playerGoalsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_goals_short"),
-    goalkeeperSavesLabel: t?.(
-      "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves",
-    ),
-    goalkeeperSavesShortLabel: t?.(
-      "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves_short",
-    ),
-    playerAssistsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_assists_short"),
-    playerShotsShortLabel: t?.("extend.worldcup.detail.markets.type.soccer_player_shots_short"),
-    neitherLabel: t?.("extend.worldcup.detail.markets.option.neither"),
-    anyOtherScoreLabel: t?.("extend.worldcup.detail.markets.option.anyOtherScore"),
-  };
-}
-
-function matchTitle(match: WcMatch | undefined, hint: TeamHint | undefined): string | undefined {
-  if (!match || !hint?.homeLabel || !hint.awayLabel) return undefined;
-  return `${hint.homeLabel} vs. ${hint.awayLabel}`;
 }
 
 /**
@@ -297,7 +255,7 @@ export function WorldCupDetailPage({
     [showLiveTab],
   );
 
-  const hint = useMemo(() => teamHint(match, translate), [match, translate]);
+  const hint = useMemo(() => buildWorldcupTeamHint(match, translate), [match, translate]);
   const cats = useMemo(
     () => categorizeMarkets(event?.markets ?? [], hint),
     [event?.markets, hint],
@@ -496,7 +454,7 @@ export function WorldCupDetailPage({
   const selectedDisplayMarket = selectedMarket
     ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket), hint)
     : selectedMarket;
-  const displayEvent = withTranslatedEventTitle(event, matchTitle(match, hint));
+  const displayEvent = withTranslatedEventTitle(event, worldcupMatchTitle(match, hint));
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)

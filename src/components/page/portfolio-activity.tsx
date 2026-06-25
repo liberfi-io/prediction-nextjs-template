@@ -35,6 +35,16 @@ import {
   getCancelOrderConfirmationMessages,
   useCancelOrderResultConfirmation,
 } from "../../features/trade-feedback/cancelOrderConfirmation";
+import { useWorldcupMatches } from "../../features/worldcup/data/queries";
+import { resolveWorldcupEventAttribution } from "../../features/worldcup/data/resolve-event-attribution";
+import {
+  FIFA_AVATAR,
+  buildWorldcupTeamHint,
+  worldcupMatchTitle,
+  type WorldCupTranslate,
+} from "../../features/worldcup/display";
+import { marketLabel } from "../../features/worldcup/components/detail/marketGrouping";
+import type { WcMatch } from "../../features/worldcup/types";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -53,6 +63,40 @@ const SHOW_SOURCE_BADGE = false;
 // ---------------------------------------------------------------------------
 
 type SortKey = "value" | "pnl" | "size";
+type ActivityEvent = {
+  slug?: string;
+  title?: string;
+  image_url?: string;
+  title_trans?: unknown;
+};
+type ActivityOutcome = {
+  label?: string;
+  label_trans?: unknown;
+};
+type ActivityMarket = {
+  slug?: string;
+  event_slug?: string;
+  question?: string;
+  image_url?: string;
+  outcomes?: ActivityOutcome[];
+};
+type TranslatedEvent = ActivityEvent & {
+  title_trans?: unknown;
+};
+type TranslatedMarket = ActivityMarket & {
+  question_trans?: unknown;
+  outcomes?: ActivityOutcome[];
+};
+type WorldcupMatchBySlug = Map<string, WcMatch>;
+type ActivityItem = {
+  event?: ActivityEvent;
+  market?: ActivityMarket;
+};
+type ActivityDisplay = {
+  title: string;
+  subtitle: string;
+  imageUrl?: string;
+};
 
 const SORT_OPTIONS = [
   { key: "value" as SortKey, labelKey: "extend.portfolio.sortValue" as const },
@@ -71,6 +115,50 @@ function positionSortValue(p: PredictPosition, key: SortKey): number {
   }
 }
 
+function translatedText(base: string | undefined, translated: unknown): string | undefined {
+  return typeof translated === "string" && translated.trim() ? translated : base;
+}
+
+function activityEventTitle(item: ActivityItem): string {
+  const event = item.event as TranslatedEvent | undefined;
+  return translatedText(item.event?.title, event?.title_trans) ?? "—";
+}
+
+function activityOutcomeLabel(item: ActivityItem): string {
+  const market = item.market as TranslatedMarket | undefined;
+  const outcome = market?.outcomes?.[0];
+  return translatedText(outcome?.label, outcome?.label_trans) ?? "";
+}
+
+function worldcupMatchSlugForActivity(item: ActivityItem): string | null {
+  const slug = item.market?.event_slug || item.event?.slug;
+  if (!slug) return null;
+  return resolveWorldcupEventAttribution(slug)?.matchSlug ?? null;
+}
+
+function activityDisplay(
+  item: ActivityItem,
+  worldcupMatchBySlug: WorldcupMatchBySlug,
+  translate: WorldCupTranslate,
+): ActivityDisplay {
+  const matchSlug = worldcupMatchSlugForActivity(item);
+  const match = matchSlug ? worldcupMatchBySlug.get(matchSlug) : undefined;
+  if (match && item.market) {
+    const hint = buildWorldcupTeamHint(match, translate);
+    return {
+      title: worldcupMatchTitle(match, hint) ?? activityEventTitle(item),
+      subtitle: marketLabel(item.market as Parameters<typeof marketLabel>[0], hint),
+      imageUrl: FIFA_AVATAR,
+    };
+  }
+
+  return {
+    title: activityEventTitle(item),
+    subtitle: activityOutcomeLabel(item),
+    imageUrl: item.market?.image_url || item.event?.image_url,
+  };
+}
+
 export function PositionsPanel({
   positions,
   isLoading,
@@ -86,6 +174,18 @@ export function PositionsPanel({
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
+  const translate = t as WorldCupTranslate;
+  const hasWorldcupPositions = useMemo(
+    () => positions.some((position) => Boolean(worldcupMatchSlugForActivity(position))),
+    [positions],
+  );
+  const { data: worldcupMatches = [] } = useWorldcupMatches({
+    enabled: hasWorldcupPositions,
+  });
+  const worldcupMatchBySlug = useMemo(
+    () => new Map(worldcupMatches.map((match) => [match.slug, match])),
+    [worldcupMatches],
+  );
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -102,13 +202,17 @@ export function PositionsPanel({
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
-        (p) =>
-          p.market?.question?.toLowerCase().includes(q) ||
-          p.market?.outcomes?.[0]?.label?.toLowerCase().includes(q),
+        (p) => {
+          const display = activityDisplay(p, worldcupMatchBySlug, translate);
+          return (
+            display.title.toLowerCase().includes(q) ||
+            display.subtitle.toLowerCase().includes(q)
+          );
+        },
       );
     }
     return [...list].sort((a, b) => positionSortValue(b, sortKey) - positionSortValue(a, sortKey));
-  }, [positions, search, sortKey]);
+  }, [positions, search, sortKey, translate, worldcupMatchBySlug]);
 
   const currentLabel = t(SORT_OPTIONS.find((o) => o.key === sortKey)!.labelKey);
 
@@ -236,7 +340,12 @@ export function PositionsPanel({
           style={fill ? undefined : { maxHeight: ACTIVITY_LIST_HEIGHT }}
         >
           {filtered.map((pos, i) => (
-            <PositionRow key={`${pos.source}-${pos.market?.slug ?? i}`} position={pos} />
+            <PositionRow
+              key={`${pos.source}-${pos.market?.slug ?? i}`}
+              position={pos}
+              translate={translate}
+              worldcupMatchBySlug={worldcupMatchBySlug}
+            />
           ))}
         </div>
       )}
@@ -244,7 +353,15 @@ export function PositionsPanel({
   );
 }
 
-function PositionRow({ position }: { position: PredictPosition }) {
+function PositionRow({
+  position,
+  translate,
+  worldcupMatchBySlug,
+}: {
+  position: PredictPosition;
+  translate: WorldCupTranslate;
+  worldcupMatchBySlug: WorldcupMatchBySlug;
+}) {
   const { t } = useTranslation();
   const router = useRouter();
   const { onOpen: openSellModal } = useAsyncModal<PredictSellModalParams>(PREDICT_SELL_MODAL_ID);
@@ -256,14 +373,14 @@ function PositionRow({ position }: { position: PredictPosition }) {
   const invested = position.size * avgPrice;
   const currentValue = position.current_value ?? position.size * currentPrice;
   const pnlColor = pnl > 0 ? "text-bullish" : pnl < 0 ? "text-bearish" : "text-zinc-400";
-  const marketLabel = position.market?.question ?? "—";
-  const marketName =
-    position.market?.outcomes?.[0]?.label ?? position.market?.slug ?? "";
+  const display = activityDisplay(position, worldcupMatchBySlug, translate);
+  const marketLabel = display.title;
+  const marketName = display.subtitle;
   const sideLabel = position.side;
   const isYes = sideLabel?.toLowerCase() === "yes";
   const source = position.source;
 
-  const imageUrl = position.market?.image_url || position.event?.image_url;
+  const imageUrl = display.imageUrl;
   const eventSlug = position.event?.slug;
   const href = eventSlug ? predictEventHref({ slug: eventSlug, source }) : undefined;
   const handleNavigate = useCallback(() => {
@@ -325,8 +442,12 @@ function PositionRow({ position }: { position: PredictPosition }) {
               {marketLabel}
             </span>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <span className="max-w-[200px] truncate">{marketName}</span>
-              <span className="text-zinc-700">&bull;</span>
+              {marketName && (
+                <>
+                  <span className="max-w-[200px] truncate">{marketName}</span>
+                  <span className="text-zinc-700">&bull;</span>
+                </>
+              )}
               <span
                 className={cn(
                   "rounded px-1.5 py-0.5 font-medium",
@@ -492,6 +613,7 @@ export function OrdersPanel({
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const translate = t as WorldCupTranslate;
   const wallets = useWallets();
   const evmWallet = useMemo(
     () => wallets.find((w) => w.chainNamespace === "EVM" && w.isConnected) as EvmWalletAdapter | undefined,
@@ -608,6 +730,17 @@ export function OrdersPanel({
     const openStatuses = new Set<string>(["live", "open", "submitted", "pending"]);
     return all.filter((o: PredictOrder) => openStatuses.has(o.status));
   }, [data]);
+  const hasWorldcupOrders = useMemo(
+    () => orders.some((order) => Boolean(worldcupMatchSlugForActivity(order))),
+    [orders],
+  );
+  const { data: worldcupMatches = [] } = useWorldcupMatches({
+    enabled: hasWorldcupOrders,
+  });
+  const worldcupMatchBySlug = useMemo(
+    () => new Map(worldcupMatches.map((match) => [match.slug, match])),
+    [worldcupMatches],
+  );
 
   const handleCancel = useCallback(
     (order: PredictOrder) => {
@@ -670,10 +803,12 @@ export function OrdersPanel({
                 order={order}
                 onCancel={handleCancel}
                 onNavigate={handleNavigate}
-                onPrefetch={handlePrefetch}
-                isCancelling={cancelMutation.isPending}
-                isLast={vItem.index === orders.length - 1}
-              />
+	                onPrefetch={handlePrefetch}
+	                isCancelling={cancelMutation.isPending}
+	                isLast={vItem.index === orders.length - 1}
+	                translate={translate}
+	                worldcupMatchBySlug={worldcupMatchBySlug}
+	              />
             </div>
           );
         })}
@@ -689,6 +824,8 @@ function OrderRow({
   onPrefetch,
   isCancelling,
   isLast,
+  translate,
+  worldcupMatchBySlug,
 }: {
   order: PredictOrder;
   onCancel: (order: PredictOrder) => void;
@@ -696,12 +833,16 @@ function OrderRow({
   onPrefetch: (order: PredictOrder) => void;
   isCancelling: boolean;
   isLast: boolean;
+  translate: WorldCupTranslate;
+  worldcupMatchBySlug: WorldcupMatchBySlug;
 }) {
   const { t } = useTranslation();
   const isBuy = order.side === "BUY";
   const source = order.source;
-  const imageUrl = order.market?.image_url || order.event?.image_url;
-  const marketQuestion = order.market?.question ?? "";
+  const display = activityDisplay(order, worldcupMatchBySlug, translate);
+  const imageUrl = display.imageUrl;
+  const title = display.title;
+  const subtitle = display.subtitle;
   const canCancel = !order.status || !({ matched: 1, cancelled: 1, invalid: 1, closed: 1, failed: 1, expired: 1 } as Record<string, number>)[order.status];
 
   return (
@@ -726,20 +867,19 @@ function OrderRow({
 
         {/* Title + source */}
         <div className="min-w-0 flex-1">
-          {marketQuestion ? (
-            <span
-              className={cn(
-                "mb-1 line-clamp-1 text-sm font-medium text-white",
-                order.event?.slug && "cursor-pointer hover:underline",
-              )}
-              onClick={() => onNavigate(order)}
-              onMouseEnter={() => onPrefetch(order)}
-            >
-              {marketQuestion}
-            </span>
-          ) : (
-            <span className="mb-1 line-clamp-1 text-sm text-zinc-400">
-              {order.outcome ?? "—"}
+          <span
+            className={cn(
+              "mb-1 line-clamp-1 text-sm font-medium text-white",
+              order.event?.slug && "cursor-pointer hover:underline",
+            )}
+            onClick={() => onNavigate(order)}
+            onMouseEnter={() => onPrefetch(order)}
+          >
+            {title}
+          </span>
+          {subtitle && (
+            <span className="mb-0.5 line-clamp-1 text-xs text-zinc-400">
+              {subtitle}
             </span>
           )}
           {SHOW_SOURCE_BADGE && (
@@ -815,20 +955,19 @@ function OrderRow({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          {marketQuestion ? (
-            <span
-              className={cn(
-                "truncate text-sm font-medium text-white block",
-                order.event?.slug && "cursor-pointer hover:underline",
-              )}
-              onClick={() => onNavigate(order)}
-              onMouseEnter={() => onPrefetch(order)}
-            >
-              {marketQuestion}
-            </span>
-          ) : (
-            <span className="truncate text-sm capitalize text-zinc-400 block">
-              {order.outcome ?? "—"}
+          <span
+            className={cn(
+              "truncate text-sm font-medium text-white block",
+              order.event?.slug && "cursor-pointer hover:underline",
+            )}
+            onClick={() => onNavigate(order)}
+            onMouseEnter={() => onPrefetch(order)}
+          >
+            {title}
+          </span>
+          {subtitle && (
+            <span className="mt-0.5 block truncate text-xs text-zinc-400">
+              {subtitle}
             </span>
           )}
           <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
@@ -886,6 +1025,7 @@ export function TradesPanel({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const translate = t as WorldCupTranslate;
 
   const {
     data: tradesData,
@@ -902,6 +1042,17 @@ export function TradesPanel({
   const trades = useMemo(
     () => tradesData?.pages.flatMap((p) => p.items) ?? [],
     [tradesData],
+  );
+  const hasWorldcupTrades = useMemo(
+    () => trades.some((trade) => Boolean(worldcupMatchSlugForActivity(trade))),
+    [trades],
+  );
+  const { data: worldcupMatches = [] } = useWorldcupMatches({
+    enabled: hasWorldcupTrades,
+  });
+  const worldcupMatchBySlug = useMemo(
+    () => new Map(worldcupMatches.map((match) => [match.slug, match])),
+    [worldcupMatches],
   );
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -965,10 +1116,12 @@ export function TradesPanel({
             >
               <TradeRow
                 trade={trade}
-                isLast={vItem.index === trades.length - 1}
-                onNavigate={handleNavigate}
-                onPrefetch={handlePrefetch}
-              />
+	                isLast={vItem.index === trades.length - 1}
+	                onNavigate={handleNavigate}
+	                onPrefetch={handlePrefetch}
+	                translate={translate}
+	                worldcupMatchBySlug={worldcupMatchBySlug}
+	              />
             </div>
           );
         })}
@@ -987,11 +1140,15 @@ function TradeRow({
   isLast,
   onNavigate,
   onPrefetch,
+  translate,
+  worldcupMatchBySlug,
 }: {
   trade: PredictTrade;
   isLast: boolean;
   onNavigate: (trade: PredictTrade) => void;
   onPrefetch: (trade: PredictTrade) => void;
+  translate: WorldCupTranslate;
+  worldcupMatchBySlug: WorldcupMatchBySlug;
 }) {
   const { t } = useTranslation();
   const isRedeem = trade.type === "REDEEM";
@@ -1000,10 +1157,11 @@ function TradeRow({
   const price = trade.price ?? 0;
   const usdSize = trade.usd_size ?? 0;
   const source = trade.source;
-  const marketQuestion = trade.market?.question ?? "";
-  const eventTitle = source === "kalshi" ? marketQuestion : (trade.event?.title ?? "");
+  const display = activityDisplay(trade, worldcupMatchBySlug, translate);
+  const eventTitle = display.title;
+  const marketQuestion = display.subtitle;
   const outcomeLabel = trade.outcome ?? "—";
-  const tradeImageUrl = trade.event?.image_url;
+  const tradeImageUrl = display.imageUrl;
 
   return (
     <div

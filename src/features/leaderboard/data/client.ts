@@ -19,6 +19,8 @@ import type {
   SmartLeaderboard,
   SmartWalletEntry,
   SortOrder,
+  SmartEventRef,
+  SmartMarketRef,
   WalletActivitiesPage,
   WalletActivity,
   WalletDailyPnlDetail,
@@ -168,6 +170,34 @@ interface WalletTokenPnlDto {
   market_image_url?: string;
   market_description?: string;
   market_description_trans?: string;
+  event?: SmartEventRefDto;
+  market?: SmartMarketRefDto;
+}
+
+interface SmartEventRefDto {
+  slug?: string;
+  title?: string;
+  title_trans?: string;
+  image_url?: string;
+  kind?: string;
+  worldcup_match_slug?: string;
+}
+
+interface SmartOutcomeRefDto {
+  label?: string;
+  label_trans?: string;
+}
+
+interface SmartMarketRefDto {
+  slug?: string;
+  event_slug?: string;
+  question?: string;
+  question_trans?: string;
+  description?: string;
+  description_trans?: string;
+  image_url?: string;
+  outcomes?: SmartOutcomeRefDto[] | null;
+  provider_meta?: Record<string, unknown> | null;
 }
 
 interface WalletDailyPnlDto {
@@ -228,6 +258,8 @@ interface WalletActivityDto {
   market_image_url?: string;
   market_description?: string;
   market_description_trans?: string;
+  event?: SmartEventRefDto;
+  market?: SmartMarketRefDto;
 }
 
 interface WalletActivitiesDto {
@@ -351,6 +383,8 @@ function adaptSummary(d: WalletPnlSummaryDto): WalletPnlSummary {
 }
 
 function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
+  const event = adaptSmartEventRef(d.event);
+  const market = adaptSmartMarketRef(d.market);
   return {
     tokenId: d.token_id,
     conditionId: d.condition_id,
@@ -383,12 +417,44 @@ function adaptToken(d: WalletTokenPnlDto): WalletTokenPnl {
     firstActivityTs: d.first_activity_ts,
     lastActivityTs: d.last_activity_ts,
     stateQuality: d.state_quality,
-    eventTitle: d.event_title,
-    eventTitleTrans: d.event_title_trans,
-    eventImageUrl: d.event_image_url,
-    marketImageUrl: d.market_image_url,
-    marketDescription: d.market_description,
-    marketDescriptionTrans: d.market_description_trans,
+    eventTitle: d.event_title ?? event?.title,
+    eventTitleTrans: d.event_title_trans ?? event?.titleTrans,
+    eventImageUrl: d.event_image_url ?? event?.imageUrl,
+    marketImageUrl: d.market_image_url ?? market?.imageUrl,
+    marketDescription: d.market_description ?? market?.description,
+    marketDescriptionTrans: d.market_description_trans ?? market?.descriptionTrans,
+    event,
+    market,
+  };
+}
+
+function adaptSmartEventRef(d?: SmartEventRefDto): SmartEventRef | undefined {
+  if (!d) return undefined;
+  return {
+    slug: d.slug,
+    title: d.title,
+    titleTrans: d.title_trans,
+    imageUrl: d.image_url,
+    kind: d.kind,
+    worldcupMatchSlug: d.worldcup_match_slug,
+  };
+}
+
+function adaptSmartMarketRef(d?: SmartMarketRefDto): SmartMarketRef | undefined {
+  if (!d) return undefined;
+  return {
+    slug: d.slug,
+    eventSlug: d.event_slug,
+    question: d.question,
+    questionTrans: d.question_trans,
+    description: d.description,
+    descriptionTrans: d.description_trans,
+    imageUrl: d.image_url,
+    outcomes: (d.outcomes ?? []).map((outcome) => ({
+      label: outcome.label,
+      labelTrans: outcome.label_trans,
+    })),
+    providerMeta: d.provider_meta ?? undefined,
   };
 }
 
@@ -429,6 +495,8 @@ function adaptPositions(d: WalletPositionsDto): WalletPositionsPage {
 }
 
 function adaptActivity(d: WalletActivityDto): WalletActivity {
+  const event = adaptSmartEventRef(d.event);
+  const market = adaptSmartMarketRef(d.market);
   return {
     activityId: d.activity_id,
     wallet: d.wallet,
@@ -444,12 +512,14 @@ function adaptActivity(d: WalletActivityDto): WalletActivity {
     tokenId: d.token_id,
     eventSlug: d.event_slug,
     activityTs: d.activity_ts,
-    eventTitle: d.event_title,
-    eventTitleTrans: d.event_title_trans,
-    eventImageUrl: d.event_image_url,
-    marketImageUrl: d.market_image_url,
-    marketDescription: d.market_description,
-    marketDescriptionTrans: d.market_description_trans,
+    eventTitle: d.event_title ?? event?.title,
+    eventTitleTrans: d.event_title_trans ?? event?.titleTrans,
+    eventImageUrl: d.event_image_url ?? event?.imageUrl,
+    marketImageUrl: d.market_image_url ?? market?.imageUrl,
+    marketDescription: d.market_description ?? market?.description,
+    marketDescriptionTrans: d.market_description_trans ?? market?.descriptionTrans,
+    event,
+    market,
   };
 }
 

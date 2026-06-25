@@ -365,7 +365,7 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
  * Best human label for a market: localized cleaned group title when present,
  * else base group title / question.
  */
-function marketLabel(m: PredictMarket, hint?: TeamHint): string {
+export function marketLabel(m: PredictMarket, hint?: TeamHint): string {
   const label =
     cleanTitle(groupItemTitleTrans(m) || groupItemTitle(m)) ||
     questionTrans(m) ||

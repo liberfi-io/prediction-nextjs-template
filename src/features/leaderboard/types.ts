@@ -129,6 +129,34 @@ export interface LocalMarketRef {
   marketImageUrl?: string;
   marketDescription?: string;
   marketDescriptionTrans?: string;
+  event?: SmartEventRef;
+  market?: SmartMarketRef;
+}
+
+export interface SmartEventRef {
+  slug?: string;
+  title?: string;
+  titleTrans?: string;
+  imageUrl?: string;
+  kind?: "regular" | "worldcup_match" | "worldcup_related" | string;
+  worldcupMatchSlug?: string;
+}
+
+export interface SmartOutcomeRef {
+  label?: string;
+  labelTrans?: string;
+}
+
+export interface SmartMarketRef {
+  slug?: string;
+  eventSlug?: string;
+  question?: string;
+  questionTrans?: string;
+  description?: string;
+  descriptionTrans?: string;
+  imageUrl?: string;
+  outcomes?: SmartOutcomeRef[];
+  providerMeta?: Record<string, unknown>;
 }
 
 /** Position lifecycle status (upstream-computed). */
