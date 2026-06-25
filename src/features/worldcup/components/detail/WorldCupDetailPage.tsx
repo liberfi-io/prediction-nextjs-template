@@ -44,7 +44,6 @@ import { PortfolioActivitySection } from "src/components/page/PortfolioActivityS
 import { adaptLiveVideos, applyLiveStateToMatch } from "../../data/client";
 import { useWorldcupMatchLive } from "../../data/live";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
-import type { WcMatch } from "../../types";
 import { hasLiveVideos } from "../games/LiveStreamPanel";
 import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
 import { MatchBanner } from "./MatchBanner";
