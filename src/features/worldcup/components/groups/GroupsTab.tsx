@@ -1,17 +1,10 @@
-"use client";
-
-import { useMemo } from "react";
 import { useWorldcupStandings } from "../../data/queries";
 import { GroupsSkeleton } from "../skeletons";
 import { GroupTable } from "./GroupTable";
 import { BestThirds } from "./BestThirds";
-import { applyStandingsOverride } from "./standings-override";
 
 export function GroupsTab() {
-  const { data: rawGroups = [], isPending } = useWorldcupStandings();
-  // Temporary: recompute finished groups client-side until the backend serves
-  // live standings. Remove with standings-override.ts.
-  const groups = useMemo(() => applyStandingsOverride(rawGroups), [rawGroups]);
+  const { data: groups = [], isPending } = useWorldcupStandings();
   if (isPending) return <GroupsSkeleton />;
   return (
     <div>
