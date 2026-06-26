@@ -57,7 +57,7 @@ export function PredictPortfolioPage() {
 
   return (
     <div className="bg-zinc-950/50 sm:h-[calc(100vh-var(--header-height))] sm:min-h-0 sm:overflow-hidden">
-      <div className="mx-auto h-full max-w-[1200px] px-2 pt-3 sm:flex sm:flex-col sm:px-6 sm:pt-8 lg:px-8">
+      <div className="mx-auto h-full max-w-[1200px] px-2 pt-2 sm:px-6 sm:pt-4 lg:px-8">
         {authStatus === "authenticated" ? <PortfolioContent /> : <PortfolioSkeleton />}
       </div>
       <PredictTradeModal />
@@ -74,6 +74,8 @@ export function PredictPortfolioPage() {
 function PortfolioContent() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<PortfolioTab>("positions");
+  const [positionSearch, setPositionSearch] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
@@ -146,76 +148,105 @@ function PortfolioContent() {
     { key: "orders", label: t("extend.portfolio.openOrders") },
     { key: "history", label: t("extend.portfolio.tradeHistory") },
   ];
-
   return (
-    <div className="sm:flex sm:min-h-0 sm:flex-1 sm:flex-col">
-      {/* Title row */}
-      <div className="mb-4 flex shrink-0 items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {t("extend.portfolio.title")}
-        </h1>
-        {/* Deposit / withdraw — desktop only */}
-        <div className="hidden items-center gap-2 sm:flex">
-          <button
-            type="button"
-            onClick={() => fundWallet("deposit")}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-bullish/25 bg-bullish/10 px-3.5 py-2 text-sm font-semibold text-bullish transition-colors hover:border-bullish/40 hover:bg-bullish/20"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            {t("extend.predict.fundWallet.deposit")}
-          </button>
-          <button
-            type="button"
-            onClick={() => fundWallet("withdraw")}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/50 px-3.5 py-2 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            {t("extend.predict.fundWallet.withdraw")}
-          </button>
-        </div>
-      </div>
-
-      {/* Summary panels — total value / performance & bias / yield & risk */}
-      <PortfolioSummary user={portfolioPnlUser} />
-
-      {/* Tab + list section: fill remaining viewport on mobile, flex-fill on tablet+ */}
-      <div className="flex h-[calc(100dvh-var(--scaffold-header-height)-var(--scaffold-footer-height))] flex-col sm:h-auto sm:min-h-0 sm:flex-1">
-        {/* Tabs */}
-        <div className="shrink-0 border-b border-zinc-800/50">
-          <div className="flex">
-            {tabs.map((tab) => (
+    <div className="flex h-full flex-col">
+      <div ref={scrollRef} className="relative flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+        <div className="flex flex-col gap-4 pb-4">
+          <div className="flex shrink-0 items-center justify-between">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              {t("extend.portfolio.title")}
+            </h1>
+            <div className="hidden items-center gap-2 sm:flex">
               <button
-                key={tab.key}
                 type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "cursor-pointer whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-all",
-                  activeTab === tab.key
-                    ? "border-bullish text-bullish"
-                    : "border-transparent text-zinc-400 hover:text-zinc-300",
-                )}
+                onClick={() => fundWallet("deposit")}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-bullish/25 bg-bullish/10 px-3.5 py-2 text-sm font-semibold text-bullish transition-colors hover:border-bullish/40 hover:bg-bullish/20"
               >
-                {tab.label}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {t("extend.predict.fundWallet.deposit")}
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => fundWallet("withdraw")}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/50 px-3.5 py-2 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                {t("extend.predict.fundWallet.withdraw")}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Tab content */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          {activeTab === "positions" && (
-            <PositionsPanel positions={allPositions} isLoading={positionsLoading} />
-          )}
-          {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
-          {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} />}
+          <PortfolioSummary user={portfolioPnlUser} />
+
+          <section className="flex flex-col">
+            <div className="sticky top-0 z-10 -mx-px bg-[#0a0a0b]/95 pb-2 pt-1 backdrop-blur">
+              <div className="flex flex-col gap-2 border-b border-zinc-800/50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex gap-0 overflow-x-auto no-scrollbar">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab.key)}
+                      className={cn(
+                        "cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-all",
+                        activeTab === tab.key
+                          ? "border-bullish text-bullish"
+                          : "border-transparent text-zinc-400 hover:text-zinc-300",
+                      )}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {activeTab === "positions" && (
+                  <div className="max-sm:px-2">
+                    <div className="relative min-w-0 flex-1 sm:w-[220px] sm:flex-none">
+                      <svg
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      <input
+                        value={positionSearch}
+                        onChange={(e) => setPositionSearch(e.target.value)}
+                        placeholder={t("extend.portfolio.searchPositions")}
+                        className="mb-1.5 w-full rounded-lg border border-zinc-800/60 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-zinc-700 sm:mb-0"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-3">
+              {activeTab === "positions" && (
+                <PositionsPanel
+                  positions={allPositions}
+                  isLoading={positionsLoading}
+                  search={positionSearch}
+                  fill={false}
+                />
+              )}
+              {activeTab === "orders" && <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} fill={false} />}
+              {activeTab === "history" && <TradesPanel solanaAddr={solanaAddr} evmAddr={evmAddr} fill={false} />}
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -226,7 +257,7 @@ function PortfolioContent() {
 // Summary panels (total value / performance & bias / yield & risk)
 // ---------------------------------------------------------------------------
 
-const SUMMARY_GRID = "mb-4 grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-3";
+const SUMMARY_GRID = "grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-3";
 
 function PortfolioSummary({ user }: { user: string }) {
   const { t } = useTranslation();

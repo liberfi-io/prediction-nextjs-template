@@ -57,7 +57,10 @@ import {
   worldcupMatchTitle,
   type WorldCupTranslate,
 } from "../../worldcup/display";
-import { marketLabel as worldcupMarketLabel } from "../../worldcup/components/detail/marketGrouping";
+import {
+  marketLabel as worldcupMarketLabel,
+  sportsType,
+} from "../../worldcup/components/detail/marketGrouping";
 import type { WcMatch } from "../../worldcup/types";
 import type {
   LeaderboardInterval,
@@ -89,7 +92,7 @@ const ROW_ESTIMATE = 64;
 
 /** Position table grid template (desktop). */
 const TABLE_GRID =
-  "grid-cols-[minmax(160px,1.7fr)_44px_64px_96px_80px_96px_88px_88px_78px_62px]";
+  "grid-cols-[minmax(160px,1.7fr)_128px_64px_96px_80px_96px_88px_88px_78px_62px]";
 
 function transText(trans: string | undefined, base: string | undefined): string {
   return trans || base || "";
@@ -116,6 +119,7 @@ type LeaderboardDisplay = {
   title: string;
   subtitle: string;
   imageUrl?: string;
+  outcomeLabel?: string;
 };
 
 function leaderboardEventTitle(item: LeaderboardDisplayItem): string {
@@ -157,6 +161,8 @@ function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | 
   if (!market) return undefined;
   return {
     slug: market.slug || item.conditionId || item.tokenId || "",
+    source: "polymarket",
+    status: "open",
     event_slug: market.eventSlug || item.eventSlug || "",
     question: market.question || item.marketQuestion || "",
     question_trans: market.questionTrans,
@@ -169,6 +175,32 @@ function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | 
   } as PredictMarket;
 }
 
+function isWorldcupMoneylineMarket(market: PredictMarket): boolean {
+  const type = sportsType(market);
+  return type === "moneyline" || type === "soccer_match_winner";
+}
+
+function worldcupMoneylineOutcomeLabel(
+  market: PredictMarket | undefined,
+  match: WcMatch,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!market || !isWorldcupMoneylineMarket(market)) return undefined;
+  const hint = buildWorldcupTeamHint(match, translate);
+  const label = worldcupMarketLabel(market, hint);
+  if (!label) return undefined;
+  if (hint?.drawLabel && label === hint.drawLabel) {
+    return translate("extend.worldcup.moneylineDraw");
+  }
+  if (hint?.homeLabel && label === hint.homeLabel) {
+    return translate("extend.worldcup.teamWins", { team: hint.homeLabel });
+  }
+  if (hint?.awayLabel && label === hint.awayLabel) {
+    return translate("extend.worldcup.teamWins", { team: hint.awayLabel });
+  }
+  return undefined;
+}
+
 function leaderboardDisplay(
   item: LeaderboardDisplayItem,
   worldcupMatchBySlug: WorldcupMatchBySlug,
@@ -179,10 +211,16 @@ function leaderboardDisplay(
   if (match) {
     const hint = buildWorldcupTeamHint(match, translate);
     const market = toWorldcupPredictMarket(item);
+    const outcomeLabel = worldcupMoneylineOutcomeLabel(market, match, translate);
     return {
       title: worldcupMatchTitle(match, hint) ?? leaderboardEventTitle(item),
-      subtitle: market ? worldcupMarketLabel(market, hint) : leaderboardMarketQuestion(item),
+      subtitle: outcomeLabel
+        ? ""
+        : market
+          ? worldcupMarketLabel(market, hint)
+          : leaderboardMarketQuestion(item),
       imageUrl: FIFA_AVATAR,
+      outcomeLabel,
     };
   }
 
@@ -575,7 +613,7 @@ function PositionsTable({
   return (
     <div className="rounded-xl border border-zinc-800/40 bg-zinc-900/20">
       <div className="overflow-x-auto lg:overflow-x-visible">
-        <div className="min-w-[920px] lg:min-w-0">
+        <div className="min-w-[1000px] lg:min-w-0">
           {/* Column header — same column layout across breakpoints. On desktop
               (lg+) the table shrinks to fit the available width; below lg it keeps
               a fixed min width and the box scrolls horizontally. */}
@@ -732,7 +770,7 @@ function PositionRow({
     position.outcome.toLowerCase() === "no"
       ? "bg-bearish/10 text-bearish"
       : "bg-bullish/10 text-bullish";
-  const outcome = transText(position.outcomeTrans, position.outcome);
+  const outcome = display.outcomeLabel ?? transText(position.outcomeTrans, position.outcome);
 
   return (
     <div className={cn("px-3 py-3", !last && "border-b border-zinc-800/40")}>

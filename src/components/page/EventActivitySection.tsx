@@ -347,7 +347,7 @@ function EventPositionsPanel({
         const imageUrl = display.imageUrl;
 
         return (
-          <div key={`${pos.source}-${pos.market?.slug ?? i}`} className="group transition-[background-color] duration-150 hover:bg-zinc-800/30">
+          <div key={`${pos.source}-${pos.market?.slug ?? i}-${pos.side || "unknown"}`} className="group transition-[background-color] duration-150 hover:bg-zinc-800/30">
             {/* Desktop row */}
             <div className="hidden items-center gap-4 px-5 py-4 lg:flex">
               <div className="flex min-w-0 flex-1 items-center gap-3">

@@ -21,11 +21,12 @@ import {
   usePolymarket,
   buildPolymarketL2Headers,
   type PolymarketSigner,
+  type PredictMarket,
   type PredictPosition,
   type PredictOrder,
   type PredictTrade,
 } from "@liberfi.io/react-predict";
-import { cn, toast, PolymarketIcon, KalshiIcon } from "@liberfi.io/ui";
+import { cn, toast, PolymarketIcon, KalshiIcon, Sortable } from "@liberfi.io/ui";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { predictEventHref } from "./predict-source";
@@ -43,7 +44,10 @@ import {
   worldcupMatchTitle,
   type WorldCupTranslate,
 } from "../../features/worldcup/display";
-import { marketLabel } from "../../features/worldcup/components/detail/marketGrouping";
+import {
+  marketLabel,
+  sportsType,
+} from "../../features/worldcup/components/detail/marketGrouping";
 import type { WcMatch } from "../../features/worldcup/types";
 
 export type ActivityTab = "positions" | "orders" | "history";
@@ -62,7 +66,7 @@ const SHOW_SOURCE_BADGE = false;
 // Positions panel
 // ---------------------------------------------------------------------------
 
-type SortKey = "value" | "pnl" | "size";
+export type PositionSortKey = "value" | "pnl" | "size";
 type ActivityEvent = {
   slug?: string;
   title?: string;
@@ -78,6 +82,10 @@ type ActivityMarket = {
   event_slug?: string;
   question?: string;
   image_url?: string;
+  provider_meta?: Record<string, unknown>;
+  providerMeta?: Record<string, unknown>;
+  question_trans?: unknown;
+  group_item_title_trans?: unknown;
   outcomes?: ActivityOutcome[];
 };
 type TranslatedEvent = ActivityEvent & {
@@ -96,15 +104,17 @@ type ActivityDisplay = {
   title: string;
   subtitle: string;
   imageUrl?: string;
+  outcomeLabel?: string;
 };
 
-const SORT_OPTIONS = [
-  { key: "value" as SortKey, labelKey: "extend.portfolio.sortValue" as const },
-  { key: "pnl" as SortKey, labelKey: "extend.portfolio.sortPnl" as const },
-  { key: "size" as SortKey, labelKey: "extend.portfolio.sortShares" as const },
-];
+type PositionSortOrder = "asc" | "desc";
 
-function positionSortValue(p: PredictPosition, key: SortKey): number {
+const POSITION_ROW_GRID =
+  "grid-cols-[minmax(280px,1.4fr)_minmax(72px,0.45fr)_minmax(116px,0.8fr)_minmax(86px,0.55fr)_minmax(86px,0.55fr)_minmax(112px,0.8fr)_minmax(96px,0.55fr)]";
+
+const POSITION_TABLE_MIN_WIDTH = 980;
+
+function positionSortValue(p: PredictPosition, key: PositionSortKey): number {
   switch (key) {
     case "value":
       return p.current_value ?? p.size * (p.current_price ?? 0);
@@ -113,6 +123,14 @@ function positionSortValue(p: PredictPosition, key: SortKey): number {
     case "size":
       return p.size ?? 0;
   }
+}
+
+function positionRowKey(position: PredictPosition, fallback: number): string {
+  return [
+    position.source,
+    position.market?.slug ?? fallback,
+    position.side || "unknown",
+  ].join("-");
 }
 
 function translatedText(base: string | undefined, translated: unknown): string | undefined {
@@ -136,6 +154,45 @@ function worldcupMatchSlugForActivity(item: ActivityItem): string | null {
   return resolveWorldcupEventAttribution(slug)?.matchSlug ?? null;
 }
 
+function toWorldcupPredictMarket(market: ActivityMarket): PredictMarket {
+  return {
+    ...market,
+    slug: market.slug ?? "",
+    source: "polymarket",
+    status: "open",
+    question: market.question ?? "",
+    event_slug: market.event_slug ?? "",
+    image_url: market.image_url,
+    provider_meta: market.provider_meta ?? market.providerMeta,
+  } as PredictMarket;
+}
+
+function isWorldcupMoneylineMarket(market: ActivityMarket): boolean {
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return type === "moneyline" || type === "soccer_match_winner";
+}
+
+function worldcupMoneylineOutcomeLabel(
+  market: ActivityMarket,
+  match: WcMatch,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupMoneylineMarket(market)) return undefined;
+  const hint = buildWorldcupTeamHint(match, translate);
+  const label = marketLabel(toWorldcupPredictMarket(market), hint);
+  if (!label) return undefined;
+  if (hint?.drawLabel && label === hint.drawLabel) {
+    return translate("extend.worldcup.moneylineDraw");
+  }
+  if (hint?.homeLabel && label === hint.homeLabel) {
+    return translate("extend.worldcup.teamWins", { team: hint.homeLabel });
+  }
+  if (hint?.awayLabel && label === hint.awayLabel) {
+    return translate("extend.worldcup.teamWins", { team: hint.awayLabel });
+  }
+  return undefined;
+}
+
 function activityDisplay(
   item: ActivityItem,
   worldcupMatchBySlug: WorldcupMatchBySlug,
@@ -145,10 +202,12 @@ function activityDisplay(
   const match = matchSlug ? worldcupMatchBySlug.get(matchSlug) : undefined;
   if (match && item.market) {
     const hint = buildWorldcupTeamHint(match, translate);
+    const outcomeLabel = worldcupMoneylineOutcomeLabel(item.market, match, translate);
     return {
       title: worldcupMatchTitle(match, hint) ?? activityEventTitle(item),
-      subtitle: marketLabel(item.market as Parameters<typeof marketLabel>[0], hint),
+      subtitle: outcomeLabel ? "" : marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
+      outcomeLabel,
     };
   }
 
@@ -162,18 +221,20 @@ function activityDisplay(
 export function PositionsPanel({
   positions,
   isLoading,
+  search,
   fill = true,
 }: {
   positions: PredictPosition[];
   isLoading: boolean;
+  search: string;
   /** Fill the available flex height (page layout) vs. fixed max-height (embedded). */
   fill?: boolean;
 }) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("value");
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
+  const [sort, setSort] = useState<{
+    field: PositionSortKey;
+    order: PositionSortOrder;
+  } | null>(null);
   const translate = t as WorldCupTranslate;
   const hasWorldcupPositions = useMemo(
     () => positions.some((position) => Boolean(worldcupMatchSlugForActivity(position))),
@@ -186,16 +247,6 @@ export function PositionsPanel({
     () => new Map(worldcupMatches.map((match) => [match.slug, match])),
     [worldcupMatches],
   );
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setSortMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   const filtered = useMemo(() => {
     let list = positions;
@@ -211,142 +262,97 @@ export function PositionsPanel({
         },
       );
     }
-    return [...list].sort((a, b) => positionSortValue(b, sortKey) - positionSortValue(a, sortKey));
-  }, [positions, search, sortKey, translate, worldcupMatchBySlug]);
+    const sorted = [...list];
+    if (!sort) return sorted;
+    const dir = sort.order === "asc" ? 1 : -1;
+    return sorted.sort((a, b) => dir * (positionSortValue(a, sort.field) - positionSortValue(b, sort.field)));
+  }, [positions, search, sort, translate, worldcupMatchBySlug]);
 
-  const currentLabel = t(SORT_OPTIONS.find((o) => o.key === sortKey)!.labelKey);
+  const handleSort =
+    (field: PositionSortKey) => (dir: "asc" | "desc" | undefined) => {
+      setSort(dir ? { field, order: dir } : null);
+    };
+  const sortFor = (field: PositionSortKey): PositionSortOrder | undefined =>
+    sort?.field === field ? sort.order : undefined;
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 10,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
 
   if (isLoading) return <PanelSkeleton />;
 
   return (
-    <div className={cn("flex flex-col gap-4", fill && "min-h-0 flex-1")}>
-      {/* Search + sort row */}
-      <div className="flex shrink-0 items-center gap-3 pt-4">
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <input
-            type="text"
-            placeholder={t("extend.portfolio.searchPositions")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 transition-all focus:outline-none"
-            style={{
-              borderRadius: 10,
-              border: "1px solid rgba(63,63,70,0.5)",
-              background: "rgba(39,39,42,0.6)",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(63,63,70,1)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(63,63,70,0.5)"; }}
-          />
-        </div>
-        <div ref={sortRef} style={{ position: "relative" }}>
-          <button
-            type="button"
-            onClick={() => setSortMenuOpen((v) => !v)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              borderRadius: 10,
-              border: "1px solid rgba(63,63,70,0.5)",
-              background: "rgba(39,39,42,0.6)",
-              padding: "8px 12px",
-              fontSize: 14,
-              color: "#d4d4d8",
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(39,39,42,1)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(39,39,42,0.6)"; }}
-          >
-            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, color: "#a1a1aa" }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m21 16-4 4-4-4" />
-              <path d="M17 20V4" />
-              <path d="m3 8 4-4 4 4" />
-              <path d="M7 4v16" />
-            </svg>
-            <span>{currentLabel}</span>
-            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, color: "#71717a", transition: "transform 0.15s", transform: sortMenuOpen ? "rotate(180deg)" : undefined }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-          {sortMenuOpen && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: "100%",
-                zIndex: 50,
-                marginTop: 8,
-                borderRadius: 14,
-                border: "1px solid rgba(39,39,42,1)",
-                background: "rgba(24,24,27,1)",
-                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
-                overflow: "hidden",
-                width: 200,
-                padding: 4,
-              }}
-            >
-              {SORT_OPTIONS.map((opt) => {
-                const isActive = sortKey === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      padding: "10px 12px",
-                      textAlign: "left",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      border: "none",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                      background: isActive ? "rgba(199,255,46,0.08)" : "transparent",
-                      color: isActive ? "#c7ff2e" : "#a1a1aa",
-                      borderRadius: 10,
-                    }}
-                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "rgba(39,39,42,0.5)"; e.currentTarget.style.color = "#fff"; } }}
-                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#a1a1aa"; } }}
-                    onClick={() => { setSortKey(opt.key); setSortMenuOpen(false); }}
-                  >
-                    <span>{t(opt.labelKey)}</span>
-                    {isActive && (
-                      <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, color: "#c7ff2e", flexShrink: 0 }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div className={cn("flex flex-col", fill && "min-h-0 flex-1")}>
       {/* Position rows */}
       {filtered.length === 0 ? (
         <EmptyState message={t("extend.portfolio.noPositions")} icon="positions" />
       ) : (
         <div
+          ref={parentRef}
           className={cn(
-            "divide-y divide-zinc-800/30 overflow-y-auto rounded-xl border border-zinc-800/30 bg-zinc-900/20 custom-scrollbar",
+            "overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-800/30 bg-[#0f1010] no-scrollbar",
             fill && "min-h-0 flex-1",
           )}
           style={fill ? undefined : { maxHeight: ACTIVITY_LIST_HEIGHT }}
         >
-          {filtered.map((pos, i) => (
-            <PositionRow
-              key={`${pos.source}-${pos.market?.slug ?? i}`}
-              position={pos}
-              translate={translate}
-              worldcupMatchBySlug={worldcupMatchBySlug}
-            />
-          ))}
+          <div className="overflow-x-auto overflow-y-visible no-scrollbar">
+            <div style={{ minWidth: POSITION_TABLE_MIN_WIDTH, width: "100%" }}>
+            <div
+              className={cn(
+                "sticky top-0 z-20 grid items-center gap-4 border-b border-zinc-800/50 bg-[#111113]/95 px-5 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500 backdrop-blur",
+                POSITION_ROW_GRID,
+              )}
+            >
+              <span>{t("extend.leaderboard.detail.colMarket")}</span>
+              <span className="flex justify-end">
+                <Sortable sort={sortFor("size")} onSortChange={handleSort("size")}>
+                  {t("extend.leaderboard.detail.colShares")}
+                </Sortable>
+              </span>
+              <span className="text-right">{t("extend.leaderboard.detail.colAvgNow")}</span>
+              <span className="text-right">{t("extend.portfolio.invested")}</span>
+              <span className="flex justify-end">
+                <Sortable sort={sortFor("value")} onSortChange={handleSort("value")}>
+                  {t("extend.leaderboard.detail.colValue")}
+                </Sortable>
+              </span>
+              <span className="flex justify-end">
+                <Sortable sort={sortFor("pnl")} onSortChange={handleSort("pnl")}>
+                  {t("extend.leaderboard.detail.colTotalPnl")}
+                </Sortable>
+              </span>
+              <span className="pr-5 text-right">
+                {t("extend.portfolio.action")}
+              </span>
+            </div>
+            <div className="relative w-full bg-[#0f1010]" style={{ height: virtualizer.getTotalSize() }}>
+              {virtualizer.getVirtualItems().map((vItem) => {
+                const pos = filtered[vItem.index];
+                return (
+                  <div
+                    key={positionRowKey(pos, vItem.index)}
+                    ref={virtualizer.measureElement}
+                    data-index={vItem.index}
+                    className="absolute left-0 top-0 w-full"
+                    style={{ transform: `translateY(${vItem.start}px)` }}
+                  >
+                    <PositionRow
+                      position={pos}
+                      translate={translate}
+                      worldcupMatchBySlug={worldcupMatchBySlug}
+                      isLast={vItem.index === filtered.length - 1}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          </div>
         </div>
       )}
     </div>
@@ -357,10 +363,12 @@ function PositionRow({
   position,
   translate,
   worldcupMatchBySlug,
+  isLast,
 }: {
   position: PredictPosition;
   translate: WorldCupTranslate;
   worldcupMatchBySlug: WorldcupMatchBySlug;
+  isLast: boolean;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -375,10 +383,16 @@ function PositionRow({
   const pnlColor = pnl > 0 ? "text-bullish" : pnl < 0 ? "text-bearish" : "text-zinc-400";
   const display = activityDisplay(position, worldcupMatchBySlug, translate);
   const marketLabel = display.title;
-  const marketName = display.subtitle;
-  const sideLabel = position.side;
-  const isYes = sideLabel?.toLowerCase() === "yes";
+  const marketName = display.outcomeLabel ?? display.subtitle;
+  const originalSideLabel = position.side;
+  const isYes = originalSideLabel?.toLowerCase() === "yes";
+  const isMoneylineOutcome = Boolean(display.outcomeLabel);
+  const sideLabel = isMoneylineOutcome
+    ? t(isYes ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
+    : position.side;
+  const showSideCapsule = Boolean(sideLabel);
   const source = position.source;
+  const cellBorder = isLast ? "border-b border-transparent" : "border-b border-zinc-800/30";
 
   const imageUrl = display.imageUrl;
   const eventSlug = position.event?.slug;
@@ -419,11 +433,19 @@ function PositionRow({
   );
 
   return (
-    <div className="group transition-[background-color] duration-150 hover:bg-zinc-800/30">
-      {/* Desktop row */}
-      <div className="hidden items-center gap-4 px-5 py-4 lg:flex">
+    <div
+      className={cn(
+        "group transition-[background-color] duration-150 hover:bg-zinc-800/30",
+      )}
+    >
+      <div
+        className={cn(
+          "grid items-stretch gap-4 px-5",
+          POSITION_ROW_GRID,
+        )}
+      >
         {/* Col 1: Icon + event info */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className={cn("flex min-w-0 items-center gap-3 py-3", cellBorder)}>
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
             {imageUrl ? (
               <img src={imageUrl} alt="" className="h-full w-full object-cover" />
@@ -441,31 +463,24 @@ function PositionRow({
             >
               {marketLabel}
             </span>
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              {marketName && (
-                <>
-                  <span className="max-w-[200px] truncate">{marketName}</span>
-                  <span className="text-zinc-700">&bull;</span>
-                </>
+            <div className="flex min-w-0 items-center gap-2 text-xs text-zinc-400">
+              {marketName && <span className="max-w-[240px] truncate">{marketName}</span>}
+              {marketName && showSideCapsule && <span className="text-zinc-600">&bull;</span>}
+              {showSideCapsule && (
+                <span
+                  className={cn(
+                    "inline-block shrink-0 text-xs font-medium",
+                    isMoneylineOutcome ? "" : "rounded px-1.5 py-0.5",
+                    isYes ? "text-bullish" : "text-bearish",
+                    !isMoneylineOutcome && (isYes ? "bg-bullish/10" : "bg-bearish/10"),
+                  )}
+                >
+                  {sideLabel}
+                </span>
               )}
-              <span
-                className={cn(
-                  "rounded px-1.5 py-0.5 font-medium",
-                  isYes
-                    ? "bg-bullish/10 text-bullish"
-                    : "bg-bearish/10 text-bearish",
-                )}
-              >
-                {sideLabel}
-              </span>
-              <span className="text-zinc-600">&bull;</span>
-              <span>
-                {formatShares(position.size)}
-                {t("predict.trade.sharesUnit")}
-              </span>
               {SHOW_SOURCE_BADGE && (
                 <>
-                  <span className="text-zinc-600">&bull;</span>
+                  {(marketName || showSideCapsule) && <span className="text-zinc-600">&bull;</span>}
                   <span className="inline-flex items-center gap-1">
                     {source === "kalshi" ? (
                       <KalshiIcon width={36} height={12} />
@@ -482,8 +497,13 @@ function PositionRow({
           </div>
         </div>
 
-        {/* Col 2: Price change */}
-        <div className="min-w-[120px] shrink-0 text-center">
+        {/* Col 2: Shares */}
+        <div className={cn("flex items-center justify-end py-3 text-right text-sm tabular-nums text-zinc-300", cellBorder)}>
+          {formatShares(position.size)}
+        </div>
+
+        {/* Col 3: Price change */}
+        <div className={cn("flex items-center justify-end py-3 text-right", cellBorder)}>
           <span className="text-sm">
             {formatPrice(avgPrice)}{" "}
             <span className="text-zinc-600">&rarr;</span>{" "}
@@ -493,23 +513,31 @@ function PositionRow({
           </span>
         </div>
 
-        {/* Col 3: Invested */}
-        <div className="min-w-[90px] shrink-0 text-right">
-          <div className="mb-0.5 text-xs text-zinc-500">{t("extend.portfolio.invested")}</div>
+        {/* Col 4: Invested */}
+        <div className={cn("flex items-center justify-end py-3 text-right", cellBorder)}>
           <div className="text-sm font-medium text-white">${invested.toFixed(2)}</div>
         </div>
 
-        {/* Col 4: Value + PnL */}
-        <div className="min-w-[130px] shrink-0 text-right">
-          <div className="mb-0.5 text-base font-bold text-white">${currentValue.toFixed(2)}</div>
+        {/* Col 5: Value */}
+        <div className={cn("flex items-center justify-end py-3 text-right", cellBorder)}>
+          <div className="text-sm font-semibold text-white">${currentValue.toFixed(2)}</div>
+        </div>
+
+        {/* Col 6: Total PnL */}
+        <div className={cn("flex items-center justify-end py-3 text-right", cellBorder)}>
           <div className={cn("text-xs font-semibold", pnlColor)}>
             {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}
             {pnlPercent.toFixed(1)}%)
           </div>
         </div>
 
-        {/* Col 5: Sell / Redeem button */}
-        <div className="shrink-0">
+        {/* Col 7: Sell / Redeem button */}
+        <div
+          className={cn(
+            "flex items-center justify-end py-3 pr-5 text-right",
+            cellBorder,
+          )}
+        >
           {position.redeemable ? (
             <button
               type="button"
@@ -528,71 +556,6 @@ function PositionRow({
             </button>
           )}
         </div>
-      </div>
-
-      {/* Compact layout (tablet + mobile) */}
-      <div className="flex items-center gap-3 p-4 lg:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-800/50 bg-zinc-900">
-          {imageUrl ? (
-            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-          ) : source === "kalshi" ? (
-            <KalshiIcon width={30} height={11} />
-          ) : (
-            <PolymarketIcon width={22} height={22} />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn("min-w-0 flex-1 truncate text-sm font-medium text-white", eventSlug && "cursor-pointer hover:underline")}
-              onClick={handleNavigate}
-              onMouseEnter={handlePrefetch}
-            >
-              {marketLabel}
-            </span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
-            <span
-              className={cn(
-                "rounded px-1.5 py-0.5 font-medium",
-                isYes ? "bg-bullish/10 text-bullish" : "bg-bearish/10 text-bearish",
-              )}
-            >
-              {sideLabel}
-            </span>
-            <span>{formatShares(position.size)}{t("predict.trade.sharesUnit")}</span>
-            <span className="text-zinc-600">&middot;</span>
-            <span className="text-zinc-500">
-              {formatPrice(avgPrice)}<span className="mx-0.5">&rarr;</span>
-              <span className={currentPrice > avgPrice ? "text-bullish" : currentPrice < avgPrice ? "text-bearish" : ""}>
-                {formatPrice(currentPrice)}
-              </span>
-            </span>
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="text-sm font-bold text-white">${currentValue.toFixed(2)}</div>
-          <div className={cn("text-xs font-semibold", pnlColor)}>
-            {pnl >= 0 ? "+" : "-"}${Math.abs(pnl).toFixed(2)} ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
-          </div>
-        </div>
-        {position.redeemable ? (
-          <button
-            type="button"
-            onClick={handleRedeem}
-            className="shrink-0 cursor-pointer rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500/60"
-          >
-            {t("predict.redeem.confirm")}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSell}
-            className="shrink-0 cursor-pointer rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500/60"
-          >
-            {t("extend.portfolio.sell")}
-          </button>
-        )}
       </div>
     </div>
   );

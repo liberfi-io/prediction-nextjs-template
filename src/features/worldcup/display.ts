@@ -4,7 +4,10 @@ import type { TeamHint } from "./components/detail/marketGrouping";
 /** Shared FIFA logo used for World Cup match surfaces. */
 export const FIFA_AVATAR = "/worldcup/fifa.webp";
 
-export type WorldCupTranslate = (key: `extend.${string}`) => string;
+export type WorldCupTranslate = (
+  key: `extend.${string}`,
+  options?: Record<string, unknown>,
+) => string;
 
 /** Build the same localized team hint used by the World Cup detail page. */
 export function buildWorldcupTeamHint(

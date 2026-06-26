@@ -100,7 +100,12 @@ export function PortfolioActivitySection({
       ) : (
         <div className="flex flex-col">
           {activeTab === "positions" && (
-            <PositionsPanel positions={allPositions} isLoading={positionsLoading} fill={false} />
+            <PositionsPanel
+              positions={allPositions}
+              isLoading={positionsLoading}
+              search=""
+              fill={false}
+            />
           )}
           {activeTab === "orders" && (
             <OrdersPanel solanaAddr={solanaAddr} evmAddr={evmAddr} fill={false} />
