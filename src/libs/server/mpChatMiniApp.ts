@@ -36,6 +36,9 @@ interface VerifyMpChatMiniAppInitDataInput {
 }
 
 const DEFAULT_INIT_DATA_MAX_AGE_SECONDS = 300;
+const START_PARAM_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const CHAT_ID_RE = /^g[0-9A-Za-z]+$/;
+const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 export const MPCHAT_SESSION_COOKIE_DEFAULT_NAME = "mp_miniapp_context";
 export const MPCHAT_SESSION_COOKIE_DEFAULT_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
@@ -79,13 +82,21 @@ export function verifyMpChatMiniAppInitData({
 
   const chatRaw = params.get("chat");
   const chat = parseJsonParam<MpChatInitDataChat>(chatRaw);
+  const effectiveStartParam = startParam?.trim() || asStringParam(params, "start_param");
+  const startParamChatId = parseStartParamChatId(effectiveStartParam);
+  const mpChatId =
+    extractJsonFieldString(chatRaw, "id") ?? asIdString(chat?.id) ?? startParamChatId;
+  const mpChatType =
+    asString(chat?.type) ??
+    asStringParam(params, "chat_type") ??
+    inferChatTypeFromChatId(mpChatId);
 
   return {
     mpUserId,
     botUsername,
-    mpChatId: extractJsonFieldString(chatRaw, "id") ?? asIdString(chat?.id),
-    mpChatType: asString(chat?.type) ?? asStringParam(params, "chat_type"),
-    startParam: startParam?.trim() || asStringParam(params, "start_param"),
+    mpChatId,
+    mpChatType,
+    startParam: effectiveStartParam,
     queryId: asStringParam(params, "query_id"),
     botId: asStringParam(params, "bot_id"),
     nonce: asStringParam(params, "nonce"),
@@ -197,6 +208,36 @@ function asString(value: unknown): string | undefined {
 function asStringParam(params: URLSearchParams, key: string): string | undefined {
   const value = params.get(key);
   return value?.trim() ? value : undefined;
+}
+
+function parseStartParamChatId(value: string | undefined): string | undefined {
+  if (!value || !START_PARAM_RE.test(value)) return undefined;
+  const parts = value.split("-");
+  if (parts[0] !== "v1") return undefined;
+
+  for (const segment of parts.slice(1)) {
+    if (!segment.startsWith("g")) continue;
+    return decodeChatIdSegment(segment);
+  }
+  return undefined;
+}
+
+function decodeChatIdSegment(segment: string): string | undefined {
+  if (!CHAT_ID_RE.test(segment)) return undefined;
+
+  let value = 0n;
+  for (const char of segment.slice(1)) {
+    const digit = BASE62_ALPHABET.indexOf(char);
+    if (digit < 0) return undefined;
+    value = value * 62n + BigInt(digit);
+  }
+
+  return value > 0n ? `-${value.toString()}` : undefined;
+}
+
+function inferChatTypeFromChatId(chatId: string | undefined): string | undefined {
+  if (!chatId) return undefined;
+  return chatId.startsWith("-100") ? "supergroup" : "group";
 }
 
 function extractJsonFieldString(raw: string | null, key: string): string | undefined {
