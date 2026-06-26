@@ -45,9 +45,11 @@ import {
   type WorldCupTranslate,
 } from "../../features/worldcup/display";
 import {
+  marketLine,
   marketLabel,
   sportsType,
 } from "../../features/worldcup/components/detail/marketGrouping";
+import { formatLine } from "../../features/worldcup/odds/convert-price";
 import type { WcMatch } from "../../features/worldcup/types";
 
 export type ActivityTab = "positions" | "orders" | "history";
@@ -99,6 +101,7 @@ type WorldcupMatchBySlug = Map<string, WcMatch>;
 type ActivityItem = {
   event?: ActivityEvent;
   market?: ActivityMarket;
+  side?: string;
 };
 type ActivityDisplay = {
   title: string;
@@ -106,6 +109,7 @@ type ActivityDisplay = {
   imageUrl?: string;
   outcomeLabel?: string;
   plainSide?: boolean;
+  plainSidePositive?: boolean;
 };
 
 type PositionSortOrder = "asc" | "desc";
@@ -177,6 +181,67 @@ function isWorldcupBothTeamsToScoreMarket(market: ActivityMarket): boolean {
   return sportsType(toWorldcupPredictMarket(market)) === "both_teams_to_score";
 }
 
+function isWorldcupSpreadMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "spreads";
+}
+
+function textMatchesAny(text: string, keys: Set<string>): boolean {
+  const lower = text.toLowerCase();
+  for (const key of keys) {
+    if (key && lower.includes(key)) return true;
+  }
+  return false;
+}
+
+function marketMetaString(market: ActivityMarket, key: string): string {
+  const value = (market.provider_meta ?? market.providerMeta)?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function spreadCoverTeam(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+): { label: string; keys: Set<string> } | undefined {
+  const text =
+    `${market.outcomes?.[0]?.label ?? ""} ${marketMetaString(market, "polymarket.groupItemTitle")}`.trim() ||
+    market.question ||
+    "";
+  if (textMatchesAny(text, hint.homeKeys) && hint.homeLabel) {
+    return { label: hint.homeLabel, keys: hint.homeKeys };
+  }
+  if (textMatchesAny(text, hint.awayKeys) && hint.awayLabel) {
+    return { label: hint.awayLabel, keys: hint.awayKeys };
+  }
+  return undefined;
+}
+
+function worldcupSpreadSubtitle(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupSpreadMarket(market)) return undefined;
+  const team = spreadCoverTeam(market, hint);
+  if (!team) return undefined;
+  const line = Math.abs(marketLine(toWorldcupPredictMarket(market)) ?? 0);
+  if (!line) return undefined;
+  return translate("extend.worldcup.spreadHandicap", {
+    team: team.label,
+    line: formatLine(line, false),
+  });
+}
+
+function worldcupSpreadSideIsPositive(
+  market: ActivityMarket,
+  side: string | undefined,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+): boolean | undefined {
+  if (!isWorldcupSpreadMarket(market) || !side) return undefined;
+  const team = spreadCoverTeam(market, hint);
+  if (!team) return undefined;
+  return team.keys.has(side.trim().toLowerCase());
+}
+
 function worldcupMoneylineOutcomeLabel(
   market: ActivityMarket,
   match: WcMatch,
@@ -209,16 +274,23 @@ function activityDisplay(
     const hint = buildWorldcupTeamHint(match, translate);
     const outcomeLabel = worldcupMoneylineOutcomeLabel(item.market, match, translate);
     const isBothTeamsToScore = isWorldcupBothTeamsToScoreMarket(item.market);
+    const spreadSubtitle = hint
+      ? worldcupSpreadSubtitle(item.market, hint, translate)
+      : undefined;
+    const spreadSideIsPositive = hint
+      ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
+      : undefined;
     return {
       title: worldcupMatchTitle(match, hint) ?? activityEventTitle(item),
       subtitle: outcomeLabel
         ? ""
         : isBothTeamsToScore
           ? translate("extend.worldcup.bothTeamsToScore")
-          : marketLabel(toWorldcupPredictMarket(item.market), hint),
+          : spreadSubtitle ?? marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
-      plainSide: Boolean(outcomeLabel || isBothTeamsToScore),
+      plainSide: Boolean(outcomeLabel || isBothTeamsToScore || spreadSubtitle),
+      plainSidePositive: spreadSideIsPositive,
     };
   }
 
@@ -398,8 +470,9 @@ function PositionRow({
   const originalSideLabel = position.side;
   const isYes = originalSideLabel?.toLowerCase() === "yes";
   const usePlainSide = Boolean(display.plainSide);
+  const plainSidePositive = display.plainSidePositive ?? isYes;
   const sideLabel = usePlainSide
-    ? t(isYes ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
+    ? t(plainSidePositive ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
     : position.side;
   const showSideCapsule = Boolean(sideLabel);
   const source = position.source;
@@ -482,7 +555,7 @@ function PositionRow({
                   className={cn(
                     "inline-block shrink-0 text-xs font-medium",
                     usePlainSide ? "" : "rounded px-1.5 py-0.5",
-                    isYes ? "text-bullish" : "text-bearish",
+                    plainSidePositive ? "text-bullish" : "text-bearish",
                     !usePlainSide && (isYes ? "bg-bullish/10" : "bg-bearish/10"),
                   )}
                 >

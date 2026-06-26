@@ -334,6 +334,7 @@
       "teamWins": "{{team}} 勝利",
       "moneylineDraw": "引き分け",
       "bothTeamsToScore": "両チーム得点",
+      "spreadHandicap": "{{team}} {{line}}点ハンデ",
       "live": "ライブ",
       "liveSource": "Source {{index}}",
       "liveCountdown": "試合開始まで {{time}}",

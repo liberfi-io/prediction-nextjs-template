@@ -336,6 +336,7 @@
       "teamWins": "{{team}} gana",
       "moneylineDraw": "Empate",
       "bothTeamsToScore": "Ambos equipos anotarán",
+      "spreadHandicap": "{{team}} concede {{line}} goles",
       "live": "En vivo",
       "liveSource": "Source {{index}}",
       "liveCountdown": "El partido empieza en {{time}}",

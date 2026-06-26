@@ -334,6 +334,7 @@
       "teamWins": "Victoire {{team}}",
       "moneylineDraw": "Match nul",
       "bothTeamsToScore": "Les deux équipes marquent",
+      "spreadHandicap": "{{team}} rend {{line}} buts",
       "live": "En direct",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Le match commence dans {{time}}",

@@ -336,6 +336,7 @@
       "teamWins": "{{team}} gewinnt",
       "moneylineDraw": "Unentschieden",
       "bothTeamsToScore": "Beide Teams treffen",
+      "spreadHandicap": "{{team}} gibt {{line}} Tore vor",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Spielbeginn in {{time}}",

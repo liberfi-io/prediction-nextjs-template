@@ -336,6 +336,7 @@
       "teamWins": "Победа {{team}}",
       "moneylineDraw": "Ничья",
       "bothTeamsToScore": "Обе команды забьют",
+      "spreadHandicap": "{{team}} дает фору {{line}} гола",
       "live": "В эфире",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Матч начнется через {{time}}",

@@ -334,6 +334,7 @@
       "teamWins": "{{team}} ชนะ",
       "moneylineDraw": "เสมอ",
       "bothTeamsToScore": "ทั้งสองทีมทำคะแนน",
+      "spreadHandicap": "{{team}} ต่อ {{line}} ประตู",
       "live": "ถ่ายทอดสด",
       "liveSource": "Source {{index}}",
       "liveCountdown": "การแข่งขันเริ่มใน {{time}}",
