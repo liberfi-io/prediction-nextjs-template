@@ -8,15 +8,14 @@ const MARKET_RE = /^(?:mlh|mld|mla|sp|to|to[0-9]+|btts)$/;
 const OUTCOME_RE = /^[yn]$/;
 const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-interface ParsedStartParamSuffix {
-  tgChatId: number | null;
-  referral: string | null;
-}
-
-const EMPTY_START_PARAM: Pick<ParsedStartParam, "market" | "outcome" | "tgChatId" | "referral"> = {
+const EMPTY_PARSED_START_PARAM: ParsedStartParam = {
+  version: "v1",
+  route: null,
+  target: null,
   market: null,
   outcome: null,
   tgChatId: null,
+  tgChatType: null,
   referral: null,
 };
 
@@ -45,24 +44,8 @@ function parseTelegramChatId(segment: string): number | null {
   return -Number(value);
 }
 
-function parseSuffix(parts: string[], startIndex: number): ParsedStartParamSuffix | null {
-  let cursor = startIndex;
-  let tgChatId: number | null = null;
-  let referral: string | null = null;
-
-  if (parts[cursor]?.startsWith("g")) {
-    tgChatId = parseTelegramChatId(parts[cursor]);
-    if (!tgChatId) return null;
-    cursor += 1;
-  }
-
-  if (parts[cursor]?.startsWith("r")) {
-    referral = parseReferral(parts[cursor]);
-    if (!referral) return null;
-    cursor += 1;
-  }
-
-  return cursor === parts.length ? { tgChatId, referral } : null;
+function inferTelegramChatType(tgChatId: number): string {
+  return String(tgChatId).startsWith("-100") ? "supergroup" : "group";
 }
 
 function isOutcome(value: string): value is TelegramStartOutcome {
@@ -84,68 +67,65 @@ export function parseStartParam(value: string): ParsedStartParam | null {
 
   const parts = raw.split("-");
   if (parts[0] !== "v1") return null;
+  if (parts.length === 1) return null;
 
-  if (parts.length === 2) {
-    const tgChatId = parseTelegramChatId(parts[1]);
-    if (tgChatId) {
-      return { version: "v1", route: null, target: null, ...EMPTY_START_PARAM, tgChatId };
+  const parsed: ParsedStartParam = { ...EMPTY_PARSED_START_PARAM };
+  let cursor = 1;
+
+  while (cursor < parts.length) {
+    const segment = parts[cursor];
+
+    if (segment === "wl" || segment === "wd") {
+      if (parsed.route) return null;
+      const target = parts[cursor + 1];
+      if (!target || !TARGET_RE.test(target)) return null;
+
+      parsed.route = segment;
+      parsed.target = target;
+      cursor += 2;
+
+      if (segment === "wd" && cursor + 1 < parts.length) {
+        const selection = parseMarketOutcome(parts[cursor], parts[cursor + 1]);
+        if (selection) {
+          parsed.market = selection.market;
+          parsed.outcome = selection.outcome;
+          cursor += 2;
+        }
+      }
+      continue;
     }
 
-    const referral = parseReferral(parts[1]) ?? parseBareReferral(parts[1]);
-    if (!referral) return null;
-    return { version: "v1", route: null, target: null, ...EMPTY_START_PARAM, referral };
-  }
+    if (segment.startsWith("g")) {
+      if (parsed.tgChatId) return null;
+      const tgChatId = parseTelegramChatId(segment);
+      if (!tgChatId) return null;
+      parsed.tgChatId = tgChatId;
+      parsed.tgChatType = inferTelegramChatType(tgChatId);
+      cursor += 1;
+      continue;
+    }
 
-  const route = parts[1];
-  const target = parts[2];
-  if ((route !== "wl" && route !== "wd") || !target || !TARGET_RE.test(target)) {
+    if (segment.startsWith("r")) {
+      if (parsed.referral) return null;
+      const referral = parseReferral(segment);
+      if (!referral) return null;
+      parsed.referral = referral;
+      cursor += 1;
+      continue;
+    }
+
+    if (parts.length === 2 && cursor === 1) {
+      const referral = parseBareReferral(segment);
+      if (!referral) return null;
+      parsed.referral = referral;
+      cursor += 1;
+      continue;
+    }
+
     return null;
   }
 
-  if (route === "wl") {
-    const suffix = parseSuffix(parts, 3);
-    if (!suffix) return null;
-    return {
-      version: "v1",
-      route,
-      target,
-      market: null,
-      outcome: null,
-      tgChatId: suffix.tgChatId,
-      referral: suffix.referral,
-    };
-  }
-
-  if (parts.length >= 5) {
-    const selection = parseMarketOutcome(parts[3], parts[4]);
-    if (selection) {
-      const suffix = parseSuffix(parts, 5);
-      if (!suffix) return null;
-      return {
-        version: "v1",
-        route,
-        target,
-        market: selection.market,
-        outcome: selection.outcome,
-        tgChatId: suffix.tgChatId,
-        referral: suffix.referral,
-      };
-    }
-  }
-
-  {
-    const suffix = parseSuffix(parts, 3);
-    if (!suffix) return null;
-    return {
-      version: "v1",
-      route,
-      target,
-      market: null,
-      outcome: null,
-      tgChatId: suffix.tgChatId,
-      referral: suffix.referral,
-    };
-  }
+  return parsed;
 }
 
 export function toQueryOutcome(outcome: TelegramStartOutcome): "yes" | "no" {

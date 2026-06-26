@@ -42,9 +42,12 @@ export async function POST(request: NextRequest) {
     });
     const parsedStartParam = startParam?.trim() ? parseStartParam(startParam) : null;
     const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
+    const tgChatType =
+      context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);
     const cookieContext = preserveExistingAuthSession(request, botToken, {
       ...context,
       ...(tgChatId ? { tgChatId } : {}),
+      ...(tgChatType ? { tgChatType } : {}),
       ...(parsedStartParam?.tgChatId && !context.tgChatId
         ? { tgChatSource: "start_param" as const }
         : context.tgChatId

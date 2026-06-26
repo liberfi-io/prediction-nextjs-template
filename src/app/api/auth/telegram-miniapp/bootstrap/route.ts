@@ -87,9 +87,12 @@ function resolveTelegramContext(
   });
   const parsedStartParam = body.startParam?.trim() ? parseStartParam(body.startParam) : null;
   const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
+  const tgChatType =
+    context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);
   return {
     ...context,
     ...(tgChatId ? { tgChatId } : {}),
+    ...(tgChatType ? { tgChatType } : {}),
     ...(parsedStartParam?.tgChatId && !context.tgChatId
       ? { tgChatSource: "start_param" as const }
       : context.tgChatId
