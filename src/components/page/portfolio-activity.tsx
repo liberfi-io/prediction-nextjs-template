@@ -351,6 +351,10 @@ function sellOutcomeForPosition(
   ) {
     return display.plainSidePositive ? "yes" : "no";
   }
+  if (position.market && isWorldcupTotalsMarket(position.market)) {
+    if (side === "over") return "yes";
+    if (side === "under") return "no";
+  }
   return "no";
 }
 
@@ -359,7 +363,10 @@ function sellPositionSideOverride(position: PredictPosition): string | undefined
   if (!side || side.toLowerCase() === "yes" || side.toLowerCase() === "no") {
     return undefined;
   }
-  return position.market && isWorldcupSpreadMarket(position.market) ? side : undefined;
+  if (!position.market) return undefined;
+  return isWorldcupSpreadMarket(position.market) || isWorldcupTotalsMarket(position.market)
+    ? side
+    : undefined;
 }
 
 export function PositionsPanel({
