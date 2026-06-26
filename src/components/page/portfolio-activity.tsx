@@ -326,7 +326,7 @@ export function PositionsPanel({
                   {t("extend.leaderboard.detail.colTotalPnl")}
                 </Sortable>
               </span>
-              <span className="pr-5 text-right">
+              <span className="sticky right-0 z-30 -mr-5 bg-[#111113]/95 py-2 pr-5 text-right lg:static lg:mr-0 lg:bg-transparent lg:py-0">
                 {t("extend.portfolio.action")}
               </span>
             </div>
@@ -534,7 +534,7 @@ function PositionRow({
         {/* Col 7: Sell / Redeem button */}
         <div
           className={cn(
-            "flex items-center justify-end py-3 pr-5 text-right",
+            "sticky right-0 z-10 -mr-5 flex items-center justify-end bg-[#0f1010] py-3 pr-5 text-right transition-[background-color] duration-150 group-hover:bg-[#1b1d20] lg:static lg:z-auto lg:mr-0 lg:bg-transparent lg:group-hover:bg-transparent",
             cellBorder,
           )}
         >
