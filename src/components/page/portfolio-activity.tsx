@@ -301,6 +301,30 @@ function activityDisplay(
   };
 }
 
+function sellOutcomeForPosition(
+  position: PredictPosition,
+  display: ActivityDisplay,
+): "yes" | "no" {
+  const side = position.side?.trim().toLowerCase();
+  if (side === "yes" || side === "no") return side;
+  if (
+    position.market &&
+    isWorldcupSpreadMarket(position.market) &&
+    typeof display.plainSidePositive === "boolean"
+  ) {
+    return display.plainSidePositive ? "yes" : "no";
+  }
+  return "no";
+}
+
+function sellPositionSideOverride(position: PredictPosition): string | undefined {
+  const side = position.side?.trim();
+  if (!side || side.toLowerCase() === "yes" || side.toLowerCase() === "no") {
+    return undefined;
+  }
+  return position.market && isWorldcupSpreadMarket(position.market) ? side : undefined;
+}
+
 export function PositionsPanel({
   positions,
   isLoading,
@@ -491,15 +515,17 @@ function PositionRow({
   const handleSell = useCallback(
     () => {
       if (!position.event || !position.market) return;
+      const initialPositionSide = sellPositionSideOverride(position);
       openSellModal({
         params: {
           event: position.event,
           market: position.market,
-          initialOutcome: (position.side?.toLowerCase() === "yes" ? "yes" : "no") as "yes" | "no",
-        },
+          initialOutcome: sellOutcomeForPosition(position, display),
+          ...(initialPositionSide ? { initialPositionSide } : {}),
+        } as PredictSellModalParams & { initialPositionSide?: string },
       });
     },
-    [position.event, position.market, position.side, openSellModal],
+    [position, display, openSellModal],
   );
 
   const handleRedeem = useCallback(
