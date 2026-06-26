@@ -333,6 +333,7 @@
       "draw": "Hòa",
       "teamWins": "{{team}} thắng",
       "moneylineDraw": "Hòa",
+      "bothTeamsToScore": "Cả hai đội ghi bàn",
       "live": "Trực tiếp",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Trận đấu bắt đầu sau {{time}}",

@@ -345,6 +345,7 @@
       "draw": "Draw",
       "teamWins": "{{team}} wins",
       "moneylineDraw": "Draw",
+      "bothTeamsToScore": "Both Teams to Score",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Match starts in {{time}}",

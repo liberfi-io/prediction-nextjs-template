@@ -335,6 +335,7 @@
       "draw": "Pareggio",
       "teamWins": "Vince {{team}}",
       "moneylineDraw": "Pareggio",
+      "bothTeamsToScore": "Entrambe le squadre segnano",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "La partita inizia tra {{time}}",

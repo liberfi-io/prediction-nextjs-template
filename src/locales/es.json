@@ -335,6 +335,7 @@
       "draw": "Empate",
       "teamWins": "{{team}} gana",
       "moneylineDraw": "Empate",
+      "bothTeamsToScore": "Ambos equipos anotarán",
       "live": "En vivo",
       "liveSource": "Source {{index}}",
       "liveCountdown": "El partido empieza en {{time}}",

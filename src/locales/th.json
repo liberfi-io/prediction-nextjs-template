@@ -333,6 +333,7 @@
       "draw": "เสมอ",
       "teamWins": "{{team}} ชนะ",
       "moneylineDraw": "เสมอ",
+      "bothTeamsToScore": "ทั้งสองทีมทำคะแนน",
       "live": "ถ่ายทอดสด",
       "liveSource": "Source {{index}}",
       "liveCountdown": "การแข่งขันเริ่มใน {{time}}",

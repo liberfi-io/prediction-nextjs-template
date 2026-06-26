@@ -105,6 +105,7 @@ type ActivityDisplay = {
   subtitle: string;
   imageUrl?: string;
   outcomeLabel?: string;
+  plainSide?: boolean;
 };
 
 type PositionSortOrder = "asc" | "desc";
@@ -172,6 +173,10 @@ function isWorldcupMoneylineMarket(market: ActivityMarket): boolean {
   return type === "moneyline" || type === "soccer_match_winner";
 }
 
+function isWorldcupBothTeamsToScoreMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "both_teams_to_score";
+}
+
 function worldcupMoneylineOutcomeLabel(
   market: ActivityMarket,
   match: WcMatch,
@@ -203,11 +208,17 @@ function activityDisplay(
   if (match && item.market) {
     const hint = buildWorldcupTeamHint(match, translate);
     const outcomeLabel = worldcupMoneylineOutcomeLabel(item.market, match, translate);
+    const isBothTeamsToScore = isWorldcupBothTeamsToScoreMarket(item.market);
     return {
       title: worldcupMatchTitle(match, hint) ?? activityEventTitle(item),
-      subtitle: outcomeLabel ? "" : marketLabel(toWorldcupPredictMarket(item.market), hint),
+      subtitle: outcomeLabel
+        ? ""
+        : isBothTeamsToScore
+          ? translate("extend.worldcup.bothTeamsToScore")
+          : marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
+      plainSide: Boolean(outcomeLabel || isBothTeamsToScore),
     };
   }
 
@@ -386,8 +397,8 @@ function PositionRow({
   const marketName = display.outcomeLabel ?? display.subtitle;
   const originalSideLabel = position.side;
   const isYes = originalSideLabel?.toLowerCase() === "yes";
-  const isMoneylineOutcome = Boolean(display.outcomeLabel);
-  const sideLabel = isMoneylineOutcome
+  const usePlainSide = Boolean(display.plainSide);
+  const sideLabel = usePlainSide
     ? t(isYes ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
     : position.side;
   const showSideCapsule = Boolean(sideLabel);
@@ -470,9 +481,9 @@ function PositionRow({
                 <span
                   className={cn(
                     "inline-block shrink-0 text-xs font-medium",
-                    isMoneylineOutcome ? "" : "rounded px-1.5 py-0.5",
+                    usePlainSide ? "" : "rounded px-1.5 py-0.5",
                     isYes ? "text-bullish" : "text-bearish",
-                    !isMoneylineOutcome && (isYes ? "bg-bullish/10" : "bg-bearish/10"),
+                    !usePlainSide && (isYes ? "bg-bullish/10" : "bg-bearish/10"),
                   )}
                 >
                   {sideLabel}

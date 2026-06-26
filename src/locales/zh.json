@@ -294,6 +294,7 @@
       "draw": "平",
       "teamWins": "{{team}} 获胜",
       "moneylineDraw": "平局",
+      "bothTeamsToScore": "双方进球",
       "live": "實況",
       "liveSource": "源{{index}}",
       "liveCountdown": "距离比赛开始 {{time}}",

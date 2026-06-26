@@ -333,6 +333,7 @@
       "draw": "Égalité",
       "teamWins": "Victoire {{team}}",
       "moneylineDraw": "Match nul",
+      "bothTeamsToScore": "Les deux équipes marquent",
       "live": "En direct",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Le match commence dans {{time}}",

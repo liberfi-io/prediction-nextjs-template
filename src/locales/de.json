@@ -335,6 +335,7 @@
       "draw": "Unentschieden",
       "teamWins": "{{team}} gewinnt",
       "moneylineDraw": "Unentschieden",
+      "bothTeamsToScore": "Beide Teams treffen",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Spielbeginn in {{time}}",

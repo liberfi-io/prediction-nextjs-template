@@ -335,6 +335,7 @@
       "draw": "Ничья",
       "teamWins": "Победа {{team}}",
       "moneylineDraw": "Ничья",
+      "bothTeamsToScore": "Обе команды забьют",
       "live": "В эфире",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Матч начнется через {{time}}",

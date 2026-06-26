@@ -333,6 +333,7 @@
       "draw": "무승부",
       "teamWins": "{{team}} 승리",
       "moneylineDraw": "무승부",
+      "bothTeamsToScore": "양 팀 득점",
       "live": "실시간",
       "liveSource": "Source {{index}}",
       "liveCountdown": "경기 시작까지 {{time}}",
