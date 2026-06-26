@@ -347,6 +347,8 @@
       "moneylineDraw": "Draw",
       "bothTeamsToScore": "Both Teams to Score",
       "spreadHandicap": "{{team}} gives {{line}} goals",
+      "totalOver": "Over {{line}} goals",
+      "totalUnder": "Under {{line}} goals",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Match starts in {{time}}",

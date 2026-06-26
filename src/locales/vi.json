@@ -335,6 +335,8 @@
       "moneylineDraw": "Hòa",
       "bothTeamsToScore": "Cả hai đội ghi bàn",
       "spreadHandicap": "{{team}} chấp {{line}} bàn",
+      "totalOver": "Tài {{line}} bàn",
+      "totalUnder": "Xỉu {{line}} bàn",
       "live": "Trực tiếp",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Trận đấu bắt đầu sau {{time}}",

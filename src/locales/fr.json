@@ -335,6 +335,8 @@
       "moneylineDraw": "Match nul",
       "bothTeamsToScore": "Les deux équipes marquent",
       "spreadHandicap": "{{team}} rend {{line}} buts",
+      "totalOver": "Plus de {{line}} buts",
+      "totalUnder": "Moins de {{line}} buts",
       "live": "En direct",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Le match commence dans {{time}}",

@@ -337,6 +337,8 @@
       "moneylineDraw": "Ничья",
       "bothTeamsToScore": "Обе команды забьют",
       "spreadHandicap": "{{team}} дает фору {{line}} гола",
+      "totalOver": "Больше {{line}} гола",
+      "totalUnder": "Меньше {{line}} гола",
       "live": "В эфире",
       "liveSource": "Source {{index}}",
       "liveCountdown": "Матч начнется через {{time}}",

@@ -337,6 +337,8 @@
       "moneylineDraw": "Pareggio",
       "bothTeamsToScore": "Entrambe le squadre segnano",
       "spreadHandicap": "{{team}} concede {{line}} gol",
+      "totalOver": "Oltre {{line}} gol",
+      "totalUnder": "Meno di {{line}} gol",
       "live": "Live",
       "liveSource": "Source {{index}}",
       "liveCountdown": "La partita inizia tra {{time}}",

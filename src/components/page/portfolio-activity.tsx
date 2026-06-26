@@ -108,8 +108,10 @@ type ActivityDisplay = {
   subtitle: string;
   imageUrl?: string;
   outcomeLabel?: string;
+  subtitleTone?: "bullish" | "bearish";
   plainSide?: boolean;
   plainSidePositive?: boolean;
+  hideSide?: boolean;
 };
 
 type PositionSortOrder = "asc" | "desc";
@@ -185,6 +187,10 @@ function isWorldcupSpreadMarket(market: ActivityMarket): boolean {
   return sportsType(toWorldcupPredictMarket(market)) === "spreads";
 }
 
+function isWorldcupTotalsMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "totals";
+}
+
 function textMatchesAny(text: string, keys: Set<string>): boolean {
   const lower = text.toLowerCase();
   for (const key of keys) {
@@ -242,6 +248,34 @@ function worldcupSpreadSideIsPositive(
   return team.keys.has(side.trim().toLowerCase());
 }
 
+function worldcupTotalsSubtitle(
+  market: ActivityMarket,
+  side: string | undefined,
+  translate: WorldCupTranslate,
+): { label: string; tone: "bullish" | "bearish" } | undefined {
+  if (!isWorldcupTotalsMarket(market) || !side) return undefined;
+  const line = marketLine(toWorldcupPredictMarket(market));
+  if (!line) return undefined;
+  const normalizedSide = side.trim().toLowerCase();
+  if (normalizedSide === "over" || normalizedSide === "yes") {
+    return {
+      label: translate("extend.worldcup.totalOver", {
+        line: formatLine(Math.abs(line), false),
+      }),
+      tone: "bullish",
+    };
+  }
+  if (normalizedSide === "under" || normalizedSide === "no") {
+    return {
+      label: translate("extend.worldcup.totalUnder", {
+        line: formatLine(Math.abs(line), false),
+      }),
+      tone: "bearish",
+    };
+  }
+  return undefined;
+}
+
 function worldcupMoneylineOutcomeLabel(
   market: ActivityMarket,
   match: WcMatch,
@@ -277,6 +311,7 @@ function activityDisplay(
     const spreadSubtitle = hint
       ? worldcupSpreadSubtitle(item.market, hint, translate)
       : undefined;
+    const totalsSubtitle = worldcupTotalsSubtitle(item.market, item.side, translate);
     const spreadSideIsPositive = hint
       ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
       : undefined;
@@ -286,11 +321,13 @@ function activityDisplay(
         ? ""
         : isBothTeamsToScore
           ? translate("extend.worldcup.bothTeamsToScore")
-          : spreadSubtitle ?? marketLabel(toWorldcupPredictMarket(item.market), hint),
+          : spreadSubtitle ?? totalsSubtitle?.label ?? marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
+      subtitleTone: totalsSubtitle?.tone,
       plainSide: Boolean(outcomeLabel || isBothTeamsToScore || spreadSubtitle),
       plainSidePositive: spreadSideIsPositive,
+      hideSide: Boolean(totalsSubtitle),
     };
   }
 
@@ -491,6 +528,12 @@ function PositionRow({
   const display = activityDisplay(position, worldcupMatchBySlug, translate);
   const marketLabel = display.title;
   const marketName = display.outcomeLabel ?? display.subtitle;
+  const marketNameToneClass =
+    display.subtitleTone === "bullish"
+      ? "text-bullish"
+      : display.subtitleTone === "bearish"
+        ? "text-bearish"
+        : "text-zinc-400";
   const originalSideLabel = position.side;
   const isYes = originalSideLabel?.toLowerCase() === "yes";
   const usePlainSide = Boolean(display.plainSide);
@@ -498,7 +541,7 @@ function PositionRow({
   const sideLabel = usePlainSide
     ? t(plainSidePositive ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
     : position.side;
-  const showSideCapsule = Boolean(sideLabel);
+  const showSideCapsule = Boolean(sideLabel) && !display.hideSide;
   const source = position.source;
   const cellBorder = isLast ? "border-b border-transparent" : "border-b border-zinc-800/30";
 
@@ -574,7 +617,7 @@ function PositionRow({
               {marketLabel}
             </span>
             <div className="flex min-w-0 items-center gap-2 text-xs text-zinc-400">
-              {marketName && <span className="max-w-[240px] truncate">{marketName}</span>}
+              {marketName && <span className={cn("max-w-[240px] truncate", marketNameToneClass)}>{marketName}</span>}
               {marketName && showSideCapsule && <span className="text-zinc-600">&bull;</span>}
               {showSideCapsule && (
                 <span

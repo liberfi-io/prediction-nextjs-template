@@ -337,6 +337,8 @@
       "moneylineDraw": "Empate",
       "bothTeamsToScore": "Ambos equipos anotarán",
       "spreadHandicap": "{{team}} concede {{line}} goles",
+      "totalOver": "Más de {{line}} goles",
+      "totalUnder": "Menos de {{line}} goles",
       "live": "En vivo",
       "liveSource": "Source {{index}}",
       "liveCountdown": "El partido empieza en {{time}}",

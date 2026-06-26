@@ -335,6 +335,8 @@
       "moneylineDraw": "เสมอ",
       "bothTeamsToScore": "ทั้งสองทีมทำคะแนน",
       "spreadHandicap": "{{team}} ต่อ {{line}} ประตู",
+      "totalOver": "สูงกว่า {{line}} ประตู",
+      "totalUnder": "ต่ำกว่า {{line}} ประตู",
       "live": "ถ่ายทอดสด",
       "liveSource": "Source {{index}}",
       "liveCountdown": "การแข่งขันเริ่มใน {{time}}",
