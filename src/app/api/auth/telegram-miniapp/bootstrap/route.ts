@@ -85,7 +85,8 @@ function resolveTelegramContext(
       DEFAULT_INIT_DATA_MAX_AGE_SECONDS,
     ),
   });
-  const parsedStartParam = body.startParam?.trim() ? parseStartParam(body.startParam) : null;
+  const effectiveStartParam = body.startParam?.trim() || context.startParam;
+  const parsedStartParam = effectiveStartParam ? parseStartParam(effectiveStartParam) : null;
   const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
   const tgChatType =
     context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);

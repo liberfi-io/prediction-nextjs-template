@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
         DEFAULT_COOKIE_MAX_AGE_SECONDS,
       ),
     });
-    const parsedStartParam = startParam?.trim() ? parseStartParam(startParam) : null;
+    const effectiveStartParam = startParam?.trim() || context.startParam;
+    const parsedStartParam = effectiveStartParam ? parseStartParam(effectiveStartParam) : null;
     const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
     const tgChatType =
       context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);

@@ -83,7 +83,7 @@ export function verifyTelegramMiniAppInitData({
   return {
     tgUserId,
     tgChatId: extractJsonFieldString(chatRaw, "id") ?? asIdString(chat?.id),
-    tgChatType: asString(chat?.type),
+    tgChatType: asString(chat?.type) ?? asStringParam(params, "chat_type"),
     startParam: startParam?.trim() || asStringParam(params, "start_param"),
     queryId: asStringParam(params, "query_id"),
     username: asString(user?.username),
