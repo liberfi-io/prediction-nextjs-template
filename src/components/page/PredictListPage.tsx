@@ -24,15 +24,15 @@ import {
   trackMatchListView,
   trackOrderClick,
 } from "../../lib/analytics";
-import { mapToApiLang, toSupportedLang } from "../../i18n/locales";
+import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 
 const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
 
 export function PredictListPage() {
   const router = useRouter();
-  const { t, i18n } = useTranslation();
-  const lang = mapToApiLang(toSupportedLang(i18n.resolvedLanguage ?? i18n.language));
+  const { t } = useTranslation();
+  const lang = useResolvedApiLang();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);

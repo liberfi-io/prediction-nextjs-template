@@ -32,6 +32,7 @@ import {
   useChangeLocale,
   useLocaleContext,
 } from "@liberfi.io/i18n";
+import { useResolvedApiLang } from "src/i18n/ResolvedLocaleProvider";
 import {
   PredictClient,
   PredictWsClient,
@@ -237,13 +238,13 @@ export function AppLayout({ children }: PropsWithChildren) {
 // ---------------------------------------------------------------------------
 
 function ServiceProviders({ children }: PropsWithChildren) {
-  const locale = useLocale();
+  const apiLang = useResolvedApiLang();
   const predictClient = useMemo(
     () =>
       new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL, {
-        headers: () => ({ "Accept-Language": locale }),
+        headers: () => ({ "Accept-Language": apiLang }),
       }),
-    [locale],
+    [apiLang],
   );
 
   // Live WebSocket client for orderbook/price/trade subscriptions. Falls back

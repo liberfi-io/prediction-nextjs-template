@@ -17,8 +17,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useTranslation } from "@liberfi.io/i18n";
-import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
+import { useResolvedApiLang } from "../../../i18n/ResolvedLocaleProvider";
 import {
   WORLDCUP_BEST_THIRD_QUERY_KEY,
   WORLDCUP_BRACKET_QUERY_KEY,
@@ -51,8 +50,7 @@ const CLIENT_BASE = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
  * language switch refetches localized content (06-i18n.md §M3).
  */
 function useApiLang(): string {
-  const { i18n } = useTranslation();
-  return mapToApiLang(toSupportedLang(i18n.language));
+  return useResolvedApiLang();
 }
 
 interface WorldcupMatchesOptions {

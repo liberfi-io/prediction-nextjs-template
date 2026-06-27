@@ -23,6 +23,7 @@ import {
 import { getQueryClient } from "../libs/queryClient";
 import { SUPPORTED_LANG_CODES, toSupportedLang } from "../i18n/locales";
 import { i18nResources } from "../i18n/resources";
+import { ResolvedLocaleProvider } from "../i18n/ResolvedLocaleProvider";
 
 for (const [code, bundle] of Object.entries(i18nResources)) {
   i18n.addResourceBundle(code, defaultNS, bundle, true, true);
@@ -44,14 +45,16 @@ export function RootProviders({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LocaleProvider
-        locale={locale}
-        supportedLanguages={SUPPORTED_LANG_CODES}
-        convertDetectedLanguage={toSupportedLang}
-        resources={i18nResources}
-      >
-        {children}
-      </LocaleProvider>
+      <ResolvedLocaleProvider locale={locale}>
+        <LocaleProvider
+          locale={locale}
+          supportedLanguages={SUPPORTED_LANG_CODES}
+          convertDetectedLanguage={toSupportedLang}
+          resources={i18nResources}
+        >
+          {children}
+        </LocaleProvider>
+      </ResolvedLocaleProvider>
     </QueryClientProvider>
   );
 }

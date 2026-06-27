@@ -15,8 +15,7 @@
  */
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useTranslation } from "@liberfi.io/i18n";
-import { mapToApiLang, toSupportedLang } from "../../../i18n/locales";
+import { useResolvedApiLang } from "../../../i18n/ResolvedLocaleProvider";
 import type {
   LeaderboardInterval,
   PositionSortField,
@@ -55,8 +54,7 @@ const POSITIONS_PAGE_SIZE = 50;
 
 /** Backend `?lang=` value for the active UI language. */
 function useApiLang(): string {
-  const { i18n } = useTranslation();
-  return mapToApiLang(toSupportedLang(i18n.language));
+  return useResolvedApiLang();
 }
 
 /** Fetch the smart-money leaderboard for a time window (no short polling). */
