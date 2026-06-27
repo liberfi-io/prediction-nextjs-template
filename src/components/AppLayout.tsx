@@ -237,9 +237,13 @@ export function AppLayout({ children }: PropsWithChildren) {
 // ---------------------------------------------------------------------------
 
 function ServiceProviders({ children }: PropsWithChildren) {
+  const locale = useLocale();
   const predictClient = useMemo(
-    () => new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL),
-    [],
+    () =>
+      new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL, {
+        headers: () => ({ "Accept-Language": locale }),
+      }),
+    [locale],
   );
 
   // Live WebSocket client for orderbook/price/trade subscriptions. Falls back
