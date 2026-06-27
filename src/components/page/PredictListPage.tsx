@@ -24,13 +24,15 @@ import {
   trackMatchListView,
   trackOrderClick,
 } from "../../lib/analytics";
+import { mapToApiLang, toSupportedLang } from "../../i18n/locales";
 import { predictEventHref } from "./predict-source";
 
 const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
 
 export function PredictListPage() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = mapToApiLang(toSupportedLang(i18n.resolvedLanguage ?? i18n.language));
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
@@ -104,6 +106,7 @@ export function PredictListPage() {
       bgImageSrc="/matches-bg-wide.png"
       onInsufficientBalance={handleInsufficientBalance}
       enableKalshi={ENABLE_KALSHI}
+      lang={lang}
     />
   );
 }
