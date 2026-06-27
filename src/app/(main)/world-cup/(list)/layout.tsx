@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { WorldCupHero } from "src/features/worldcup/components/WorldCupHero";
 import { WorldCupSubTabs } from "src/features/worldcup/components/WorldCupSubTabs";
+import { WorldCupOptimisticTabSkeleton } from "src/features/worldcup/components/WorldCupTabTransition";
 
 /**
  * Layout for the World Cup tab list pages (Games / Groups / Bracket / Props):
@@ -23,7 +24,8 @@ export default function WorldCupListLayout({
 
       <div className="mx-auto w-full max-w-338 px-4 sm:px-6 sm:pt-4">
         <WorldCupSubTabs />
-        {children}
+        <WorldCupOptimisticTabSkeleton />
+        <div id="world-cup-tab-content">{children}</div>
       </div>
     </div>
   );

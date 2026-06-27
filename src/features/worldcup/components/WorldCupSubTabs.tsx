@@ -1,32 +1,63 @@
 "use client";
 
-import { useCallback } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type MouseEvent } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import { WC_TABS, normalizeTab, type WcTab } from "../tabs";
+import {
+  setOptimisticWorldCupTab,
+  useOptimisticWorldCupTab,
+} from "./WorldCupTabTransition";
+
+function tabPath(tab: WcTab): string {
+  return tab === "today" ? "/world-cup" : `/world-cup/${tab}`;
+}
+
+function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    !event.defaultPrevented
+  );
+}
 
 /**
  * World Cup sub-tab navigation (Games / Props / Groups / Bracket).
  *
  * Rendered by the `(list)` layout rather than the page so it persists across
  * tab navigations — switching tabs only swaps the page content below it, the
- * nav itself is never unmounted or rebuilt. The active tab is derived from the
- * pathname because the layout sits above the catch-all `[[...tab]]` segment and
- * therefore never receives its route params.
+ * nav itself is never unmounted or rebuilt. The active state is optimistic so
+ * it responds immediately, without waiting for the RSC navigation to finish.
  */
 export function WorldCupSubTabs() {
-  const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
+  const routeTab = normalizeTab(pathname.split("/")[2]);
+  const optimisticTab = useOptimisticWorldCupTab();
 
-  const active = normalizeTab(pathname.split("/")[2]);
+  useEffect(() => {
+    if (optimisticTab === routeTab) {
+      setOptimisticWorldCupTab(null);
+    }
+  }, [optimisticTab, routeTab]);
 
-  const go = useCallback(
-    (next: WcTab) =>
-      router.push(next === "today" ? "/world-cup" : `/world-cup/${next}`),
-    [router]
-  );
+  const active = optimisticTab ?? routeTab;
+
+  const select = (next: WcTab) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!isPlainLeftClick(event)) return;
+
+    if (next === active) {
+      event.preventDefault();
+      return;
+    }
+
+    setOptimisticWorldCupTab(next);
+  };
 
   return (
     <>
@@ -35,10 +66,10 @@ export function WorldCupSubTabs() {
           {WC_TABS.map((key) => {
             const isActive = key === active;
             return (
-              <button
+              <Link
                 key={key}
-                type="button"
-                onClick={() => go(key)}
+                href={tabPath(key)}
+                onClick={select(key)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "shrink-0 cursor-pointer rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors",
@@ -48,7 +79,7 @@ export function WorldCupSubTabs() {
                 )}
               >
                 {t(`extend.worldcup.tab.${key}`)}
-              </button>
+              </Link>
             );
           })}
         </nav>
