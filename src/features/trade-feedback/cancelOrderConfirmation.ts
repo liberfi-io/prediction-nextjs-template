@@ -179,7 +179,11 @@ function CountdownLabel({ deadlineAt }: { deadlineAt: number }) {
     return () => clearInterval(timer);
   }, [deadlineAt]);
 
-  return `${Math.max(0, Math.ceil(remainingMs / 1000))}s`;
+  return createElement(
+    "span",
+    { className: "predict-trade-toast-countdown" },
+    `${Math.max(0, Math.ceil(remainingMs / 1000))}s`,
+  );
 }
 
 function isChineseLocale(i18n?: LocaleLike): boolean {

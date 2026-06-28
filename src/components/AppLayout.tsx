@@ -224,7 +224,9 @@ export function AppLayout({ children }: PropsWithChildren) {
           <MpChatPrivyAutoLogin />
           <ServiceProviders>
             <PageShell>{children}</PageShell>
-            <StyledToaster />
+            <div className="predict-toast-scope">
+              <StyledToaster />
+            </div>
             <PredictSearchModal />
           </ServiceProviders>
         </MiniAppCaptchaGate>

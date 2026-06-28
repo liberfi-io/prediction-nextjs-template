@@ -45,3 +45,48 @@
     background: transparent;
   }
 }
+
+@layer components {
+  .predict-toast-scope [class~="overflow-hidden"][class~="text-wrap"][class~="break-all"] {
+    width: min(360px, calc(100vw - 32px)) !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 18px 44px -18px rgb(0 0 0 / 0.65) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 16px !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .predict-toast-scope [class~="overflow-hidden"][class~="text-wrap"][class~="break-all"] > div > span {
+    min-width: 0 !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .predict-toast-scope [class~="overflow-hidden"][class~="text-wrap"][class~="break-all"] svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex: 0 0 auto;
+  }
+
+  .predict-toast-scope [class~="overflow-hidden"][class~="text-wrap"][class~="break-all"] [style*="width: 20px"] {
+    width: 16px !important;
+  }
+
+  .predict-toast-scope [class~="overflow-hidden"][class~="text-wrap"][class~="break-all"] [style*="height: 20px"] {
+    height: 16px !important;
+  }
+
+  .predict-trade-toast-countdown {
+    flex: 0 0 auto;
+    margin-left: 8px;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+  }
+}
