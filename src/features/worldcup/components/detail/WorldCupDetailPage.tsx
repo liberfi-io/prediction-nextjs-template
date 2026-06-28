@@ -55,7 +55,7 @@ import {
   worldCupMatchAnalyticsParams,
 } from "src/lib/analytics";
 import { WorldCupDetailSkeleton } from "../skeletons";
-import { convertPrice, formatLine } from "../../odds/convert-price";
+import { convertPrice } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import {
   categorizeMarkets,
@@ -63,12 +63,13 @@ import {
   allGroups,
   defaultSelection,
   findSelection,
-  marketLine,
-  periodMarketLabel,
   type MarketOption,
-  type SportsMarketType,
   type TeamHint,
 } from "./marketGrouping";
+import {
+  worldcupMarketOptionDisplayLabel,
+  worldcupMarketSelectedSurfaceLabel,
+} from "./marketDisplay";
 import { normalizeDeepLinkOutcome, resolveMarketDeepLink } from "./deepLink";
 import {
   FIFA_AVATAR,
@@ -77,18 +78,6 @@ import {
   type WorldCupTranslate,
 } from "../../display";
 
-const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
-  "total_corners",
-  "soccer_first_half_total_corners",
-  "soccer_second_half_total_corners",
-  "soccer_team_total_corners",
-  "soccer_player_goals",
-  "soccer_player_goals_plus_assists",
-  "soccer_player_goalkeeper_saves",
-  "soccer_player_assists",
-  "soccer_player_shots",
-  "soccer_player_shots_on_target",
-]);
 type TranslatedEvent = PredictEvent & { title_trans?: unknown };
 type TranslatedOutcome = PredictMarket["outcomes"][number] & {
   label_trans?: unknown;
@@ -168,151 +157,6 @@ function withCleanLabel(
     ? [{ ...displayMarket.outcomes[0], label }, ...displayMarket.outcomes.slice(1)]
     : displayMarket.outcomes;
   return { ...displayMarket, question: label, outcomes };
-}
-
-function isMoneylineGroup(group: { type: SportsMarketType }): boolean {
-  return (
-    group.type === "moneyline" ||
-    group.type === "soccer_match_winner" ||
-    group.type === "soccer_halftime_result" ||
-    group.type === "soccer_second_half_result"
-  );
-}
-
-function isBothTeamsToScoreGroup(group: { type: SportsMarketType }): boolean {
-  return (
-    group.type === "both_teams_to_score" ||
-    group.type === "both_teams_to_score_first_half" ||
-    group.type === "both_teams_to_score_second_half"
-  );
-}
-
-function isTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
-  return (
-    group.type === "totals" ||
-    group.type === "first_half_totals" ||
-    group.type === "second_half_totals"
-  );
-}
-
-function bothTeamsToScoreLabel(
-  type: SportsMarketType,
-  hint: TeamHint | undefined,
-  t: WorldCupTranslate,
-): string {
-  return periodMarketLabel(type, t("extend.worldcup.bothTeamsToScore"), hint);
-}
-
-function isTeamTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
-  return (
-    group.type === "soccer_team_totals" ||
-    group.type === "soccer_first_half_team_totals" ||
-    group.type === "soccer_second_half_team_totals"
-  );
-}
-
-function isCornerTotalGroup(group: { type: SportsMarketType }): boolean {
-  return (
-    group.type === "soccer_second_half_total_corners" ||
-    group.type === "total_corners" ||
-    group.type === "soccer_first_half_total_corners"
-  );
-}
-
-function isTeamTotalCornersGroup(group: { type: SportsMarketType }): boolean {
-  return group.type === "soccer_team_total_corners";
-}
-
-function isCornerOddEvenGroup(group: { type: SportsMarketType }): boolean {
-  return group.type === "soccer_game_corners_odd_even";
-}
-
-function marketMetaString(market: PredictMarket, key: string): string {
-  const value = market.provider_meta?.[key];
-  return typeof value === "string" ? value : "";
-}
-
-function textMatchesAny(text: string, keys: Set<string>): boolean {
-  const lower = text.toLowerCase();
-  for (const key of keys) {
-    if (key && lower.includes(key)) return true;
-  }
-  return false;
-}
-
-function spreadHandicapLabel(
-  option: MarketOption,
-  hint: TeamHint | undefined,
-  t: WorldCupTranslate,
-): string {
-  const text =
-    `${option.market.outcomes?.[0]?.label ?? ""} ${marketMetaString(
-      option.market,
-      "polymarket.groupItemTitle",
-    )}`.trim() ||
-    option.market.question ||
-    "";
-  const team =
-    hint?.homeLabel && textMatchesAny(text, hint.homeKeys)
-      ? hint.homeLabel
-      : hint?.awayLabel && textMatchesAny(text, hint.awayKeys)
-        ? hint.awayLabel
-        : option.label;
-  const line = Math.abs(marketLine(option.market) ?? option.handicap ?? option.line ?? 0);
-  return t("extend.worldcup.spreadHandicap", {
-    team,
-    line: formatLine(line, false),
-  });
-}
-
-function teamTotalGoalsLabel(
-  option: MarketOption,
-  type: SportsMarketType,
-  hint: TeamHint | undefined,
-  t: WorldCupTranslate,
-): string {
-  const line = marketLine(option.market) ?? option.line ?? 0;
-  const label = t("extend.worldcup.teamTotalGoals", {
-    team: option.label,
-    line: formatLine(Math.abs(line), false),
-  });
-  return periodMarketLabel(type, label, hint);
-}
-
-function totalGoalsLabel(
-  option: MarketOption,
-  type: SportsMarketType,
-  t: WorldCupTranslate,
-): string {
-  const line = marketLine(option.market) ?? option.line ?? 0;
-  return t("extend.worldcup.marketWithLine", {
-    market: t(`extend.worldcup.detail.markets.type.${type}`),
-    line: formatLine(Math.abs(line), false),
-  });
-}
-
-function cornerTotalLabel(
-  option: MarketOption,
-  type: SportsMarketType,
-  t: WorldCupTranslate,
-): string {
-  const line = marketLine(option.market) ?? option.line ?? 0;
-  return t("extend.worldcup.marketWithLine", {
-    market: t(`extend.worldcup.detail.markets.type.${type}`),
-    line: formatLine(Math.abs(line), false),
-  });
-}
-
-function teamTotalCornersLabel(
-  option: MarketOption,
-  t: WorldCupTranslate,
-): string {
-  const line = marketLine(option.market) ?? option.line ?? 0;
-  return t("extend.worldcup.teamMarketWithLine", {
-    team: option.label,
-    market: t("extend.worldcup.detail.markets.type.total_corners"),
-    line: formatLine(Math.abs(line), false),
-  });
 }
 
 function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
@@ -591,65 +435,14 @@ export function WorldCupDetailPage({
     ? t(`extend.worldcup.detail.markets.type.${selectedGroup.type_label}`)
     : "";
 
-  // Display label for one option in the selected group, matching the Markets
-  // panel trigger text: "<group> (<option>)" when the group has multiple
-  // options (e.g. "Moneyline (Draw)"), else just the group label. Exact-score
-  // markets are the exception — the score itself (e.g. "1-0") is the label, with
-  // no "Exact Score" prefix.
-  const optionDisplayLabel = (option: MarketOption) => {
-    const optionLabel = option.label;
-    if (!selectedGroup) return groupLabel;
-    if (isMoneylineGroup(selectedGroup)) return optionLabel;
-    if (isBothTeamsToScoreGroup(selectedGroup)) {
-      return bothTeamsToScoreLabel(selectedGroup.type, hint, translate);
-    }
-    if (selectedGroup.type === "spreads") {
-      return spreadHandicapLabel(option, hint, translate);
-    }
-    if (isTotalGoalsGroup(selectedGroup)) {
-      return totalGoalsLabel(option, selectedGroup.type, translate);
-    }
-    if (isTeamTotalGoalsGroup(selectedGroup)) {
-      return teamTotalGoalsLabel(option, selectedGroup.type, hint, translate);
-    }
-    if (isCornerTotalGroup(selectedGroup)) {
-      return cornerTotalLabel(option, selectedGroup.type, translate);
-    }
-    if (isTeamTotalCornersGroup(selectedGroup)) {
-      return teamTotalCornersLabel(option, translate);
-    }
-    if (isCornerOddEvenGroup(selectedGroup)) return groupLabel;
-    if (selectedGroup.type === "soccer_exact_score") return optionLabel;
-    return selectedGroup.options.length > 1
-      ? `${groupLabel} (${optionLabel})`
+  const optionDisplayLabel = (option: MarketOption) =>
+    selectedGroup
+      ? worldcupMarketOptionDisplayLabel(selectedGroup, option, hint, translate)
       : groupLabel;
-  };
-  const selectedSurfaceLabel = (option: MarketOption) => {
-    const optionLabel = option.label;
-    if (!selectedGroup) return groupLabel;
-    if (isMoneylineGroup(selectedGroup)) return optionLabel;
-    if (isBothTeamsToScoreGroup(selectedGroup)) {
-      return bothTeamsToScoreLabel(selectedGroup.type, hint, translate);
-    }
-    if (selectedGroup.type === "spreads") {
-      return spreadHandicapLabel(option, hint, translate);
-    }
-    if (isTotalGoalsGroup(selectedGroup)) {
-      return totalGoalsLabel(option, selectedGroup.type, translate);
-    }
-    if (isTeamTotalGoalsGroup(selectedGroup)) {
-      return teamTotalGoalsLabel(option, selectedGroup.type, hint, translate);
-    }
-    if (isCornerTotalGroup(selectedGroup)) {
-      return cornerTotalLabel(option, selectedGroup.type, translate);
-    }
-    if (isTeamTotalCornersGroup(selectedGroup)) {
-      return teamTotalCornersLabel(option, translate);
-    }
-    if (isCornerOddEvenGroup(selectedGroup)) return groupLabel;
-    if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
-    return optionDisplayLabel(option);
-  };
+  const selectedSurfaceLabel = (option: MarketOption) =>
+    selectedGroup
+      ? worldcupMarketSelectedSurfaceLabel(selectedGroup, option, hint, translate)
+      : groupLabel;
 
   const selectedLabel =
     selectedGroup && selection

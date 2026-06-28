@@ -13,6 +13,8 @@ import {
   type PredictSellModalParams,
   PREDICT_REDEEM_MODAL_ID,
   type PredictRedeemModalParams,
+  type TradeOutcome,
+  type TradeSide,
 } from "@liberfi.io/ui-predict";
 import {
   useOrdersMulti,
@@ -21,6 +23,7 @@ import {
   usePolymarket,
   buildPolymarketL2Headers,
   type PolymarketSigner,
+  type PredictEvent,
   type PredictMarket,
   type PredictPosition,
   type PredictOrder,
@@ -52,6 +55,9 @@ import {
 } from "../../features/worldcup/components/detail/marketGrouping";
 import { formatLine } from "../../features/worldcup/odds/convert-price";
 import type { WcMatch } from "../../features/worldcup/types";
+import { TradeModal } from "../TradeModal";
+import { TradePanel } from "../../features/worldcup/components/detail/TradePanel";
+import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -115,6 +121,11 @@ type ActivityDisplay = {
   plainSideLabel?: string;
   plainSidePositive?: boolean;
   hideSide?: boolean;
+};
+type WorldcupSellRequest = {
+  event: PredictEvent;
+  market: PredictMarket;
+  outcome: TradeOutcome;
 };
 
 type PositionSortOrder = "asc" | "desc";
@@ -648,9 +659,21 @@ function sellOutcomeForPosition(
   ) {
     return display.plainSidePositive ? "yes" : "no";
   }
-  if (position.market && isWorldcupTotalsMarket(position.market)) {
+  if (
+    position.market &&
+    (
+      isWorldcupTotalsMarket(position.market) ||
+      isWorldcupTeamTotalGoalsMarket(position.market) ||
+      isWorldcupCornerTotalMarket(position.market) ||
+      isWorldcupTeamTotalCornersMarket(position.market)
+    )
+  ) {
     if (side === "over") return "yes";
     if (side === "under") return "no";
+  }
+  if (position.market && isWorldcupCornerOddEvenMarket(position.market)) {
+    if (side === "odd") return "yes";
+    if (side === "even") return "no";
   }
   return "no";
 }
@@ -666,6 +689,35 @@ function sellPositionSideOverride(position: PredictPosition): string | undefined
     : undefined;
 }
 
+function worldcupTradeEvent(
+  position: PredictPosition,
+  display: ActivityDisplay,
+): PredictEvent | undefined {
+  if (!position.event) return undefined;
+  return {
+    ...(position.event as PredictEvent),
+    title: display.title,
+    image_url: FIFA_AVATAR,
+  };
+}
+
+function worldcupTradeMarket(
+  position: PredictPosition,
+  display: ActivityDisplay,
+): PredictMarket | undefined {
+  if (!position.market) return undefined;
+  const label = display.outcomeLabel ?? display.subtitle ?? position.market.question ?? "";
+  const market = toWorldcupPredictMarket(position.market);
+  const outcomes = market.outcomes?.length
+    ? [{ ...market.outcomes[0], label }, ...market.outcomes.slice(1)]
+    : market.outcomes;
+  return {
+    ...market,
+    question: label || market.question,
+    outcomes,
+  };
+}
+
 export function PositionsPanel({
   positions,
   isLoading,
@@ -679,10 +731,14 @@ export function PositionsPanel({
   fill?: boolean;
 }) {
   const { t } = useTranslation();
+  const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
   const [sort, setSort] = useState<{
     field: PositionSortKey;
     order: PositionSortOrder;
   } | null>(null);
+  const [worldcupSellRequest, setWorldcupSellRequest] =
+    useState<WorldcupSellRequest | null>(null);
+  const [worldcupTradeSide, setWorldcupTradeSide] = useState<TradeSide>("sell");
   const translate = t as WorldCupTranslate;
   const hasWorldcupPositions = useMemo(
     () => positions.some((position) => Boolean(worldcupMatchSlugForActivity(position))),
@@ -722,6 +778,20 @@ export function PositionsPanel({
     };
   const sortFor = (field: PositionSortKey): PositionSortOrder | undefined =>
     sort?.field === field ? sort.order : undefined;
+  const handleWorldcupSell = useCallback(
+    (position: PredictPosition, display: ActivityDisplay) => {
+      const event = worldcupTradeEvent(position, display);
+      const market = worldcupTradeMarket(position, display);
+      if (!event || !market) return;
+      setWorldcupSellRequest({
+        event,
+        market,
+        outcome: sellOutcomeForPosition(position, display),
+      });
+      setWorldcupTradeSide("sell");
+    },
+    [],
+  );
 
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -794,6 +864,7 @@ export function PositionsPanel({
                       translate={translate}
                       worldcupMatchBySlug={worldcupMatchBySlug}
                       isLast={vItem.index === filtered.length - 1}
+                      onWorldcupSell={handleWorldcupSell}
                     />
                   </div>
                 );
@@ -803,6 +874,27 @@ export function PositionsPanel({
           </div>
         </div>
       )}
+      <TradeModal
+        open={Boolean(worldcupSellRequest)}
+        onClose={() => setWorldcupSellRequest(null)}
+        title={t(`extend.worldcup.detail.trade.${worldcupTradeSide}`)}
+      >
+        {worldcupSellRequest ? (
+          <TradePanel
+            event={worldcupSellRequest.event}
+            market={worldcupSellRequest.market}
+            outcome={worldcupSellRequest.outcome}
+            side={worldcupTradeSide}
+            onSideChange={setWorldcupTradeSide}
+            onOutcomeChange={(outcome) =>
+              setWorldcupSellRequest((current) =>
+                current ? { ...current, outcome } : current,
+              )
+            }
+            onSetupRequired={() => openSetupWallet()}
+          />
+        ) : null}
+      </TradeModal>
     </div>
   );
 }
@@ -812,11 +904,13 @@ function PositionRow({
   translate,
   worldcupMatchBySlug,
   isLast,
+  onWorldcupSell,
 }: {
   position: PredictPosition;
   translate: WorldCupTranslate;
   worldcupMatchBySlug: WorldcupMatchBySlug;
   isLast: boolean;
+  onWorldcupSell: (position: PredictPosition, display: ActivityDisplay) => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -863,6 +957,10 @@ function PositionRow({
   const handleSell = useCallback(
     () => {
       if (!position.event || !position.market) return;
+      if (worldcupMatchSlugForActivity(position)) {
+        onWorldcupSell(position, display);
+        return;
+      }
       const initialPositionSide = sellPositionSideOverride(position);
       openSellModal({
         params: {
@@ -873,7 +971,7 @@ function PositionRow({
         } as PredictSellModalParams & { initialPositionSide?: string },
       });
     },
-    [position, display, openSellModal],
+    [position, display, onWorldcupSell, openSellModal],
   );
 
   const handleRedeem = useCallback(

@@ -1,5 +1,4 @@
 import type { WcMatch } from "../../types";
-import { formatLine } from "../../odds/convert-price";
 import {
   allGroups,
   marketLine,
@@ -111,14 +110,20 @@ function resolveSpread(
   cats: CategorizedMarkets,
   match: WcMatch | null | undefined,
   marketCode: string,
+  outcome: DeepLinkOutcome,
 ) {
   const group = groupOf(cats, "spreads");
   if (!group) return null;
   if (marketCode === "sp" || !match) return findDefaultOption(group);
 
-  const homeLineLabel = formatLine(match.spread.line);
+  const targetLine = match.spread.line;
   return (
-    group.options.find((option) => option.label === homeLineLabel) ??
+    group.options.find(
+      (option) =>
+        Math.abs((option.line ?? Number.NaN) - targetLine) < 0.001 &&
+        (option.outcome ?? "yes") === outcome,
+    ) ??
+    group.options.find((option) => Math.abs((option.line ?? Number.NaN) - targetLine) < 0.001) ??
     findDefaultOption(group)
   );
 }
@@ -143,7 +148,7 @@ export function resolveMarketDeepLink(input: {
     if (!match) return null;
     option = resolveMoneyline(cats, match, marketCode);
   } else if (marketCode === "sp" || marketCode === "sph" || marketCode === "spa") {
-    option = resolveSpread(cats, match, marketCode);
+    option = resolveSpread(cats, match, marketCode, outcome);
   } else if (marketCode === "to" || /^to[0-9]+$/.test(marketCode)) {
     option = resolveTotal(cats, marketCode);
   } else if (marketCode === "btts") {

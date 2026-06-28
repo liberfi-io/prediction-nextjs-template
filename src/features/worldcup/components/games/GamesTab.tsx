@@ -16,8 +16,11 @@ import {
 import type { WcMatch } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
-import { formatLine } from "../../odds/convert-price";
-import { buildWorldcupTeamHint, type WorldCupTranslate } from "../../display";
+import {
+  buildWorldcupTeamHint,
+  worldcupMatchTitle,
+  type WorldCupTranslate,
+} from "../../display";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
 import { hasLiveVideos } from "./LiveStreamPanel";
@@ -43,8 +46,8 @@ import {
 import {
   categorizeMarkets,
   findSelection,
-  type MarketGroup,
 } from "../detail/marketGrouping";
+import { worldcupMarketSelectedSurfaceLabel } from "../detail/marketDisplay";
 import { resolveMarketDeepLink } from "../detail/deepLink";
 
 type GroupBy = "stage" | "time";
@@ -229,37 +232,6 @@ function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
   return { ...market, question: label, outcomes };
 }
 
-function tradeDisplayLabel(
-  group: MarketGroup,
-  optionLabel: string,
-  t: (key: `extend.${string}`) => unknown,
-  selectedLabel?: string,
-): string {
-  const groupLabel = String(t(`extend.worldcup.detail.markets.type.${group.type_label}`));
-  if (group.type === "soccer_exact_score") return optionLabel;
-  if (selectedLabel) return `${groupLabel} (${selectedLabel})`;
-  if (group.type === "spreads" || group.type === "totals") {
-    return `${groupLabel} (${optionLabel})`;
-  }
-  return group.options.length > 1
-    ? `${groupLabel} (${optionLabel})`
-    : groupLabel;
-}
-
-function selectedTradeLabel(match: WcMatch, marketCode: string, outcome: TradeOutcome): string | undefined {
-  if (marketCode === "sph") {
-    const team = outcome === "yes" ? match.home : match.away;
-    const line = outcome === "yes" ? match.spread.line : -match.spread.line;
-    return `${team.code} ${formatLine(line)}`;
-  }
-  if (marketCode === "spa") {
-    const team = outcome === "yes" ? match.away : match.home;
-    const line = outcome === "yes" ? -match.spread.line : match.spread.line;
-    return `${team.code} ${formatLine(line)}`;
-  }
-  return undefined;
-}
-
 export function GamesTab({ mode = "all" }: GamesTabProps) {
   const { t, i18n } = useTranslation();
   const translate = t as WorldCupTranslate;
@@ -360,35 +332,45 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
 
   const tradeSelection = useMemo(() => {
     if (tradeRequest?.event && tradeRequest.market) {
+      const hint = buildWorldcupTeamHint(tradeRequest.match, translate);
       const cats = categorizeMarkets(
         tradeRequest.event.markets ?? [],
-        buildWorldcupTeamHint(tradeRequest.match, translate),
+        hint,
       );
-      const selection = findSelection(cats, tradeRequest.market.slug);
+      const resolved = resolveMarketDeepLink({
+        cats,
+        match: tradeRequest.match,
+        marketCode: tradeRequest.marketCode,
+        outcomeCode: tradeRequest.outcome,
+      });
+      const selection = resolved
+        ? findSelection(cats, resolved.marketSlug, resolved.outcome)
+        : findSelection(cats, tradeRequest.market.slug, tradeRequest.outcome);
       const market = selection
         ? withCleanLabel(
-            tradeRequest.market,
-            tradeDisplayLabel(
+            selection.option.market,
+            worldcupMarketSelectedSurfaceLabel(
               selection.group,
-              selection.option.label,
-              t,
-              selectedTradeLabel(
-                tradeRequest.match,
-                tradeRequest.marketCode,
-                tradeRequest.outcome,
-              ),
+              selection.option,
+              hint,
+              translate,
             ),
           )
         : tradeRequest.market;
       return {
-        event: { ...tradeRequest.event, image_url: FIFA_AVATAR },
+        event: {
+          ...tradeRequest.event,
+          title: worldcupMatchTitle(tradeRequest.match, hint) ?? tradeRequest.event.title,
+          image_url: FIFA_AVATAR,
+        },
         market,
       };
     }
     if (!tradeRequest || !tradeEvent) return null;
+    const hint = buildWorldcupTeamHint(tradeRequest.match, translate);
     const cats = categorizeMarkets(
       tradeEvent.markets ?? [],
-      buildWorldcupTeamHint(tradeRequest.match, translate),
+      hint,
     );
     const resolved = resolveMarketDeepLink({
       cats,
@@ -397,25 +379,25 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       outcomeCode: tradeRequest.outcome,
     });
     if (!resolved) return null;
-    const selection = findSelection(cats, resolved.marketSlug);
+    const selection = findSelection(cats, resolved.marketSlug, resolved.outcome);
     if (!selection) return null;
     return {
-      event: { ...tradeEvent, image_url: FIFA_AVATAR },
+      event: {
+        ...tradeEvent,
+        title: worldcupMatchTitle(tradeRequest.match, hint) ?? tradeEvent.title,
+        image_url: FIFA_AVATAR,
+      },
       market: withCleanLabel(
         selection.option.market,
-        tradeDisplayLabel(
+        worldcupMarketSelectedSurfaceLabel(
           selection.group,
-          selection.option.label,
-          t,
-          selectedTradeLabel(
-            tradeRequest.match,
-            tradeRequest.marketCode,
-            tradeRequest.outcome,
-          ),
+          selection.option,
+          hint,
+          translate,
         ),
       ),
     };
-  }, [t, tradeEvent, tradeRequest, translate]);
+  }, [tradeEvent, tradeRequest, translate]);
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {
