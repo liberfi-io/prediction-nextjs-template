@@ -708,8 +708,8 @@ export function WorldCupDetailPage({
           onBack={() => router.back()}
         />
 
-        <div className="flex min-w-0 flex-col gap-4 lg:h-[560px] lg:flex-row lg:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 lg:h-[560px] xl:h-auto">
             {/* Score banner above the price chart */}
             {match && <MatchBanner match={match} />}
             <EventPriceChart
@@ -731,7 +731,7 @@ export function WorldCupDetailPage({
           />
 
           {selectedMarket && (
-            <div className="w-full shrink-0 lg:w-[340px] xl:w-[400px] 2xl:w-[420px]">
+            <div className="h-[520px] w-full shrink-0 xl:h-full xl:w-[400px] 2xl:w-[420px]">
               <MarketSwitcherFrame
                 title={t("extend.worldcup.detail.markets.title")}
                 actionBefore={<OddsFormatSelect />}

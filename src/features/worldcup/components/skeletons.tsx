@@ -415,15 +415,15 @@ export function WorldCupDetailSkeleton() {
         <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:flex-row lg:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <DetailHeaderSkeleton />
-            <div className="flex min-w-0 flex-col gap-4 lg:h-[560px] lg:flex-row lg:items-stretch">
-              <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
+              <div className="flex min-w-0 flex-1 flex-col gap-4 lg:h-[560px] xl:h-auto">
                 <div className={cx("h-20 rounded-[12px]", PULSE)} />
                 <ChartSkeleton />
               </div>
               <div className="hidden h-full w-[420px] shrink-0 min-[1800px]:block">
                 <MatchCenterSkeleton />
               </div>
-              <div className="w-full shrink-0 lg:w-[340px] xl:w-[400px] 2xl:w-[420px]">
+              <div className="h-[520px] w-full shrink-0 xl:h-full xl:w-[400px] 2xl:w-[420px]">
                 <MarketsSkeleton />
               </div>
             </div>
