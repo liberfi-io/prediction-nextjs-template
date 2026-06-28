@@ -9,17 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useAtom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   cn,
   ModalBody,
   ModalContent,
-  PinIcon as UiPinIcon,
   StyledModal,
   toast,
-  UnPinIcon,
   useScreen,
 } from "@liberfi.io/ui";
 import type {
@@ -95,11 +91,6 @@ const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
   "soccer_player_assists",
   "soccer_player_shots",
 ]);
-const marketPanelPinnedAtom = atomWithStorage(
-  "worldcup.detail.marketPanelPinned",
-  false,
-);
-
 type TranslatedEvent = PredictEvent & { title_trans?: unknown };
 type TranslatedOutcome = PredictMarket["outcomes"][number] & {
   label_trans?: unknown;
@@ -263,10 +254,6 @@ export function WorldCupDetailPage({
   const [selectedSlug, setSelectedSlug] = useState("");
   const [outcome, setOutcome] = useState<TradeOutcome>("yes");
   const [side, setSide] = useState<TradeSide>("buy");
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [marketPanelPinned, setMarketPanelPinned] = useAtom(
-    marketPanelPinnedAtom,
-  );
 
   // Mobile-only UI state
   const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
@@ -711,75 +698,19 @@ export function WorldCupDetailPage({
   // Desktop layout
   // -------------------------------------------------------------------------
   return (
-    <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
-      {/* LEFT BLOCK: header + main row + activity (aside spans this whole block) */}
+    <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:flex-row lg:items-start">
+      {/* LEFT BLOCK: header + chart/markets row + market news/activity. */}
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <DetailHeader
           event={displayEvent}
           market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
-          panelOpen={panelOpen}
-          onTogglePanel={() => setPanelOpen((v) => !v)}
-          onClose={() => setPanelOpen(false)}
           onBack={() => router.back()}
-          popoverContent={
-            <MarketSwitcherFrame
-              title={t("extend.worldcup.detail.markets.title")}
-              onClose={() => setPanelOpen(false)}
-              onAction={() => {
-                setMarketPanelPinned((v) => !v);
-                setPanelOpen(false);
-              }}
-              actionLabel={t(
-                marketPanelPinned
-                  ? "extend.worldcup.detail.markets.unpin"
-                  : "extend.worldcup.detail.markets.pin",
-              )}
-              actionIcon={
-                marketPanelPinned ? (
-                  <UnPinIcon className="h-3.5 w-3.5" />
-                ) : (
-                  <UiPinIcon className="h-3.5 w-3.5" />
-                )
-              }
-              actionBefore={<OddsFormatSelect />}
-              className="max-h-[70vh]"
-            >
-              <MarketsPanel
-                cats={cats}
-                activeCategory={activeCategory}
-                selectedSlug={selectedSlug}
-                onSelect={handleSelect}
-                className="flex-1 border-0 bg-transparent"
-              />
-            </MarketSwitcherFrame>
-          }
         />
 
-        {/* CENTER: optional pinned markets panel + score/chart + match-center */}
-        <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
-          {marketPanelPinned && (
-            <MarketSwitcherFrame
-              title={t("extend.worldcup.detail.markets.title")}
-              onClose={() => setMarketPanelPinned(false)}
-              onAction={() => setMarketPanelPinned(false)}
-              actionLabel={t("extend.worldcup.detail.markets.unpin")}
-              actionIcon={<UnPinIcon className="h-3.5 w-3.5" />}
-              actionBefore={<OddsFormatSelect />}
-              className="w-full xl:h-full xl:w-[320px]"
-            >
-              <MarketsPanel
-                cats={cats}
-                activeCategory={activeCategory}
-                selectedSlug={selectedSlug}
-                onSelect={handleSelect}
-                className="flex-1 border-0 bg-transparent"
-              />
-            </MarketSwitcherFrame>
-          )}
-
-          {/* Score banner above the price chart */}
+        <div className="flex min-w-0 flex-col gap-4 lg:h-[560px] lg:flex-row lg:items-stretch">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {/* Score banner above the price chart */}
             {match && <MatchBanner match={match} />}
             <EventPriceChart
               className="min-w-0 flex-1"
@@ -789,32 +720,49 @@ export function WorldCupDetailPage({
             />
           </div>
 
-          {!marketPanelPinned && (
-            <MatchCenterTabs
-              match={match ?? null}
-              liveVideos={liveVideos}
-              kickoffMs={match?.kickoffMs}
-              className="w-full shrink-0 xl:w-[440px]"
-            />
-          )}
-        </div>
-
-        {marketPanelPinned && (
           <MatchCenterTabs
             match={match ?? null}
             liveVideos={liveVideos}
             kickoffMs={match?.kickoffMs}
-            className="w-full"
+            className="hidden h-full w-[420px] shrink-0 min-[1800px]:flex"
+            contentClassName="min-h-0 flex-1 p-2"
+            liveContentClassName="min-h-0 flex-1 p-2"
+            centerWidgetClassName="h-full min-h-0"
           />
-        )}
 
-        {/* Activity spans Markets + CENTER width — full multi-source portfolio activity */}
+          {selectedMarket && (
+            <div className="w-full shrink-0 lg:w-[340px] xl:w-[400px] 2xl:w-[420px]">
+              <MarketSwitcherFrame
+                title={t("extend.worldcup.detail.markets.title")}
+                actionBefore={<OddsFormatSelect />}
+                className="h-full"
+              >
+                <MarketsPanel
+                  cats={cats}
+                  activeCategory={activeCategory}
+                  selectedSlug={selectedSlug}
+                  onSelect={handleSelect}
+                  className="flex-1 border-0 bg-transparent"
+                />
+              </MarketSwitcherFrame>
+            </div>
+          )}
+        </div>
+
+        <MatchCenterTabs
+          match={match ?? null}
+          liveVideos={liveVideos}
+          kickoffMs={match?.kickoffMs}
+          className="w-full min-[1800px]:hidden"
+        />
+
+        {/* Activity spans the chart and markets columns. */}
         <PortfolioActivitySection />
       </div>
 
       {/* ASIDE: right column — trade form above the order book */}
       {selectedMarket && (
-        <aside className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-2 lg:w-[360px]">
+        <aside className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-2 lg:w-[340px] xl:w-[360px]">
           <div className="rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
             <TradePanel
               event={displayEvent}
@@ -856,7 +804,7 @@ function MarketSwitcherFrame({
   children,
 }: {
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
   onAction?: () => void;
   actionLabel?: string;
   actionIcon?: ReactNode;
@@ -879,15 +827,17 @@ function MarketSwitcherFrame({
         </span>
         <div className="flex shrink-0 items-center gap-2">
           {actionBefore}
-          <button
-            type="button"
-            onClick={onAction ?? onClose}
-            aria-label={buttonLabel}
-            title={buttonLabel}
-            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-          >
-            {actionIcon ?? <CloseIcon />}
-          </button>
+          {(onAction || onClose) && (
+            <button
+              type="button"
+              onClick={onAction || onClose}
+              aria-label={buttonLabel}
+              title={buttonLabel}
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            >
+              {actionIcon ?? <CloseIcon />}
+            </button>
+          )}
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>

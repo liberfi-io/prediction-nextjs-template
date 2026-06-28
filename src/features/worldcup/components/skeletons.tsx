@@ -329,6 +329,32 @@ function MatchCenterSkeleton() {
   );
 }
 
+function MarketsSkeleton() {
+  return (
+    <div className={cx("flex h-full flex-col p-3", CARD)}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className={cx("h-4 w-24 rounded", PULSE)} />
+        <div className={cx("h-7 w-20 rounded-lg", PULSE)} />
+      </div>
+      <div className="mb-3 flex gap-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={cx("h-7 flex-1 rounded-lg", PULSE)} />
+        ))}
+      </div>
+      <div className="mb-3 flex gap-1 overflow-hidden">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className={cx("h-7 w-20 shrink-0 rounded-lg", PULSE)} />
+        ))}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className={cx("h-24 rounded-[10px]", PULSE)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TradeSkeleton() {
   return (
     <div className={cx("p-3", CARD)}>
@@ -386,21 +412,27 @@ export function WorldCupDetailSkeleton() {
   return (
     <div className="w-full pb-16">
       <div className="w-full px-3 pt-4 sm:px-6">
-        <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:flex-row lg:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <DetailHeaderSkeleton />
-            <div className="flex flex-col gap-4 xl:h-[560px] xl:flex-row xl:items-stretch">
+            <div className="flex min-w-0 flex-col gap-4 lg:h-[560px] lg:flex-row lg:items-stretch">
               <div className="flex min-w-0 flex-1 flex-col gap-4">
                 <div className={cx("h-20 rounded-[12px]", PULSE)} />
                 <ChartSkeleton />
               </div>
-              <div className="w-full shrink-0 xl:w-[440px]">
+              <div className="hidden h-full w-[420px] shrink-0 min-[1800px]:block">
                 <MatchCenterSkeleton />
               </div>
+              <div className="w-full shrink-0 lg:w-[340px] xl:w-[400px] 2xl:w-[420px]">
+                <MarketsSkeleton />
+              </div>
+            </div>
+            <div className="min-[1800px]:hidden">
+              <MatchCenterSkeleton />
             </div>
             <ActivitySkeleton />
           </div>
-          <aside className="hidden w-full shrink-0 flex-col gap-4 lg:flex lg:sticky lg:top-2 lg:w-[360px]">
+          <aside className="hidden w-full shrink-0 flex-col gap-4 lg:sticky lg:top-2 lg:flex lg:w-[340px] xl:w-[360px]">
             <TradeSkeleton />
             <OrderbookSkeleton />
           </aside>

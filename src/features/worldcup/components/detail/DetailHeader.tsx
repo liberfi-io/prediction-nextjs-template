@@ -7,13 +7,9 @@ import { useTranslation } from "@liberfi.io/i18n";
 import { formatVolume } from "../util";
 
 /**
- * Detail-page header: event image + title with a "/ <selected market>" dropdown
- * that toggles the Markets panel, a Sports / Soccer breadcrumb, and the headline
- * stats (end date, liquidity, volume, open interest). Mirrors future.news.
- *
- * When `popoverContent` is provided (desktop), the Markets panel opens as a
- * popover anchored to the title instead of occupying a fixed column; it closes
- * on outside click or Escape via `onClose`.
+ * Detail-page header: event image + title with an optional mobile market picker,
+ * a Sports / Soccer breadcrumb, and the headline stats (end date, liquidity,
+ * volume, open interest). Mirrors future.news.
  *
  * To the right of the stats, two info popovers mirror future.news: "Rules"
  * (the selected market's resolution description) and "Ref" (the event's
@@ -23,20 +19,16 @@ export function DetailHeader({
   event,
   market,
   selectedLabel,
-  panelOpen,
+  panelOpen = false,
   onTogglePanel,
-  popoverContent,
-  onClose,
   onBack,
   showInfoButtons = true,
 }: {
   event: PredictEvent;
   market?: PredictMarket;
   selectedLabel: string;
-  panelOpen: boolean;
-  onTogglePanel: () => void;
-  popoverContent?: ReactNode;
-  onClose?: () => void;
+  panelOpen?: boolean;
+  onTogglePanel?: () => void;
   /** Navigate back to the previous page; renders a back button left of the avatar. */
   onBack?: () => void;
   /**
@@ -48,25 +40,6 @@ export function DetailHeader({
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || "en";
-
-  // Close the title popover on outside click / Escape (desktop only — the
-  // popover is rendered inside `anchorRef`, so clicks within it are ignored).
-  const anchorRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!popoverContent || !panelOpen || !onClose) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (!anchorRef.current?.contains(e.target as Node)) onClose();
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [popoverContent, panelOpen, onClose]);
 
   const endDate = event.end_at
     ? new Date(event.end_at).toLocaleDateString(
@@ -119,7 +92,6 @@ export function DetailHeader({
             </button>
           )}
           {event.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.image_url}
               alt=""
@@ -128,51 +100,53 @@ export function DetailHeader({
           ) : (
             <div className="h-10 w-10 shrink-0 rounded-lg border border-zinc-800 bg-zinc-900" />
           )}
-          <div className="relative min-w-0" ref={anchorRef}>
-            <button
-              type="button"
-              onClick={onTogglePanel}
-              className="flex min-w-0 max-w-full items-center gap-1.5 text-left cursor-pointer group"
-            >
-              <span className="min-w-0 truncate text-base font-semibold text-zinc-100">
-                {event.title}
-              </span>
-              <span className="shrink-0 text-zinc-600">/</span>
-              <span className="shrink-0 truncate text-base font-semibold text-[#c7ff2e]">
-                {selectedLabel}
-              </span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={cn(
-                  "shrink-0 text-zinc-400 transition-transform group-hover:text-zinc-200",
-                  panelOpen && "rotate-180",
-                )}
+          <div className="relative min-w-0">
+            {onTogglePanel ? (
+              <button
+                type="button"
+                onClick={onTogglePanel}
+                className="flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 text-left group"
               >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </button>
+                <span className="min-w-0 truncate text-base font-semibold text-zinc-100">
+                  {event.title}
+                </span>
+                <span className="shrink-0 text-zinc-600">/</span>
+                <span className="shrink-0 truncate text-base font-semibold text-[#c7ff2e]">
+                  {selectedLabel}
+                </span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={cn(
+                    "shrink-0 text-zinc-400 transition-transform group-hover:text-zinc-200",
+                    panelOpen && "rotate-180",
+                  )}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+            ) : (
+              <div className="flex min-w-0 max-w-full items-center gap-1.5 text-left">
+                <span className="min-w-0 truncate text-base font-semibold text-zinc-100">
+                  {event.title}
+                </span>
+                <span className="shrink-0 text-zinc-600">/</span>
+                <span className="shrink-0 truncate text-base font-semibold text-[#c7ff2e]">
+                  {selectedLabel}
+                </span>
+              </div>
+            )}
             <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
               <span>{t("extend.worldcup.detail.breadcrumb.sports")}</span>
               <span className="text-zinc-700">/</span>
               <span>{t("extend.worldcup.detail.breadcrumb.soccer")}</span>
             </div>
-
-            {/* Markets popover, anchored to the title (desktop). Absolutely
-                positioned (out of flow, so it never shifts sibling elements)
-                with an opaque backing + high z-index so it floats cleanly over
-                the chart / match center instead of bleeding through them. */}
-            {popoverContent && panelOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-[min(90vw,360px)] rounded-[12px] bg-zinc-950 shadow-2xl shadow-black/50">
-                {popoverContent}
-              </div>
-            )}
           </div>
         </div>
 
