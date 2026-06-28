@@ -8,6 +8,41 @@ import { useWorldcupBracket } from "../../data/queries";
 import { BracketSkeleton } from "../skeletons";
 import { BracketMatchNode } from "./BracketMatchNode";
 
+const BRACKET_VISUAL_MATCH_ORDER: Record<string, string[]> = {
+  r32: [
+    "M74",
+    "M77",
+    "M73",
+    "M75",
+    "M83",
+    "M84",
+    "M81",
+    "M82",
+    "M76",
+    "M78",
+    "M79",
+    "M80",
+    "M86",
+    "M88",
+    "M85",
+    "M87",
+  ],
+  r16: ["M89", "M90", "M93", "M94", "M91", "M92", "M95", "M96"],
+  r8: ["M97", "M98", "M99", "M100"],
+  r4: ["M101", "M102"],
+  r3rd: ["M103"],
+  final: ["M104"],
+};
+
+function bracketSortValue(round: string, matchId: string): number {
+  const order = BRACKET_VISUAL_MATCH_ORDER[round];
+  const index = order?.indexOf(matchId) ?? -1;
+  if (index !== -1) return index;
+
+  const numericId = Number(matchId.replace(/^M/i, ""));
+  return Number.isFinite(numericId) ? 1000 + numericId : Number.MAX_SAFE_INTEGER;
+}
+
 export function BracketTab() {
   const { t } = useTranslation();
   const { data: nodes = [], isPending } = useWorldcupBracket();
@@ -18,6 +53,12 @@ export function BracketTab() {
     for (const n of nodes) {
       if (!map.has(n.round)) map.set(n.round, []);
       map.get(n.round)!.push(n);
+    }
+    for (const [roundId, items] of map) {
+      items.sort(
+        (a, b) =>
+          bracketSortValue(roundId, a.matchId) - bracketSortValue(roundId, b.matchId),
+      );
     }
     return map;
   }, [nodes]);
