@@ -335,6 +335,8 @@
       "moneylineDraw": "무승부",
       "bothTeamsToScore": "양 팀 득점",
       "spreadHandicap": "{{team}} {{line}}골 핸디캡",
+      "marketWithLine": "{{market}}（{{line}}）",
+      "teamMarketWithLine": "{{team}}{{market}}（{{line}}）",
       "totalOver": "{{line}}골 초과",
       "totalUnder": "{{line}}골 미만",
       "live": "실시간",
@@ -351,6 +353,10 @@
       "totalSide": {
         "over": "오버",
         "under": "언더"
+      },
+      "cornerSide": {
+        "odd": "홀",
+        "even": "짝"
       },
       "advanceProbability": "진출",
       "team": "팀",

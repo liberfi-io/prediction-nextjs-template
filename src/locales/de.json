@@ -337,6 +337,8 @@
       "moneylineDraw": "Unentschieden",
       "bothTeamsToScore": "Beide Teams treffen",
       "spreadHandicap": "{{team}} gibt {{line}} Tore vor",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Über {{line}} Tore",
       "totalUnder": "Unter {{line}} Tore",
       "live": "Live",
@@ -353,6 +355,10 @@
       "totalSide": {
         "over": "Über",
         "under": "Unter"
+      },
+      "cornerSide": {
+        "odd": "Ungerade",
+        "even": "Gerade"
       },
       "advanceProbability": "Vorrücken",
       "team": "Team",

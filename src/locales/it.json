@@ -337,6 +337,8 @@
       "moneylineDraw": "Pareggio",
       "bothTeamsToScore": "Entrambe le squadre segnano",
       "spreadHandicap": "{{team}} concede {{line}} gol",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Oltre {{line}} gol",
       "totalUnder": "Meno di {{line}} gol",
       "live": "Live",
@@ -353,6 +355,10 @@
       "totalSide": {
         "over": "Over",
         "under": "Under"
+      },
+      "cornerSide": {
+        "odd": "Dispari",
+        "even": "Pari"
       },
       "advanceProbability": "Avanza",
       "team": "Squadra",

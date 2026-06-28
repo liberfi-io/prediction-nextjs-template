@@ -335,6 +335,8 @@
       "moneylineDraw": "Hòa",
       "bothTeamsToScore": "Cả hai đội ghi bàn",
       "spreadHandicap": "{{team}} chấp {{line}} bàn",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Tài {{line}} bàn",
       "totalUnder": "Xỉu {{line}} bàn",
       "live": "Trực tiếp",
@@ -351,6 +353,10 @@
       "totalSide": {
         "over": "Tài",
         "under": "Xỉu"
+      },
+      "cornerSide": {
+        "odd": "Lẻ",
+        "even": "Chẵn"
       },
       "advanceProbability": "Tiến lên",
       "team": "Đội",

@@ -961,23 +961,37 @@ function GroupRow({
     BINARY_OUTCOME_TYPES.has(group.type) ||
     BINARY_OUTCOME_TYPES.has(group.type_label) ||
     group.key.includes("btts");
+  const binaryOutcomeLabels = useMemo(
+    () =>
+      group.type === "soccer_game_corners_odd_even" ||
+      group.type_label === "soccer_game_corners_odd_even"
+        ? {
+            yes: t("extend.worldcup.cornerSide.odd"),
+            no: t("extend.worldcup.cornerSide.even"),
+          }
+        : {
+            yes: t("extend.worldcup.detail.trade.yes"),
+            no: t("extend.worldcup.detail.trade.no"),
+          },
+    [group.type, group.type_label, t],
+  );
   const renderedOptions = useMemo<MarketOption[]>(
     () =>
       isBinaryOutcomeGroup && options[0]
         ? [
             {
               ...(options.find((option) => option.outcome === "yes") ?? options[0]),
-              label: t("extend.worldcup.detail.trade.yes"),
+              label: binaryOutcomeLabels.yes,
               outcome: "yes",
             },
             {
               ...(options.find((option) => option.outcome === "no") ?? options[0]),
-              label: t("extend.worldcup.detail.trade.no"),
+              label: binaryOutcomeLabels.no,
               outcome: "no",
             },
           ]
         : options,
-    [isBinaryOutcomeGroup, options, t],
+    [binaryOutcomeLabels, isBinaryOutcomeGroup, options],
   );
   const lineOptions = useMemo(() => {
     const byKey = new Map<string, { key: string; value: number }>();

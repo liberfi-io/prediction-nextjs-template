@@ -335,6 +335,8 @@
       "moneylineDraw": "Match nul",
       "bothTeamsToScore": "Les deux équipes marquent",
       "spreadHandicap": "{{team}} rend {{line}} buts",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Plus de {{line}} buts",
       "totalUnder": "Moins de {{line}} buts",
       "live": "En direct",
@@ -351,6 +353,10 @@
       "totalSide": {
         "over": "Plus de",
         "under": "Moins de"
+      },
+      "cornerSide": {
+        "odd": "Impair",
+        "even": "Pair"
       },
       "advanceProbability": "Avancer",
       "team": "Équipe",

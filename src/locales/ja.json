@@ -335,6 +335,8 @@
       "moneylineDraw": "引き分け",
       "bothTeamsToScore": "両チーム得点",
       "spreadHandicap": "{{team}} {{line}}点ハンデ",
+      "marketWithLine": "{{market}}（{{line}}）",
+      "teamMarketWithLine": "{{team}}{{market}}（{{line}}）",
       "totalOver": "{{line}}点超",
       "totalUnder": "{{line}}点未満",
       "live": "ライブ",
@@ -351,6 +353,10 @@
       "totalSide": {
         "over": "オーバー",
         "under": "アンダー"
+      },
+      "cornerSide": {
+        "odd": "奇数",
+        "even": "偶数"
       },
       "advanceProbability": "進出",
       "team": "チーム",

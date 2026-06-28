@@ -348,6 +348,8 @@
       "bothTeamsToScore": "Both Teams to Score",
       "spreadHandicap": "{{team}} gives {{line}} goals",
       "teamTotalGoals": "{{team}} total goals ({{line}})",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Over {{line}} goals",
       "totalUnder": "Under {{line}} goals",
       "live": "Live",
@@ -364,6 +366,10 @@
       "totalSide": {
         "over": "Over",
         "under": "Under"
+      },
+      "cornerSide": {
+        "odd": "Odd",
+        "even": "Even"
       },
       "advanceProbability": "Advance",
       "team": "Team",

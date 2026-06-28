@@ -297,6 +297,8 @@
       "bothTeamsToScore": "双方进球",
       "spreadHandicap": "{{team}} 让 {{line}} 球",
       "teamTotalGoals": "{{team}}总进球（{{line}}）",
+      "marketWithLine": "{{market}}（{{line}}）",
+      "teamMarketWithLine": "{{team}}{{market}}（{{line}}）",
       "totalOver": "大 {{line}} 球",
       "totalUnder": "小 {{line}} 球",
       "live": "實況",
@@ -313,6 +315,10 @@
       "totalSide": {
         "over": "大",
         "under": "小"
+      },
+      "cornerSide": {
+        "odd": "单",
+        "even": "双"
       },
       "advanceProbability": "晉級概率",
       "team": "球隊",

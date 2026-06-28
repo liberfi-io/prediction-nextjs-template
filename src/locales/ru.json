@@ -337,6 +337,8 @@
       "moneylineDraw": "Ничья",
       "bothTeamsToScore": "Обе команды забьют",
       "spreadHandicap": "{{team}} дает фору {{line}} гола",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Больше {{line}} гола",
       "totalUnder": "Меньше {{line}} гола",
       "live": "В эфире",
@@ -353,6 +355,10 @@
       "totalSide": {
         "over": "Больше",
         "under": "Меньше"
+      },
+      "cornerSide": {
+        "odd": "Нечет",
+        "even": "Чет"
       },
       "advanceProbability": "Продвижение",
       "team": "Команда",

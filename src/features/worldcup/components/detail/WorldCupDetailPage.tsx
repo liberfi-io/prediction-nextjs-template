@@ -189,6 +189,22 @@ function isTeamTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
   );
 }
 
+function isCornerTotalGroup(group: { type: SportsMarketType }): boolean {
+  return (
+    group.type === "soccer_second_half_total_corners" ||
+    group.type === "total_corners" ||
+    group.type === "soccer_first_half_total_corners"
+  );
+}
+
+function isTeamTotalCornersGroup(group: { type: SportsMarketType }): boolean {
+  return group.type === "soccer_team_total_corners";
+}
+
+function isCornerOddEvenGroup(group: { type: SportsMarketType }): boolean {
+  return group.type === "soccer_game_corners_odd_even";
+}
+
 function marketMetaString(market: PredictMarket, key: string): string {
   const value = market.provider_meta?.[key];
   return typeof value === "string" ? value : "";
@@ -234,6 +250,30 @@ function teamTotalGoalsLabel(
   const line = marketLine(option.market) ?? option.line ?? 0;
   return t("extend.worldcup.teamTotalGoals", {
     team: option.label,
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
+function cornerTotalLabel(
+  option: MarketOption,
+  type: SportsMarketType,
+  t: WorldCupTranslate,
+): string {
+  const line = marketLine(option.market) ?? option.line ?? 0;
+  return t("extend.worldcup.marketWithLine", {
+    market: t(`extend.worldcup.detail.markets.type.${type}`),
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
+function teamTotalCornersLabel(
+  option: MarketOption,
+  t: WorldCupTranslate,
+): string {
+  const line = marketLine(option.market) ?? option.line ?? 0;
+  return t("extend.worldcup.teamMarketWithLine", {
+    team: option.label,
+    market: t("extend.worldcup.detail.markets.type.total_corners"),
     line: formatLine(Math.abs(line), false),
   });
 }
@@ -532,6 +572,13 @@ export function WorldCupDetailPage({
     if (isTeamTotalGoalsGroup(selectedGroup)) {
       return teamTotalGoalsLabel(option, translate);
     }
+    if (isCornerTotalGroup(selectedGroup)) {
+      return cornerTotalLabel(option, selectedGroup.type, translate);
+    }
+    if (isTeamTotalCornersGroup(selectedGroup)) {
+      return teamTotalCornersLabel(option, translate);
+    }
+    if (isCornerOddEvenGroup(selectedGroup)) return groupLabel;
     if (selectedGroup.type === "soccer_exact_score") return optionLabel;
     return selectedGroup.options.length > 1
       ? `${groupLabel} (${optionLabel})`
@@ -550,6 +597,13 @@ export function WorldCupDetailPage({
     if (isTeamTotalGoalsGroup(selectedGroup)) {
       return teamTotalGoalsLabel(option, translate);
     }
+    if (isCornerTotalGroup(selectedGroup)) {
+      return cornerTotalLabel(option, selectedGroup.type, translate);
+    }
+    if (isTeamTotalCornersGroup(selectedGroup)) {
+      return teamTotalCornersLabel(option, translate);
+    }
+    if (isCornerOddEvenGroup(selectedGroup)) return groupLabel;
     if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
     return optionDisplayLabel(option);
   };

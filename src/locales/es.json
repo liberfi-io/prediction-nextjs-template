@@ -337,6 +337,8 @@
       "moneylineDraw": "Empate",
       "bothTeamsToScore": "Ambos equipos anotarán",
       "spreadHandicap": "{{team}} concede {{line}} goles",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "Más de {{line}} goles",
       "totalUnder": "Menos de {{line}} goles",
       "live": "En vivo",
@@ -353,6 +355,10 @@
       "totalSide": {
         "over": "Más de",
         "under": "Menos de"
+      },
+      "cornerSide": {
+        "odd": "Impar",
+        "even": "Par"
       },
       "advanceProbability": "Avanzar",
       "team": "Equipo",

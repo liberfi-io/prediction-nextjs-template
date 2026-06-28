@@ -335,6 +335,8 @@
       "moneylineDraw": "เสมอ",
       "bothTeamsToScore": "ทั้งสองทีมทำคะแนน",
       "spreadHandicap": "{{team}} ต่อ {{line}} ประตู",
+      "marketWithLine": "{{market}} ({{line}})",
+      "teamMarketWithLine": "{{team}} {{market}} ({{line}})",
       "totalOver": "สูงกว่า {{line}} ประตู",
       "totalUnder": "ต่ำกว่า {{line}} ประตู",
       "live": "ถ่ายทอดสด",
@@ -351,6 +353,10 @@
       "totalSide": {
         "over": "สูงกว่า",
         "under": "ต่ำกว่า"
+      },
+      "cornerSide": {
+        "odd": "คี่",
+        "even": "คู่"
       },
       "advanceProbability": "ล่วงหน้า",
       "team": "ทีม",

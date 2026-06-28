@@ -209,6 +209,23 @@ function isWorldcupTeamTotalGoalsMarket(market: ActivityMarket): boolean {
   );
 }
 
+function isWorldcupCornerTotalMarket(market: ActivityMarket): boolean {
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return (
+    type === "soccer_second_half_total_corners" ||
+    type === "total_corners" ||
+    type === "soccer_first_half_total_corners"
+  );
+}
+
+function isWorldcupTeamTotalCornersMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "soccer_team_total_corners";
+}
+
+function isWorldcupCornerOddEvenMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "soccer_game_corners_odd_even";
+}
+
 function isWorldcupPlayerPropMarket(market: ActivityMarket): boolean {
   const type = sportsType(toWorldcupPredictMarket(market));
   return (
@@ -328,6 +345,26 @@ function worldcupTotalSideLabel(
   return undefined;
 }
 
+function worldcupCornerOddEvenSideLabel(
+  side: string | undefined,
+  translate: WorldCupTranslate,
+): { label: string; positive: boolean } | undefined {
+  const normalizedSide = side?.trim().toLowerCase();
+  if (normalizedSide === "odd" || normalizedSide === "yes") {
+    return {
+      label: translate("extend.worldcup.cornerSide.odd"),
+      positive: true,
+    };
+  }
+  if (normalizedSide === "even" || normalizedSide === "no") {
+    return {
+      label: translate("extend.worldcup.cornerSide.even"),
+      positive: false,
+    };
+  }
+  return undefined;
+}
+
 function worldcupTeamTotalGoalsSubtitle(
   market: ActivityMarket,
   hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
@@ -346,6 +383,43 @@ function worldcupTeamTotalGoalsSubtitle(
         : label;
   return translate("extend.worldcup.teamTotalGoals", {
     team,
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
+function worldcupCornerTotalSubtitle(
+  market: ActivityMarket,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupCornerTotalMarket(market)) return undefined;
+  const predictMarket = toWorldcupPredictMarket(market);
+  const line = marketLine(predictMarket);
+  if (line === undefined) return undefined;
+  return translate("extend.worldcup.marketWithLine", {
+    market: translate(`extend.worldcup.detail.markets.type.${sportsType(predictMarket)}`),
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
+function worldcupTeamTotalCornersSubtitle(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupTeamTotalCornersMarket(market)) return undefined;
+  const predictMarket = toWorldcupPredictMarket(market);
+  const line = marketLine(predictMarket);
+  if (line === undefined) return undefined;
+  const label = marketLabel(predictMarket, hint);
+  const team =
+    hint.homeLabel && textMatchesAny(label, hint.homeKeys)
+      ? hint.homeLabel
+      : hint.awayLabel && textMatchesAny(label, hint.awayKeys)
+        ? hint.awayLabel
+        : label;
+  return translate("extend.worldcup.teamMarketWithLine", {
+    team,
+    market: translate("extend.worldcup.detail.markets.type.total_corners"),
     line: formatLine(Math.abs(line), false),
   });
 }
@@ -412,8 +486,25 @@ function activityDisplay(
     const teamTotalGoalsSubtitle = hint
       ? worldcupTeamTotalGoalsSubtitle(item.market, hint, translate)
       : undefined;
+    const cornerTotalSubtitle = worldcupCornerTotalSubtitle(item.market, translate);
+    const teamTotalCornersSubtitle = hint
+      ? worldcupTeamTotalCornersSubtitle(item.market, hint, translate)
+      : undefined;
+    const isCornerOddEven = isWorldcupCornerOddEvenMarket(item.market);
+    const cornerOddEvenSubtitle = isCornerOddEven
+      ? translate("extend.worldcup.detail.markets.type.soccer_game_corners_odd_even")
+      : undefined;
     const teamTotalGoalsSide = teamTotalGoalsSubtitle
       ? worldcupTotalSideLabel(item.side, translate)
+      : undefined;
+    const cornerTotalSide = cornerTotalSubtitle
+      ? worldcupTotalSideLabel(item.side, translate)
+      : undefined;
+    const teamTotalCornersSide = teamTotalCornersSubtitle
+      ? worldcupTotalSideLabel(item.side, translate)
+      : undefined;
+    const cornerOddEvenSide = isCornerOddEven
+      ? worldcupCornerOddEvenSideLabel(item.side, translate)
       : undefined;
     const spreadSideIsPositive = hint
       ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
@@ -427,6 +518,9 @@ function activityDisplay(
           : spreadSubtitle ??
             totalsSubtitle?.label ??
             teamTotalGoalsSubtitle ??
+            cornerTotalSubtitle ??
+            teamTotalCornersSubtitle ??
+            cornerOddEvenSubtitle ??
             firstToScoreSubtitle ??
             exactScoreSubtitle ??
             marketLabel(toWorldcupPredictMarket(item.market), hint),
@@ -438,12 +532,24 @@ function activityDisplay(
           isBothTeamsToScore ||
           spreadSubtitle ||
           teamTotalGoalsSubtitle ||
+          cornerTotalSubtitle ||
+          teamTotalCornersSubtitle ||
+          cornerOddEvenSubtitle ||
           firstToScoreSubtitle ||
           exactScoreSubtitle ||
           isPlayerProp,
       ),
-      plainSideLabel: teamTotalGoalsSide?.label,
-      plainSidePositive: teamTotalGoalsSide?.positive ?? spreadSideIsPositive,
+      plainSideLabel:
+        teamTotalGoalsSide?.label ??
+        cornerTotalSide?.label ??
+        teamTotalCornersSide?.label ??
+        cornerOddEvenSide?.label,
+      plainSidePositive:
+        teamTotalGoalsSide?.positive ??
+        cornerTotalSide?.positive ??
+        teamTotalCornersSide?.positive ??
+        cornerOddEvenSide?.positive ??
+        spreadSideIsPositive,
       hideSide: Boolean(totalsSubtitle),
     };
   }

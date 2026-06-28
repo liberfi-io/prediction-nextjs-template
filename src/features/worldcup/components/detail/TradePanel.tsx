@@ -29,8 +29,16 @@ function usesTotalSideLabels(market: PredictMarket): boolean {
     type === "totals" ||
     type === "soccer_team_totals" ||
     type === "soccer_first_half_team_totals" ||
-    type === "soccer_second_half_team_totals"
+    type === "soccer_second_half_team_totals" ||
+    type === "soccer_second_half_total_corners" ||
+    type === "total_corners" ||
+    type === "soccer_first_half_total_corners" ||
+    type === "soccer_team_total_corners"
   );
+}
+
+function usesCornerSideLabels(market: PredictMarket): boolean {
+  return sportsType(market) === "soccer_game_corners_odd_even";
 }
 
 /**
@@ -67,13 +75,21 @@ export function TradePanel({
   const eventTitle = event.title_trans || event.title;
   const marketTitle = market.outcomes?.[0]?.label || market.question;
   const outcomeLabels = useMemo(
-    () =>
-      usesTotalSideLabels(market)
-        ? {
-            yes: t("extend.worldcup.totalSide.over"),
-            no: t("extend.worldcup.totalSide.under"),
-          }
-        : undefined,
+    () => {
+      if (usesTotalSideLabels(market)) {
+        return {
+          yes: t("extend.worldcup.totalSide.over"),
+          no: t("extend.worldcup.totalSide.under"),
+        };
+      }
+      if (usesCornerSideLabels(market)) {
+        return {
+          yes: t("extend.worldcup.cornerSide.odd"),
+          no: t("extend.worldcup.cornerSide.even"),
+        };
+      }
+      return undefined;
+    },
     [market, t],
   );
   const actionLabel =
