@@ -65,6 +65,32 @@ const FALLBACK_MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
 const LIVE_VIDEO_AUTOPEN_LEAD_MS = 5 * 60 * 1000;
 const LIVE_VIDEO_AUTOPEN_LAG_MS = 60 * 60 * 1000;
 const FIFA_AVATAR = "/worldcup/fifa.webp";
+const KNOCKOUT_STAGE_ORDER = ["r32", "r16", "r8", "r4", "r3rd", "final"] as const;
+
+function stageSectionKey(match: WcMatch): string {
+  return match.groupCode ? `group-${match.groupCode}` : match.stage;
+}
+
+function stageSectionSortValue(key: string): number {
+  const knockoutIndex = KNOCKOUT_STAGE_ORDER.findIndex((stage) => stage === key);
+  if (knockoutIndex !== -1) return knockoutIndex;
+
+  if (key.startsWith("group-")) {
+    const groupCode = key.slice("group-".length);
+    return 100 + (groupCode ? groupCode.charCodeAt(0) : 0);
+  }
+  return 1000;
+}
+
+function stageSectionTitle(
+  key: string,
+  t: (key: `extend.${string}`, options?: Record<string, unknown>) => unknown,
+): string {
+  if (key.startsWith("group-")) {
+    return String(t("extend.worldcup.groupLabel", { code: key.slice("group-".length) }));
+  }
+  return String(t(`extend.worldcup.round.${key}`));
+}
 
 function nearestScrollContainer(el: HTMLElement): HTMLElement | null {
   let current = el.parentElement;
@@ -489,16 +515,20 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       }
       return [...byDay.entries()].map(([title, items]) => ({ title, items }));
     }
-    const byGroup = new Map<string, typeof displayMatches>();
+    const byStage = new Map<string, typeof displayMatches>();
     for (const m of displayMatches) {
-      const key = m.groupCode ?? "?";
-      if (!byGroup.has(key)) byGroup.set(key, []);
-      byGroup.get(key)!.push(m);
+      const key = stageSectionKey(m);
+      if (!byStage.has(key)) byStage.set(key, []);
+      byStage.get(key)!.push(m);
     }
-    return [...byGroup.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([code, items]) => ({
-        title: t("extend.worldcup.groupLabel", { code }),
+    return [...byStage.entries()]
+      .sort(
+        (a, b) =>
+          stageSectionSortValue(a[0]) - stageSectionSortValue(b[0]) ||
+          a[0].localeCompare(b[0]),
+      )
+      .map(([key, items]) => ({
+        title: stageSectionTitle(key, t),
         items: items.sort((x, y) => x.kickoffMs - y.kickoffMs),
       }));
   }, [displayMatches, effectiveGroupBy, lang, t]);
