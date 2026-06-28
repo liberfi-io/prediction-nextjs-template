@@ -86,9 +86,11 @@ const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
   "soccer_second_half_total_corners",
   "soccer_team_total_corners",
   "soccer_player_goals",
+  "soccer_player_goals_plus_assists",
   "soccer_player_goalkeeper_saves",
   "soccer_player_assists",
   "soccer_player_shots",
+  "soccer_player_shots_on_target",
 ]);
 type TranslatedEvent = PredictEvent & { title_trans?: unknown };
 type TranslatedOutcome = PredictMarket["outcomes"][number] & {
