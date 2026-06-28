@@ -191,6 +191,10 @@ function isWorldcupTotalsMarket(market: ActivityMarket): boolean {
   return sportsType(toWorldcupPredictMarket(market)) === "totals";
 }
 
+function isWorldcupFirstToScoreMarket(market: ActivityMarket): boolean {
+  return sportsType(toWorldcupPredictMarket(market)) === "soccer_first_to_score";
+}
+
 function textMatchesAny(text: string, keys: Set<string>): boolean {
   const lower = text.toLowerCase();
   for (const key of keys) {
@@ -276,6 +280,17 @@ function worldcupTotalsSubtitle(
   return undefined;
 }
 
+function worldcupFirstToScoreSubtitle(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupFirstToScoreMarket(market)) return undefined;
+  const optionLabel = marketLabel(toWorldcupPredictMarket(market), hint);
+  if (!optionLabel) return undefined;
+  return `${translate("extend.worldcup.detail.markets.type.soccer_first_to_score")} (${optionLabel})`;
+}
+
 function worldcupMoneylineOutcomeLabel(
   market: ActivityMarket,
   match: WcMatch,
@@ -312,6 +327,9 @@ function activityDisplay(
       ? worldcupSpreadSubtitle(item.market, hint, translate)
       : undefined;
     const totalsSubtitle = worldcupTotalsSubtitle(item.market, item.side, translate);
+    const firstToScoreSubtitle = hint
+      ? worldcupFirstToScoreSubtitle(item.market, hint, translate)
+      : undefined;
     const spreadSideIsPositive = hint
       ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
       : undefined;
@@ -321,11 +339,16 @@ function activityDisplay(
         ? ""
         : isBothTeamsToScore
           ? translate("extend.worldcup.bothTeamsToScore")
-          : spreadSubtitle ?? totalsSubtitle?.label ?? marketLabel(toWorldcupPredictMarket(item.market), hint),
+          : spreadSubtitle ??
+            totalsSubtitle?.label ??
+            firstToScoreSubtitle ??
+            marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
       subtitleTone: totalsSubtitle?.tone,
-      plainSide: Boolean(outcomeLabel || isBothTeamsToScore || spreadSubtitle),
+      plainSide: Boolean(
+        outcomeLabel || isBothTeamsToScore || spreadSubtitle || firstToScoreSubtitle,
+      ),
       plainSidePositive: spreadSideIsPositive,
       hideSide: Boolean(totalsSubtitle),
     };
