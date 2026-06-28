@@ -530,11 +530,13 @@
             "soccer_player_goals": "Spielertore",
             "soccer_player_goals_short": "Tore",
             "soccer_player_goals_plus_assists": "Tore + Vorlagen",
+            "soccer_player_goals_plus_assists_short": "Tore + Vorlagen",
             "soccer_player_assists": "Spielervorlagen",
             "soccer_player_assists_short": "Vorlagen",
             "soccer_player_shots": "Spielerschüsse",
             "soccer_player_shots_short": "Schüsse",
             "soccer_player_shots_on_target": "Schüsse aufs Tor",
+            "soccer_player_shots_on_target_short": "Schüsse aufs Tor",
             "soccer_player_goalkeeper_saves": "Torwartparaden",
             "soccer_player_goalkeeper_saves_short": "Paraden",
             "other": "Andere"

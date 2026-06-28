@@ -12,9 +12,6 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   cn,
-  ModalBody,
-  ModalContent,
-  StyledModal,
   toast,
   useScreen,
 } from "@liberfi.io/ui";
@@ -256,14 +253,14 @@ export function WorldCupDetailPage({
   const [side, setSide] = useState<TradeSide>("buy");
 
   // Mobile-only UI state
-  const [marketsSheetOpen, setMarketsSheetOpen] = useState(false);
   const [tradeSheetOpen, setTradeSheetOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState<MobileTabKey>("orderbook");
+  const [mobileTab, setMobileTab] = useState<MobileTabKey>("markets");
   const deepLinkAppliedRef = useRef(false);
-  const mobileMarketPromptOpenedRef = useRef(false);
+  const mobileMarketTabOpenedRef = useRef(false);
+  const mobileTabsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (mobileTab === "live" && !showLiveTab) setMobileTab("orderbook");
+    if (mobileTab === "live" && !showLiveTab) setMobileTab("markets");
     if (mobileTab === "center" && !ENABLE_WORLD_CUP_MATCH_CENTER) {
       setMobileTab("news");
     }
@@ -279,9 +276,9 @@ export function WorldCupDetailPage({
 
   // Resolve the active selection, falling back to the first open market.
   const selection = useMemo(() => {
-    const found = selectedSlug ? findSelection(cats, selectedSlug) : undefined;
+    const found = selectedSlug ? findSelection(cats, selectedSlug, outcome) : undefined;
     return found ?? defaultSelection(cats);
-  }, [cats, selectedSlug]);
+  }, [cats, outcome, selectedSlug]);
 
   // Seed the default selection once markets arrive.
   useEffect(() => {
@@ -343,14 +340,20 @@ export function WorldCupDetailPage({
   useEffect(() => {
     if (isDesktop) return;
     if (hasCompleteDeepLink) return;
-    if (mobileMarketPromptOpenedRef.current) return;
+    if (mobileMarketTabOpenedRef.current) return;
     const hasOptions = allGroups(cats).some(
       (group) => group.options.length > 0,
     );
     if (!hasOptions) return;
 
-    mobileMarketPromptOpenedRef.current = true;
-    setMarketsSheetOpen(true);
+    mobileMarketTabOpenedRef.current = true;
+    setMobileTab("markets");
+    window.requestAnimationFrame(() => {
+      mobileTabsSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }, [cats, hasCompleteDeepLink, isDesktop]);
 
   useEffect(() => {
@@ -363,9 +366,9 @@ export function WorldCupDetailPage({
     });
   }, [event, initialMarketSlug]);
 
-  const handleSelect = useCallback((slug: string) => {
+  const handleSelect = useCallback((slug: string, selectedOutcome: TradeOutcome = "yes") => {
     setSelectedSlug(slug);
-    setOutcome("yes");
+    setOutcome(selectedOutcome);
     setSide("buy");
   }, []);
 
@@ -406,15 +409,6 @@ export function WorldCupDetailPage({
   const oddsFormatter = useCallback(
     (price: number) => convertPrice(price, oddsFormat),
     [oddsFormat],
-  );
-
-  const handleMobileMarketSelect = useCallback(
-    (slug: string) => {
-      handleSelect(slug);
-      setMarketsSheetOpen(false);
-      setTradeSheetOpen(true);
-    },
-    [handleSelect],
   );
 
   if (isLoading && !event) {
@@ -483,9 +477,9 @@ export function WorldCupDetailPage({
   const chartEvent = selectedGroup
     ? {
         ...displayEvent,
-        markets: selectedGroup.options.map((o) =>
-          withCleanLabel(o.market, optionDisplayLabel(o.label), hint),
-        ),
+        markets: Array.from(
+          new Map(selectedGroup.options.map((o) => [o.market.slug, o])).values(),
+        ).map((o) => withCleanLabel(o.market, optionDisplayLabel(o.label), hint)),
       }
     : displayEvent;
 
@@ -542,8 +536,6 @@ export function WorldCupDetailPage({
           event={displayEvent}
           market={selectedDisplayMarket}
           selectedLabel={selectedLabel}
-          panelOpen={marketsSheetOpen}
-          onTogglePanel={() => setMarketsSheetOpen((v) => !v)}
           onBack={() => router.back()}
           showInfoButtons={false}
         />
@@ -556,7 +548,7 @@ export function WorldCupDetailPage({
         />
 
         {/* Tabbed lower content */}
-        <div className="flex flex-col gap-3">
+        <div ref={mobileTabsSectionRef} className="flex flex-col gap-3">
           <div className="flex items-center gap-1 overflow-x-auto rounded-[10px] border border-zinc-800 bg-zinc-900/60 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {mobileTabs.map(({ key, labelKey }) => (
               <button
@@ -574,6 +566,23 @@ export function WorldCupDetailPage({
               </button>
             ))}
           </div>
+
+          {mobileTab === "markets" && (
+            <MarketSwitcherFrame
+              title={t("extend.worldcup.detail.markets.title")}
+              actionBefore={<OddsFormatSelect />}
+              className="h-[70dvh]"
+            >
+              <MarketsPanel
+                cats={cats}
+                activeCategory={activeCategory}
+                selectedSlug={selectedSlug}
+                selectedOutcome={outcome}
+                onSelect={handleSelect}
+                className="flex-1 border-0 bg-transparent"
+              />
+            </MarketSwitcherFrame>
+          )}
 
           {mobileTab === "orderbook" &&
             (selectedMarket ? (
@@ -642,34 +651,6 @@ export function WorldCupDetailPage({
             onPick={handleMobileTradePick}
           />
         )}
-
-        {/* Markets switcher modal (opened from the header dropdown) */}
-        <StyledModal
-          isOpen={marketsSheetOpen}
-          onOpenChange={(open) => {
-            if (!open) setMarketsSheetOpen(false);
-          }}
-          size="lg"
-        >
-          <ModalContent>
-            <ModalBody className="p-0">
-              <MarketSwitcherFrame
-                title={t("extend.worldcup.detail.markets.title")}
-                onClose={() => setMarketsSheetOpen(false)}
-                actionBefore={<OddsFormatSelect />}
-                className="max-h-[80dvh] border-0 bg-transparent"
-              >
-                <MarketsPanel
-                  cats={cats}
-                  activeCategory={activeCategory}
-                  selectedSlug={selectedSlug}
-                  onSelect={handleMobileMarketSelect}
-                  className="flex-1 border-0 bg-transparent"
-                />
-              </MarketSwitcherFrame>
-            </ModalBody>
-          </ModalContent>
-        </StyledModal>
 
         {/* Trade action modal */}
         {selectedMarket && (
@@ -741,6 +722,7 @@ export function WorldCupDetailPage({
                   cats={cats}
                   activeCategory={activeCategory}
                   selectedSlug={selectedSlug}
+                  selectedOutcome={outcome}
                   onSelect={handleSelect}
                   className="flex-1 border-0 bg-transparent"
                 />
@@ -864,6 +846,7 @@ function CloseIcon() {
 }
 
 type MobileTabKey =
+  | "markets"
   | "orderbook"
   | "live"
   | "center"
@@ -880,6 +863,7 @@ type MobileTabKey =
 // sub-tabs (positions/orders/history) + the header info popovers (rules/ref,
 // which desktop keeps as buttons). Labels reuse existing i18n keys.
 const MOBILE_TABS = [
+  { key: "markets", labelKey: "extend.worldcup.detail.markets.title" },
   { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
   { key: "live", labelKey: "extend.worldcup.live" },
   ...(ENABLE_WORLD_CUP_MATCH_CENTER

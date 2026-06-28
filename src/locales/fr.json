@@ -528,11 +528,13 @@
             "soccer_player_goals": "Buts du joueur",
             "soccer_player_goals_short": "buts",
             "soccer_player_goals_plus_assists": "Buts + passes décisives",
+            "soccer_player_goals_plus_assists_short": "buts + passes décisives",
             "soccer_player_assists": "Passes décisives du joueur",
             "soccer_player_assists_short": "passes décisives",
             "soccer_player_shots": "Tirs du joueur",
             "soccer_player_shots_short": "tirs",
             "soccer_player_shots_on_target": "Tirs cadrés",
+            "soccer_player_shots_on_target_short": "tirs cadrés",
             "soccer_player_goalkeeper_saves": "Arrêts du gardien",
             "soccer_player_goalkeeper_saves_short": "arrêts",
             "other": "Autre"

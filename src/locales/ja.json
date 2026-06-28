@@ -528,11 +528,13 @@
             "soccer_player_goals": "選手ゴール",
             "soccer_player_goals_short": "ゴール",
             "soccer_player_goals_plus_assists": "ゴール + アシスト",
+            "soccer_player_goals_plus_assists_short": "ゴール + アシスト",
             "soccer_player_assists": "選手アシスト",
             "soccer_player_assists_short": "アシスト",
             "soccer_player_shots": "選手シュート",
             "soccer_player_shots_short": "シュート",
             "soccer_player_shots_on_target": "枠内シュート",
+            "soccer_player_shots_on_target_short": "枠内シュート",
             "soccer_player_goalkeeper_saves": "GKセーブ",
             "soccer_player_goalkeeper_saves_short": "セーブ",
             "other": "その他"

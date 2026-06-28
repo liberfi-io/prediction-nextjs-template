@@ -46,7 +46,13 @@ export function buildWorldcupTeamHint(
       "extend.worldcup.detail.markets.type.soccer_player_goalkeeper_saves_short",
     ),
     playerAssistsShortLabel: t("extend.worldcup.detail.markets.type.soccer_player_assists_short"),
+    playerGoalsPlusAssistsShortLabel: t(
+      "extend.worldcup.detail.markets.type.soccer_player_goals_plus_assists_short",
+    ),
     playerShotsShortLabel: t("extend.worldcup.detail.markets.type.soccer_player_shots_short"),
+    playerShotsOnTargetShortLabel: t(
+      "extend.worldcup.detail.markets.type.soccer_player_shots_on_target_short",
+    ),
     neitherLabel: t("extend.worldcup.detail.markets.option.neither"),
     anyOtherScoreLabel: t("extend.worldcup.detail.markets.option.anyOtherScore"),
   };

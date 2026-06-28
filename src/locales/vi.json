@@ -528,11 +528,13 @@
             "soccer_player_goals": "Bàn thắng của cầu thủ",
             "soccer_player_goals_short": "bàn thắng",
             "soccer_player_goals_plus_assists": "Bàn thắng + kiến tạo",
+            "soccer_player_goals_plus_assists_short": "bàn thắng + kiến tạo",
             "soccer_player_assists": "Kiến tạo của cầu thủ",
             "soccer_player_assists_short": "kiến tạo",
             "soccer_player_shots": "Cú sút của cầu thủ",
             "soccer_player_shots_short": "cú sút",
             "soccer_player_shots_on_target": "Sút trúng đích",
+            "soccer_player_shots_on_target_short": "sút trúng đích",
             "soccer_player_goalkeeper_saves": "Cứu thua của thủ môn",
             "soccer_player_goalkeeper_saves_short": "cứu thua",
             "other": "Khác"

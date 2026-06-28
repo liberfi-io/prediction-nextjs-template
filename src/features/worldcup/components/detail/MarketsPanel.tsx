@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
@@ -26,37 +26,62 @@ import {
   type MarketOption,
   allGroups,
   findSelection,
-  yesPrice,
   yesAskPrice,
 } from "./marketGrouping";
 
-type SortKey = "default" | "odds" | "volume" | "liquidity";
+const BINARY_OUTCOME_TYPES = new Set([
+  "both_teams_to_score",
+  "both_teams_to_score_first_half",
+  "both_teams_to_score_second_half",
+  "soccer_game_corners_odd_even",
+]);
 
-const SORTS: SortKey[] = ["default", "odds", "volume", "liquidity"];
+const LINE_SELECTOR_TYPES = new Set([
+  "spreads",
+  "totals",
+  "first_half_totals",
+  "second_half_totals",
+  "soccer_second_half_total_corners",
+  "total_corners",
+  "soccer_first_half_total_corners",
+]);
+const TEAM_TOTAL_SELECTOR_TYPES = new Set([
+  "soccer_team_totals",
+  "soccer_first_half_team_totals",
+  "soccer_second_half_team_totals",
+  "soccer_team_total_corners",
+]);
+const ITEM_BINARY_LIST_TYPES = new Set([
+  "soccer_player_goals",
+  "soccer_player_goals_plus_assists",
+  "soccer_player_assists",
+  "soccer_player_shots",
+  "soccer_player_shots_on_target",
+  "soccer_player_goalkeeper_saves",
+]);
 
 /**
  * future.news-style Markets switcher. Lets the user browse every market type of
- * a match, filter to active markets, re-sort, and pick a specific outcome/line
- * — which drives the chart, order book, trade panel and header of the detail
- * page.
+ * a match, filter to active markets, and pick a specific outcome/line — which
+ * drives the chart, order book, trade panel and header of the detail page.
  */
 export function MarketsPanel({
   cats,
   activeCategory,
   selectedSlug,
+  selectedOutcome = "yes",
   onSelect,
   className,
 }: {
   cats: CategorizedMarkets;
   activeCategory: MarketCategory;
   selectedSlug: string;
-  onSelect: (slug: string) => void;
+  selectedOutcome?: "yes" | "no";
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
   className?: string;
 }) {
   const { t } = useTranslation();
 
-  const [sort, setSort] = useState<SortKey>("default");
-  const [activeOnly, setActiveOnly] = useState(false);
   const [category, setCategory] = useState<MarketCategory>(activeCategory);
 
   // The selected market also has a live order book on screen; subscribe to its
@@ -66,9 +91,9 @@ export function MarketsPanel({
   const selectedMarket = useMemo(
     () =>
       selectedSlug
-        ? findSelection(cats, selectedSlug)?.option.market
+        ? findSelection(cats, selectedSlug, selectedOutcome)?.option.market
         : undefined,
-    [cats, selectedSlug],
+    [cats, selectedOutcome, selectedSlug],
   );
   const { data: liveOrderbook } = useRealtimeOrderbook(
     {
@@ -114,12 +139,11 @@ export function MarketsPanel({
     const bySlug = new Map<string, MarketOption["market"]>();
     for (const group of groups) {
       for (const option of group.options) {
-        if (activeOnly && option.market.status !== "open") continue;
         bySlug.set(option.market.slug, option.market);
       }
     }
     return [...bySlug.values()];
-  }, [activeOnly, groups]);
+  }, [groups]);
   // Every open market of the match, across all category tabs. Feeding the whole
   // set to the price hook means switching tabs needs no fresh subscribe/fetch —
   // the prices are already live and seeded.
@@ -152,27 +176,6 @@ export function MarketsPanel({
     prioritySlugs,
   );
 
-  const sortOptions = (options: MarketOption[]): MarketOption[] => {
-    const filtered = activeOnly
-      ? options.filter((o) => o.market.status === "open")
-      : options;
-    if (sort === "default") return filtered;
-    const copy = [...filtered];
-    copy.sort((a, b) => {
-      switch (sort) {
-        case "odds":
-          return yesPrice(b.market) - yesPrice(a.market);
-        case "volume":
-          return (b.market.volume ?? 0) - (a.market.volume ?? 0);
-        case "liquidity":
-          return (b.market.liquidity ?? 0) - (a.market.liquidity ?? 0);
-        default:
-          return 0;
-      }
-    });
-    return copy;
-  };
-
   return (
     <div
       className={cn(
@@ -180,37 +183,6 @@ export function MarketsPanel({
         className,
       )}
     >
-      {/* Sort + active-only */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-zinc-800 px-3 py-2">
-        {SORTS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setSort(key)}
-            className={cn(
-              "rounded-[7px] px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
-              sort === key
-                ? "bg-zinc-800 text-[#c7ff2e]"
-                : "text-zinc-500 hover:text-zinc-200",
-            )}
-          >
-            {t(`extend.worldcup.detail.markets.sort.${key}`)}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => setActiveOnly((v) => !v)}
-          className={cn(
-            "ml-auto rounded-[7px] border px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
-            activeOnly
-              ? "border-[#c7ff2e]/50 bg-[#c7ff2e]/10 text-[#c7ff2e]"
-              : "border-zinc-700/60 text-zinc-400 hover:text-zinc-200",
-          )}
-        >
-          {t("extend.worldcup.detail.markets.activeOnly")}
-        </button>
-      </div>
-
       {/* Category tabs */}
       {categoryTabs.length > 1 && (
         <div className="flex items-center gap-1 overflow-x-auto border-b border-zinc-800 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -238,8 +210,9 @@ export function MarketsPanel({
           <GroupRow
             key={group.key}
             group={group}
-            options={sortOptions(group.options)}
+            options={group.options}
             selectedSlug={selectedSlug}
+            selectedOutcome={selectedOutcome}
             orderbookPricesBySlug={orderbookPricesBySlug}
             onSelect={onSelect}
             label={t(`extend.worldcup.detail.markets.type.${group.type_label}`)}
@@ -248,6 +221,479 @@ export function MarketsPanel({
       </div>
     </div>
   );
+}
+
+function LineSelectorContent({
+  group,
+  options,
+  activeLineKey,
+  lineOptions,
+  selectedSlug,
+  selectedOutcome,
+  optionOdds,
+  onSelect,
+  onLineChange,
+}: {
+  group: MarketGroup;
+  options: MarketOption[];
+  activeLineKey: string;
+  lineOptions: { key: string; value: number }[];
+  selectedSlug: string;
+  selectedOutcome: "yes" | "no";
+  optionOdds: (option: MarketOption) => string | null;
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onLineChange: (key: string) => void;
+}) {
+  const { t } = useTranslation();
+  const isTotals = group.type !== "spreads";
+  const lineButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const activeLineIndex = lineOptions.findIndex((line) => line.key === activeLineKey);
+  const lineOptionsForButtons = options.filter(
+    (option) => lineKey(lineValue(option)) === activeLineKey,
+  );
+  const tradeOptions = isTotals
+    ? buildTotalsTradeOptions(
+        lineOptionsForButtons[0],
+        t("extend.worldcup.totalSide.over"),
+        t("extend.worldcup.totalSide.under"),
+      )
+    : buildSpreadTradeOptions(lineOptionsForButtons);
+  const selectedOption = useMemo(
+    () =>
+      options.find(
+        (option) =>
+          option.market.slug === selectedSlug &&
+          (option.outcome ?? "yes") === selectedOutcome,
+      ),
+    [options, selectedOutcome, selectedSlug],
+  );
+  const centerLine = useCallback((key: string) => {
+    window.requestAnimationFrame(() => {
+      const button = lineButtonRefs.current.get(key);
+      const scroller = button?.parentElement;
+      if (!button || !scroller) return;
+      scroller.scrollTo({
+        left: button.offsetLeft + button.offsetWidth / 2 - scroller.clientWidth / 2,
+        behavior: "smooth",
+      });
+    });
+  }, []);
+  const selectLine = useCallback(
+    (key: string) => {
+      const lineOptionsForNextButtons = options.filter(
+        (option) => lineKey(lineValue(option)) === key,
+      );
+      const nextTradeOptions = isTotals
+        ? buildTotalsTradeOptions(
+            lineOptionsForNextButtons[0],
+            t("extend.worldcup.totalSide.over"),
+            t("extend.worldcup.totalSide.under"),
+          )
+        : buildSpreadTradeOptions(lineOptionsForNextButtons);
+      const preferredSide = selectedOption?.side ?? (isTotals ? "over" : "home");
+      const preferredOutcome = isTotals ? selectedOutcome : selectedOption?.outcome;
+      const nextOption =
+        nextTradeOptions.find(
+          (option) =>
+            option.side === preferredSide &&
+            (preferredOutcome === undefined ||
+              (option.outcome ?? "yes") === preferredOutcome),
+        ) ??
+        nextTradeOptions.find((option) => option.side === preferredSide) ??
+        nextTradeOptions[0];
+
+      onLineChange(key);
+      if (nextOption) onSelect(nextOption.market.slug, nextOption.outcome ?? "yes");
+      centerLine(key);
+    },
+    [
+      centerLine,
+      isTotals,
+      onLineChange,
+      onSelect,
+      options,
+      selectedOption?.outcome,
+      selectedOption?.side,
+      selectedOutcome,
+      t,
+    ],
+  );
+
+  useEffect(() => {
+    centerLine(activeLineKey);
+  }, [activeLineKey, centerLine]);
+  const selectAdjacentLine = useCallback(
+    (direction: -1 | 1) => {
+      if (activeLineIndex < 0) return;
+      const nextLine = lineOptions[activeLineIndex + direction];
+      if (!nextLine) return;
+      selectLine(nextLine.key);
+    },
+    [activeLineIndex, lineOptions, selectLine],
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className={cn("grid gap-1.5", isTotals ? "grid-cols-2" : "grid-cols-2")}>
+        {tradeOptions.map((option) => {
+          const outcome = option.outcome ?? "yes";
+          const selected = option.market.slug === selectedSlug && outcome === selectedOutcome;
+          const odds = optionOdds(option);
+          return (
+            <button
+              key={`${option.market.slug}:${outcome}:${option.side ?? "line"}`}
+              type="button"
+              onClick={() => onSelect(option.market.slug, outcome)}
+              className={cn(
+                "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
+                selected
+                  ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
+                  : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
+              )}
+            >
+              <span className="max-w-full truncate text-xs font-medium leading-tight">
+                {lineButtonLabel(option, group.type)}
+              </span>
+              <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                {odds ?? "-"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {lineOptions.length > 1 && (
+        <div className="relative flex h-12 items-center overflow-hidden border-t border-zinc-800/70 bg-zinc-950/60">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-[-3px] z-10 -translate-x-1/2 text-[#c7ff2e]"
+          >
+            <path
+              d="M9.1 2.5H2.9c-.55 0-1.06.3-1.32.79-.26.49-.23 1.08.07 1.54l3.1 4.65c.28.42.75.67 1.25.67s.97-.25 1.25-.67l3.1-4.65c.31-.46.34-1.05.08-1.54-.26-.49-.77-.79-1.33-.79Z"
+              fill="currentColor"
+            />
+          </svg>
+          <button
+            type="button"
+            aria-label="Previous line"
+            disabled={activeLineIndex <= 0}
+            onClick={() => selectAdjacentLine(-1)}
+            className={cn(
+              "absolute left-0 top-0 z-20 flex h-full w-8 cursor-pointer items-center justify-start bg-gradient-to-r from-zinc-950/95 to-transparent pl-1 text-lg font-semibold text-zinc-500 transition-colors",
+              activeLineIndex > 0
+                ? "hover:text-zinc-100"
+                : "cursor-default opacity-35",
+            )}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+              <path
+                d="M10 3.5 5.5 8l4.5 4.5"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+          </button>
+          <div
+            className="flex h-12 min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden px-[calc(50%_-_20px)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {lineOptions.map((line) => {
+              const active = line.key === activeLineKey;
+              return (
+                <button
+                  key={line.key}
+                  ref={(node) => {
+                    if (node) lineButtonRefs.current.set(line.key, node);
+                    else lineButtonRefs.current.delete(line.key);
+                  }}
+                  type="button"
+                  onClick={() => selectLine(line.key)}
+                  className={cn(
+                    "flex h-12 w-10 shrink-0 cursor-pointer items-center justify-center px-3 text-[13px] font-semibold tabular-nums transition-colors",
+                    active
+                      ? "text-[#c7ff2e]"
+                      : "text-zinc-500 hover:text-zinc-100",
+                  )}
+                >
+                  {group.type === "spreads"
+                    ? formatSignedLine(line.value)
+                    : formatPlainLine(line.value)}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            aria-label="Next line"
+            disabled={activeLineIndex < 0 || activeLineIndex >= lineOptions.length - 1}
+            onClick={() => selectAdjacentLine(1)}
+            className={cn(
+              "absolute right-0 top-0 z-20 flex h-full w-8 cursor-pointer items-center justify-end bg-gradient-to-l from-zinc-950/95 to-transparent pr-1 text-lg font-semibold text-zinc-500 transition-colors",
+              activeLineIndex >= 0 && activeLineIndex < lineOptions.length - 1
+                ? "hover:text-zinc-100"
+                : "cursor-default opacity-35",
+            )}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+              <path
+                d="m6 3.5 4.5 4.5L6 12.5"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildTotalsTradeOptions(
+  option: MarketOption | undefined,
+  overLabel: string,
+  underLabel: string,
+): MarketOption[] {
+  if (!option) return [];
+  return [
+    {
+      ...option,
+      label: overLabel,
+      outcome: "yes",
+      side: "over",
+    },
+    {
+      ...option,
+      label: underLabel,
+      outcome: "no",
+      side: "under",
+    },
+  ];
+}
+
+function TeamTotalsContent({
+  group,
+  options,
+  selectedSlug,
+  selectedOutcome,
+  optionOdds,
+  onSelect,
+}: {
+  group: MarketGroup;
+  options: MarketOption[];
+  selectedSlug: string;
+  selectedOutcome: "yes" | "no";
+  optionOdds: (option: MarketOption) => string | null;
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
+}) {
+  const knownSides = (["home", "away"] as const)
+    .map((side) => ({
+      side,
+      options: options.filter((option) => option.teamSide === side),
+    }))
+    .filter(({ options: sideOptions }) => sideOptions.length > 0);
+  const fallbackOptions = options.filter((option) => !option.teamSide);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {knownSides.map(({ side, options: sideOptions }) => (
+        <TeamTotalsLineGroup
+          key={side}
+          group={group}
+          options={sideOptions}
+          label={sideOptions[0]?.label ?? ""}
+          selectedSlug={selectedSlug}
+          selectedOutcome={selectedOutcome}
+          optionOdds={optionOdds}
+          onSelect={onSelect}
+        />
+      ))}
+      {fallbackOptions.length > 0 && (
+        <TeamTotalsLineGroup
+          group={group}
+          options={fallbackOptions}
+          label={fallbackOptions[0]?.label ?? ""}
+          selectedSlug={selectedSlug}
+          selectedOutcome={selectedOutcome}
+          optionOdds={optionOdds}
+          onSelect={onSelect}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExactScoreContent({
+  options,
+  selectedSlug,
+  selectedOutcome,
+  optionOdds,
+  onSelect,
+}: {
+  options: MarketOption[];
+  selectedSlug: string;
+  selectedOutcome: "yes" | "no";
+  optionOdds: (option: MarketOption) => string | null;
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex flex-col gap-2">
+      {options.map((option) => {
+        const yesOption: MarketOption = {
+          ...option,
+          label: t("extend.worldcup.detail.trade.yes"),
+          outcome: "yes",
+        };
+        const noOption: MarketOption = {
+          ...option,
+          label: t("extend.worldcup.detail.trade.no"),
+          outcome: "no",
+        };
+        return (
+          <div key={option.market.slug} className="flex flex-col gap-1.5">
+            <div className="truncate text-xs font-medium text-zinc-400">
+              {option.label}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[yesOption, noOption].map((outcomeOption) => {
+                const outcome = outcomeOption.outcome ?? "yes";
+                const selected =
+                  outcomeOption.market.slug === selectedSlug &&
+                  outcome === selectedOutcome;
+                const odds = optionOdds(outcomeOption);
+                return (
+                  <button
+                    key={`${outcomeOption.market.slug}:${outcome}`}
+                    type="button"
+                    onClick={() => onSelect(outcomeOption.market.slug, outcome)}
+                    className={cn(
+                      "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
+                      selected
+                        ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
+                        : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
+                    )}
+                  >
+                    <span className="max-w-full truncate text-xs font-medium leading-tight">
+                      {outcomeOption.label}
+                    </span>
+                    <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
+                      {odds ?? "-"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TeamTotalsLineGroup({
+  group,
+  options,
+  label,
+  selectedSlug,
+  selectedOutcome,
+  optionOdds,
+  onSelect,
+}: {
+  group: MarketGroup;
+  options: MarketOption[];
+  label: string;
+  selectedSlug: string;
+  selectedOutcome: "yes" | "no";
+  optionOdds: (option: MarketOption) => string | null;
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
+}) {
+  const [selectedLineKey, setSelectedLineKey] = useState<string>();
+  const lineOptions = useMemo(() => {
+    const byKey = new Map<string, { key: string; value: number }>();
+    for (const option of options) {
+      const value = lineValue(option);
+      byKey.set(lineKey(value), { key: lineKey(value), value });
+    }
+    return [...byKey.values()].sort((a, b) => a.value - b.value);
+  }, [options]);
+
+  useEffect(() => {
+    if (lineOptions.length === 0) return;
+    const selectedOption = options.find(
+      (option) =>
+        option.market.slug === selectedSlug &&
+        (option.outcome ?? "yes") === selectedOutcome,
+    );
+    const nextKey = selectedOption
+      ? lineKey(lineValue(selectedOption))
+      : selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
+        ? selectedLineKey
+        : lineOptions[0].key;
+    if (selectedLineKey !== nextKey) setSelectedLineKey(nextKey);
+  }, [lineOptions, options, selectedLineKey, selectedOutcome, selectedSlug]);
+
+  const activeLineKey = selectedLineKey ?? lineOptions[0]?.key;
+  if (!activeLineKey) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {label && (
+        <div className="truncate text-xs font-medium text-zinc-400">
+          {label}
+        </div>
+      )}
+      <LineSelectorContent
+        group={group}
+        options={options}
+        activeLineKey={activeLineKey}
+        lineOptions={lineOptions}
+        selectedSlug={selectedSlug}
+        selectedOutcome={selectedOutcome}
+        optionOdds={optionOdds}
+        onSelect={onSelect}
+        onLineChange={setSelectedLineKey}
+      />
+    </div>
+  );
+}
+
+function buildSpreadTradeOptions(options: MarketOption[]): MarketOption[] {
+  const home = options.find((option) => option.side === "home");
+  const away = options.find((option) => option.side === "away");
+  return [home, away].filter((option): option is MarketOption => Boolean(option));
+}
+
+function lineButtonLabel(option: MarketOption, type: MarketGroup["type"]): string {
+  if (type === "spreads") {
+    return option.label;
+  }
+  return option.label;
+}
+
+function lineValue(option: MarketOption): number {
+  return typeof option.line === "number" ? option.line : option.sort;
+}
+
+function lineKey(value: number): string {
+  return value.toFixed(4);
+}
+
+function formatPlainLine(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatSignedLine(value: number): string {
+  if (value === 0) return "0";
+  return `${value > 0 ? "+" : ""}${formatPlainLine(value)}`;
 }
 
 // The batch orderbook endpoint caps a request at 100 markets; chunk so the
@@ -490,6 +936,7 @@ function GroupRow({
   group,
   options,
   selectedSlug,
+  selectedOutcome,
   orderbookPricesBySlug,
   onSelect,
   label,
@@ -497,16 +944,76 @@ function GroupRow({
   group: MarketGroup;
   options: MarketOption[];
   selectedSlug: string;
+  selectedOutcome: "yes" | "no";
   orderbookPricesBySlug: Map<string, number>;
-  onSelect: (slug: string) => void;
+  onSelect: (slug: string, outcome?: "yes" | "no") => void;
   label: string;
 }) {
   const { t } = useTranslation();
   const [format] = useOddsFormat();
+  const [selectedLineKey, setSelectedLineKey] = useState<string>();
+
+  const isLineSelectorGroup = LINE_SELECTOR_TYPES.has(group.type);
+  const isTeamTotalsGroup = TEAM_TOTAL_SELECTOR_TYPES.has(group.type);
+  const isExactScoreGroup = group.type === "soccer_exact_score";
+  const isItemBinaryListGroup = ITEM_BINARY_LIST_TYPES.has(group.type);
+  const isBinaryOutcomeGroup =
+    BINARY_OUTCOME_TYPES.has(group.type) ||
+    BINARY_OUTCOME_TYPES.has(group.type_label) ||
+    group.key.includes("btts");
+  const renderedOptions = useMemo<MarketOption[]>(
+    () =>
+      isBinaryOutcomeGroup && options[0]
+        ? [
+            {
+              ...(options.find((option) => option.outcome === "yes") ?? options[0]),
+              label: t("extend.worldcup.detail.trade.yes"),
+              outcome: "yes",
+            },
+            {
+              ...(options.find((option) => option.outcome === "no") ?? options[0]),
+              label: t("extend.worldcup.detail.trade.no"),
+              outcome: "no",
+            },
+          ]
+        : options,
+    [isBinaryOutcomeGroup, options, t],
+  );
+  const lineOptions = useMemo(() => {
+    const byKey = new Map<string, { key: string; value: number }>();
+    for (const option of renderedOptions) {
+      const value = lineValue(option);
+      byKey.set(lineKey(value), { key: lineKey(value), value });
+    }
+    return [...byKey.values()].sort((a, b) => a.value - b.value);
+  }, [renderedOptions]);
+
+  useEffect(() => {
+    if (!isLineSelectorGroup || lineOptions.length === 0) return;
+    const selectedOption = renderedOptions.find(
+      (option) =>
+        option.market.slug === selectedSlug &&
+        (option.outcome ?? "yes") === selectedOutcome,
+    );
+    const nextKey = selectedOption
+      ? lineKey(lineValue(selectedOption))
+      : selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
+        ? selectedLineKey
+        : lineOptions[0].key;
+    if (selectedLineKey !== nextKey) setSelectedLineKey(nextKey);
+  }, [
+    isLineSelectorGroup,
+    lineOptions,
+    renderedOptions,
+    selectedLineKey,
+    selectedOutcome,
+    selectedSlug,
+  ]);
 
   if (options.length === 0) return null;
 
-  const single = options.length === 1;
+  const activeLineKey = selectedLineKey ?? lineOptions[0]?.key;
+  const single = renderedOptions.length === 1;
   // Option odds use each market's live YES best-ask (mirrored into the map for
   // the selected market too) so they line up with the order book. An open
   // market whose first live price has not arrived yet shows nothing: the static
@@ -514,43 +1021,82 @@ function GroupRow({
   // visibly jump once the real value loads. Closed markets keep their static
   // settled price as the only available value.
   const optionOdds = (option: MarketOption): string | null => {
-    const live = orderbookPricesBySlug.get(option.market.slug);
-    const livePrice = displayableBuyPrice(live);
-    if (livePrice !== null) return convertPrice(livePrice, format);
-    if (option.market.status === "open") return null;
-    const settledPrice = displayableBuyPrice(yesAskPrice(option.market));
-    return settledPrice === null ? null : convertPrice(settledPrice, format);
+    const optionOutcome = option.outcome ?? "yes";
+    if (optionOutcome === "yes") {
+      const live = orderbookPricesBySlug.get(option.market.slug);
+      const livePrice = displayableBuyPrice(live);
+      if (livePrice !== null) return convertPrice(livePrice, format);
+      if (option.market.status === "open") return null;
+    }
+    const displayPrice = displayableBuyPrice(
+      optionOutcome === "yes"
+        ? yesAskPrice(option.market)
+        : option.market.outcomes?.[1]?.best_ask ?? option.market.outcomes?.[1]?.price,
+    );
+    return displayPrice === null ? null : convertPrice(displayPrice, format);
   };
 
   return (
-    <div className="rounded-[10px] border border-zinc-800/70 bg-zinc-900/40 p-2.5">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <span className="truncate text-sm font-medium text-zinc-100">
-            {label}
-          </span>
-          <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
-            {formatVolume(group.volume)} {t("extend.worldcup.volume")}
-          </span>
+    <div className="border-b border-zinc-800/60 pb-3 last:border-b-0 last:pb-0">
+      {!isExactScoreGroup && (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-sm font-medium text-zinc-100">
+              {label}
+            </span>
+            <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
+              {formatVolume(group.volume)} {t("extend.worldcup.volume")}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {single ? (
+      {isExactScoreGroup || isItemBinaryListGroup ? (
+        <ExactScoreContent
+          options={renderedOptions}
+          selectedSlug={selectedSlug}
+          selectedOutcome={selectedOutcome}
+          optionOdds={optionOdds}
+          onSelect={onSelect}
+        />
+      ) : isTeamTotalsGroup ? (
+        <TeamTotalsContent
+          group={group}
+          options={renderedOptions}
+          selectedSlug={selectedSlug}
+          selectedOutcome={selectedOutcome}
+          optionOdds={optionOdds}
+          onSelect={onSelect}
+        />
+      ) : isLineSelectorGroup && activeLineKey ? (
+        <LineSelectorContent
+          group={group}
+          options={renderedOptions}
+          activeLineKey={activeLineKey}
+          lineOptions={lineOptions}
+          selectedSlug={selectedSlug}
+          selectedOutcome={selectedOutcome}
+          optionOdds={optionOdds}
+          onSelect={onSelect}
+          onLineChange={setSelectedLineKey}
+        />
+      ) : single ? (
         (() => {
-          const odds = optionOdds(options[0]);
+          const odds = optionOdds(renderedOptions[0]);
           return (
             <button
               type="button"
-              onClick={() => onSelect(options[0].market.slug)}
+              onClick={() => onSelect(renderedOptions[0].market.slug, renderedOptions[0].outcome)}
               className={cn(
                 "flex w-full flex-col items-center justify-center gap-1 rounded-[8px] border px-3 py-2 text-center transition-colors cursor-pointer",
-                options[0].market.slug === selectedSlug
+                renderedOptions[0].market.slug === selectedSlug &&
+                  (renderedOptions[0].outcome ?? "yes") === selectedOutcome
                   ? "border-[#c7ff2e]/60 bg-[#c7ff2e]/10 text-[#c7ff2e]"
                   : "border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100",
               )}
             >
               <span className="min-w-0 max-w-full truncate text-xs font-medium leading-tight">
-                {label}
+                {renderedOptions[0].label}
               </span>
               <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
                 {odds ?? "-"}
@@ -559,15 +1105,16 @@ function GroupRow({
           );
         })()
       ) : (
-        <div className="grid grid-cols-3 gap-1.5">
-          {options.map((o) => {
-            const selected = o.market.slug === selectedSlug;
+        <div className={cn("grid gap-1.5", isBinaryOutcomeGroup ? "grid-cols-2" : "grid-cols-3")}>
+          {renderedOptions.map((o) => {
+            const selected =
+              o.market.slug === selectedSlug && (o.outcome ?? "yes") === selectedOutcome;
             const odds = optionOdds(o);
             return (
               <button
-                key={o.market.slug}
+                key={`${o.market.slug}:${o.outcome ?? "yes"}`}
                 type="button"
-                onClick={() => onSelect(o.market.slug)}
+                onClick={() => onSelect(o.market.slug, o.outcome)}
                 className={cn(
                   "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
                   selected

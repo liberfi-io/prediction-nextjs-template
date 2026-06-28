@@ -530,11 +530,13 @@
             "soccer_player_goals": "Gols do jogador",
             "soccer_player_goals_short": "gols",
             "soccer_player_goals_plus_assists": "Gols + assistências",
+            "soccer_player_goals_plus_assists_short": "gols + assistências",
             "soccer_player_assists": "Assistências do jogador",
             "soccer_player_assists_short": "assistências",
             "soccer_player_shots": "Finalizações do jogador",
             "soccer_player_shots_short": "finalizações",
             "soccer_player_shots_on_target": "Finalizações no alvo",
+            "soccer_player_shots_on_target_short": "finalizações no alvo",
             "soccer_player_goalkeeper_saves": "Defesas do goleiro",
             "soccer_player_goalkeeper_saves_short": "defesas",
             "other": "Outros"

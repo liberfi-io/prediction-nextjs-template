@@ -546,11 +546,13 @@
             "soccer_player_goals": "Player Goals",
             "soccer_player_goals_short": "goals",
             "soccer_player_goals_plus_assists": "Goals + Assists",
+            "soccer_player_goals_plus_assists_short": "goals + assists",
             "soccer_player_assists": "Player Assists",
             "soccer_player_assists_short": "assists",
             "soccer_player_shots": "Player Shots",
             "soccer_player_shots_short": "shots",
             "soccer_player_shots_on_target": "Shots on Target",
+            "soccer_player_shots_on_target_short": "shots on target",
             "soccer_player_goalkeeper_saves": "Goalkeeper Saves",
             "soccer_player_goalkeeper_saves_short": "saves",
             "other": "Other"

@@ -67,6 +67,16 @@ export interface MarketOption {
   label: string;
   /** Numeric sort key within the group. */
   sort: number;
+  /** Binary outcome selected by this option. Defaults to YES. */
+  outcome?: "yes" | "no";
+  /** Shared line value used by spread / totals line pickers. */
+  line?: number;
+  /** Signed handicap displayed next to a team in spread markets. */
+  handicap?: number;
+  /** Side represented by the option when a line has two selectable sides. */
+  side?: "home" | "away" | "over" | "under";
+  /** Team represented by team-total markets. */
+  teamSide?: "home" | "away";
 }
 
 /** A market group rendered as one row in the Markets panel. */
@@ -114,7 +124,9 @@ export interface TeamHint {
   playerGoalsShortLabel?: string;
   goalkeeperSavesShortLabel?: string;
   playerAssistsShortLabel?: string;
+  playerGoalsPlusAssistsShortLabel?: string;
   playerShotsShortLabel?: string;
+  playerShotsOnTargetShortLabel?: string;
   neitherLabel?: string;
   anyOtherScoreLabel?: string;
 }
@@ -341,6 +353,10 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
       undefined,
     ) ??
     thresholdLabel(
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+goals?\s*\+\s*assists?$/i),
+      hint.playerGoalsPlusAssistsShortLabel,
+    ) ??
+    thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+goals?$/i),
       hint.playerGoalsShortLabel,
     ) ??
@@ -351,6 +367,10 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
     thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+assists?$/i),
       hint.playerAssistsShortLabel,
+    ) ??
+    thresholdLabel(
+      withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+shots?\s+on\s+target$/i),
+      hint.playerShotsOnTargetShortLabel,
     ) ??
     thresholdLabel(
       withLocalizedTeams.match(/^(?:(.+?):?\s+)?(\d+(?:\.\d+)?)\+\s+shots?$/i),
@@ -398,12 +418,7 @@ function buildMoneyline(markets: PredictMarket[], hint?: TeamHint): MarketGroup 
     (m, i): MarketOption => {
       const text = `${groupItemTitle(m)} ${groupItemTitleTrans(m)} ${m.question}`.toLowerCase();
       const label = marketLabel(m, hint);
-      let sort = i;
-      if (hint) {
-        if (isDrawTitle(text)) sort = 1;
-        else if ([...hint.homeKeys].some((key) => key && text.includes(key))) sort = 0;
-        else if ([...hint.awayKeys].some((key) => key && text.includes(key))) sort = 2;
-      }
+      const sort = matchResultSort(text, i, hint);
       return { market: m, label, sort };
     },
   ).sort((a, b) => a.sort - b.sort);
@@ -420,14 +435,46 @@ function isDrawTitle(title: string): boolean {
   return title.startsWith("draw") || title.startsWith("tie") || title.includes("平");
 }
 
+function matchResultSort(text: string, fallback: number, hint?: TeamHint): number {
+  if (!hint) return fallback;
+  if (isDrawTitle(text)) return 1;
+  if ([...hint.homeKeys].some((key) => key && text.includes(key))) return 0;
+  if ([...hint.awayKeys].some((key) => key && text.includes(key))) return 2;
+  return fallback + 3;
+}
+
 function buildSpreads(markets: PredictMarket[], hint?: TeamHint): MarketGroup {
   const options = markets
-    .map((m): MarketOption => {
+    .flatMap((m): MarketOption[] => {
       const line = marketLine(m) ?? 0;
-      const homeLine = spreadFavoursHome(m, hint) ? line : -line;
-      return { market: m, label: formatLine(homeLine), sort: homeLine };
+      const favoursHome = spreadFavoursHome(m, hint);
+      const homeLine = favoursHome ? line : -line;
+      const awayLine = -homeLine;
+      const selectorLine = homeLine;
+      const homeLabel = hint?.homeLabel ?? marketLabel(m, hint);
+      const awayLabel = hint?.awayLabel ?? marketLabel(m, hint);
+      return [
+        {
+          market: m,
+          label: homeLabel,
+          sort: selectorLine,
+          line: selectorLine,
+          handicap: homeLine,
+          side: "home",
+          outcome: favoursHome ? "yes" : "no",
+        },
+        {
+          market: m,
+          label: awayLabel,
+          sort: selectorLine,
+          line: selectorLine,
+          handicap: awayLine,
+          side: "away",
+          outcome: favoursHome ? "no" : "yes",
+        },
+      ];
     })
-    .sort((a, b) => a.sort - b.sort);
+    .sort((a, b) => a.sort - b.sort || sideSort(a.side) - sideSort(b.side));
   return {
     key: "spreads",
     type: "spreads",
@@ -437,11 +484,17 @@ function buildSpreads(markets: PredictMarket[], hint?: TeamHint): MarketGroup {
   };
 }
 
+function sideSort(side: MarketOption["side"]): number {
+  if (side === "home" || side === "over") return 0;
+  if (side === "away" || side === "under") return 1;
+  return 2;
+}
+
 function buildTotals(markets: PredictMarket[]): MarketGroup {
   const options = markets
     .map((m): MarketOption => {
       const line = marketLine(m) ?? 0;
-      return { market: m, label: formatLine(line, false), sort: line };
+      return { market: m, label: formatLine(line, false), sort: line, line };
     })
     .sort((a, b) => a.sort - b.sort);
   return {
@@ -459,31 +512,101 @@ function buildTotalsList(
   markets: PredictMarket[],
   hint?: TeamHint,
 ): MarketGroup {
+  const teamTotals = isTeamTotalsType(type);
   const options = markets
     .map((m): MarketOption => {
       const line = marketLine(m);
+      const teamSide = teamTotals ? teamTotalSide(m, hint) : undefined;
       return {
         market: m,
-        label: marketLabel(m, hint),
+        label: teamSide
+          ? teamSide === "home"
+            ? hint?.homeLabel ?? marketLabel(m, hint)
+            : hint?.awayLabel ?? marketLabel(m, hint)
+          : marketLabel(m, hint),
         sort: line ?? Number.MAX_SAFE_INTEGER,
+        line,
+        teamSide,
       };
     })
-    .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label));
+    .sort(
+      (a, b) =>
+        teamSideSort(a.teamSide) - teamSideSort(b.teamSide) ||
+        a.sort - b.sort ||
+        a.label.localeCompare(b.label),
+    );
   return { key, type, type_label: type, options, volume: sumVolume(markets) };
 }
 
-/** A single binary market (e.g. Both Teams to Score) → one-option group. */
+function isTeamTotalsType(type: SportsMarketType): boolean {
+  return (
+    type === "soccer_team_totals" ||
+    type === "soccer_first_half_team_totals" ||
+    type === "soccer_second_half_team_totals" ||
+    type === "soccer_team_total_corners"
+  );
+}
+
+function teamSideSort(side: MarketOption["teamSide"]): number {
+  if (side === "home") return 0;
+  if (side === "away") return 1;
+  return 2;
+}
+
+function teamTotalSide(
+  market: PredictMarket,
+  hint?: TeamHint,
+): MarketOption["teamSide"] {
+  if (!hint) return undefined;
+  const label = marketLabel(market, hint).toLowerCase();
+  const homeLabel = hint.homeLabel?.toLowerCase();
+  const awayLabel = hint.awayLabel?.toLowerCase();
+  if (homeLabel && label.startsWith(homeLabel)) return "home";
+  if (awayLabel && label.startsWith(awayLabel)) return "away";
+
+  const titleText = [
+    groupItemTitle(market),
+    groupItemTitleTrans(market),
+  ].join(" ").toLowerCase();
+  for (const key of hint.homeKeys) if (key && titleText.includes(key)) return "home";
+  for (const key of hint.awayKeys) if (key && titleText.includes(key)) return "away";
+
+  const fallbackText = [questionTrans(market), market.question, market.slug]
+    .join(" ")
+    .toLowerCase();
+  for (const key of hint.homeKeys) if (key && fallbackText.includes(key)) return "home";
+  for (const key of hint.awayKeys) if (key && fallbackText.includes(key)) return "away";
+  return undefined;
+}
+
+/** A binary market (e.g. Both Teams to Score) → YES / NO options. */
 function buildSingle(
   key: string,
   type: SportsMarketType,
   markets: PredictMarket[],
   hint?: TeamHint,
 ): MarketGroup {
+  const market = markets.find((m) => m.status === "open") ?? markets[0];
   return {
     key,
     type,
     type_label: type,
-    options: markets.map((m, i) => ({ market: m, label: marketLabel(m, hint), sort: i })),
+    options: market
+      ? [
+          {
+            market,
+            label: hint?.yesLabel ?? "Yes",
+            sort: 0,
+            outcome: "yes",
+          },
+          {
+            market,
+            label: hint?.noLabel ?? "No",
+            sort: 1,
+            outcome: "no",
+          },
+        ]
+      : [],
     volume: sumVolume(markets),
   };
 }
@@ -506,16 +629,22 @@ function buildList(
   // "Exact Score: 2-0"); drop it so only the scoreline shows everywhere it is
   // surfaced (panel buttons, chart legend, trade form title).
   const stripPrefix = type === "soccer_exact_score";
+  const sortAsMatchResult =
+    type === "soccer_halftime_result" ||
+    type === "soccer_second_half_result";
   const options = markets
-    .map((m): MarketOption => {
+    .map((m, i): MarketOption => {
       const raw = marketLabel(m, hint);
+      const text = `${groupItemTitle(m)} ${groupItemTitleTrans(m)} ${m.question}`.toLowerCase();
       return {
         market: m,
         label: stripPrefix ? stripLabelPrefix(raw) : raw,
-        sort: yesPrice(m),
+        sort: sortAsMatchResult ? matchResultSort(text, i, hint) : yesPrice(m),
       };
     })
-    .sort((a, b) => b.sort - a.sort);
+    .sort((a, b) =>
+      sortAsMatchResult ? a.sort - b.sort : b.sort - a.sort,
+    );
   return { key, type, type_label: typeLabel, options, volume: sumVolume(markets) };
 }
 
@@ -655,20 +784,57 @@ export function categorizeMarkets(
     );
   }
 
-  const corners = buildTypedLists(
-    "corners",
-    [
-      "soccer_second_half_total_corners",
-      "soccer_team_total_corners",
-      "total_corners",
-      "soccer_game_corners_odd_even",
-      "soccer_first_half_total_corners",
-      "soccer_first_corner",
-    ],
-    byType,
-    undefined,
-    hint,
-  );
+  const corners: MarketGroup[] = [];
+  const secondHalfTotalCorners = byType.get("soccer_second_half_total_corners");
+  if (secondHalfTotalCorners?.length) {
+    corners.push(
+      buildTotalsList(
+        "second_half_total_corners",
+        "soccer_second_half_total_corners",
+        secondHalfTotalCorners,
+        hint,
+      ),
+    );
+  }
+  const teamTotalCorners = byType.get("soccer_team_total_corners");
+  if (teamTotalCorners?.length) {
+    corners.push(
+      buildTotalsList(
+        "team_total_corners",
+        "soccer_team_total_corners",
+        teamTotalCorners,
+        hint,
+      ),
+    );
+  }
+  const totalCorners = byType.get("total_corners");
+  if (totalCorners?.length) {
+    corners.push(
+      buildTotalsList("total_corners", "total_corners", totalCorners, hint),
+    );
+  }
+  const cornerOddEven = byType.get("soccer_game_corners_odd_even");
+  if (cornerOddEven?.length) {
+    corners.push(
+      buildSingle(
+        "corner_odd_even",
+        "soccer_game_corners_odd_even",
+        cornerOddEven,
+        hint,
+      ),
+    );
+  }
+  const firstHalfTotalCorners = byType.get("soccer_first_half_total_corners");
+  if (firstHalfTotalCorners?.length) {
+    corners.push(
+      buildTotalsList(
+        "first_half_total_corners",
+        "soccer_first_half_total_corners",
+        firstHalfTotalCorners,
+        hint,
+      ),
+    );
+  }
 
   const goals = buildTypedLists(
     "goals",
@@ -699,40 +865,7 @@ export function categorizeMarkets(
     hint,
   );
 
-  const knownTypes = new Set<SportsMarketType>([
-    "moneyline",
-    "soccer_match_winner",
-    "both_teams_to_score",
-    "spreads",
-    "totals",
-    "soccer_first_to_score",
-    "soccer_team_totals",
-    "soccer_exact_score",
-    "soccer_halftime_result",
-    "both_teams_to_score_first_half",
-    "both_teams_to_score_second_half",
-    "first_half_totals",
-    "second_half_totals",
-    "soccer_first_half_team_totals",
-    "soccer_second_half_team_totals",
-    "soccer_second_half_result",
-    "soccer_second_half_total_corners",
-    "soccer_team_total_corners",
-    "total_corners",
-    "soccer_game_corners_odd_even",
-    "soccer_first_half_total_corners",
-    "soccer_first_corner",
-    "soccer_player_goals",
-    "soccer_player_goals_plus_assists",
-    "soccer_player_assists",
-    "soccer_player_shots",
-    "soccer_player_shots_on_target",
-    "soccer_player_goalkeeper_saves",
-  ]);
-  const otherMarkets = markets.filter((m) => !knownTypes.has(sportsType(m)));
-  const other = otherMarkets.length
-    ? [buildList("other", "other", otherMarkets, "other", hint)]
-    : [];
+  const other: MarketGroup[] = [];
 
   return {
     gameLines,
@@ -768,9 +901,12 @@ export function allGroups(cats: CategorizedMarkets): MarketGroup[] {
 export function findSelection(
   cats: CategorizedMarkets,
   slug: string,
+  outcome: "yes" | "no" = "yes",
 ): { group: MarketGroup; option: MarketOption } | undefined {
   for (const group of allGroups(cats)) {
-    const option = group.options.find((o) => o.market.slug === slug);
+    const option = group.options.find(
+      (o) => o.market.slug === slug && (o.outcome ?? "yes") === outcome,
+    ) ?? group.options.find((o) => o.market.slug === slug);
     if (option) return { group, option };
   }
   return undefined;
