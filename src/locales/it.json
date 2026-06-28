@@ -557,7 +557,10 @@
         "firstHalf": "Primo tempo",
         "secondHalf": "Secondo tempo",
         "halfTime": "Intervallo"
-      }
+      },
+      "firstHalfPrefix": "1° tempo",
+      "secondHalfPrefix": "2° tempo",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

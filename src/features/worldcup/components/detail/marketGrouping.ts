@@ -121,6 +121,9 @@ export interface TeamHint {
   teamTotalCornersLabel?: string;
   firstHalfTotalCornersLabel?: string;
   secondHalfTotalCornersLabel?: string;
+  firstHalfPrefixLabel?: string;
+  secondHalfPrefixLabel?: string;
+  periodMarketLabel?: (period: string, market: string) => string;
   playerGoalsLabel?: string;
   goalkeeperSavesLabel?: string;
   playerGoalsShortLabel?: string;
@@ -388,16 +391,26 @@ function localizeKnownLabel(raw: string, hint?: TeamHint): string {
  * else base group title / question.
  */
 export function marketLabel(m: PredictMarket, hint?: TeamHint): string {
+  const type = sportsType(m);
   const label =
     cleanTitle(groupItemTitleTrans(m) || groupItemTitle(m)) ||
     questionTrans(m) ||
     m.question ||
     m.slug;
-  if (sportsType(m) === "moneyline" || sportsType(m) === "soccer_match_winner") {
+  if (isMatchResultType(type)) {
     const moneylineLabel = moneylineMarketLabel(label, hint);
-    if (moneylineLabel) return moneylineLabel;
+    if (moneylineLabel) return periodMarketLabel(type, moneylineLabel, hint);
   }
   return localizeKnownLabel(label, hint);
+}
+
+function isMatchResultType(type: SportsMarketType): boolean {
+  return (
+    type === "moneyline" ||
+    type === "soccer_match_winner" ||
+    type === "soccer_halftime_result" ||
+    type === "soccer_second_half_result"
+  );
 }
 
 function moneylineMarketLabel(raw: string, hint?: TeamHint): string | undefined {
@@ -405,6 +418,8 @@ function moneylineMarketLabel(raw: string, hint?: TeamHint): string | undefined 
   const normalized = normalizeLabel(raw);
   if (
     isDrawTitle(normalized) ||
+    normalized.includes("draw") ||
+    normalized.includes("tie") ||
     normalized === hint.drawLabel?.trim().toLowerCase() ||
     normalized === hint.moneylineDrawLabel?.trim().toLowerCase()
   ) {
@@ -414,14 +429,35 @@ function moneylineMarketLabel(raw: string, hint?: TeamHint): string | undefined 
   const homeLabel = hint.homeLabel;
   const awayLabel = hint.awayLabel;
   const team =
-    [...hint.homeKeys].some((key) => key && normalized === key)
+    [...hint.homeKeys].some((key) => key && normalized.includes(key))
       ? homeLabel
-      : [...hint.awayKeys].some((key) => key && normalized === key)
+      : [...hint.awayKeys].some((key) => key && normalized.includes(key))
         ? awayLabel
         : undefined;
   if (!team) return undefined;
 
   return hint.teamWinsLabel ? hint.teamWinsLabel(team) : `${team} wins`;
+}
+
+export function periodMarketLabel(
+  type: SportsMarketType,
+  label: string,
+  hint?: TeamHint,
+): string {
+  const period =
+    type === "soccer_halftime_result" ||
+    type === "first_half_totals" ||
+    type === "soccer_first_half_team_totals" ||
+    type === "both_teams_to_score_first_half"
+      ? hint?.firstHalfPrefixLabel
+      : type === "soccer_second_half_result" ||
+          type === "second_half_totals" ||
+          type === "soccer_second_half_team_totals" ||
+          type === "both_teams_to_score_second_half"
+        ? hint?.secondHalfPrefixLabel
+        : undefined;
+  if (!period) return label;
+  return hint?.periodMarketLabel ? hint.periodMarketLabel(period, label) : `${period} ${label}`;
 }
 
 // ---------------------------------------------------------------------------

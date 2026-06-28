@@ -555,7 +555,10 @@
         "firstHalf": "전반",
         "secondHalf": "후반",
         "halfTime": "하프타임"
-      }
+      },
+      "firstHalfPrefix": "전반",
+      "secondHalfPrefix": "후반",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

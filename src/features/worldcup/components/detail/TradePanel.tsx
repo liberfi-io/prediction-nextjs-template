@@ -27,6 +27,8 @@ function usesTotalSideLabels(market: PredictMarket): boolean {
   const type = sportsType(market);
   return (
     type === "totals" ||
+    type === "first_half_totals" ||
+    type === "second_half_totals" ||
     type === "soccer_team_totals" ||
     type === "soccer_first_half_team_totals" ||
     type === "soccer_second_half_team_totals" ||

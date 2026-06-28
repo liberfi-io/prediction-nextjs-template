@@ -555,7 +555,10 @@
         "firstHalf": "前半",
         "secondHalf": "後半",
         "halfTime": "ハーフタイム"
-      }
+      },
+      "firstHalfPrefix": "前半",
+      "secondHalfPrefix": "後半",
+      "periodMarketLabel": "{{period}}{{market}}"
     }
   },
   "common": {

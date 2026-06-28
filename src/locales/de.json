@@ -557,7 +557,10 @@
         "firstHalf": "Erste Halbzeit",
         "secondHalf": "Zweite Halbzeit",
         "halfTime": "Halbzeit"
-      }
+      },
+      "firstHalfPrefix": "1. Halbzeit",
+      "secondHalfPrefix": "2. Halbzeit",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

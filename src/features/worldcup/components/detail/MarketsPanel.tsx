@@ -60,6 +60,27 @@ const ITEM_BINARY_LIST_TYPES = new Set([
   "soccer_player_goalkeeper_saves",
 ]);
 
+function stripPeriodPrefix(label: string, prefix: string): string {
+  const normalizedPrefix = prefix.trim();
+  if (!normalizedPrefix || !label.startsWith(normalizedPrefix)) return label;
+  return label.slice(normalizedPrefix.length).trimStart();
+}
+
+function marketButtonLabel(
+  option: MarketOption,
+  group: MarketGroup,
+  firstHalfPrefix: string,
+  secondHalfPrefix: string,
+): string {
+  if (group.type === "soccer_halftime_result") {
+    return stripPeriodPrefix(option.label, firstHalfPrefix);
+  }
+  if (group.type === "soccer_second_half_result") {
+    return stripPeriodPrefix(option.label, secondHalfPrefix);
+  }
+  return option.label;
+}
+
 /**
  * future.news-style Markets switcher. Lets the user browse every market type of
  * a match, filter to active markets, and pick a specific outcome/line — which
@@ -245,6 +266,8 @@ function LineSelectorContent({
   onLineChange: (key: string) => void;
 }) {
   const { t } = useTranslation();
+  const firstHalfPrefix = String(t("extend.worldcup.firstHalfPrefix"));
+  const secondHalfPrefix = String(t("extend.worldcup.secondHalfPrefix"));
   const isTotals = group.type !== "spreads";
   const lineButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const activeLineIndex = lineOptions.findIndex((line) => line.key === activeLineKey);
@@ -352,7 +375,7 @@ function LineSelectorContent({
               )}
             >
               <span className="max-w-full truncate text-xs font-medium leading-tight">
-                {lineButtonLabel(option, group.type)}
+                {marketButtonLabel(option, group, firstHalfPrefix, secondHalfPrefix)}
               </span>
               <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
                 {odds ?? "-"}
@@ -672,13 +695,6 @@ function buildSpreadTradeOptions(options: MarketOption[]): MarketOption[] {
   return [home, away].filter((option): option is MarketOption => Boolean(option));
 }
 
-function lineButtonLabel(option: MarketOption, type: MarketGroup["type"]): string {
-  if (type === "spreads") {
-    return option.label;
-  }
-  return option.label;
-}
-
 function lineValue(option: MarketOption): number {
   return typeof option.line === "number" ? option.line : option.sort;
 }
@@ -950,6 +966,8 @@ function GroupRow({
   label: string;
 }) {
   const { t } = useTranslation();
+  const firstHalfPrefix = String(t("extend.worldcup.firstHalfPrefix"));
+  const secondHalfPrefix = String(t("extend.worldcup.secondHalfPrefix"));
   const [format] = useOddsFormat();
   const [selectedLineKey, setSelectedLineKey] = useState<string>();
 
@@ -1110,7 +1128,12 @@ function GroupRow({
               )}
             >
               <span className="min-w-0 max-w-full truncate text-xs font-medium leading-tight">
-                {renderedOptions[0].label}
+                {marketButtonLabel(
+                  renderedOptions[0],
+                  group,
+                  firstHalfPrefix,
+                  secondHalfPrefix,
+                )}
               </span>
               <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
                 {odds ?? "-"}
@@ -1137,7 +1160,7 @@ function GroupRow({
                 )}
               >
                 <span className="max-w-full truncate text-xs font-medium leading-tight">
-                  {o.label}
+                  {marketButtonLabel(o, group, firstHalfPrefix, secondHalfPrefix)}
                 </span>
                 <span className="text-sm font-bold leading-tight tabular-nums text-bearish">
                   {odds ?? "-"}

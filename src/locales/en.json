@@ -574,7 +574,10 @@
         "firstHalf": "First Half",
         "secondHalf": "Second Half",
         "halfTime": "Half Time"
-      }
+      },
+      "firstHalfPrefix": "1st half",
+      "secondHalfPrefix": "2nd half",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

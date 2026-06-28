@@ -292,7 +292,7 @@
       "fullTime": "完場",
       "volume": "交易量",
       "draw": "平",
-      "teamWins": "{{team}} 获胜",
+      "teamWins": "{{team}}获胜",
       "moneylineDraw": "平局",
       "bothTeamsToScore": "双方进球",
       "spreadHandicap": "{{team}} 让 {{line}} 球",
@@ -523,7 +523,10 @@
         "firstHalf": "上半场",
         "secondHalf": "下半场",
         "halfTime": "中场休息"
-      }
+      },
+      "firstHalfPrefix": "半场",
+      "secondHalfPrefix": "下半场",
+      "periodMarketLabel": "{{period}}{{market}}"
     }
   },
   "common": {

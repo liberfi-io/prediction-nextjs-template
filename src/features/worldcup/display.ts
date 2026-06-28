@@ -39,6 +39,10 @@ export function buildWorldcupTeamHint(
     secondHalfTotalCornersLabel: t(
       "extend.worldcup.detail.markets.type.soccer_second_half_total_corners",
     ),
+    firstHalfPrefixLabel: t("extend.worldcup.firstHalfPrefix"),
+    secondHalfPrefixLabel: t("extend.worldcup.secondHalfPrefix"),
+    periodMarketLabel: (period: string, market: string) =>
+      t("extend.worldcup.periodMarketLabel", { period, market }),
     playerGoalsLabel: t("extend.worldcup.detail.markets.type.soccer_player_goals"),
     playerGoalsShortLabel: t("extend.worldcup.detail.markets.type.soccer_player_goals_short"),
     goalkeeperSavesLabel: t(

@@ -557,7 +557,10 @@
         "firstHalf": "Первый тайм",
         "secondHalf": "Второй тайм",
         "halfTime": "Перерыв"
-      }
+      },
+      "firstHalfPrefix": "1-й тайм",
+      "secondHalfPrefix": "2-й тайм",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

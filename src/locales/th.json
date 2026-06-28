@@ -555,7 +555,10 @@
         "firstHalf": "ครึ่งแรก",
         "secondHalf": "ครึ่งหลัง",
         "halfTime": "พักครึ่ง"
-      }
+      },
+      "firstHalfPrefix": "ครึ่งแรก",
+      "secondHalfPrefix": "ครึ่งหลัง",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

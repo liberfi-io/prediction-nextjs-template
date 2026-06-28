@@ -557,7 +557,10 @@
         "firstHalf": "Primer tiempo",
         "secondHalf": "Segundo tiempo",
         "halfTime": "Descanso"
-      }
+      },
+      "firstHalfPrefix": "1.ª mitad",
+      "secondHalfPrefix": "2.ª mitad",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

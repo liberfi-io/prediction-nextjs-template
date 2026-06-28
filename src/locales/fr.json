@@ -555,7 +555,10 @@
         "firstHalf": "Première mi-temps",
         "secondHalf": "Deuxième mi-temps",
         "halfTime": "Mi-temps"
-      }
+      },
+      "firstHalfPrefix": "1re mi-temps",
+      "secondHalfPrefix": "2e mi-temps",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {

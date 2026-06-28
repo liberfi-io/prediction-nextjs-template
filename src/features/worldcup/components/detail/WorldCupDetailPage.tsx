@@ -64,6 +64,7 @@ import {
   defaultSelection,
   findSelection,
   marketLine,
+  periodMarketLabel,
   type MarketOption,
   type SportsMarketType,
   type TeamHint,
@@ -77,10 +78,6 @@ import {
 } from "../../display";
 
 const OPTION_ONLY_SURFACE_LABEL_TYPES = new Set<SportsMarketType>([
-  "first_half_totals",
-  "soccer_first_half_team_totals",
-  "second_half_totals",
-  "soccer_second_half_team_totals",
   "total_corners",
   "soccer_first_half_total_corners",
   "soccer_second_half_total_corners",
@@ -174,11 +171,36 @@ function withCleanLabel(
 }
 
 function isMoneylineGroup(group: { type: SportsMarketType }): boolean {
-  return group.type === "moneyline" || group.type === "soccer_match_winner";
+  return (
+    group.type === "moneyline" ||
+    group.type === "soccer_match_winner" ||
+    group.type === "soccer_halftime_result" ||
+    group.type === "soccer_second_half_result"
+  );
 }
 
 function isBothTeamsToScoreGroup(group: { type: SportsMarketType }): boolean {
-  return group.type === "both_teams_to_score";
+  return (
+    group.type === "both_teams_to_score" ||
+    group.type === "both_teams_to_score_first_half" ||
+    group.type === "both_teams_to_score_second_half"
+  );
+}
+
+function isTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
+  return (
+    group.type === "totals" ||
+    group.type === "first_half_totals" ||
+    group.type === "second_half_totals"
+  );
+}
+
+function bothTeamsToScoreLabel(
+  type: SportsMarketType,
+  hint: TeamHint | undefined,
+  t: WorldCupTranslate,
+): string {
+  return periodMarketLabel(type, t("extend.worldcup.bothTeamsToScore"), hint);
 }
 
 function isTeamTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
@@ -245,11 +267,26 @@ function spreadHandicapLabel(
 
 function teamTotalGoalsLabel(
   option: MarketOption,
+  type: SportsMarketType,
+  hint: TeamHint | undefined,
   t: WorldCupTranslate,
 ): string {
   const line = marketLine(option.market) ?? option.line ?? 0;
-  return t("extend.worldcup.teamTotalGoals", {
+  const label = t("extend.worldcup.teamTotalGoals", {
     team: option.label,
+    line: formatLine(Math.abs(line), false),
+  });
+  return periodMarketLabel(type, label, hint);
+}
+
+function totalGoalsLabel(
+  option: MarketOption,
+  type: SportsMarketType,
+  t: WorldCupTranslate,
+): string {
+  const line = marketLine(option.market) ?? option.line ?? 0;
+  return t("extend.worldcup.marketWithLine", {
+    market: t(`extend.worldcup.detail.markets.type.${type}`),
     line: formatLine(Math.abs(line), false),
   });
 }
@@ -564,13 +601,16 @@ export function WorldCupDetailPage({
     if (!selectedGroup) return groupLabel;
     if (isMoneylineGroup(selectedGroup)) return optionLabel;
     if (isBothTeamsToScoreGroup(selectedGroup)) {
-      return t("extend.worldcup.bothTeamsToScore");
+      return bothTeamsToScoreLabel(selectedGroup.type, hint, translate);
     }
     if (selectedGroup.type === "spreads") {
       return spreadHandicapLabel(option, hint, translate);
     }
+    if (isTotalGoalsGroup(selectedGroup)) {
+      return totalGoalsLabel(option, selectedGroup.type, translate);
+    }
     if (isTeamTotalGoalsGroup(selectedGroup)) {
-      return teamTotalGoalsLabel(option, translate);
+      return teamTotalGoalsLabel(option, selectedGroup.type, hint, translate);
     }
     if (isCornerTotalGroup(selectedGroup)) {
       return cornerTotalLabel(option, selectedGroup.type, translate);
@@ -589,13 +629,16 @@ export function WorldCupDetailPage({
     if (!selectedGroup) return groupLabel;
     if (isMoneylineGroup(selectedGroup)) return optionLabel;
     if (isBothTeamsToScoreGroup(selectedGroup)) {
-      return t("extend.worldcup.bothTeamsToScore");
+      return bothTeamsToScoreLabel(selectedGroup.type, hint, translate);
     }
     if (selectedGroup.type === "spreads") {
       return spreadHandicapLabel(option, hint, translate);
     }
+    if (isTotalGoalsGroup(selectedGroup)) {
+      return totalGoalsLabel(option, selectedGroup.type, translate);
+    }
     if (isTeamTotalGoalsGroup(selectedGroup)) {
-      return teamTotalGoalsLabel(option, translate);
+      return teamTotalGoalsLabel(option, selectedGroup.type, hint, translate);
     }
     if (isCornerTotalGroup(selectedGroup)) {
       return cornerTotalLabel(option, selectedGroup.type, translate);

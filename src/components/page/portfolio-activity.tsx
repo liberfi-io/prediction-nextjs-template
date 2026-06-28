@@ -47,6 +47,7 @@ import {
 import {
   marketLine,
   marketLabel,
+  periodMarketLabel,
   sportsType,
 } from "../../features/worldcup/components/detail/marketGrouping";
 import { formatLine } from "../../features/worldcup/odds/convert-price";
@@ -102,6 +103,7 @@ type ActivityItem = {
   event?: ActivityEvent;
   market?: ActivityMarket;
   side?: string;
+  outcome?: string;
 };
 type ActivityDisplay = {
   title: string;
@@ -175,13 +177,31 @@ function toWorldcupPredictMarket(market: ActivityMarket): PredictMarket {
   } as PredictMarket;
 }
 
+function activityOutcomeSide(item: ActivityItem): string | undefined {
+  const side = item.side?.trim();
+  const normalizedSide = side?.toLowerCase();
+  return normalizedSide === "buy" || normalizedSide === "sell"
+    ? item.outcome
+    : item.outcome ?? side;
+}
+
 function isWorldcupMoneylineMarket(market: ActivityMarket): boolean {
   const type = sportsType(toWorldcupPredictMarket(market));
-  return type === "moneyline" || type === "soccer_match_winner";
+  return (
+    type === "moneyline" ||
+    type === "soccer_match_winner" ||
+    type === "soccer_halftime_result" ||
+    type === "soccer_second_half_result"
+  );
 }
 
 function isWorldcupBothTeamsToScoreMarket(market: ActivityMarket): boolean {
-  return sportsType(toWorldcupPredictMarket(market)) === "both_teams_to_score";
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return (
+    type === "both_teams_to_score" ||
+    type === "both_teams_to_score_first_half" ||
+    type === "both_teams_to_score_second_half"
+  );
 }
 
 function isWorldcupSpreadMarket(market: ActivityMarket): boolean {
@@ -189,7 +209,17 @@ function isWorldcupSpreadMarket(market: ActivityMarket): boolean {
 }
 
 function isWorldcupTotalsMarket(market: ActivityMarket): boolean {
-  return sportsType(toWorldcupPredictMarket(market)) === "totals";
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return (
+    type === "totals" ||
+    type === "first_half_totals" ||
+    type === "second_half_totals"
+  );
+}
+
+function isWorldcupHalfTotalsMarket(market: ActivityMarket): boolean {
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return type === "first_half_totals" || type === "second_half_totals";
 }
 
 function isWorldcupFirstToScoreMarket(market: ActivityMarket): boolean {
@@ -300,7 +330,9 @@ function worldcupTotalsSubtitle(
   side: string | undefined,
   translate: WorldCupTranslate,
 ): { label: string; tone: "bullish" | "bearish" } | undefined {
-  if (!isWorldcupTotalsMarket(market) || !side) return undefined;
+  if (sportsType(toWorldcupPredictMarket(market)) !== "totals" || !side) {
+    return undefined;
+  }
   const line = marketLine(toWorldcupPredictMarket(market));
   if (!line) return undefined;
   const normalizedSide = side.trim().toLowerCase();
@@ -321,6 +353,37 @@ function worldcupTotalsSubtitle(
     };
   }
   return undefined;
+}
+
+function worldcupHalfTotalsSubtitle(
+  market: ActivityMarket,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupHalfTotalsMarket(market)) return undefined;
+  const predictMarket = toWorldcupPredictMarket(market);
+  const line = marketLine(predictMarket);
+  if (line === undefined) return undefined;
+  return translate("extend.worldcup.marketWithLine", {
+    market: translate(`extend.worldcup.detail.markets.type.${sportsType(predictMarket)}`),
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
+function worldcupBothTeamsToScoreSubtitle(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupBothTeamsToScoreMarket(market)) return undefined;
+  const type = sportsType(toWorldcupPredictMarket(market));
+  if (type === "both_teams_to_score") {
+    return translate("extend.worldcup.bothTeamsToScore");
+  }
+  return periodMarketLabel(
+    type,
+    translate("extend.worldcup.bothTeamsToScore"),
+    hint,
+  );
 }
 
 function worldcupTotalSideLabel(
@@ -381,10 +444,11 @@ function worldcupTeamTotalGoalsSubtitle(
       : hint.awayLabel && textMatchesAny(label, hint.awayKeys)
         ? hint.awayLabel
         : label;
-  return translate("extend.worldcup.teamTotalGoals", {
+  const subtitle = translate("extend.worldcup.teamTotalGoals", {
     team,
     line: formatLine(Math.abs(line), false),
   });
+  return periodMarketLabel(sportsType(predictMarket), subtitle, hint);
 }
 
 function worldcupCornerTotalSubtitle(
@@ -470,12 +534,16 @@ function activityDisplay(
   const match = matchSlug ? worldcupMatchBySlug.get(matchSlug) : undefined;
   if (match && item.market) {
     const hint = buildWorldcupTeamHint(match, translate);
+    const outcomeSide = activityOutcomeSide(item);
     const outcomeLabel = worldcupMoneylineOutcomeLabel(item.market, match, translate);
-    const isBothTeamsToScore = isWorldcupBothTeamsToScoreMarket(item.market);
+    const bothTeamsToScoreSubtitle = hint
+      ? worldcupBothTeamsToScoreSubtitle(item.market, hint, translate)
+      : undefined;
     const spreadSubtitle = hint
       ? worldcupSpreadSubtitle(item.market, hint, translate)
       : undefined;
-    const totalsSubtitle = worldcupTotalsSubtitle(item.market, item.side, translate);
+    const totalsSubtitle = worldcupTotalsSubtitle(item.market, outcomeSide, translate);
+    const halfTotalsSubtitle = worldcupHalfTotalsSubtitle(item.market, translate);
     const firstToScoreSubtitle = hint
       ? worldcupFirstToScoreSubtitle(item.market, hint, translate)
       : undefined;
@@ -495,27 +563,30 @@ function activityDisplay(
       ? translate("extend.worldcup.detail.markets.type.soccer_game_corners_odd_even")
       : undefined;
     const teamTotalGoalsSide = teamTotalGoalsSubtitle
-      ? worldcupTotalSideLabel(item.side, translate)
+      ? worldcupTotalSideLabel(outcomeSide, translate)
+      : undefined;
+    const halfTotalsSide = halfTotalsSubtitle
+      ? worldcupTotalSideLabel(outcomeSide, translate)
       : undefined;
     const cornerTotalSide = cornerTotalSubtitle
-      ? worldcupTotalSideLabel(item.side, translate)
+      ? worldcupTotalSideLabel(outcomeSide, translate)
       : undefined;
     const teamTotalCornersSide = teamTotalCornersSubtitle
-      ? worldcupTotalSideLabel(item.side, translate)
+      ? worldcupTotalSideLabel(outcomeSide, translate)
       : undefined;
     const cornerOddEvenSide = isCornerOddEven
-      ? worldcupCornerOddEvenSideLabel(item.side, translate)
+      ? worldcupCornerOddEvenSideLabel(outcomeSide, translate)
       : undefined;
     const spreadSideIsPositive = hint
-      ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
+      ? worldcupSpreadSideIsPositive(item.market, outcomeSide, hint)
       : undefined;
     return {
       title: worldcupMatchTitle(match, hint) ?? activityEventTitle(item),
       subtitle: outcomeLabel
         ? ""
-        : isBothTeamsToScore
-          ? translate("extend.worldcup.bothTeamsToScore")
-          : spreadSubtitle ??
+        : bothTeamsToScoreSubtitle ??
+          spreadSubtitle ??
+            halfTotalsSubtitle ??
             totalsSubtitle?.label ??
             teamTotalGoalsSubtitle ??
             cornerTotalSubtitle ??
@@ -529,8 +600,9 @@ function activityDisplay(
       subtitleTone: totalsSubtitle?.tone,
       plainSide: Boolean(
         outcomeLabel ||
-          isBothTeamsToScore ||
+          bothTeamsToScoreSubtitle ||
           spreadSubtitle ||
+          halfTotalsSubtitle ||
           teamTotalGoalsSubtitle ||
           cornerTotalSubtitle ||
           teamTotalCornersSubtitle ||
@@ -541,11 +613,13 @@ function activityDisplay(
       ),
       plainSideLabel:
         teamTotalGoalsSide?.label ??
+        halfTotalsSide?.label ??
         cornerTotalSide?.label ??
         teamTotalCornersSide?.label ??
         cornerOddEvenSide?.label,
       plainSidePositive:
         teamTotalGoalsSide?.positive ??
+        halfTotalsSide?.positive ??
         cornerTotalSide?.positive ??
         teamTotalCornersSide?.positive ??
         cornerOddEvenSide?.positive ??

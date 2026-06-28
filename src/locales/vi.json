@@ -555,7 +555,10 @@
         "firstHalf": "Hiệp 1",
         "secondHalf": "Hiệp 2",
         "halfTime": "Nghỉ giữa hiệp"
-      }
+      },
+      "firstHalfPrefix": "Hiệp 1",
+      "secondHalfPrefix": "Hiệp 2",
+      "periodMarketLabel": "{{period}} {{market}}"
     }
   },
   "common": {
