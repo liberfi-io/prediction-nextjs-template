@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type {
@@ -17,6 +17,7 @@ import {
 import { convertPrice } from "../../odds/convert-price";
 import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
+import { sportsType } from "./marketGrouping";
 
 function formatBuyOddsPrice(price: number, format: Parameters<typeof convertPrice>[1]): string {
   return displayableBuyPrice(price) === null ? "-" : convertPrice(price, format);
@@ -55,14 +56,25 @@ export function TradePanel({
   );
   const eventTitle = event.title_trans || event.title;
   const marketTitle = market.outcomes?.[0]?.label || market.question;
+  const outcomeLabels = useMemo(
+    () =>
+      sportsType(market) === "totals"
+        ? {
+            yes: t("extend.worldcup.totalSide.over"),
+            no: t("extend.worldcup.totalSide.under"),
+          }
+        : undefined,
+    [market, t],
+  );
   const actionLabel =
     side === "sell"
       ? t("extend.worldcup.detail.trade.sell")
       : t("extend.worldcup.detail.trade.buy");
   const outcomeLabel =
-    outcome === "yes"
+    outcomeLabels?.[outcome] ??
+    (outcome === "yes"
       ? t("extend.worldcup.detail.trade.yes")
-      : t("extend.worldcup.detail.trade.no");
+      : t("extend.worldcup.detail.trade.no"));
 
   return (
     <div className="[&_.worldcup-trade-panel-form>div]:px-2 lg:[&_.worldcup-trade-panel-form>div]:px-4">
@@ -110,6 +122,7 @@ export function TradePanel({
             variant="flat"
             initialOutcome={outcome}
             oddsFormatter={oddsFormatter}
+            outcomeLabels={outcomeLabels}
             onOutcomeChange={onOutcomeChange}
             onSetupRequired={onSetupRequired}
           />
@@ -122,6 +135,7 @@ export function TradePanel({
             variant="flat"
             initialOutcome={outcome}
             oddsFormatter={oddsFormatter}
+            outcomeLabels={outcomeLabels}
             onOutcomeChange={onOutcomeChange}
             onInsufficientBalance={onInsufficientBalance}
           />
