@@ -83,20 +83,36 @@ export const GROUP_MATCHES: Array<
   ["M72", "J", "jor", "arg", 1782612000000, "fifwc-jor-arg-2026-06-27", 3938],
 ];
 
+/** [matchId, Polymarket slug] for resolved knockout fixtures. */
+export const KNOCKOUT_MATCH_SLUGS: Array<[string, string]> = [
+  ["M73", "fifwc-rsa-can-2026-06-28"],
+  ["M74", "fifwc-ger-par-2026-06-29"],
+  ["M75", "fifwc-nld-mar-2026-06-29"],
+  ["M76", "fifwc-bra-jpn-2026-06-29"],
+  ["M77", "fifwc-fra-swe-2026-06-30"],
+  ["M78", "fifwc-civ-nor-2026-06-30"],
+  ["M81", "fifwc-usa-bih-2026-07-01"],
+  ["M86", "fifwc-arg-cvi-2026-07-03"],
+  ["M88", "fifwc-aus-egy-2026-07-03"],
+];
+
 /**
- * Static `matchId → Polymarket slug` map for the group stage, derived from
- * {@link GROUP_MATCHES}. Lets the launch redirect resolve a `wd` deep link's
- * matchId to a detail slug with zero network — the fixtures are fixed, so the
- * mapping is known ahead of time. Knockout matches are intentionally absent:
- * their fixtures (and thus slugs) are not known until the bracket resolves, so
- * those deep links fall back to the live matches lookup.
+ * Static `matchId → Polymarket slug` map for resolved World Cup fixtures.
+ * Lets launch redirects and detail routing resolve match links with zero
+ * network. Knockout entries are appended as their fixtures become known.
  */
 export const MATCH_SLUG_BY_ID: Record<string, string> = Object.fromEntries(
-  GROUP_MATCHES.map(([matchId, , , , , slug]) => [matchId, slug]),
+  [
+    ...GROUP_MATCHES.map(([matchId, , , , , slug]) => [matchId, slug] as const),
+    ...KNOCKOUT_MATCH_SLUGS,
+  ],
 );
 
 export const WORLD_CUP_MATCH_SLUGS = new Set(
-  GROUP_MATCHES.map(([, , , , , slug]) => slug),
+  [
+    ...GROUP_MATCHES.map(([, , , , , slug]) => slug),
+    ...KNOCKOUT_MATCH_SLUGS.map(([, slug]) => slug),
+  ],
 );
 
 /** Resolve a matchId to its detail slug from the static schedule, or null. */
