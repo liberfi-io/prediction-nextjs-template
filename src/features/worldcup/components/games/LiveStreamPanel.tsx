@@ -8,6 +8,7 @@ import { TeamFlag } from "../TeamFlag";
 
 const STREAM_MOUNT_LEAD_MS = 5 * 60 * 1000;
 const ONE_SECOND_MS = 1000;
+const IFRAME_LOAD_TIMEOUT_MS = 12_000;
 
 function shouldMountStream(kickoffMs: number | undefined, now: number): boolean {
   if (!kickoffMs || !Number.isFinite(kickoffMs)) return true;
@@ -99,6 +100,9 @@ export function hasLiveVideos(
   match?: Pick<WcMatch, "status" | "liveState"> | null,
 ): boolean {
   if (match?.status === "final" || match?.liveState?.ended) return false;
+  if (match?.liveState && match.liveState.live === false && match.status !== "scheduled") {
+    return false;
+  }
   return Boolean(videos?.some((video) => video.url && video.status === 1));
 }
 
@@ -129,19 +133,47 @@ export function LiveStreamPanel({
     });
   }, [videos]);
   const [active, setActive] = useState(0);
+  const [iframeState, setIframeState] = useState<"loading" | "ready" | "failed">(
+    "loading",
+  );
+  const iframeLoadTimeoutRef = useRef<number | null>(null);
   const { ref: playerRef, ready } = useDeferredPlayback();
   const { canMount, countdown } = useStreamMountGate(kickoffMs);
+  const current = sources[active];
+  const hasPlayableSource = hasLiveVideos(videos, match);
 
   useEffect(() => {
     if (active >= sources.length) setActive(0);
   }, [active, sources.length]);
 
-  const current = sources[active];
-  if (!current) return null;
+  useEffect(() => {
+    if (iframeLoadTimeoutRef.current !== null) {
+      window.clearTimeout(iframeLoadTimeoutRef.current);
+      iframeLoadTimeoutRef.current = null;
+    }
+
+    if (!current?.url || !canMount || !ready || !hasPlayableSource) {
+      setIframeState("loading");
+      return;
+    }
+
+    setIframeState("loading");
+    iframeLoadTimeoutRef.current = window.setTimeout(() => {
+      setIframeState("failed");
+      iframeLoadTimeoutRef.current = null;
+    }, IFRAME_LOAD_TIMEOUT_MS);
+
+    return () => {
+      if (iframeLoadTimeoutRef.current !== null) {
+        window.clearTimeout(iframeLoadTimeoutRef.current);
+        iframeLoadTimeoutRef.current = null;
+      }
+    };
+  }, [canMount, current?.url, hasPlayableSource, ready]);
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
-      {sources.length > 1 && (
+      {hasPlayableSource && sources.length > 1 && (
         <div className="flex shrink-0 flex-wrap gap-1.5">
           {sources.map((source, i) => (
             <button
@@ -165,7 +197,9 @@ export function LiveStreamPanel({
         ref={playerRef}
         className="aspect-video w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0a0b]"
       >
-        {canMount && ready ? (
+        {!hasPlayableSource || !current || iframeState === "failed" ? (
+          <LiveUnavailable message={t("extend.worldcup.liveUnavailable")} />
+        ) : canMount && ready ? (
           <iframe
             key={current.url}
             src={current.url}
@@ -175,6 +209,20 @@ export function LiveStreamPanel({
             allowFullScreen
             sandbox="allow-scripts allow-same-origin allow-presentation"
             referrerPolicy="no-referrer"
+            onLoad={() => {
+              if (iframeLoadTimeoutRef.current !== null) {
+                window.clearTimeout(iframeLoadTimeoutRef.current);
+                iframeLoadTimeoutRef.current = null;
+              }
+              setIframeState("ready");
+            }}
+            onError={() => {
+              if (iframeLoadTimeoutRef.current !== null) {
+                window.clearTimeout(iframeLoadTimeoutRef.current);
+                iframeLoadTimeoutRef.current = null;
+              }
+              setIframeState("failed");
+            }}
           />
         ) : !canMount ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-4 text-center">
@@ -197,6 +245,14 @@ export function LiveStreamPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function LiveUnavailable({ message }: { message: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center px-4 text-center">
+      <span className="text-sm font-medium text-zinc-500">{message}</span>
     </div>
   );
 }

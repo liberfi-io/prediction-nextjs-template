@@ -20,6 +20,7 @@ import { formatLine } from "../../odds/convert-price";
 import { buildWorldcupTeamHint, type WorldCupTranslate } from "../../display";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
+import { hasLiveVideos } from "./LiveStreamPanel";
 import { MatchCard } from "./MatchCard";
 import { RelatedEvents } from "./RelatedEvents";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
@@ -565,13 +566,24 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
 
   useEffect(() => {
     if (widgetTouchedRef.current) return;
-    if (!activeMatch || !isWithinLiveVideoAutopenWindow(activeMatch, nowMs)) {
+    if (
+      !activeMatch ||
+      !isWithinLiveVideoAutopenWindow(activeMatch, nowMs) ||
+      !hasLiveVideos(activeMatch.liveVideos, activeMatch)
+    ) {
       setOpenWidgetId(null);
       return;
     }
 
     setOpenWidgetId(activeMatch.matchId);
   }, [activeMatch, nowMs]);
+
+  useEffect(() => {
+    if (!openWidgetId) return;
+    const openMatch = matchesInListOrder.find((m) => m.matchId === openWidgetId);
+    if (openMatch && hasLiveVideos(openMatch.liveVideos, openMatch)) return;
+    setOpenWidgetId(null);
+  }, [matchesInListOrder, openWidgetId]);
 
   useEffect(() => {
     if (!pendingStageScrollRef.current || groupBy !== "stage") return;
