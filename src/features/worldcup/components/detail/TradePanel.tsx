@@ -23,6 +23,16 @@ function formatBuyOddsPrice(price: number, format: Parameters<typeof convertPric
   return displayableBuyPrice(price) === null ? "-" : convertPrice(price, format);
 }
 
+function usesTotalSideLabels(market: PredictMarket): boolean {
+  const type = sportsType(market);
+  return (
+    type === "totals" ||
+    type === "soccer_team_totals" ||
+    type === "soccer_first_half_team_totals" ||
+    type === "soccer_second_half_team_totals"
+  );
+}
+
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
  * form. Shared by the desktop right-rail aside and the trade modal so both
@@ -58,7 +68,7 @@ export function TradePanel({
   const marketTitle = market.outcomes?.[0]?.label || market.question;
   const outcomeLabels = useMemo(
     () =>
-      sportsType(market) === "totals"
+      usesTotalSideLabels(market)
         ? {
             yes: t("extend.worldcup.totalSide.over"),
             no: t("extend.worldcup.totalSide.under"),

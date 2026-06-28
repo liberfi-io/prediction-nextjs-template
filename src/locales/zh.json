@@ -296,6 +296,7 @@
       "moneylineDraw": "平局",
       "bothTeamsToScore": "双方进球",
       "spreadHandicap": "{{team}} 让 {{line}} 球",
+      "teamTotalGoals": "{{team}}总进球（{{line}}）",
       "totalOver": "大 {{line}} 球",
       "totalUnder": "小 {{line}} 球",
       "live": "實況",

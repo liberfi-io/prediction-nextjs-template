@@ -179,6 +179,14 @@ function isBothTeamsToScoreGroup(group: { type: SportsMarketType }): boolean {
   return group.type === "both_teams_to_score";
 }
 
+function isTeamTotalGoalsGroup(group: { type: SportsMarketType }): boolean {
+  return (
+    group.type === "soccer_team_totals" ||
+    group.type === "soccer_first_half_team_totals" ||
+    group.type === "soccer_second_half_team_totals"
+  );
+}
+
 function marketMetaString(market: PredictMarket, key: string): string {
   const value = market.provider_meta?.[key];
   return typeof value === "string" ? value : "";
@@ -214,6 +222,17 @@ function spreadHandicapLabel(
   return t("extend.worldcup.spreadHandicap", {
     team,
     line: formatLine(line, false),
+  });
+}
+
+function teamTotalGoalsLabel(
+  option: MarketOption,
+  t: WorldCupTranslate,
+): string {
+  const line = marketLine(option.market) ?? option.line ?? 0;
+  return t("extend.worldcup.teamTotalGoals", {
+    team: option.label,
+    line: formatLine(Math.abs(line), false),
   });
 }
 
@@ -508,6 +527,9 @@ export function WorldCupDetailPage({
     if (selectedGroup.type === "spreads") {
       return spreadHandicapLabel(option, hint, translate);
     }
+    if (isTeamTotalGoalsGroup(selectedGroup)) {
+      return teamTotalGoalsLabel(option, translate);
+    }
     if (selectedGroup.type === "soccer_exact_score") return optionLabel;
     return selectedGroup.options.length > 1
       ? `${groupLabel} (${optionLabel})`
@@ -522,6 +544,9 @@ export function WorldCupDetailPage({
     }
     if (selectedGroup.type === "spreads") {
       return spreadHandicapLabel(option, hint, translate);
+    }
+    if (isTeamTotalGoalsGroup(selectedGroup)) {
+      return teamTotalGoalsLabel(option, translate);
     }
     if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
     return optionDisplayLabel(option);

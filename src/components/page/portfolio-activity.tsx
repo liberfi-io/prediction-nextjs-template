@@ -110,6 +110,7 @@ type ActivityDisplay = {
   outcomeLabel?: string;
   subtitleTone?: "bullish" | "bearish";
   plainSide?: boolean;
+  plainSideLabel?: string;
   plainSidePositive?: boolean;
   hideSide?: boolean;
 };
@@ -193,6 +194,15 @@ function isWorldcupTotalsMarket(market: ActivityMarket): boolean {
 
 function isWorldcupFirstToScoreMarket(market: ActivityMarket): boolean {
   return sportsType(toWorldcupPredictMarket(market)) === "soccer_first_to_score";
+}
+
+function isWorldcupTeamTotalGoalsMarket(market: ActivityMarket): boolean {
+  const type = sportsType(toWorldcupPredictMarket(market));
+  return (
+    type === "soccer_team_totals" ||
+    type === "soccer_first_half_team_totals" ||
+    type === "soccer_second_half_team_totals"
+  );
 }
 
 function textMatchesAny(text: string, keys: Set<string>): boolean {
@@ -280,6 +290,50 @@ function worldcupTotalsSubtitle(
   return undefined;
 }
 
+function worldcupTotalSideLabel(
+  side: string | undefined,
+  translate: WorldCupTranslate,
+): { label: string; tone: "bullish" | "bearish"; positive: boolean } | undefined {
+  const normalizedSide = side?.trim().toLowerCase();
+  if (normalizedSide === "over" || normalizedSide === "yes") {
+    return {
+      label: translate("extend.worldcup.totalSide.over"),
+      tone: "bullish",
+      positive: true,
+    };
+  }
+  if (normalizedSide === "under" || normalizedSide === "no") {
+    return {
+      label: translate("extend.worldcup.totalSide.under"),
+      tone: "bearish",
+      positive: false,
+    };
+  }
+  return undefined;
+}
+
+function worldcupTeamTotalGoalsSubtitle(
+  market: ActivityMarket,
+  hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
+  translate: WorldCupTranslate,
+): string | undefined {
+  if (!isWorldcupTeamTotalGoalsMarket(market)) return undefined;
+  const predictMarket = toWorldcupPredictMarket(market);
+  const line = marketLine(predictMarket);
+  if (line === undefined) return undefined;
+  const label = marketLabel(predictMarket, hint);
+  const team =
+    hint.homeLabel && textMatchesAny(label, hint.homeKeys)
+      ? hint.homeLabel
+      : hint.awayLabel && textMatchesAny(label, hint.awayKeys)
+        ? hint.awayLabel
+        : label;
+  return translate("extend.worldcup.teamTotalGoals", {
+    team,
+    line: formatLine(Math.abs(line), false),
+  });
+}
+
 function worldcupFirstToScoreSubtitle(
   market: ActivityMarket,
   hint: NonNullable<ReturnType<typeof buildWorldcupTeamHint>>,
@@ -330,6 +384,12 @@ function activityDisplay(
     const firstToScoreSubtitle = hint
       ? worldcupFirstToScoreSubtitle(item.market, hint, translate)
       : undefined;
+    const teamTotalGoalsSubtitle = hint
+      ? worldcupTeamTotalGoalsSubtitle(item.market, hint, translate)
+      : undefined;
+    const teamTotalGoalsSide = teamTotalGoalsSubtitle
+      ? worldcupTotalSideLabel(item.side, translate)
+      : undefined;
     const spreadSideIsPositive = hint
       ? worldcupSpreadSideIsPositive(item.market, item.side, hint)
       : undefined;
@@ -341,15 +401,21 @@ function activityDisplay(
           ? translate("extend.worldcup.bothTeamsToScore")
           : spreadSubtitle ??
             totalsSubtitle?.label ??
+            teamTotalGoalsSubtitle ??
             firstToScoreSubtitle ??
             marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
       subtitleTone: totalsSubtitle?.tone,
       plainSide: Boolean(
-        outcomeLabel || isBothTeamsToScore || spreadSubtitle || firstToScoreSubtitle,
+        outcomeLabel ||
+          isBothTeamsToScore ||
+          spreadSubtitle ||
+          teamTotalGoalsSubtitle ||
+          firstToScoreSubtitle,
       ),
-      plainSidePositive: spreadSideIsPositive,
+      plainSideLabel: teamTotalGoalsSide?.label,
+      plainSidePositive: teamTotalGoalsSide?.positive ?? spreadSideIsPositive,
       hideSide: Boolean(totalsSubtitle),
     };
   }
@@ -569,7 +635,8 @@ function PositionRow({
   const usePlainSide = Boolean(display.plainSide);
   const plainSidePositive = display.plainSidePositive ?? isYes;
   const sideLabel = usePlainSide
-    ? t(plainSidePositive ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
+    ? display.plainSideLabel ??
+      t(plainSidePositive ? "extend.worldcup.detail.trade.yes" : "extend.worldcup.detail.trade.no")
     : position.side;
   const showSideCapsule = Boolean(sideLabel) && !display.hideSide;
   const source = position.source;
