@@ -470,8 +470,8 @@
             "other": "其他"
           },
           "type": {
-            "moneyline": "獨贏",
-            "soccer_match_winner": "獨贏",
+            "moneyline": "胜负",
+            "soccer_match_winner": "胜负",
             "spreads": "讓分",
             "totals": "大小球",
             "both_teams_to_score": "雙方球隊進球",

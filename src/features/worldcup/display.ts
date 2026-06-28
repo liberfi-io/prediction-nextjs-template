@@ -25,6 +25,8 @@ export function buildWorldcupTeamHint(
     homeLabel,
     awayLabel,
     drawLabel: t("extend.worldcup.draw"),
+    moneylineDrawLabel: t("extend.worldcup.moneylineDraw"),
+    teamWinsLabel: (team: string) => t("extend.worldcup.teamWins", { team }),
     yesLabel: t("extend.worldcup.detail.trade.yes"),
     noLabel: t("extend.worldcup.detail.trade.no"),
     firstHalfTotalsLabel: t("extend.worldcup.detail.markets.type.first_half_totals"),

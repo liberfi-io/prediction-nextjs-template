@@ -521,7 +521,7 @@
             "other": "Other"
           },
           "type": {
-            "moneyline": "Moneyline",
+            "moneyline": "Match Winner",
             "soccer_match_winner": "Match Winner",
             "spreads": "Spreads",
             "totals": "Totals",

@@ -17,6 +17,7 @@ import type { WcMatch } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { formatLine } from "../../odds/convert-price";
+import { buildWorldcupTeamHint, type WorldCupTranslate } from "../../display";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { GamesSkeleton } from "../skeletons";
 import { MatchCard } from "./MatchCard";
@@ -42,7 +43,6 @@ import {
   categorizeMarkets,
   findSelection,
   type MarketGroup,
-  type TeamHint,
 } from "../detail/marketGrouping";
 import { resolveMarketDeepLink } from "../detail/deepLink";
 
@@ -200,15 +200,6 @@ function todayMatchWindow(nowMs: number): { startMs: number; endMs: number } {
   return { startMs: start.getTime(), endMs: end.getTime() };
 }
 
-function teamHint(match: WcMatch): TeamHint {
-  const keys = (...vals: string[]) =>
-    new Set(vals.filter(Boolean).map((s) => s.trim().toLowerCase()));
-  return {
-    homeKeys: keys(match.home.name, match.home.code, match.home.nameZh),
-    awayKeys: keys(match.away.name, match.away.code, match.away.nameZh),
-  };
-}
-
 function tradeMarketForCode(match: WcMatch, marketCode: string): PredictMarket | null {
   const markets = match.tradeMarkets;
   if (!markets) return null;
@@ -270,6 +261,7 @@ function selectedTradeLabel(match: WcMatch, marketCode: string, outcome: TradeOu
 
 export function GamesTab({ mode = "all" }: GamesTabProps) {
   const { t, i18n } = useTranslation();
+  const translate = t as WorldCupTranslate;
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = i18n.language || "en";
@@ -369,7 +361,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
     if (tradeRequest?.event && tradeRequest.market) {
       const cats = categorizeMarkets(
         tradeRequest.event.markets ?? [],
-        teamHint(tradeRequest.match),
+        buildWorldcupTeamHint(tradeRequest.match, translate),
       );
       const selection = findSelection(cats, tradeRequest.market.slug);
       const market = selection
@@ -393,7 +385,10 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       };
     }
     if (!tradeRequest || !tradeEvent) return null;
-    const cats = categorizeMarkets(tradeEvent.markets ?? [], teamHint(tradeRequest.match));
+    const cats = categorizeMarkets(
+      tradeEvent.markets ?? [],
+      buildWorldcupTeamHint(tradeRequest.match, translate),
+    );
     const resolved = resolveMarketDeepLink({
       cats,
       match: tradeRequest.match,
@@ -419,7 +414,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
         ),
       ),
     };
-  }, [t, tradeEvent, tradeRequest]);
+  }, [t, tradeEvent, tradeRequest, translate]);
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {

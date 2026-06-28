@@ -111,6 +111,8 @@ export interface TeamHint {
   homeLabel?: string;
   awayLabel?: string;
   drawLabel?: string;
+  moneylineDrawLabel?: string;
+  teamWinsLabel?: (team: string) => string;
   yesLabel?: string;
   noLabel?: string;
   firstHalfTotalsLabel?: string;
@@ -391,7 +393,35 @@ export function marketLabel(m: PredictMarket, hint?: TeamHint): string {
     questionTrans(m) ||
     m.question ||
     m.slug;
+  if (sportsType(m) === "moneyline" || sportsType(m) === "soccer_match_winner") {
+    const moneylineLabel = moneylineMarketLabel(label, hint);
+    if (moneylineLabel) return moneylineLabel;
+  }
   return localizeKnownLabel(label, hint);
+}
+
+function moneylineMarketLabel(raw: string, hint?: TeamHint): string | undefined {
+  if (!hint) return undefined;
+  const normalized = normalizeLabel(raw);
+  if (
+    isDrawTitle(normalized) ||
+    normalized === hint.drawLabel?.trim().toLowerCase() ||
+    normalized === hint.moneylineDrawLabel?.trim().toLowerCase()
+  ) {
+    return hint.moneylineDrawLabel ?? hint.drawLabel;
+  }
+
+  const homeLabel = hint.homeLabel;
+  const awayLabel = hint.awayLabel;
+  const team =
+    [...hint.homeKeys].some((key) => key && normalized === key)
+      ? homeLabel
+      : [...hint.awayKeys].some((key) => key && normalized === key)
+        ? awayLabel
+        : undefined;
+  if (!team) return undefined;
+
+  return hint.teamWinsLabel ? hint.teamWinsLabel(team) : `${team} wins`;
 }
 
 // ---------------------------------------------------------------------------

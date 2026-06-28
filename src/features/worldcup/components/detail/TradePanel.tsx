@@ -53,6 +53,16 @@ export function TradePanel({
       side === "buy" ? formatBuyOddsPrice(price, format) : convertPrice(price, format),
     [format, side],
   );
+  const eventTitle = event.title_trans || event.title;
+  const marketTitle = market.outcomes?.[0]?.label || market.question;
+  const actionLabel =
+    side === "sell"
+      ? t("extend.worldcup.detail.trade.sell")
+      : t("extend.worldcup.detail.trade.buy");
+  const outcomeLabel =
+    outcome === "yes"
+      ? t("extend.worldcup.detail.trade.yes")
+      : t("extend.worldcup.detail.trade.no");
 
   return (
     <div className="[&_.worldcup-trade-panel-form>div]:px-2 lg:[&_.worldcup-trade-panel-form>div]:px-4">
@@ -72,11 +82,30 @@ export function TradePanel({
           {t("extend.worldcup.detail.trade.sell")}
         </BuySellTab>
       </div>
+      <div className="mb-4 flex items-center gap-x-3 px-2 lg:px-4">
+        {event.image_url && (
+          <img
+            src={event.image_url}
+            alt={eventTitle}
+            className="h-10 w-10 shrink-0 rounded-lg object-cover"
+          />
+        )}
+        <div className="flex min-w-0 flex-col gap-y-0.5">
+          <span className="line-clamp-1 text-sm leading-tight text-neutral-500">
+            {eventTitle}
+          </span>
+          <span className="line-clamp-1 text-base font-semibold leading-tight">
+            <span className="text-foreground">{marketTitle} · </span>
+            <span className={cn(side === "buy" ? "text-bullish" : "text-bearish")}>
+              {actionLabel} {outcomeLabel}
+            </span>
+          </span>
+        </div>
+      </div>
       {side === "sell" ? (
         <div className="worldcup-trade-panel-form">
           <SellFormWidget
             key={`sell-${market.slug}`}
-            event={event}
             market={market}
             variant="flat"
             initialOutcome={outcome}
@@ -89,7 +118,6 @@ export function TradePanel({
         <div className="worldcup-trade-panel-form">
           <TradeFormWidget
             key={`buy-${market.slug}`}
-            event={event}
             market={market}
             variant="flat"
             initialOutcome={outcome}

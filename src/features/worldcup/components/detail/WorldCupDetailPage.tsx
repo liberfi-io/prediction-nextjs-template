@@ -169,6 +169,14 @@ function withCleanLabel(
   return { ...displayMarket, question: label, outcomes };
 }
 
+function isMoneylineGroup(group: { type: SportsMarketType }): boolean {
+  return group.type === "moneyline" || group.type === "soccer_match_winner";
+}
+
+function isBothTeamsToScoreGroup(group: { type: SportsMarketType }): boolean {
+  return group.type === "both_teams_to_score";
+}
+
 function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
   if (market.status === "open") return market;
 
@@ -452,6 +460,10 @@ export function WorldCupDetailPage({
   // no "Exact Score" prefix.
   const optionDisplayLabel = (optionLabel: string) => {
     if (!selectedGroup) return groupLabel;
+    if (isMoneylineGroup(selectedGroup)) return optionLabel;
+    if (isBothTeamsToScoreGroup(selectedGroup)) {
+      return t("extend.worldcup.bothTeamsToScore");
+    }
     if (selectedGroup.type === "soccer_exact_score") return optionLabel;
     return selectedGroup.options.length > 1
       ? `${groupLabel} (${optionLabel})`
@@ -459,6 +471,10 @@ export function WorldCupDetailPage({
   };
   const selectedSurfaceLabel = (optionLabel: string) => {
     if (!selectedGroup) return groupLabel;
+    if (isMoneylineGroup(selectedGroup)) return optionLabel;
+    if (isBothTeamsToScoreGroup(selectedGroup)) {
+      return t("extend.worldcup.bothTeamsToScore");
+    }
     if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
     return optionDisplayLabel(optionLabel);
   };
