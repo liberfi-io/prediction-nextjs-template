@@ -357,7 +357,7 @@
       "versus": "對",
       "marketCol": {
         "moneyline": "勝負線",
-        "spread": "讓分",
+        "spread": "讓球",
         "total": "總分"
       },
       "totalSide": {
@@ -523,7 +523,7 @@
           "type": {
             "moneyline": "勝負",
             "soccer_match_winner": "勝負",
-            "spreads": "讓分",
+            "spreads": "讓球",
             "totals": "大小球",
             "both_teams_to_score": "雙方球隊進球",
             "soccer_exact_score": "準確比分",

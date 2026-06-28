@@ -55,7 +55,7 @@ import {
   worldCupMatchAnalyticsParams,
 } from "src/lib/analytics";
 import { WorldCupDetailSkeleton } from "../skeletons";
-import { convertPrice } from "../../odds/convert-price";
+import { convertPrice, formatLine } from "../../odds/convert-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import {
   categorizeMarkets,
@@ -63,6 +63,8 @@ import {
   allGroups,
   defaultSelection,
   findSelection,
+  marketLine,
+  type MarketOption,
   type SportsMarketType,
   type TeamHint,
 } from "./marketGrouping";
@@ -175,6 +177,44 @@ function isMoneylineGroup(group: { type: SportsMarketType }): boolean {
 
 function isBothTeamsToScoreGroup(group: { type: SportsMarketType }): boolean {
   return group.type === "both_teams_to_score";
+}
+
+function marketMetaString(market: PredictMarket, key: string): string {
+  const value = market.provider_meta?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function textMatchesAny(text: string, keys: Set<string>): boolean {
+  const lower = text.toLowerCase();
+  for (const key of keys) {
+    if (key && lower.includes(key)) return true;
+  }
+  return false;
+}
+
+function spreadHandicapLabel(
+  option: MarketOption,
+  hint: TeamHint | undefined,
+  t: WorldCupTranslate,
+): string {
+  const text =
+    `${option.market.outcomes?.[0]?.label ?? ""} ${marketMetaString(
+      option.market,
+      "polymarket.groupItemTitle",
+    )}`.trim() ||
+    option.market.question ||
+    "";
+  const team =
+    hint?.homeLabel && textMatchesAny(text, hint.homeKeys)
+      ? hint.homeLabel
+      : hint?.awayLabel && textMatchesAny(text, hint.awayKeys)
+        ? hint.awayLabel
+        : option.label;
+  const line = Math.abs(marketLine(option.market) ?? option.handicap ?? option.line ?? 0);
+  return t("extend.worldcup.spreadHandicap", {
+    team,
+    line: formatLine(line, false),
+  });
 }
 
 function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
@@ -458,30 +498,38 @@ export function WorldCupDetailPage({
   // options (e.g. "Moneyline (Draw)"), else just the group label. Exact-score
   // markets are the exception — the score itself (e.g. "1-0") is the label, with
   // no "Exact Score" prefix.
-  const optionDisplayLabel = (optionLabel: string) => {
+  const optionDisplayLabel = (option: MarketOption) => {
+    const optionLabel = option.label;
     if (!selectedGroup) return groupLabel;
     if (isMoneylineGroup(selectedGroup)) return optionLabel;
     if (isBothTeamsToScoreGroup(selectedGroup)) {
       return t("extend.worldcup.bothTeamsToScore");
+    }
+    if (selectedGroup.type === "spreads") {
+      return spreadHandicapLabel(option, hint, translate);
     }
     if (selectedGroup.type === "soccer_exact_score") return optionLabel;
     return selectedGroup.options.length > 1
       ? `${groupLabel} (${optionLabel})`
       : groupLabel;
   };
-  const selectedSurfaceLabel = (optionLabel: string) => {
+  const selectedSurfaceLabel = (option: MarketOption) => {
+    const optionLabel = option.label;
     if (!selectedGroup) return groupLabel;
     if (isMoneylineGroup(selectedGroup)) return optionLabel;
     if (isBothTeamsToScoreGroup(selectedGroup)) {
       return t("extend.worldcup.bothTeamsToScore");
     }
+    if (selectedGroup.type === "spreads") {
+      return spreadHandicapLabel(option, hint, translate);
+    }
     if (OPTION_ONLY_SURFACE_LABEL_TYPES.has(selectedGroup.type)) return optionLabel;
-    return optionDisplayLabel(optionLabel);
+    return optionDisplayLabel(option);
   };
 
   const selectedLabel =
     selectedGroup && selection
-      ? selectedSurfaceLabel(selection.option.label)
+      ? selectedSurfaceLabel(selection.option)
       : displayEvent.title;
 
   // The chart plots every market in the selected group (e.g. 3 moneyline lines,
@@ -495,7 +543,7 @@ export function WorldCupDetailPage({
         ...displayEvent,
         markets: Array.from(
           new Map(selectedGroup.options.map((o) => [o.market.slug, o])).values(),
-        ).map((o) => withCleanLabel(o.market, optionDisplayLabel(o.label), hint)),
+        ).map((o) => withCleanLabel(o.market, optionDisplayLabel(o), hint)),
       }
     : displayEvent;
 
