@@ -126,6 +126,7 @@ type WorldcupSellRequest = {
   event: PredictEvent;
   market: PredictMarket;
   outcome: TradeOutcome;
+  initialPositionSide?: string;
 };
 
 type PositionSortOrder = "asc" | "desc";
@@ -673,7 +674,12 @@ function sellPositionSideOverride(position: PredictPosition): string | undefined
     return undefined;
   }
   if (!position.market) return undefined;
-  return isWorldcupSpreadMarket(position.market) || isWorldcupTotalsMarket(position.market)
+  return isWorldcupSpreadMarket(position.market) ||
+    isWorldcupTotalsMarket(position.market) ||
+    isWorldcupTeamTotalGoalsMarket(position.market) ||
+    isWorldcupCornerTotalMarket(position.market) ||
+    isWorldcupTeamTotalCornersMarket(position.market) ||
+    isWorldcupCornerOddEvenMarket(position.market)
     ? side
     : undefined;
 }
@@ -776,6 +782,7 @@ export function PositionsPanel({
         event,
         market,
         outcome: sellOutcomeForPosition(position, display),
+        initialPositionSide: sellPositionSideOverride(position),
       });
       setWorldcupTradeSide("sell");
     },
@@ -874,6 +881,7 @@ export function PositionsPanel({
             market={worldcupSellRequest.market}
             outcome={worldcupSellRequest.outcome}
             side={worldcupTradeSide}
+            initialPositionSide={worldcupSellRequest.initialPositionSide}
             onSideChange={setWorldcupTradeSide}
             onOutcomeChange={(outcome) =>
               setWorldcupSellRequest((current) =>
@@ -881,6 +889,7 @@ export function PositionsPanel({
               )
             }
             onSetupRequired={() => openSetupWallet()}
+            onSuccess={() => setWorldcupSellRequest(null)}
           />
         ) : null}
       </TradeModal>

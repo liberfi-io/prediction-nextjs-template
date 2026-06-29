@@ -110,15 +110,19 @@ export function TradePanel({
   onOutcomeChange,
   onInsufficientBalance,
   onSetupRequired,
+  onSuccess,
+  initialPositionSide,
 }: {
   event: PredictEvent;
   market: PredictMarket;
   outcome: TradeOutcome;
   side: TradeSide;
+  initialPositionSide?: string;
   onSideChange: (side: TradeSide) => void;
   onOutcomeChange: (outcome: TradeOutcome) => void;
   onInsufficientBalance?: (source: ProviderSource) => void;
   onSetupRequired?: () => void;
+  onSuccess?: () => void;
 }) {
   const { t } = useTranslation();
   const [format] = useOddsFormat();
@@ -178,10 +182,12 @@ export function TradePanel({
             market={market}
             variant="flat"
             initialOutcome={outcome}
+            initialPositionSide={initialPositionSide}
             oddsFormatter={oddsFormatter}
             outcomeLabels={outcomeLabels}
             onOutcomeChange={onOutcomeChange}
             onSetupRequired={onSetupRequired}
+            onSuccess={onSuccess}
           />
         </div>
       ) : (

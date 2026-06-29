@@ -708,6 +708,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
               }
               onInsufficientBalance={handleInsufficientBalance}
               onSetupRequired={handleSetupRequired}
+              onSuccess={() => setTradeRequest(null)}
             />
           ) : (
             <MobileBuyTradePanel
