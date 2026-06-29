@@ -112,7 +112,7 @@ async function renderWorldcupMatchPage(
   const initialMarketSlug = !isCode ? market : null;
 
   return (
-    <div className="w-full pb-16">
+    <div className="w-full pb-4 lg:pb-16">
       <div className="w-full px-3 pt-4 sm:px-6">
         <HydrationBoundary state={dehydrate(queryClient)}>
           <WorldCupDetailPage

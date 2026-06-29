@@ -44,7 +44,6 @@ import { MatchCenterTabs } from "./MatchCenterTabs";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { MarketsPanel } from "./MarketsPanel";
 import { TradePanel } from "./TradePanel";
-import { MobileTradeBar } from "./MobileTradeBar";
 import { TradeModal } from "src/components/TradeModal";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import {
@@ -361,6 +360,19 @@ export function WorldCupDetailPage({
     setOutcome(selectedOutcome);
     setSide("buy");
   }, []);
+  const handleMobileMarketSelect = useCallback(
+    (slug: string, selectedOutcome: TradeOutcome = "yes") => {
+      handleSelect(slug, selectedOutcome);
+      setTradeSheetOpen(true);
+    },
+    [handleSelect],
+  );
+  const handleMobileMarketInspect = useCallback(
+    (slug: string, selectedOutcome: TradeOutcome = "yes") => {
+      handleSelect(slug, selectedOutcome);
+    },
+    [handleSelect],
+  );
 
   const handleInsufficientBalance = useCallback(
     (src: ProviderSource) => {
@@ -496,23 +508,14 @@ export function WorldCupDetailPage({
     setSide(sd);
   };
 
-  const handleMobileTradePick = (oc: TradeOutcome) => {
-    trackCurrentOrderClick({ outcome: oc, side: "buy" });
-    setOutcome(oc);
-    setSide("buy");
-    setTradeSheetOpen(true);
-  };
-
   // -------------------------------------------------------------------------
   // Mobile layout: single column with one flat tab row (order book + match
-  // center / news / comments / positions / orders / history), a sticky trade
-  // bar, and modals for the markets switcher and the trade form.
+  // center / news / comments / positions / orders / history). Market picks open
+  // the trade action sheet directly.
   // -------------------------------------------------------------------------
   if (!isDesktop) {
     return (
-      // Bottom padding reserves room for the fixed MobileTradeBar (~73px) so the
-      // last content row is never hidden behind it when scrolled to the end.
-      <div className="flex w-full flex-col gap-4 pb-4">
+      <div className="flex w-full flex-col gap-4">
         <DetailHeader
           event={displayEvent}
           market={selectedDisplayMarket}
@@ -559,25 +562,52 @@ export function WorldCupDetailPage({
                 activeCategory={activeCategory}
                 selectedSlug={selectedSlug}
                 selectedOutcome={outcome}
-                onSelect={handleSelect}
+                onSelect={handleMobileMarketSelect}
+                onInspect={handleMobileMarketInspect}
+                renderInlineOrderbook={(slug, inlineOutcome) => {
+                  const inlineSelection = findSelection(cats, slug, inlineOutcome);
+                  const inlineMarket = inlineSelection?.option.market;
+                  if (!inlineSelection || !inlineMarket) return null;
+
+                  const inlineDisplayMarket = withTranslatedMarketText(
+                    withSettledOutcomePrices(inlineMarket),
+                    hint,
+                  );
+                  const inlineLabel = worldcupMarketSelectedSurfaceLabel(
+                    inlineSelection.group,
+                    inlineSelection.option,
+                    hint,
+                    translate,
+                  );
+                  const inlineWidgetMarket = withCleanLabel(
+                    inlineDisplayMarket,
+                    inlineLabel,
+                    hint,
+                  );
+
+                  return (
+                    <div
+                      className="flex min-h-[320px] flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3"
+                      data-market-orderbook
+                    >
+                      <EventMarketDetailWidget
+                        market={inlineWidgetMarket}
+                        outcome={inlineOutcome}
+                        onTradeAction={(market, oc, sd) => {
+                          handleSelect(slug, oc);
+                          handleTradeAction(market, oc, sd);
+                        }}
+                        initialViewMode="table"
+                        oddsFormatter={oddsFormatter}
+                        className="min-h-0 flex-1"
+                      />
+                    </div>
+                  );
+                }}
                 className="flex-1 border-0 bg-transparent"
               />
             </MarketSwitcherFrame>
           )}
-
-          {mobileTab === "orderbook" &&
-            (selectedMarket ? (
-              <div className="flex min-h-[360px] flex-col rounded-[12px] border border-zinc-800 bg-zinc-900/40 p-3">
-                <EventMarketDetailWidget
-                  market={selectedDisplayMarket ?? selectedMarket}
-                  outcome={outcome}
-                  onTradeAction={handleTradeAction}
-                  initialViewMode="table"
-                  oddsFormatter={oddsFormatter}
-                  className="min-h-0 flex-1"
-                />
-              </div>
-            ) : null)}
 
           {(mobileTab === "center" ||
             mobileTab === "live" ||
@@ -624,14 +654,6 @@ export function WorldCupDetailPage({
             </div>
           )}
         </div>
-
-        {/* Sticky buy/sell action bar */}
-        {selectedDisplayMarket && (
-          <MobileTradeBar
-            market={selectedDisplayMarket}
-            onPick={handleMobileTradePick}
-          />
-        )}
 
         {/* Trade action modal */}
         {selectedMarket && (
@@ -828,7 +850,6 @@ function CloseIcon() {
 
 type MobileTabKey =
   | "markets"
-  | "orderbook"
   | "live"
   | "center"
   | "news"
@@ -840,12 +861,11 @@ type MobileTabKey =
   | "ref";
 
 // Mobile flattens what desktop shows as nested tabs into a single tab row:
-// order book + the match-center sub-tabs (center/news/comments) + the activity
-// sub-tabs (positions/orders/history) + the header info popovers (rules/ref,
-// which desktop keeps as buttons). Labels reuse existing i18n keys.
+// match-center sub-tabs (center/news/comments) + the activity sub-tabs
+// (positions/orders/history) + the header info popovers (rules/ref, which
+// desktop keeps as buttons). Labels reuse existing i18n keys.
 const MOBILE_TABS = [
   { key: "markets", labelKey: "extend.worldcup.detail.markets.title" },
-  { key: "orderbook", labelKey: "extend.worldcup.detail.mtab.orderbook" },
   { key: "live", labelKey: "extend.worldcup.live" },
   ...(ENABLE_WORLD_CUP_MATCH_CENTER
     ? [{ key: "center", labelKey: "extend.worldcup.detail.tab.center" } as const]

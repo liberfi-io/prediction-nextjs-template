@@ -410,7 +410,7 @@ function ActivitySkeleton() {
 /** World Cup match detail shell: header, chart, match center, trade and orderbook. */
 export function WorldCupDetailSkeleton() {
   return (
-    <div className="w-full pb-16">
+    <div className="w-full pb-4 lg:pb-16">
       <div className="w-full px-3 pt-4 sm:px-6">
         <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:flex-row lg:items-start">
           <div className="flex min-w-0 flex-1 flex-col gap-4">

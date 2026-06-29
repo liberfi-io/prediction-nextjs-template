@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@liberfi.io/ui";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
@@ -92,6 +101,8 @@ export function MarketsPanel({
   selectedSlug,
   selectedOutcome = "yes",
   onSelect,
+  onInspect,
+  renderInlineOrderbook,
   className,
 }: {
   cats: CategorizedMarkets;
@@ -99,11 +110,18 @@ export function MarketsPanel({
   selectedSlug: string;
   selectedOutcome?: "yes" | "no";
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  renderInlineOrderbook?: (slug: string, outcome: "yes" | "no") => ReactNode;
   className?: string;
 }) {
   const { t } = useTranslation();
 
   const [category, setCategory] = useState<MarketCategory>(activeCategory);
+  const [expandedMarket, setExpandedMarket] = useState<{
+    groupKey: string;
+    slug: string;
+    outcome: "yes" | "no";
+  } | null>(null);
 
   // The selected market also has a live order book on screen; subscribe to its
   // YES book so the panel's displayed price for that market tracks the order
@@ -236,6 +254,18 @@ export function MarketsPanel({
             selectedOutcome={selectedOutcome}
             orderbookPricesBySlug={orderbookPricesBySlug}
             onSelect={onSelect}
+            onInspect={onInspect}
+            expandedSelection={
+              expandedMarket?.groupKey === group.key ? expandedMarket : null
+            }
+            onExpand={(slug, nextOutcome) =>
+              setExpandedMarket({
+                groupKey: group.key,
+                slug,
+                outcome: nextOutcome,
+              })
+            }
+            renderInlineOrderbook={renderInlineOrderbook}
             label={t(`extend.worldcup.detail.markets.type.${group.type_label}`)}
           />
         ))}
@@ -253,6 +283,9 @@ function LineSelectorContent({
   selectedOutcome,
   optionOdds,
   onSelect,
+  onInspect,
+  expandedSelection,
+  onExpand,
   onLineChange,
 }: {
   group: MarketGroup;
@@ -263,6 +296,9 @@ function LineSelectorContent({
   selectedOutcome: "yes" | "no";
   optionOdds: (option: MarketOption) => string | null;
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  expandedSelection?: { slug: string; outcome: "yes" | "no" } | null;
+  onExpand?: (slug: string, outcome: "yes" | "no") => void;
   onLineChange: (key: string) => void;
 }) {
   const { t } = useTranslation();
@@ -326,14 +362,19 @@ function LineSelectorContent({
         nextTradeOptions[0];
 
       onLineChange(key);
-      if (nextOption) onSelect(nextOption.market.slug, nextOption.outcome ?? "yes");
+      if (nextOption) {
+        const nextOutcome = nextOption.outcome ?? "yes";
+        onExpand?.(nextOption.market.slug, nextOutcome);
+        onInspect?.(nextOption.market.slug, nextOutcome);
+      }
       centerLine(key);
     },
     [
       centerLine,
       isTotals,
+      onExpand,
+      onInspect,
       onLineChange,
-      onSelect,
       options,
       selectedOption?.outcome,
       selectedOption?.side,
@@ -366,7 +407,11 @@ function LineSelectorContent({
             <button
               key={`${option.market.slug}:${outcome}:${option.side ?? "line"}`}
               type="button"
-              onClick={() => onSelect(option.market.slug, outcome)}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (expandedSelection) onExpand?.(option.market.slug, outcome);
+                onSelect(option.market.slug, outcome);
+              }}
               className={cn(
                 "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
                 selected
@@ -508,6 +553,9 @@ function TeamTotalsContent({
   selectedOutcome,
   optionOdds,
   onSelect,
+  onInspect,
+  expandedSelection,
+  onExpand,
 }: {
   group: MarketGroup;
   options: MarketOption[];
@@ -515,6 +563,9 @@ function TeamTotalsContent({
   selectedOutcome: "yes" | "no";
   optionOdds: (option: MarketOption) => string | null;
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  expandedSelection?: { slug: string; outcome: "yes" | "no" } | null;
+  onExpand?: (slug: string, outcome: "yes" | "no") => void;
 }) {
   const knownSides = (["home", "away"] as const)
     .map((side) => ({
@@ -536,6 +587,9 @@ function TeamTotalsContent({
           selectedOutcome={selectedOutcome}
           optionOdds={optionOdds}
           onSelect={onSelect}
+          onInspect={onInspect}
+          expandedSelection={expandedSelection}
+          onExpand={onExpand}
         />
       ))}
       {fallbackOptions.length > 0 && (
@@ -547,6 +601,9 @@ function TeamTotalsContent({
           selectedOutcome={selectedOutcome}
           optionOdds={optionOdds}
           onSelect={onSelect}
+          onInspect={onInspect}
+          expandedSelection={expandedSelection}
+          onExpand={onExpand}
         />
       )}
     </div>
@@ -559,12 +616,18 @@ function ExactScoreContent({
   selectedOutcome,
   optionOdds,
   onSelect,
+  onInspect,
+  expandedSelection,
+  onExpand,
 }: {
   options: MarketOption[];
   selectedSlug: string;
   selectedOutcome: "yes" | "no";
   optionOdds: (option: MarketOption) => string | null;
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  expandedSelection?: { slug: string; outcome: "yes" | "no" } | null;
+  onExpand?: (slug: string, outcome: "yes" | "no") => void;
 }) {
   const { t } = useTranslation();
 
@@ -582,7 +645,18 @@ function ExactScoreContent({
           outcome: "no",
         };
         return (
-          <div key={option.market.slug} className="flex flex-col gap-1.5">
+          <div
+            key={option.market.slug}
+            className="flex flex-col gap-1.5"
+            onClick={(event) => {
+              const target = event.target as HTMLElement | null;
+              if (target?.closest("button,a,input,select,textarea")) return;
+              event.stopPropagation();
+              const nextOutcome = option.outcome ?? "yes";
+              onExpand?.(option.market.slug, nextOutcome);
+              onInspect?.(option.market.slug, nextOutcome);
+            }}
+          >
             <div className="truncate text-xs font-medium text-zinc-400">
               {option.label}
             </div>
@@ -597,7 +671,13 @@ function ExactScoreContent({
                   <button
                     key={`${outcomeOption.market.slug}:${outcome}`}
                     type="button"
-                    onClick={() => onSelect(outcomeOption.market.slug, outcome)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (expandedSelection) {
+                        onExpand?.(outcomeOption.market.slug, outcome);
+                      }
+                      onSelect(outcomeOption.market.slug, outcome);
+                    }}
                     className={cn(
                       "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
                       selected
@@ -630,6 +710,9 @@ function TeamTotalsLineGroup({
   selectedOutcome,
   optionOdds,
   onSelect,
+  onInspect,
+  expandedSelection,
+  onExpand,
 }: {
   group: MarketGroup;
   options: MarketOption[];
@@ -638,6 +721,9 @@ function TeamTotalsLineGroup({
   selectedOutcome: "yes" | "no";
   optionOdds: (option: MarketOption) => string | null;
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  expandedSelection?: { slug: string; outcome: "yes" | "no" } | null;
+  onExpand?: (slug: string, outcome: "yes" | "no") => void;
 }) {
   const [selectedLineKey, setSelectedLineKey] = useState<string>();
   const lineOptions = useMemo(() => {
@@ -656,11 +742,12 @@ function TeamTotalsLineGroup({
         option.market.slug === selectedSlug &&
         (option.outcome ?? "yes") === selectedOutcome,
     );
-    const nextKey = selectedOption
-      ? lineKey(lineValue(selectedOption))
-      : selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
+    const nextKey =
+      selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
         ? selectedLineKey
-        : lineOptions[0].key;
+        : selectedOption
+          ? lineKey(lineValue(selectedOption))
+          : lineOptions[0].key;
     if (selectedLineKey !== nextKey) setSelectedLineKey(nextKey);
   }, [lineOptions, options, selectedLineKey, selectedOutcome, selectedSlug]);
 
@@ -668,7 +755,21 @@ function TeamTotalsLineGroup({
   if (!activeLineKey) return null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="flex flex-col gap-2"
+      onClick={(event) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("button,a,input,select,textarea")) return;
+        event.stopPropagation();
+        const option =
+          options.find((candidate) => lineKey(lineValue(candidate)) === activeLineKey) ??
+          options[0];
+        if (!option) return;
+        const nextOutcome = option.outcome ?? "yes";
+        onExpand?.(option.market.slug, nextOutcome);
+        onInspect?.(option.market.slug, nextOutcome);
+      }}
+    >
       {label && (
         <div className="truncate text-xs font-medium text-zinc-400">
           {label}
@@ -683,6 +784,9 @@ function TeamTotalsLineGroup({
         selectedOutcome={selectedOutcome}
         optionOdds={optionOdds}
         onSelect={onSelect}
+        onInspect={onInspect}
+        expandedSelection={expandedSelection}
+        onExpand={onExpand}
         onLineChange={setSelectedLineKey}
       />
     </div>
@@ -955,6 +1059,10 @@ function GroupRow({
   selectedOutcome,
   orderbookPricesBySlug,
   onSelect,
+  onInspect,
+  expandedSelection,
+  onExpand,
+  renderInlineOrderbook,
   label,
 }: {
   group: MarketGroup;
@@ -963,6 +1071,10 @@ function GroupRow({
   selectedOutcome: "yes" | "no";
   orderbookPricesBySlug: Map<string, number>;
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
+  onInspect?: (slug: string, outcome?: "yes" | "no") => void;
+  expandedSelection?: { slug: string; outcome: "yes" | "no" } | null;
+  onExpand?: (slug: string, outcome: "yes" | "no") => void;
+  renderInlineOrderbook?: (slug: string, outcome: "yes" | "no") => ReactNode;
   label: string;
 }) {
   const { t } = useTranslation();
@@ -1027,11 +1139,12 @@ function GroupRow({
         option.market.slug === selectedSlug &&
         (option.outcome ?? "yes") === selectedOutcome,
     );
-    const nextKey = selectedOption
-      ? lineKey(lineValue(selectedOption))
-      : selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
+    const nextKey =
+      selectedLineKey && lineOptions.some((line) => line.key === selectedLineKey)
         ? selectedLineKey
-        : lineOptions[0].key;
+        : selectedOption
+          ? lineKey(lineValue(selectedOption))
+          : lineOptions[0].key;
     if (selectedLineKey !== nextKey) setSelectedLineKey(nextKey);
   }, [
     isLineSelectorGroup,
@@ -1045,6 +1158,39 @@ function GroupRow({
   if (options.length === 0) return null;
 
   const activeLineKey = selectedLineKey ?? lineOptions[0]?.key;
+  const inspectFirstOption = () => {
+    const option =
+      isLineSelectorGroup && activeLineKey
+        ? renderedOptions.find(
+            (candidate) => lineKey(lineValue(candidate)) === activeLineKey,
+          ) ?? renderedOptions[0]
+        : renderedOptions[0];
+    if (!option) return;
+    const nextOutcome = option.outcome ?? "yes";
+    onExpand?.(option.market.slug, nextOutcome);
+    onInspect?.(option.market.slug, nextOutcome);
+  };
+  const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button,a,input,select,textarea,[data-market-orderbook]",
+      )
+    ) {
+      return;
+    }
+    inspectFirstOption();
+  };
+  const handleTradeSelect = (
+    event: MouseEvent<HTMLButtonElement>,
+    slug: string,
+    nextOutcome?: "yes" | "no",
+  ) => {
+    event.stopPropagation();
+    const resolvedOutcome = nextOutcome ?? "yes";
+    if (expandedSelection) onExpand?.(slug, resolvedOutcome);
+    onSelect(slug, resolvedOutcome);
+  };
   const single = renderedOptions.length === 1;
   // Option odds use each market's live YES best-ask (mirrored into the map for
   // the selected market too) so they line up with the order book. An open
@@ -1069,7 +1215,10 @@ function GroupRow({
   };
 
   return (
-    <div className="border-b border-zinc-800/60 pb-3 last:border-b-0 last:pb-0">
+    <div
+      className="border-b border-zinc-800/60 pb-3 last:border-b-0 last:pb-0"
+      onClick={renderInlineOrderbook ? handleRowClick : undefined}
+    >
       {!isExactScoreGroup && (
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-baseline gap-2">
@@ -1090,6 +1239,9 @@ function GroupRow({
           selectedOutcome={selectedOutcome}
           optionOdds={optionOdds}
           onSelect={onSelect}
+          onInspect={onInspect}
+          expandedSelection={expandedSelection}
+          onExpand={onExpand}
         />
       ) : isTeamTotalsGroup ? (
         <TeamTotalsContent
@@ -1099,6 +1251,9 @@ function GroupRow({
           selectedOutcome={selectedOutcome}
           optionOdds={optionOdds}
           onSelect={onSelect}
+          onInspect={onInspect}
+          expandedSelection={expandedSelection}
+          onExpand={onExpand}
         />
       ) : isLineSelectorGroup && activeLineKey ? (
         <LineSelectorContent
@@ -1110,6 +1265,9 @@ function GroupRow({
           selectedOutcome={selectedOutcome}
           optionOdds={optionOdds}
           onSelect={onSelect}
+          onInspect={onInspect}
+          expandedSelection={expandedSelection}
+          onExpand={onExpand}
           onLineChange={setSelectedLineKey}
         />
       ) : single ? (
@@ -1118,7 +1276,13 @@ function GroupRow({
           return (
             <button
               type="button"
-              onClick={() => onSelect(renderedOptions[0].market.slug, renderedOptions[0].outcome)}
+              onClick={(event) =>
+                handleTradeSelect(
+                  event,
+                  renderedOptions[0].market.slug,
+                  renderedOptions[0].outcome,
+                )
+              }
               className={cn(
                 "flex w-full flex-col items-center justify-center gap-1 rounded-[8px] border px-3 py-2 text-center transition-colors cursor-pointer",
                 renderedOptions[0].market.slug === selectedSlug &&
@@ -1151,7 +1315,7 @@ function GroupRow({
               <button
                 key={`${o.market.slug}:${o.outcome ?? "yes"}`}
                 type="button"
-                onClick={() => onSelect(o.market.slug, o.outcome)}
+                onClick={(event) => handleTradeSelect(event, o.market.slug, o.outcome)}
                 className={cn(
                   "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-center transition-colors cursor-pointer",
                   selected
@@ -1170,6 +1334,26 @@ function GroupRow({
           })}
         </div>
       )}
+      <AnimatePresence initial={false}>
+        {expandedSelection && renderInlineOrderbook && (
+          <motion.div
+            key={`${expandedSelection.slug}:${expandedSelection.outcome}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+            data-market-orderbook
+          >
+            <div className="pt-3">
+              {renderInlineOrderbook(
+                expandedSelection.slug,
+                expandedSelection.outcome,
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
