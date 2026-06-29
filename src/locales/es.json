@@ -278,6 +278,8 @@
       "sell": "Vender",
       "redeem": "Canjear",
       "redeemDescription": "Canjea esta posición después de la liquidación.",
+      "redeemShares": "Participaciones",
+      "expectedRedeemAmount": "Importe esperado",
       "searchPositions": "Buscar posiciones...",
       "sortValue": "Valor",
       "sortPnl": "PnL",

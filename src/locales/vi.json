@@ -276,6 +276,8 @@
       "sell": "Bán",
       "redeem": "Đổi",
       "redeemDescription": "Đổi vị thế này sau khi thanh toán.",
+      "redeemShares": "Số phần",
+      "expectedRedeemAmount": "Dự kiến nhận",
       "searchPositions": "Tìm kiếm vị trí...",
       "sortValue": "Giá trị",
       "sortPnl": "Lãi/Lỗ",

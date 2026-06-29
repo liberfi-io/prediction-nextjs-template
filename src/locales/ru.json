@@ -278,6 +278,8 @@
       "sell": "Продать",
       "redeem": "Погасить",
       "redeemDescription": "Погасите эту позицию после расчета.",
+      "redeemShares": "Доли",
+      "expectedRedeemAmount": "Ожидаемая сумма",
       "searchPositions": "Поиск позиций...",
       "sortValue": "Стоимость",
       "sortPnl": "PnL",

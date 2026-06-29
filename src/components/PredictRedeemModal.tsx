@@ -24,7 +24,6 @@ export type RedeemDisplayParams = {
   title?: string;
   marketLabel?: string;
   sideLabel?: string;
-  sidePositive?: boolean;
   outcome?: RedeemOutcome;
 };
 
@@ -137,15 +136,19 @@ function RedeemForm({
   const winningOutcome = resolveOutcome(market.result ?? "", market.outcomes);
   const hasSettledResult = market.result != null && market.result !== "";
   const isWinner = hasSettledResult && winningOutcome ? positionOutcome === winningOutcome : true;
-  const expectedPayout = isWinner ? position.size : 0;
+  const settledPositionValue = finiteAmount(position.current_value);
+  const expectedPayout = hasSettledResult
+    ? isWinner ? position.size : 0
+    : settledPositionValue ?? 0;
   const yesLabel = String(t("extend.worldcup.detail.trade.yes", { defaultValue: "Yes" }));
   const noLabel = String(t("extend.worldcup.detail.trade.no", { defaultValue: "No" }));
   const sideLabel = display?.sideLabel ?? outcomeLabel(positionOutcome, yesLabel, noLabel);
+  const positionTitle = display?.title ?? event?.title ?? market.question;
+  const positionSubtitle = display?.marketLabel;
   const winnerLabel =
     (winningOutcome ? outcomeLabel(winningOutcome, yesLabel, noLabel) : undefined) ??
     market.result ??
     "";
-  const sidePositive = display?.sidePositive ?? positionOutcome === "yes";
 
   const handleRedeem = useCallback(async () => {
     if (!conditionId || !walletAddress || !evmWallet) return;
@@ -180,7 +183,8 @@ function RedeemForm({
         marketSlug: position.market?.slug ?? market.slug,
         eventSlug: position.event?.slug ?? event?.slug,
         expectation: "redeem",
-      });
+        expectedPayout,
+      } as Parameters<typeof confirmTradeResult>[0] & { expectedPayout: number });
       setStatus(result === "confirmed" ? "success" : "delayed");
       onSuccess?.();
     } catch (err) {
@@ -199,6 +203,7 @@ function RedeemForm({
     position.event?.slug,
     market.slug,
     event?.slug,
+    expectedPayout,
     onSuccess,
     t,
   ]);
@@ -209,41 +214,48 @@ function RedeemForm({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="text-base font-medium text-white">
-        {display?.title ?? event?.title ?? market.question}
-      </div>
-
       <div className="flex flex-col gap-2 rounded-xl bg-[rgba(39,39,42,0.4)] p-3">
-        {display?.marketLabel && (
-          <InfoRow
-            label={t("extend.leaderboard.detail.colMarket", { defaultValue: "Market" })}
-            value={display.marketLabel}
-          />
-        )}
-        <InfoRow
-          label={t("predict.positions.side")}
-          value={sideLabel}
-          valueClassName={sidePositive ? "text-green-400" : "text-red-400"}
-        />
+        <div className="min-w-0">
+          <div className="line-clamp-2 text-base font-medium text-white">
+            {positionTitle}
+          </div>
+          {(positionSubtitle || sideLabel) && (
+            <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-zinc-400">
+              {positionSubtitle && (
+                <span className="min-w-0 truncate">{positionSubtitle}</span>
+              )}
+              {positionSubtitle && sideLabel && (
+                <span className="shrink-0 text-zinc-600">&bull;</span>
+              )}
+              {sideLabel && (
+                <span className="shrink-0 font-medium text-bullish">
+                  {sideLabel}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         {hasSettledResult && winnerLabel && (
           <InfoRow
             label={t("predict.redeem.result")}
             value={winnerLabel}
-            valueClassName="text-green-400"
+            valueClassName="text-bullish"
           />
         )}
         <InfoRow
-          label={t("predict.positions.size")}
+          label={t("extend.portfolio.redeemShares", { defaultValue: "Shares" })}
           value={formatShares(position.size)}
         />
         <InfoRow
-          label={t("predict.redeem.expectedPayout")}
+          label={t("extend.portfolio.expectedRedeemAmount", {
+            defaultValue: "Expected Amount",
+          })}
           value={`$${expectedPayout.toFixed(2)}`}
-          valueClassName={expectedPayout > 0 ? "text-green-400" : "text-zinc-400"}
+          valueClassName={expectedPayout > 0 ? "text-bullish" : "text-zinc-400"}
         />
       </div>
 
-      {!isWinner && expectedPayout === 0 && (
+      {expectedPayout <= 0 && (
         <p className="text-sm text-zinc-500">{t("predict.redeem.noWinnings")}</p>
       )}
 
@@ -251,7 +263,7 @@ function RedeemForm({
         <p className="text-sm text-red-400">{errorMessage}</p>
       )}
       {status === "success" && (
-        <p className="text-sm text-green-400">{t("predict.redeem.success")}</p>
+        <p className="text-sm text-bullish">{t("predict.redeem.success")}</p>
       )}
       {status === "delayed" && (
         <p className="text-sm text-zinc-400">
@@ -261,12 +273,10 @@ function RedeemForm({
           })}
         </p>
       )}
-
       <div className="flex flex-col gap-2">
         {status !== "success" && status !== "delayed" && (
           <Button
-            color="success"
-            className="h-12 w-full rounded-xl text-sm font-semibold"
+            className="h-12 w-full rounded-xl bg-bullish text-sm font-semibold text-black hover:bg-bullish/90"
             isDisabled={!canRedeem}
             isLoading={status === "pending" || status === "confirming"}
             onPress={authenticatedRedeem}
@@ -336,4 +346,8 @@ function outcomeLabel(outcome: RedeemOutcome, yesLabel: string, noLabel: string)
 function formatShares(size: number, maxDecimals = 2): string {
   const factor = Math.pow(10, maxDecimals);
   return parseFloat((Math.floor(size * factor) / factor).toFixed(maxDecimals)).toString();
+}
+
+function finiteAmount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }

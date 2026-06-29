@@ -278,6 +278,8 @@
       "sell": "Vender",
       "redeem": "Resgatar",
       "redeemDescription": "Resgate esta posição após a liquidação.",
+      "redeemShares": "Cotas",
+      "expectedRedeemAmount": "Valor esperado",
       "searchPositions": "Pesquisar posições...",
       "sortValue": "Valor",
       "sortPnl": "PnL",

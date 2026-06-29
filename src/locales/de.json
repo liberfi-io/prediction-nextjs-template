@@ -278,6 +278,8 @@
       "sell": "Verkaufen",
       "redeem": "Einlösen",
       "redeemDescription": "Lösen Sie diese Position nach der Abwicklung ein.",
+      "redeemShares": "Anteile",
+      "expectedRedeemAmount": "Voraussichtlich erhalten",
       "searchPositions": "Positionen suchen...",
       "sortValue": "Wert",
       "sortPnl": "PnL",

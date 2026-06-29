@@ -288,6 +288,8 @@
       "sell": "賣出",
       "redeem": "兌換",
       "redeemDescription": "兌換此已結算倉位。",
+      "redeemShares": "份數",
+      "expectedRedeemAmount": "預期獲得",
       "searchPositions": "搜尋持倉...",
       "sortValue": "價值",
       "sortPnl": "盈虧",

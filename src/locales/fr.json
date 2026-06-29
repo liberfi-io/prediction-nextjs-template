@@ -276,6 +276,8 @@
       "sell": "Vendre",
       "redeem": "Racheter",
       "redeemDescription": "Rachetez cette position après le règlement.",
+      "redeemShares": "Parts",
+      "expectedRedeemAmount": "Montant attendu",
       "searchPositions": "Rechercher des positions...",
       "sortValue": "Valeur",
       "sortPnl": "PnL",

@@ -338,32 +338,16 @@ function worldcupSpreadSideIsPositive(
 
 function worldcupTotalsSubtitle(
   market: ActivityMarket,
-  side: string | undefined,
   translate: WorldCupTranslate,
-): { label: string; tone: "bullish" | "bearish" } | undefined {
-  if (sportsType(toWorldcupPredictMarket(market)) !== "totals" || !side) {
-    return undefined;
-  }
-  const line = marketLine(toWorldcupPredictMarket(market));
-  if (!line) return undefined;
-  const normalizedSide = side.trim().toLowerCase();
-  if (normalizedSide === "over" || normalizedSide === "yes") {
-    return {
-      label: translate("extend.worldcup.totalOver", {
-        line: formatLine(Math.abs(line), false),
-      }),
-      tone: "bullish",
-    };
-  }
-  if (normalizedSide === "under" || normalizedSide === "no") {
-    return {
-      label: translate("extend.worldcup.totalUnder", {
-        line: formatLine(Math.abs(line), false),
-      }),
-      tone: "bearish",
-    };
-  }
-  return undefined;
+): string | undefined {
+  const predictMarket = toWorldcupPredictMarket(market);
+  if (sportsType(predictMarket) !== "totals") return undefined;
+  const line = marketLine(predictMarket);
+  if (line === undefined) return undefined;
+  return translate("extend.worldcup.marketWithLine", {
+    market: translate("extend.worldcup.detail.markets.type.totals"),
+    line: formatLine(Math.abs(line), false),
+  });
 }
 
 function worldcupHalfTotalsSubtitle(
@@ -553,7 +537,7 @@ function activityDisplay(
     const spreadSubtitle = hint
       ? worldcupSpreadSubtitle(item.market, hint, translate)
       : undefined;
-    const totalsSubtitle = worldcupTotalsSubtitle(item.market, outcomeSide, translate);
+    const totalsSubtitle = worldcupTotalsSubtitle(item.market, translate);
     const halfTotalsSubtitle = worldcupHalfTotalsSubtitle(item.market, translate);
     const firstToScoreSubtitle = hint
       ? worldcupFirstToScoreSubtitle(item.market, hint, translate)
@@ -572,6 +556,9 @@ function activityDisplay(
     const isCornerOddEven = isWorldcupCornerOddEvenMarket(item.market);
     const cornerOddEvenSubtitle = isCornerOddEven
       ? translate("extend.worldcup.detail.markets.type.soccer_game_corners_odd_even")
+      : undefined;
+    const totalsSide = totalsSubtitle
+      ? worldcupTotalSideLabel(outcomeSide, translate)
       : undefined;
     const teamTotalGoalsSide = teamTotalGoalsSubtitle
       ? worldcupTotalSideLabel(outcomeSide, translate)
@@ -598,7 +585,7 @@ function activityDisplay(
         : bothTeamsToScoreSubtitle ??
           spreadSubtitle ??
             halfTotalsSubtitle ??
-            totalsSubtitle?.label ??
+            totalsSubtitle ??
             teamTotalGoalsSubtitle ??
             cornerTotalSubtitle ??
             teamTotalCornersSubtitle ??
@@ -608,11 +595,11 @@ function activityDisplay(
             marketLabel(toWorldcupPredictMarket(item.market), hint),
       imageUrl: FIFA_AVATAR,
       outcomeLabel,
-      subtitleTone: totalsSubtitle?.tone,
       plainSide: Boolean(
         outcomeLabel ||
           bothTeamsToScoreSubtitle ||
           spreadSubtitle ||
+          totalsSubtitle ||
           halfTotalsSubtitle ||
           teamTotalGoalsSubtitle ||
           cornerTotalSubtitle ||
@@ -623,19 +610,20 @@ function activityDisplay(
           isPlayerProp,
       ),
       plainSideLabel:
+        totalsSide?.label ??
         teamTotalGoalsSide?.label ??
         halfTotalsSide?.label ??
         cornerTotalSide?.label ??
         teamTotalCornersSide?.label ??
         cornerOddEvenSide?.label,
       plainSidePositive:
+        totalsSide?.positive ??
         teamTotalGoalsSide?.positive ??
         halfTotalsSide?.positive ??
         cornerTotalSide?.positive ??
         teamTotalCornersSide?.positive ??
         cornerOddEvenSide?.positive ??
         spreadSideIsPositive,
-      hideSide: Boolean(totalsSubtitle),
     };
   }
 
@@ -987,13 +975,12 @@ function PositionRow({
             title: display.title,
             marketLabel: marketName,
             sideLabel,
-            sidePositive: plainSidePositive,
             outcome: sellOutcomeForPosition(position, display),
           },
         },
       });
     },
-    [position, display, marketName, sideLabel, plainSidePositive, openRedeemModal],
+    [position, display, marketName, sideLabel, openRedeemModal],
   );
 
   return (
@@ -1106,7 +1093,7 @@ function PositionRow({
             <button
               type="button"
               onClick={handleRedeem}
-              className="cursor-pointer rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-all hover:border-green-500/50 hover:bg-green-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500/60"
+              className="cursor-pointer rounded-lg border border-bullish/30 bg-bullish/10 px-4 py-2 text-sm font-medium text-bullish transition-all hover:border-bullish/50 hover:bg-bullish/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bullish/60"
             >
               {t("extend.portfolio.redeem", { defaultValue: t("predict.redeem.confirm") })}
             </button>

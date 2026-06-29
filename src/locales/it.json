@@ -278,6 +278,8 @@
       "sell": "Vendi",
       "redeem": "Riscatta",
       "redeemDescription": "Riscatta questa posizione dopo il regolamento.",
+      "redeemShares": "Quote",
+      "expectedRedeemAmount": "Importo previsto",
       "searchPositions": "Cerca posizioni...",
       "sortValue": "Valore",
       "sortPnl": "PnL",

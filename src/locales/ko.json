@@ -276,6 +276,8 @@
       "sell": "판매",
       "redeem": "상환",
       "redeemDescription": "정산 후 이 포지션을 상환합니다.",
+      "redeemShares": "수량",
+      "expectedRedeemAmount": "예상 수령액",
       "searchPositions": "포지션 검색...",
       "sortValue": "가치",
       "sortPnl": "손익",

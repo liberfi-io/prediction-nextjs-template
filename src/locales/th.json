@@ -276,6 +276,8 @@
       "sell": "ขาย",
       "redeem": "แลก",
       "redeemDescription": "แลกตำแหน่งนี้หลังการชำระผล.",
+      "redeemShares": "จำนวนหุ้น",
+      "expectedRedeemAmount": "คาดว่าจะได้รับ",
       "searchPositions": "ค้นหาตำแหน่ง...",
       "sortValue": "มูลค่า",
       "sortPnl": "กำไรขาดทุน",
