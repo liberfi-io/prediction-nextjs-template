@@ -295,7 +295,7 @@
       "teamWins": "{{team}}获胜",
       "moneylineDraw": "平局",
       "bothTeamsToScore": "双方进球",
-      "spreadHandicap": "{{team}} 让 {{line}} 球",
+      "spreadHandicap": "{{team}}让{{line}}球",
       "teamTotalGoals": "{{team}}总进球（{{line}}）",
       "marketWithLine": "{{market}}（{{line}}）",
       "teamMarketWithLine": "{{team}}{{market}}（{{line}}）",
