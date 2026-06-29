@@ -276,6 +276,8 @@
       "invested": "Investiert",
       "action": "Aktion",
       "sell": "Verkaufen",
+      "redeem": "Einlösen",
+      "redeemDescription": "Lösen Sie diese Position nach der Abwicklung ein.",
       "searchPositions": "Positionen suchen...",
       "sortValue": "Wert",
       "sortPnl": "PnL",

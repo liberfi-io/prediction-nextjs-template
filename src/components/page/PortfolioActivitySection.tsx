@@ -6,7 +6,7 @@ import { Chain } from "@liberfi.io/types";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
 import { cn, EmptyIcon, SignInIcon } from "@liberfi.io/ui";
 import { useAuth, useConnectedWallet } from "@liberfi.io/wallet-connector";
-import { PredictSellModal, PredictRedeemModal } from "@liberfi.io/ui-predict";
+import { PredictSellModal } from "@liberfi.io/ui-predict";
 import {
   PositionsPanel,
   OrdersPanel,
@@ -14,6 +14,7 @@ import {
   type ActivityTab,
 } from "./portfolio-activity";
 import { ENABLE_KALSHI } from "../../libs/featureFlags";
+import { PredictRedeemModal } from "../PredictRedeemModal";
 
 /**
  * Embeddable portfolio activity (positions / open orders / trade history).

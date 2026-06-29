@@ -276,6 +276,8 @@
       "invested": "Invertido",
       "action": "Acción",
       "sell": "Vender",
+      "redeem": "Canjear",
+      "redeemDescription": "Canjea esta posición después de la liquidación.",
       "searchPositions": "Buscar posiciones...",
       "sortValue": "Valor",
       "sortPnl": "PnL",

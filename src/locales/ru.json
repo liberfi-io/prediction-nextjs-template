@@ -276,6 +276,8 @@
       "invested": "Инвестировано",
       "action": "Действие",
       "sell": "Продать",
+      "redeem": "Погасить",
+      "redeemDescription": "Погасите эту позицию после расчета.",
       "searchPositions": "Поиск позиций...",
       "sortValue": "Стоимость",
       "sortPnl": "PnL",

@@ -274,6 +274,8 @@
       "invested": "투자됨",
       "action": "작업",
       "sell": "판매",
+      "redeem": "상환",
+      "redeemDescription": "정산 후 이 포지션을 상환합니다.",
       "searchPositions": "포지션 검색...",
       "sortValue": "가치",
       "sortPnl": "손익",

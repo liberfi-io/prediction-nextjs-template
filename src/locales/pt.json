@@ -276,6 +276,8 @@
       "invested": "Investido",
       "action": "Ação",
       "sell": "Vender",
+      "redeem": "Resgatar",
+      "redeemDescription": "Resgate esta posição após a liquidação.",
       "searchPositions": "Pesquisar posições...",
       "sortValue": "Valor",
       "sortPnl": "PnL",

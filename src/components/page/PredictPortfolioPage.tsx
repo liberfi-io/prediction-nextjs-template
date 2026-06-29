@@ -10,7 +10,6 @@ import {
 import {
   PredictTradeModal,
   PredictSellModal,
-  PredictRedeemModal,
   usePredictWallet,
 } from "@liberfi.io/ui-predict";
 import { usePositionsMulti } from "@liberfi.io/react-predict";
@@ -35,6 +34,7 @@ import {
   TradesPanel,
 } from "./portfolio-activity";
 import { PortfolioSkeleton } from "./portfolio-skeleton";
+import { PredictRedeemModal } from "../PredictRedeemModal";
 
 type PortfolioTab = "positions" | "orders" | "history";
 

@@ -286,6 +286,8 @@
       "invested": "Invested",
       "action": "Action",
       "sell": "Sell",
+      "redeem": "Redeem",
+      "redeemDescription": "Redeem this position after settlement.",
       "searchPositions": "Search positions...",
       "sortValue": "Value",
       "sortPnl": "PnL",

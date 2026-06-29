@@ -274,6 +274,8 @@
       "invested": "投資済み",
       "action": "操作",
       "sell": "売却",
+      "redeem": "償還",
+      "redeemDescription": "決済後にこのポジションを償還します。",
       "searchPositions": "ポジションを検索...",
       "sortValue": "価値",
       "sortPnl": "PnL",

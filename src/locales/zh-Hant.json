@@ -286,6 +286,8 @@
       "invested": "已投入",
       "action": "操作",
       "sell": "賣出",
+      "redeem": "兌換",
+      "redeemDescription": "兌換此已結算倉位。",
       "searchPositions": "搜尋持倉...",
       "sortValue": "價值",
       "sortPnl": "盈虧",

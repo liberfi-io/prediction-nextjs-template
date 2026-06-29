@@ -274,6 +274,8 @@
       "invested": "ลงทุนแล้ว",
       "action": "การดำเนินการ",
       "sell": "ขาย",
+      "redeem": "แลก",
+      "redeemDescription": "แลกตำแหน่งนี้หลังการชำระผล.",
       "searchPositions": "ค้นหาตำแหน่ง...",
       "sortValue": "มูลค่า",
       "sortPnl": "กำไรขาดทุน",

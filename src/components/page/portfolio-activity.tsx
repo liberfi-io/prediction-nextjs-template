@@ -12,7 +12,6 @@ import {
   PREDICT_SELL_MODAL_ID,
   type PredictSellModalParams,
   PREDICT_REDEEM_MODAL_ID,
-  type PredictRedeemModalParams,
   type TradeOutcome,
   type TradeSide,
 } from "@liberfi.io/ui-predict";
@@ -58,6 +57,7 @@ import type { WcMatch } from "../../features/worldcup/types";
 import { TradeModal } from "../TradeModal";
 import { TradePanel } from "../../features/worldcup/components/detail/TradePanel";
 import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
+import type { PredictRedeemModalParams, RedeemOutcome } from "../PredictRedeemModal";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -649,7 +649,7 @@ function activityDisplay(
 function sellOutcomeForPosition(
   position: PredictPosition,
   display: ActivityDisplay,
-): "yes" | "no" {
+): RedeemOutcome {
   const side = position.side?.trim().toLowerCase();
   if (side === "yes" || side === "no") return side;
   if (
@@ -675,6 +675,7 @@ function sellOutcomeForPosition(
     if (side === "odd") return "yes";
     if (side === "even") return "no";
   }
+  if (display.plainSide) return "yes";
   return "no";
 }
 
@@ -982,10 +983,17 @@ function PositionRow({
           event: position.event,
           market: position.market,
           position,
+          display: {
+            title: display.title,
+            marketLabel: marketName,
+            sideLabel,
+            sidePositive: plainSidePositive,
+            outcome: sellOutcomeForPosition(position, display),
+          },
         },
       });
     },
-    [position, openRedeemModal],
+    [position, display, marketName, sideLabel, plainSidePositive, openRedeemModal],
   );
 
   return (
@@ -1100,7 +1108,7 @@ function PositionRow({
               onClick={handleRedeem}
               className="cursor-pointer rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-all hover:border-green-500/50 hover:bg-green-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500/60"
             >
-              {t("predict.redeem.confirm")}
+              {t("extend.portfolio.redeem", { defaultValue: t("predict.redeem.confirm") })}
             </button>
           ) : (
             <button

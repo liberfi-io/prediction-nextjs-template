@@ -274,6 +274,8 @@
       "invested": "Investi",
       "action": "Action",
       "sell": "Vendre",
+      "redeem": "Racheter",
+      "redeemDescription": "Rachetez cette position après le règlement.",
       "searchPositions": "Rechercher des positions...",
       "sortValue": "Valeur",
       "sortPnl": "PnL",

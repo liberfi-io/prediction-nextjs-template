@@ -274,6 +274,8 @@
       "invested": "Đã Đầu Tư",
       "action": "Thao tác",
       "sell": "Bán",
+      "redeem": "Đổi",
+      "redeemDescription": "Đổi vị thế này sau khi thanh toán.",
       "searchPositions": "Tìm kiếm vị trí...",
       "sortValue": "Giá trị",
       "sortPnl": "Lãi/Lỗ",
