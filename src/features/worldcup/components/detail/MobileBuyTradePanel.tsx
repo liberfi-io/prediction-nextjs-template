@@ -5,7 +5,6 @@ import { useTranslation } from "@liberfi.io/i18n";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  SettingsIcon,
   Spinner,
   cn,
 } from "@liberfi.io/ui";
@@ -204,12 +203,6 @@ export function MobileBuyTradePanel({
     setAmount(maxAmount);
   }, [maxAmount, setAmount]);
 
-  const toggleOrderType = useCallback(() => {
-    if (!supportsLimitOrder) return;
-    setOrderType(orderType === "market" ? "limit" : "market");
-    setShowErrors(false);
-  }, [orderType, setOrderType, supportsLimitOrder]);
-
   const handleSubmit = useCallback(() => {
     if (!isAuthenticated) {
       setShowErrors(false);
@@ -295,29 +288,36 @@ export function MobileBuyTradePanel({
           <span className="text-lg font-semibold text-white">
             {t("extend.worldcup.detail.trade.buy")}
           </span>
-          <button
-            type="button"
-            onClick={toggleOrderType}
-            disabled={!supportsLimitOrder}
+          <div
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
-              supportsLimitOrder
-                ? "cursor-pointer text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                : "cursor-not-allowed text-zinc-600",
-            )}
-            aria-label={t(
-              orderType === "market"
-                ? "extend.worldcup.detail.trade.switchToLimit"
-                : "extend.worldcup.detail.trade.switchToMarket",
-            )}
-            title={t(
-              orderType === "market"
-                ? "extend.worldcup.detail.trade.market"
-                : "extend.worldcup.detail.trade.limit",
+              "flex items-center gap-0.5 rounded-[10px] bg-zinc-900/70 p-0.5",
+              !supportsLimitOrder && "opacity-60",
             )}
           >
-            <SettingsIcon className="h-5 w-5" />
-          </button>
+            {(["market", "limit"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                disabled={!supportsLimitOrder && type === "limit"}
+                onClick={() => {
+                  if (!supportsLimitOrder && type === "limit") return;
+                  setOrderType(type);
+                  setShowErrors(false);
+                }}
+                className={cn(
+                  "rounded-[8px] px-2.5 py-1 text-xs font-medium transition-colors",
+                  orderType === type
+                    ? "bg-zinc-800 text-[#c7ff2e]"
+                    : "text-zinc-500 hover:text-zinc-200",
+                  !supportsLimitOrder && type === "limit"
+                    ? "cursor-not-allowed"
+                    : "cursor-pointer",
+                )}
+              >
+                {t(`extend.worldcup.detail.trade.${type}`)}
+              </button>
+            ))}
+          </div>
         </div>
 
       <div className="mt-2 flex items-center gap-3 px-1 py-2">
@@ -501,7 +501,8 @@ export function MobileBuyTradePanel({
           disabled={submitDisabled}
           className="mt-4 flex h-12 w-full items-center justify-center rounded-[10px] bg-[#c7ff2e] text-base font-semibold text-zinc-950 transition-colors hover:bg-[#d6ff63] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitLoading ? <Spinner size="sm" color="current" /> : buttonLabel}
+          {submitLoading && <Spinner size="sm" color="current" />}
+          <span className={cn(submitLoading && "ml-2")}>{buttonLabel}</span>
         </button>
       </div>
 
