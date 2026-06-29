@@ -43,6 +43,7 @@ import { MatchBanner } from "./MatchBanner";
 import { MatchCenterTabs } from "./MatchCenterTabs";
 import { OddsFormatSelect } from "../OddsFormatSelect";
 import { MarketsPanel } from "./MarketsPanel";
+import { MobileBuyTradePanel } from "./MobileBuyTradePanel";
 import { TradePanel } from "./TradePanel";
 import { TradeModal } from "src/components/TradeModal";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
@@ -661,16 +662,16 @@ export function WorldCupDetailPage({
             open={tradeSheetOpen}
             onClose={() => setTradeSheetOpen(false)}
             title={t(`extend.worldcup.detail.trade.${side}`)}
+            hideHeader
+            contentClassName="overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
+            bodyClassName="p-0"
           >
-            <TradePanel
+            <MobileBuyTradePanel
               event={displayEvent}
               market={tradeMarket ?? selectedMarket}
               outcome={outcome}
-              side={side}
-              onSideChange={setSide}
-              onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
-              onSetupRequired={handleSetupRequired}
+              oddsFormatter={oddsFormatter}
             />
           </TradeModal>
         )}

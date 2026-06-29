@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn, toast } from "@liberfi.io/ui";
+import { cn, toast, useScreen } from "@liberfi.io/ui";
 import {
   applyLiveStateToMatch,
   applyMarketRealtimeToMatches,
@@ -35,7 +35,8 @@ import {
 } from "src/components/FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { TradeModal } from "src/components/TradeModal";
-import { TradePanel } from "../detail/TradePanel";
+import { MobileBuyTradePanel } from "../detail/MobileBuyTradePanel";
+import { TradePanel, formatBuyOddsPrice } from "../detail/TradePanel";
 import {
   predictEventAnalyticsParams,
   predictMarketAnalyticsParams,
@@ -237,9 +238,14 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   const translate = t as WorldCupTranslate;
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isDesktop } = useScreen();
   const lang = i18n.language || "en";
   const todayOnly = mode === "today";
   const [format] = useOddsFormat();
+  const oddsFormatter = useCallback(
+    (price: number) => formatBuyOddsPrice(price, format),
+    [format],
+  );
   const [groupBy, setGroupBy] = useState<GroupBy>("time");
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -679,22 +685,39 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
         open={Boolean(tradeRequest)}
         onClose={() => setTradeRequest(null)}
         title={t(`extend.worldcup.detail.trade.${tradeSide}`)}
+        hideHeader={!isDesktop}
+        contentClassName={
+          !isDesktop
+            ? "overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
+            : undefined
+        }
+        bodyClassName={!isDesktop ? "p-0" : undefined}
       >
         {tradeRequest && tradeSelection ? (
-          <TradePanel
-            event={tradeSelection.event}
-            market={tradeSelection.market}
-            outcome={tradeRequest.outcome}
-            side={tradeSide}
-            onSideChange={setTradeSide}
-            onOutcomeChange={(outcome) =>
-              setTradeRequest((current) =>
-                current ? { ...current, outcome } : current,
-              )
-            }
-            onInsufficientBalance={handleInsufficientBalance}
-            onSetupRequired={handleSetupRequired}
-          />
+          isDesktop ? (
+            <TradePanel
+              event={tradeSelection.event}
+              market={tradeSelection.market}
+              outcome={tradeRequest.outcome}
+              side={tradeSide}
+              onSideChange={setTradeSide}
+              onOutcomeChange={(outcome) =>
+                setTradeRequest((current) =>
+                  current ? { ...current, outcome } : current,
+                )
+              }
+              onInsufficientBalance={handleInsufficientBalance}
+              onSetupRequired={handleSetupRequired}
+            />
+          ) : (
+            <MobileBuyTradePanel
+              event={tradeSelection.event}
+              market={tradeSelection.market}
+              outcome={tradeRequest.outcome}
+              onInsufficientBalance={handleInsufficientBalance}
+              oddsFormatter={oddsFormatter}
+            />
+          )
         ) : (
           <div className="flex min-h-40 items-center justify-center text-sm text-zinc-500">
             {isTradeEventError

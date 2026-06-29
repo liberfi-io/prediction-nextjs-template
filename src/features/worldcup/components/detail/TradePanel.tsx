@@ -19,7 +19,10 @@ import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
 import { sportsType } from "./marketGrouping";
 
-function formatBuyOddsPrice(price: number, format: Parameters<typeof convertPrice>[1]): string {
+export function formatBuyOddsPrice(
+  price: number,
+  format: Parameters<typeof convertPrice>[1],
+): string {
   return displayableBuyPrice(price) === null ? "-" : convertPrice(price, format);
 }
 
@@ -41,6 +44,56 @@ function usesTotalSideLabels(market: PredictMarket): boolean {
 
 function usesCornerSideLabels(market: PredictMarket): boolean {
   return sportsType(market) === "soccer_game_corners_odd_even";
+}
+
+export function getTradeOutcomeLabels(
+  market: PredictMarket,
+  t: (key: `extend.${string}`) => unknown,
+): Partial<Record<TradeOutcome, string>> | undefined {
+  if (usesTotalSideLabels(market)) {
+    return {
+      yes: String(t("extend.worldcup.totalSide.over")),
+      no: String(t("extend.worldcup.totalSide.under")),
+    };
+  }
+  if (usesCornerSideLabels(market)) {
+    return {
+      yes: String(t("extend.worldcup.cornerSide.odd")),
+      no: String(t("extend.worldcup.cornerSide.even")),
+    };
+  }
+  return undefined;
+}
+
+export function getTradeDisplayLabels({
+  market,
+  outcome,
+  side,
+  t,
+}: {
+  market: PredictMarket;
+  outcome: TradeOutcome;
+  side: TradeSide;
+  t: (key: `extend.${string}`) => unknown;
+}) {
+  const outcomeLabels = getTradeOutcomeLabels(market, t);
+  const marketTitle = market.outcomes?.[0]?.label || market.question;
+  const actionLabel =
+    side === "sell"
+      ? String(t("extend.worldcup.detail.trade.sell"))
+      : String(t("extend.worldcup.detail.trade.buy"));
+  const outcomeLabel =
+    outcomeLabels?.[outcome] ??
+    (outcome === "yes"
+      ? String(t("extend.worldcup.detail.trade.yes"))
+      : String(t("extend.worldcup.detail.trade.no")));
+
+  return {
+    actionLabel,
+    marketTitle,
+    outcomeLabel,
+    outcomeLabels,
+  };
 }
 
 /**
@@ -75,34 +128,10 @@ export function TradePanel({
     [format, side],
   );
   const eventTitle = event.title_trans || event.title;
-  const marketTitle = market.outcomes?.[0]?.label || market.question;
-  const outcomeLabels = useMemo(
-    () => {
-      if (usesTotalSideLabels(market)) {
-        return {
-          yes: t("extend.worldcup.totalSide.over"),
-          no: t("extend.worldcup.totalSide.under"),
-        };
-      }
-      if (usesCornerSideLabels(market)) {
-        return {
-          yes: t("extend.worldcup.cornerSide.odd"),
-          no: t("extend.worldcup.cornerSide.even"),
-        };
-      }
-      return undefined;
-    },
-    [market, t],
+  const { actionLabel, marketTitle, outcomeLabel, outcomeLabels } = useMemo(
+    () => getTradeDisplayLabels({ market, outcome, side, t }),
+    [market, outcome, side, t],
   );
-  const actionLabel =
-    side === "sell"
-      ? t("extend.worldcup.detail.trade.sell")
-      : t("extend.worldcup.detail.trade.buy");
-  const outcomeLabel =
-    outcomeLabels?.[outcome] ??
-    (outcome === "yes"
-      ? t("extend.worldcup.detail.trade.yes")
-      : t("extend.worldcup.detail.trade.no"));
 
   return (
     <div className="[&_.worldcup-trade-panel-form>div]:px-2 lg:[&_.worldcup-trade-panel-form>div]:px-4">

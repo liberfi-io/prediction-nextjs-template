@@ -17,11 +17,17 @@ export function TradeModal({
   onClose,
   title,
   children,
+  hideHeader = false,
+  contentClassName,
+  bodyClassName,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  hideHeader?: boolean;
+  contentClassName?: string;
+  bodyClassName?: string;
 }) {
   const { isMobile } = useScreen();
 
@@ -36,11 +42,15 @@ export function TradeModal({
       placement={isMobile ? "bottom" : "center"}
       size="lg"
     >
-      <ModalContent>
-        <ModalHeader className="px-5 pt-5 pb-3">
-          <span className="text-lg font-semibold text-white">{title}</span>
-        </ModalHeader>
-        <ModalBody className="px-5 pb-5 pt-0">{children}</ModalBody>
+      <ModalContent className={contentClassName}>
+        {!hideHeader && (
+          <ModalHeader className="px-5 pt-5 pb-3">
+            <span className="text-lg font-semibold text-white">{title}</span>
+          </ModalHeader>
+        )}
+        <ModalBody className={bodyClassName ?? "px-5 pb-5 pt-0"}>
+          {children}
+        </ModalBody>
       </ModalContent>
     </StyledModal>
   );
