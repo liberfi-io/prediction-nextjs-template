@@ -165,6 +165,16 @@ export function ReferralPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 pb-24 lg:pb-6">
+      {/* Invite card appears before the commission bar on mobile. */}
+      <div className="mb-4 lg:hidden">
+        <InviteCard
+          inviteCode={inviteCode?.invite_code ?? ""}
+          inviteLink={inviteLink}
+          invitedCount={invitees?.length ?? 0}
+          tr={tr}
+        />
+      </div>
+
       {/* Top commission-rate bar */}
       <div
         className="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3"
@@ -244,7 +254,7 @@ export function ReferralPage() {
         </div>
 
         {/* Right column (invite card) — desktop order 2, fixed width */}
-        <div className="w-full lg:order-2 lg:w-[360px] lg:shrink-0">
+        <div className="hidden w-full lg:order-2 lg:block lg:w-[360px] lg:shrink-0">
           <InviteCard
             inviteCode={inviteCode?.invite_code ?? ""}
             inviteLink={inviteLink}
