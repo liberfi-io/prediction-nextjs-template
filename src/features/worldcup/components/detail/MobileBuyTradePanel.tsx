@@ -282,7 +282,7 @@ export function MobileBuyTradePanel({
 
   return (
     <>
-      <div className="flex flex-col bg-[#18181b] px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 text-zinc-100">
+      <div className="flex h-full min-h-0 flex-col bg-[#18181b] px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 text-zinc-100">
         <div className="mx-auto mb-3 h-1 w-14 rounded-full bg-zinc-700" />
         <div className="flex items-center justify-between px-1 pb-1">
           <span className="text-lg font-semibold text-white">
@@ -320,7 +320,7 @@ export function MobileBuyTradePanel({
           </div>
         </div>
 
-      <div className="mt-2 flex items-center gap-3 px-1 py-2">
+      <div className="mt-2 flex items-center gap-3 px-1 py-1">
         {event.image_url && (
           <img
             src={event.image_url}
@@ -341,7 +341,7 @@ export function MobileBuyTradePanel({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col items-center px-1 py-5">
+      <div className="mt-2 flex flex-col items-center px-1 py-2">
         <label className="sr-only" htmlFor="mobile-trade-amount">
           {t("extend.worldcup.detail.trade.amount")}
         </label>
@@ -360,7 +360,7 @@ export function MobileBuyTradePanel({
               setAmountText(amountDisplayText(quantity));
             }}
             className={cn(
-              "min-w-0 max-w-[260px] bg-transparent text-center text-6xl font-semibold leading-none outline-none placeholder:text-zinc-500",
+              "min-w-0 max-w-[260px] bg-transparent text-center text-5xl font-semibold leading-none outline-none placeholder:text-zinc-500",
               hasAmount ? "text-zinc-100" : "text-zinc-400",
             )}
           />
@@ -393,7 +393,7 @@ export function MobileBuyTradePanel({
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           {QUICK_AMOUNTS.map((amount) => (
             <button
               type="button"
@@ -442,7 +442,7 @@ export function MobileBuyTradePanel({
           </span>
       </button>
       {oddsOpen && (
-        <div className="mt-1 flex flex-col gap-y-1.5 px-1 pb-2 text-sm">
+        <div className="mt-1 flex flex-col gap-y-1 px-1 pb-2 text-[13px] leading-5">
           <Metric
             label={t("predict.trade.totalSize")}
             value={hasAmount ? formatUsd(estimatedCost) : EMPTY_VALUE}
@@ -499,7 +499,7 @@ export function MobileBuyTradePanel({
           type="button"
           onClick={handleSubmit}
           disabled={submitDisabled}
-          className="mt-4 flex h-12 w-full items-center justify-center rounded-[10px] bg-[#c7ff2e] text-base font-semibold text-zinc-950 transition-colors hover:bg-[#d6ff63] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-auto flex h-12 w-full shrink-0 items-center justify-center rounded-[10px] bg-[#c7ff2e] text-base font-semibold text-zinc-950 transition-colors hover:bg-[#d6ff63] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLoading && <Spinner size="sm" color="current" />}
           <span className={cn(submitLoading && "ml-2")}>{buttonLabel}</span>

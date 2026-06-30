@@ -688,10 +688,10 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
         hideHeader={!isDesktop}
         contentClassName={
           !isDesktop
-            ? "overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
+            ? "h-[min(560px,calc(100dvh-80px))] !max-h-[560px] overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
             : undefined
         }
-        bodyClassName={!isDesktop ? "p-0" : undefined}
+        bodyClassName={!isDesktop ? "min-h-0 flex-1 overflow-hidden p-0" : undefined}
       >
         {tradeRequest && tradeSelection ? (
           isDesktop ? (

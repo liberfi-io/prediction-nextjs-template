@@ -663,8 +663,8 @@ export function WorldCupDetailPage({
             onClose={() => setTradeSheetOpen(false)}
             title={t(`extend.worldcup.detail.trade.${side}`)}
             hideHeader
-            contentClassName="overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
-            bodyClassName="p-0"
+            contentClassName="h-[min(560px,calc(100dvh-80px))] !max-h-[560px] overflow-hidden !rounded-t-[18px] !border !border-zinc-800 !bg-[#18181b]"
+            bodyClassName="min-h-0 flex-1 overflow-hidden p-0"
           >
             <MobileBuyTradePanel
               event={displayEvent}
