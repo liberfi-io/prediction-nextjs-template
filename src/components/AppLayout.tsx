@@ -24,7 +24,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAtomValue } from "jotai";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LocaleCode,
   useTranslation,
@@ -39,7 +39,7 @@ import {
   PredictProvider,
   PolymarketProvider,
   usePredictWsClient,
-  usePositionsMulti,
+  usePredictClient,
   useDeployPolymarketDepositWallet,
   polymarketSetupQueryKey,
 } from "@liberfi.io/react-predict";
@@ -119,6 +119,19 @@ import { ReferralCapture } from "../features/referral/components/ReferralCapture
 import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
 import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniapp/state";
 import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
+
+type PositionValueSource = "kalshi" | "polymarket" | "dflow";
+type PositionValueResponse = {
+  source?: PositionValueSource;
+  value: string;
+  currency: string;
+  values?: Array<{
+    source: PositionValueSource;
+    user: string;
+    value: string;
+    currency: string;
+  }>;
+};
 
 const NoPrefetchLink: LinkComponentType = (props) => (
   <Link prefetch={false} {...props} />
@@ -1169,6 +1182,7 @@ function PredictAccountControl() {
     polymarketDepositWalletAddress,
   } = usePredictWallet();
   const queryClient = useQueryClient();
+  const predictClient = usePredictClient();
   const wallets = useWallets();
   const deployDepositWallet = useDeployPolymarketDepositWallet(evmAddress);
   // Only the explicit legacy `safe` kind takes the Gnosis Safe path; any other
@@ -1178,9 +1192,32 @@ function PredictAccountControl() {
   const router = useRouter();
   const { isMobile } = useScreen();
 
-  const { data: positionsData, isLoading: positionsLoading } = usePositionsMulti({
-    kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
-    polymarket_user: evmAddress || undefined,
+  const {
+    data: positionValueData,
+    isLoading: positionValueLoading,
+  } = useQuery({
+    queryKey: [
+      "predict",
+      "position-value",
+      "multi",
+      ENABLE_KALSHI ? solanaAddress || "" : "",
+      evmAddress || "",
+    ],
+    queryFn: () =>
+      (
+        predictClient as PredictClient & {
+          getPositionValue: (wallets: {
+            kalshi_user?: string;
+            polymarket_user?: string;
+          }) => Promise<PositionValueResponse>;
+        }
+      ).getPositionValue({
+        kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
+        polymarket_user: evmAddress || undefined,
+      }),
+    enabled: Boolean((ENABLE_KALSHI && solanaAddress) || evmAddress),
+    staleTime: 10_000,
+    refetchInterval: 30_000,
   });
 
   const cashKalshiCents = toCents(kalshiUsdcBalance ?? 0);
@@ -1190,30 +1227,35 @@ function PredictAccountControl() {
   const polymarketBalanceLoaded = polymarketUsdcBalance != null;
   const cashLoaded = kalshiBalanceLoaded && polymarketBalanceLoaded;
 
-  // Split open-positions market value per venue so each WalletEntry can show
-  // its own "持仓" line; the aggregate still drives the Positions / Portfolio
-  // Total summary rows below.
   const { kalshiPositionsCents, polymarketPositionsCents } = useMemo(() => {
-    const all = positionsData?.positions ?? [];
     let kalshi = 0;
     let polymarket = 0;
-    for (const p of all) {
-      const value = p.current_value ?? p.size * (p.current_price ?? 0);
-      if (p.source === "kalshi") kalshi += value;
-      else if (p.source === "polymarket") polymarket += value;
+    const values = positionValueData?.values?.length
+      ? positionValueData.values
+      : positionValueData?.source
+        ? [positionValueData]
+        : [];
+    for (const value of values) {
+      const amount = Number(value.value);
+      if (!Number.isFinite(amount)) continue;
+      const source = String(value.source);
+      if (source === "kalshi" || source === "dflow") kalshi += amount;
+      else if (source === "polymarket") polymarket += amount;
     }
     return {
       kalshiPositionsCents: toCents(kalshi),
       polymarketPositionsCents: toCents(polymarket),
     };
-  }, [positionsData]);
+  }, [positionValueData]);
 
-  const positionsCents = kalshiPositionsCents + polymarketPositionsCents;
+  const positionsValue = Number(positionValueData?.value ?? 0);
+  const positionsCents = Number.isFinite(positionsValue)
+    ? toCents(positionsValue)
+    : kalshiPositionsCents + polymarketPositionsCents;
 
   const portfolioTotalCents = cashTotalCents + positionsCents;
 
-  const positionsLoaded =
-    !positionsLoading && Array.isArray(positionsData?.positions);
+  const positionsLoaded = !positionValueLoading && Boolean(positionValueData);
   const portfolioLoaded = cashLoaded && positionsLoaded;
   const polymarketSetupBusy =
     polymarketSetupLoading || polymarketAutoSetupPending;
