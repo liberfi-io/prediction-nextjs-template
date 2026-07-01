@@ -282,7 +282,7 @@ export function MobileBuyTradePanel({
 
   return (
     <>
-      <div className="flex h-full min-h-0 flex-col bg-[#18181b] px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 text-zinc-100">
+      <div className="flex flex-col bg-[#18181b] px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3 text-zinc-100">
         <div className="mx-auto mb-3 h-1 w-14 rounded-full bg-zinc-700" />
         <div className="flex items-center justify-between px-1 pb-1">
           <span className="text-lg font-semibold text-white">
@@ -367,7 +367,7 @@ export function MobileBuyTradePanel({
         </div>
 
         {orderType === "limit" && supportsLimitOrder && (
-          <div className="mt-5 flex items-center gap-2 rounded-[10px] bg-zinc-900/60 px-3 py-2">
+          <div className="mt-2 flex items-center gap-2 rounded-[10px] bg-zinc-900/60 px-3 py-2">
             <span className="text-sm font-medium text-zinc-500">
               {t("extend.worldcup.detail.trade.limit")}
             </span>
@@ -444,10 +444,6 @@ export function MobileBuyTradePanel({
       {oddsOpen && (
         <div className="mt-1 flex flex-col gap-y-1 px-1 pb-2 text-[13px] leading-5">
           <Metric
-            label={t("predict.trade.totalSize")}
-            value={hasAmount ? formatUsd(estimatedCost) : EMPTY_VALUE}
-          />
-          <Metric
             label={t("predict.trade.numContracts")}
             value={shares > 0 ? formatShares(shares) : EMPTY_VALUE}
           />
@@ -499,7 +495,7 @@ export function MobileBuyTradePanel({
           type="button"
           onClick={handleSubmit}
           disabled={submitDisabled}
-          className="mt-auto flex h-12 w-full shrink-0 items-center justify-center rounded-[10px] bg-[#c7ff2e] text-base font-semibold text-zinc-950 transition-colors hover:bg-[#d6ff63] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 flex h-12 w-full shrink-0 items-center justify-center rounded-[10px] bg-[#c7ff2e] text-base font-semibold text-zinc-950 transition-colors hover:bg-[#d6ff63] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLoading && <Spinner size="sm" color="current" />}
           <span className={cn(submitLoading && "ml-2")}>{buttonLabel}</span>
