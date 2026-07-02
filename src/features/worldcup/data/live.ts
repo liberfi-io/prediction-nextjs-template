@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import {
   adaptLiveState,
+  adaptLiveStats,
   EMPTY_WORLDCUP_MARKET_REALTIME,
   mergeMarketRealtimeState,
   type WorldcupMarketRealtimeState,
   type WorldcupMatchMarketUpdate,
   type WorldcupMatchLiveUpdate,
+  type WorldcupMatchStatsUpdate,
 } from "./client";
-import type { WcMatchLiveState } from "../types";
+import type { WcLiveStats, WcMatchLiveState } from "../types";
 
 const CHANNEL = "worldcup.matches";
 const MATCH_CHANNEL_PREFIX = "worldcup.match.";
@@ -39,6 +41,15 @@ function isMarketUpdate(value: unknown): value is WorldcupMatchMarketUpdate {
     update?.type === "match_market_update" &&
     typeof update.match_id === "string" &&
     Array.isArray(update.markets)
+  );
+}
+
+function isStatsUpdate(value: unknown): value is WorldcupMatchStatsUpdate {
+  const update = value as WorldcupMatchStatsUpdate;
+  return (
+    update?.type === "worldcup.match.stats_update" &&
+    typeof update.match_id === "string" &&
+    Boolean(update.stats)
   );
 }
 
@@ -210,4 +221,70 @@ export function useWorldcupMatchLive(
   }, [matchId]);
 
   return state;
+}
+
+export function useWorldcupMatchStats(
+  matchId: string | undefined,
+): WcLiveStats | undefined {
+  const [stats, setStats] = useState<WcLiveStats | undefined>(undefined);
+
+  useEffect(() => {
+    setStats(undefined);
+    const url = centrifugoURL();
+    if (!matchId || !url || typeof WebSocket === "undefined") return;
+
+    const channel = `${MATCH_CHANNEL_PREFIX}${matchId}.stats`;
+    let closed = false;
+    let reconnectTimer: number | undefined;
+    let ws: WebSocket | undefined;
+    let attempt = 0;
+
+    const applyUpdate = (update: WorldcupMatchStatsUpdate) => {
+      if (update.match_id !== matchId) return;
+      const next = adaptLiveStats(update.stats);
+      if (!next) return;
+      setStats(next);
+    };
+
+    const connect = () => {
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        attempt = 0;
+        if (!ws) return;
+        send(ws, { id: 1, connect: {} });
+      };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(String(event.data));
+          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
+            send(ws, { id: 2, subscribe: { channel } });
+            return;
+          }
+          const data = msg.push?.pub?.data;
+          if (isStatsUpdate(data)) applyUpdate(data);
+        } catch {
+          // Ignore malformed realtime frames.
+        }
+      };
+      ws.onclose = () => {
+        if (closed) return;
+        const delay = Math.min(1000 * 2 ** attempt, 15000);
+        attempt += 1;
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
+      ws.onerror = () => {
+        ws?.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, [matchId]);
+
+  return stats;
 }

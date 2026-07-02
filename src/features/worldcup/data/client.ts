@@ -17,6 +17,8 @@ import type {
   WcFeedPage,
   WcGroup,
   WcMatch,
+  WcLiveInfo,
+  WcLiveStats,
   WcMatchLiveVideo,
   WcMatchLiveState,
   WcMatchStatus,
@@ -93,6 +95,124 @@ export interface WcMatchLiveVideoDto {
   type: number;
   status: number;
   source?: string;
+}
+
+export interface WcLiveInfoDto {
+  match_id: string;
+  polymarket_slug: string;
+  status: string;
+  overview: {
+    stadium_name?: string;
+    stadium_capacity?: number;
+    city?: string;
+    referee?: string;
+    attendance?: number;
+    weather_code?: string;
+    weather_label?: string;
+    temperature_c?: number;
+    source?: string;
+    source_updated_at?: string;
+  };
+  team_form: Array<{
+    team_code: string;
+    source?: string;
+    matches?: Array<{
+      date?: string;
+      opponent_code?: string;
+      home_away?: string;
+      result?: string;
+      score?: string;
+      competition?: string;
+    }> | null;
+    source_updated_at?: string;
+    observed_after_match?: boolean;
+  }> | null;
+  head_to_head: {
+    total: number;
+    home_wins: number;
+    away_wins: number;
+    draws: number;
+    source?: string;
+    matches?: Array<{
+      date?: string;
+      home_code?: string;
+      away_code?: string;
+      home_score?: number;
+      away_score?: number;
+      competition?: string;
+    }> | null;
+    source_updated_at?: string;
+  };
+  squads: Array<{
+    team_code: string;
+    formation?: string;
+    core_players?: WcPlayerSummaryDto[] | null;
+    starters?: WcPlayerSummaryDto[] | null;
+    substitutes?: WcPlayerSummaryDto[] | null;
+    injuries?: Array<{
+      player_id?: string;
+      name: string;
+      status?: string;
+      detail?: string;
+    }> | null;
+    source?: string;
+    source_updated_at?: string;
+    observed_after_match?: boolean;
+  }> | null;
+  live_stats?: WcLiveStatsDto;
+  data_quality: {
+    sources: string[] | null;
+    missing_fields?: string[] | null;
+    partial?: boolean;
+    finalized?: boolean;
+    finalized_at?: string;
+    updated_at?: string;
+  };
+}
+
+export interface WcPlayerSummaryDto {
+  player_id?: string;
+  name: string;
+  position?: string;
+  number?: number;
+  team_code?: string;
+  score?: number;
+  role?: string;
+}
+
+export interface WcTeamStatLineDto {
+  team_code: string;
+  possession_pct?: number;
+  shots_total?: number;
+  shots_on_target?: number;
+  corners?: number;
+  offsides?: number;
+  fouls?: number;
+  yellow_cards?: number;
+  red_cards?: number;
+  passes_total?: number;
+  passes_accurate?: number;
+  saves?: number;
+  tackles?: number;
+  interceptions?: number;
+  clearances?: number;
+}
+
+export interface WcLiveStatsDto {
+  match_id: string;
+  source: string;
+  stats: WcTeamStatLineDto[] | null;
+  observed_at: string;
+  source_updated_at?: string;
+}
+
+export interface WorldcupMatchStatsUpdate {
+  type: "worldcup.match.stats_update";
+  version: number;
+  match_id: string;
+  event_slug: string;
+  stats: WcLiveStatsDto;
+  ts_ms?: number;
 }
 
 export interface WcMatchDto {
@@ -424,6 +544,120 @@ export function adaptLiveVideos(videos?: WcMatchLiveVideoDto[] | null): WcMatchL
       status: video.status,
       source: video.source || undefined,
     }));
+}
+
+export function adaptLiveStats(dto?: WcLiveStatsDto): WcLiveStats | undefined {
+  if (!dto) return undefined;
+  return {
+    matchId: dto.match_id,
+    source: dto.source,
+    observedAt: dto.observed_at,
+    sourceUpdatedAt: dto.source_updated_at,
+    stats: (dto.stats ?? []).map((line) => ({
+      teamCode: line.team_code,
+      possessionPct: line.possession_pct,
+      shotsTotal: line.shots_total,
+      shotsOnTarget: line.shots_on_target,
+      corners: line.corners,
+      offsides: line.offsides,
+      fouls: line.fouls,
+      yellowCards: line.yellow_cards,
+      redCards: line.red_cards,
+      passesTotal: line.passes_total,
+      passesAccurate: line.passes_accurate,
+      saves: line.saves,
+      tackles: line.tackles,
+      interceptions: line.interceptions,
+      clearances: line.clearances,
+    })),
+  };
+}
+
+function adaptPlayer(dto: WcPlayerSummaryDto) {
+  return {
+    playerId: dto.player_id,
+    name: dto.name,
+    position: dto.position,
+    number: dto.number,
+    teamCode: dto.team_code,
+    score: dto.score,
+    role: dto.role,
+  };
+}
+
+export function adaptLiveInfo(dto: WcLiveInfoDto): WcLiveInfo {
+  return {
+    matchId: dto.match_id,
+    polymarketSlug: dto.polymarket_slug,
+    status: dto.status,
+    overview: {
+      stadiumName: dto.overview?.stadium_name,
+      stadiumCapacity: dto.overview?.stadium_capacity,
+      city: dto.overview?.city,
+      referee: dto.overview?.referee,
+      attendance: dto.overview?.attendance,
+      weatherCode: dto.overview?.weather_code,
+      weatherLabel: dto.overview?.weather_label,
+      temperatureC: dto.overview?.temperature_c,
+      source: dto.overview?.source,
+      sourceUpdatedAt: dto.overview?.source_updated_at,
+    },
+    teamForm: (dto.team_form ?? []).map((form) => ({
+      teamCode: form.team_code,
+      source: form.source,
+      sourceUpdatedAt: form.source_updated_at,
+      observedAfterMatch: form.observed_after_match,
+      matches: (form.matches ?? []).map((match) => ({
+        date: match.date,
+        opponentCode: match.opponent_code,
+        homeAway: match.home_away,
+        result: match.result,
+        score: match.score,
+        competition: match.competition,
+      })),
+    })),
+    headToHead: {
+      total: dto.head_to_head?.total ?? 0,
+      homeWins: dto.head_to_head?.home_wins ?? 0,
+      awayWins: dto.head_to_head?.away_wins ?? 0,
+      draws: dto.head_to_head?.draws ?? 0,
+      source: dto.head_to_head?.source,
+      sourceUpdatedAt: dto.head_to_head?.source_updated_at,
+      matches: (dto.head_to_head?.matches ?? []).map((match) => ({
+        date: match.date,
+        homeCode: match.home_code,
+        awayCode: match.away_code,
+        homeScore: match.home_score,
+        awayScore: match.away_score,
+        competition: match.competition,
+      })),
+    },
+    squads: (dto.squads ?? []).map((squad) => ({
+      teamCode: squad.team_code,
+      formation: squad.formation,
+      corePlayers: (squad.core_players ?? []).map(adaptPlayer),
+      starters: (squad.starters ?? []).map(adaptPlayer),
+      substitutes: (squad.substitutes ?? []).map(adaptPlayer),
+      injuries: (squad.injuries ?? []).map((injury) => ({
+        playerId: injury.player_id,
+        name: injury.name,
+        status: injury.status,
+        detail: injury.detail,
+      })),
+      source: squad.source,
+      sourceUpdatedAt: squad.source_updated_at,
+      observedAfterMatch: squad.observed_after_match,
+    })),
+    liveStats: adaptLiveStats(dto.live_stats),
+    dataQuality: {
+      sources: dto.data_quality?.sources ?? [],
+      missingFields: dto.data_quality?.missing_fields ?? undefined,
+      partial: dto.data_quality?.partial,
+      finalized: dto.data_quality?.finalized,
+      finalizedAt: dto.data_quality?.finalized_at,
+      updatedAt: dto.data_quality?.updated_at,
+    },
+  };
 }
 
 export function formatLivePeriod(state?: WcMatchLiveState): string | undefined {
@@ -910,6 +1144,9 @@ export async function fetchWorldcupMatches(
 export const worldcupMatchEventQueryKey = (slug: string) =>
   ["worldcup", "match-event", slug] as const;
 
+export const worldcupMatchLiveInfoQueryKey = (matchId: string) =>
+  ["worldcup", "match-live-info", matchId] as const;
+
 /**
  * Fetch a single World Cup match as a full {@link PredictEvent} with every
  * core and extended market. Hits `GET /api/v1/worldcup/matches/{slug}` with
@@ -926,6 +1163,18 @@ export async function fetchWorldcupMatchEvent(
     `matches/${encodeURIComponent(slug)}?include_extended=true`,
     lang,
   );
+}
+
+export async function fetchWorldcupMatchLiveInfo(
+  baseUrl: string,
+  matchId: string,
+  lang?: string,
+): Promise<WcLiveInfo> {
+  return getWorldcupJson<WcLiveInfoDto>(
+    baseUrl,
+    `matches/${encodeURIComponent(matchId)}/live-info`,
+    lang,
+  ).then(adaptLiveInfo);
 }
 
 /**

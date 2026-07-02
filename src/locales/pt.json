@@ -400,10 +400,13 @@
         "bra": "Brasil",
         "can": "Canadá",
         "cdr": "RD Congo",
+        "cod": "RD Congo",
         "che": "Suíça",
+        "sui": "Suíça",
         "civ": "Costa do Marfim",
         "col": "Colômbia",
         "cvi": "Cabo Verde",
+        "cpv": "Cabo Verde",
         "cze": "Tchéquia",
         "ecu": "Equador",
         "egy": "Egito",
@@ -414,21 +417,25 @@
         "gha": "Gana",
         "hai": "Haiti",
         "hrv": "Croácia",
+        "cro": "Croácia",
         "irn": "Irã",
         "irq": "Iraque",
         "jor": "Jordânia",
         "jpn": "Japão",
         "kor": "Curaçao",
+        "cuw": "Curaçao",
         "kr": "Coreia do Sul",
         "ksa": "Arábia Saudita",
         "mar": "Marrocos",
         "mex": "México",
         "nld": "Países Baixos",
+        "ned": "Países Baixos",
         "nor": "Noruega",
         "nzl": "Nova Zelândia",
         "pan": "Panamá",
         "par": "Paraguai",
         "prt": "Portugal",
+        "por": "Portugal",
         "qat": "Catar",
         "rsa": "África do Sul",
         "sco": "Escócia",
@@ -437,6 +444,7 @@
         "tun": "Tunísia",
         "tur": "Turquia",
         "ury": "Uruguai",
+        "uru": "Uruguai",
         "usa": "Estados Unidos",
         "uzb": "Uzbequistão"
       },
@@ -465,6 +473,9 @@
         },
         "tab": {
           "center": "Centro de Partida",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "Notícias do Mercado",
           "comments": "Comentários"
         },
@@ -477,6 +488,41 @@
         "comingSoon": "Em breve",
         "newsEmpty": "Ainda sem notícias do mercado",
         "commentsEmpty": "Ainda sem comentários",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "Ainda sem notícias do mercado",
           "error": "Falha ao carregar notícias do mercado",

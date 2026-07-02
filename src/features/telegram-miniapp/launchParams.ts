@@ -32,6 +32,24 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function parseJsonParam<T extends object>(value: string | null): T | null {
+  if (!value) return null;
+
+  try {
+    return asObject<T>(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
+
+function readInitDataUser(): TelegramWebAppUser | null {
+  const initData = readTelegramInitData();
+  if (!initData?.trim()) return null;
+  return parseJsonParam<TelegramWebAppUser>(
+    new URLSearchParams(initData).get("user"),
+  );
+}
+
 function paramsFromHash(): URLSearchParams {
   if (typeof window === "undefined") return new URLSearchParams();
   const hash = window.location.hash.replace(/^#/, "");
@@ -115,6 +133,6 @@ export function readTelegramMiniAppContext(): TelegramMiniAppContext | null {
     startParam: asString(unsafe.start_param) || urlStartParam,
     chat: asObject<TelegramWebAppChat>(unsafe.chat),
     chatType: asString(unsafe.chat_type),
-    user: asObject<TelegramWebAppUser>(unsafe.user),
+    user: asObject<TelegramWebAppUser>(unsafe.user) ?? readInitDataUser(),
   };
 }

@@ -400,10 +400,13 @@
         "bra": "Бразилия",
         "can": "Канада",
         "cdr": "ДР Конго",
+        "cod": "ДР Конго",
         "che": "Швейцария",
+        "sui": "Швейцария",
         "civ": "Кот-д’Ивуар",
         "col": "Колумбия",
         "cvi": "Кабо-Верде",
+        "cpv": "Кабо-Верде",
         "cze": "Чехия",
         "ecu": "Эквадор",
         "egy": "Египет",
@@ -414,21 +417,25 @@
         "gha": "Гана",
         "hai": "Гаити",
         "hrv": "Хорватия",
+        "cro": "Хорватия",
         "irn": "Иран",
         "irq": "Ирак",
         "jor": "Иордания",
         "jpn": "Япония",
         "kor": "Кюрасао",
+        "cuw": "Кюрасао",
         "kr": "Республика Корея",
         "ksa": "Саудовская Аравия",
         "mar": "Марокко",
         "mex": "Мексика",
         "nld": "Нидерланды",
+        "ned": "Нидерланды",
         "nor": "Норвегия",
         "nzl": "Новая Зеландия",
         "pan": "Панама",
         "par": "Парагвай",
         "prt": "Португалия",
+        "por": "Португалия",
         "qat": "Катар",
         "rsa": "Южная Африка",
         "sco": "Шотландия",
@@ -437,6 +444,7 @@
         "tun": "Тунис",
         "tur": "Турция",
         "ury": "Уругвай",
+        "uru": "Уругвай",
         "usa": "Соединенные Штаты",
         "uzb": "Узбекистан"
       },
@@ -465,6 +473,9 @@
         },
         "tab": {
           "center": "Центр матчей",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "Новости рынка",
           "comments": "Комментарии"
         },
@@ -477,6 +488,41 @@
         "comingSoon": "Скоро",
         "newsEmpty": "Новостей рынка пока нет",
         "commentsEmpty": "Комментариев пока нет",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "Новостей рынка пока нет",
           "error": "Не удалось загрузить новости рынка",

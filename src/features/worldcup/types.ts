@@ -44,6 +44,131 @@ export interface WcMatchLiveVideo {
   source?: string;
 }
 
+export interface WcMatchOverview {
+  stadiumName?: string;
+  stadiumCapacity?: number;
+  city?: string;
+  referee?: string;
+  attendance?: number;
+  weatherCode?: string;
+  weatherLabel?: string;
+  temperatureC?: number;
+  source?: string;
+  sourceUpdatedAt?: string;
+}
+
+export interface WcFormMatch {
+  date?: string;
+  opponentCode?: string;
+  homeAway?: string;
+  result?: string;
+  score?: string;
+  competition?: string;
+}
+
+export interface WcTeamForm {
+  teamCode: string;
+  source?: string;
+  matches: WcFormMatch[];
+  sourceUpdatedAt?: string;
+  observedAfterMatch?: boolean;
+}
+
+export interface WcHeadToHeadMatch {
+  date?: string;
+  homeCode?: string;
+  awayCode?: string;
+  homeScore?: number;
+  awayScore?: number;
+  competition?: string;
+}
+
+export interface WcHeadToHead {
+  total: number;
+  homeWins: number;
+  awayWins: number;
+  draws: number;
+  source?: string;
+  matches: WcHeadToHeadMatch[];
+  sourceUpdatedAt?: string;
+}
+
+export interface WcPlayerSummary {
+  playerId?: string;
+  name: string;
+  position?: string;
+  number?: number;
+  teamCode?: string;
+  score?: number;
+  role?: string;
+}
+
+export interface WcPlayerInjury {
+  playerId?: string;
+  name: string;
+  status?: string;
+  detail?: string;
+}
+
+export interface WcTeamSquad {
+  teamCode: string;
+  formation?: string;
+  corePlayers: WcPlayerSummary[];
+  starters?: WcPlayerSummary[];
+  substitutes?: WcPlayerSummary[];
+  injuries?: WcPlayerInjury[];
+  source?: string;
+  sourceUpdatedAt?: string;
+  observedAfterMatch?: boolean;
+}
+
+export interface WcTeamStatLine {
+  teamCode: string;
+  possessionPct?: number;
+  shotsTotal?: number;
+  shotsOnTarget?: number;
+  corners?: number;
+  offsides?: number;
+  fouls?: number;
+  yellowCards?: number;
+  redCards?: number;
+  passesTotal?: number;
+  passesAccurate?: number;
+  saves?: number;
+  tackles?: number;
+  interceptions?: number;
+  clearances?: number;
+}
+
+export interface WcLiveStats {
+  matchId: string;
+  source: string;
+  stats: WcTeamStatLine[];
+  observedAt: string;
+  sourceUpdatedAt?: string;
+}
+
+export interface WcLiveInfoDataQuality {
+  sources: string[];
+  missingFields?: string[];
+  partial?: boolean;
+  finalized?: boolean;
+  finalizedAt?: string;
+  updatedAt?: string;
+}
+
+export interface WcLiveInfo {
+  matchId: string;
+  polymarketSlug: string;
+  status: string;
+  overview: WcMatchOverview;
+  teamForm: WcTeamForm[];
+  headToHead: WcHeadToHead;
+  squads: WcTeamSquad[];
+  liveStats?: WcLiveStats;
+  dataQuality: WcLiveInfoDataQuality;
+}
+
 export interface WcOutcome {
   /** English base label (Convention B). */
   label: string;

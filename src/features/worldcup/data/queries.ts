@@ -29,12 +29,14 @@ import {
   fetchWorldcupCurated,
   fetchWorldcupFeeds,
   fetchWorldcupMatchEvent,
+  fetchWorldcupMatchLiveInfo,
   fetchWorldcupMatches,
   fetchWorldcupProps,
   fetchWorldcupStandings,
   worldcupCuratedQueryKey,
   worldcupFeedsQueryKey,
   worldcupMatchEventQueryKey,
+  worldcupMatchLiveInfoQueryKey,
   type WcCuratedBucket,
 } from "./client";
 
@@ -107,6 +109,25 @@ export function useWorldcupMatchEvent(slug: string) {
     queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug, lang),
     enabled: Boolean(slug),
     refetchInterval: POLL_INTERVAL_MS,
+    staleTime: POLL_INTERVAL_MS,
+  });
+}
+
+interface WorldcupMatchLiveInfoOptions {
+  enabled?: boolean;
+}
+
+export function useWorldcupMatchLiveInfo(
+  matchId: string | undefined,
+  options: WorldcupMatchLiveInfoOptions = {},
+) {
+  const lang = useApiLang();
+  const enabled = (options.enabled ?? true) && Boolean(matchId);
+  return useQuery({
+    queryKey: [...worldcupMatchLiveInfoQueryKey(matchId ?? ""), lang],
+    queryFn: () => fetchWorldcupMatchLiveInfo(CLIENT_BASE, matchId ?? "", lang),
+    enabled,
+    refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS,
   });
 }

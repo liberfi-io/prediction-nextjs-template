@@ -398,10 +398,13 @@
         "bra": "브라질",
         "can": "캐나다",
         "cdr": "콩고 민주 공화국",
+        "cod": "콩고 민주 공화국",
         "che": "스위스",
+        "sui": "스위스",
         "civ": "코트디부아르",
         "col": "콜롬비아",
         "cvi": "카보베르데",
+        "cpv": "카보베르데",
         "cze": "체코",
         "ecu": "에콰도르",
         "egy": "이집트",
@@ -412,21 +415,25 @@
         "gha": "가나",
         "hai": "아이티",
         "hrv": "크로아티아",
+        "cro": "크로아티아",
         "irn": "이란",
         "irq": "이라크",
         "jor": "요르단",
         "jpn": "일본",
         "kor": "퀴라소",
+        "cuw": "퀴라소",
         "kr": "대한민국",
         "ksa": "사우디아라비아",
         "mar": "모로코",
         "mex": "멕시코",
         "nld": "네덜란드",
+        "ned": "네덜란드",
         "nor": "노르웨이",
         "nzl": "뉴질랜드",
         "pan": "파나마",
         "par": "파라과이",
         "prt": "포르투갈",
+        "por": "포르투갈",
         "qat": "카타르",
         "rsa": "남아프리카 공화국",
         "sco": "스코틀랜드",
@@ -435,6 +442,7 @@
         "tun": "튀니지",
         "tur": "튀르키예",
         "ury": "우루과이",
+        "uru": "우루과이",
         "usa": "미국",
         "uzb": "우즈베키스탄"
       },
@@ -463,6 +471,9 @@
         },
         "tab": {
           "center": "경기 센터",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "시장 뉴스",
           "comments": "댓글"
         },
@@ -475,6 +486,41 @@
         "comingSoon": "곧 출시",
         "newsEmpty": "시장 뉴스 없음",
         "commentsEmpty": "댓글 없음",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "시장 뉴스 없음",
           "error": "시장 뉴스 로드 실패",

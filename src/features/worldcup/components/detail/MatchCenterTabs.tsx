@@ -6,11 +6,18 @@ import { useTranslation } from "@liberfi.io/i18n";
 import { EventCommentsWidget } from "@liberfi.io/ui-predict";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
 import type { WcMatch, WcMatchLiveVideo } from "../../types";
+import { useWorldcupMatchStats } from "../../data/live";
+import { useWorldcupMatchLiveInfo } from "../../data/queries";
+import {
+  LineupPanel,
+  OverviewPanel,
+  StatsPanel,
+} from "../games/MatchCard";
 import { SportsWidget } from "../games/SportsWidget";
 import { hasLiveVideos, LiveStreamPanel } from "../games/LiveStreamPanel";
 import { MarketNewsWidget } from "./feeds/MarketNewsWidget";
 
-export type CenterTab = "live" | "center" | "news" | "comments";
+export type CenterTab = "live" | "center" | "overview" | "stats" | "lineup" | "news" | "comments";
 
 /**
  * Center panel tabs mirroring future.news: "Match Center" embeds the shared
@@ -49,13 +56,22 @@ export function MatchCenterTabs({
       const centerTabs: CenterTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
         ? ["center", "news", "comments"]
         : ["news", "comments"];
-      return showLive ? ["live", ...centerTabs] : centerTabs;
+      const infoTabs: CenterTab[] = ["overview", "stats", "lineup"];
+      return showLive ? ["live", ...infoTabs, ...centerTabs] : [...infoTabs, ...centerTabs];
     },
     [showLive],
   );
-  const [internalTab, setInternalTab] = useState<CenterTab>("center");
+  const [internalTab, setInternalTab] = useState<CenterTab>("overview");
   const requestedTab = activeTab ?? internalTab;
   const tab = tabs.includes(requestedTab) ? requestedTab : tabs[0];
+  const liveInfoEnabled =
+    Boolean(match) &&
+    (tab === "overview" || tab === "stats" || tab === "lineup");
+  const { data: liveInfo, isLoading: isLiveInfoLoading } =
+    useWorldcupMatchLiveInfo(match?.matchId, { enabled: liveInfoEnabled });
+  const realtimeStats = useWorldcupMatchStats(
+    tab === "stats" && match?.status === "live" ? match.matchId : undefined,
+  );
 
   useEffect(() => {
     if (!tabs.includes(internalTab)) setInternalTab(tabs[0]);
@@ -105,6 +121,35 @@ export function MatchCenterTabs({
             className={centerWidgetClassName}
             bordered={false}
           />
+        ) : tab === "overview" ? (
+          <OverviewPanel
+            info={liveInfo}
+            loading={isLiveInfoLoading}
+            t={t as (key: `extend.${string}`, options?: Record<string, unknown>) => string}
+          />
+        ) : tab === "stats" ? (
+          match ? (
+            <StatsPanel
+              info={liveInfo}
+              loading={isLiveInfoLoading}
+              match={match}
+              realtimeStats={realtimeStats}
+              t={t as (key: `extend.${string}`, options?: Record<string, unknown>) => string}
+            />
+          ) : (
+            <CenterEmpty message={t("extend.worldcup.detail.info.empty")} />
+          )
+        ) : tab === "lineup" ? (
+          match ? (
+            <LineupPanel
+              info={liveInfo}
+              loading={isLiveInfoLoading}
+              match={match}
+              t={t as (key: `extend.${string}`, options?: Record<string, unknown>) => string}
+            />
+          ) : (
+            <CenterEmpty message={t("extend.worldcup.detail.info.empty")} />
+          )
         ) : tab === "comments" ? (
           match ? (
             <EventCommentsWidget

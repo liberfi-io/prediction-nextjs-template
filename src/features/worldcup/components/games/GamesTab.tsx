@@ -540,9 +540,9 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
     [liveMatch, defaultWidgetMatch, matchesInListOrder],
   );
 
-  // Mobile (< lg): no pinned widget. The live button toggles an inline widget
-  // expanding under the tapped card; only one is open at a time. By default the
-  // same match selected for the desktop right-rail is expanded.
+  // The live button toggles an inline widget expanding under the tapped card;
+  // only one is open at a time. Auto-open is limited to playable live streams,
+  // but a user-toggled panel can still show Match Center, news, and comments.
   const [openWidgetId, setOpenWidgetId] = useState<string | null>(null);
   const onToggleWidget = useCallback(
     (m: WcMatch) => {
@@ -568,8 +568,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
 
   useEffect(() => {
     if (!openWidgetId) return;
-    const openMatch = matchesInListOrder.find((m) => m.matchId === openWidgetId);
-    if (openMatch && hasLiveVideos(openMatch.liveVideos, openMatch)) return;
+    if (matchesInListOrder.some((m) => m.matchId === openWidgetId)) return;
     setOpenWidgetId(null);
   }, [matchesInListOrder, openWidgetId]);
 

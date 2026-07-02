@@ -42,6 +42,16 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function parseJsonParam<T extends object>(value: string | null): T | null {
+  if (!value) return null;
+
+  try {
+    return asObject<T>(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
+
 function normalizeStartParam(value: string | null): string | null {
   if (!value) return null;
   const raw = value.trim();
@@ -83,6 +93,10 @@ function readInitDataParam(key: string): string | null {
   if (!initData?.trim()) return null;
   const value = new URLSearchParams(initData).get(key);
   return value?.trim() ? value : null;
+}
+
+function readInitDataUser(): MpChatWebAppUser | null {
+  return parseJsonParam<MpChatWebAppUser>(readInitDataParam("user"));
 }
 
 export function isMpChatMiniAppEnabled(): boolean {
@@ -154,6 +168,6 @@ export function readMpChatMiniAppContext(): MpChatMiniAppContext | null {
     chat: asObject<MpChatWebAppChat>(unsafe.chat),
     chatType: asString(unsafe.chat_type) ?? asString(unsafe.chatType),
     // initDataUnsafe is display-only convenience data. Never trust it for auth.
-    user: asObject<MpChatWebAppUser>(unsafe.user),
+    user: asObject<MpChatWebAppUser>(unsafe.user) ?? readInitDataUser(),
   };
 }

@@ -398,10 +398,13 @@
         "bra": "บราซิล",
         "can": "แคนาดา",
         "cdr": "ดีอาร์คองโก",
+        "cod": "ดีอาร์คองโก",
         "che": "สวิตเซอร์แลนด์",
+        "sui": "สวิตเซอร์แลนด์",
         "civ": "โกตดิวัวร์",
         "col": "โคลอมเบีย",
         "cvi": "เคปเวิร์ด",
+        "cpv": "เคปเวิร์ด",
         "cze": "เช็ก",
         "ecu": "เอกวาดอร์",
         "egy": "อียิปต์",
@@ -412,21 +415,25 @@
         "gha": "กานา",
         "hai": "เฮติ",
         "hrv": "โครเอเชีย",
+        "cro": "โครเอเชีย",
         "irn": "อิหร่าน",
         "irq": "อิรัก",
         "jor": "จอร์แดน",
         "jpn": "ญี่ปุ่น",
         "kor": "คูราเซา",
+        "cuw": "คูราเซา",
         "kr": "เกาหลีใต้",
         "ksa": "ซาอุดีอาระเบีย",
         "mar": "โมร็อกโก",
         "mex": "เม็กซิโก",
         "nld": "เนเธอร์แลนด์",
+        "ned": "เนเธอร์แลนด์",
         "nor": "นอร์เวย์",
         "nzl": "นิวซีแลนด์",
         "pan": "ปานามา",
         "par": "ปารากวัย",
         "prt": "โปรตุเกส",
+        "por": "โปรตุเกส",
         "qat": "กาตาร์",
         "rsa": "แอฟริกาใต้",
         "sco": "สกอตแลนด์",
@@ -435,6 +442,7 @@
         "tun": "ตูนิเซีย",
         "tur": "ตุรกี",
         "ury": "อุรุกวัย",
+        "uru": "อุรุกวัย",
         "usa": "สหรัฐอเมริกา",
         "uzb": "อุซเบกิสถาน"
       },
@@ -463,6 +471,9 @@
         },
         "tab": {
           "center": "ศูนย์การแข่งขัน",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "ข่าวตลาด",
           "comments": "ความคิดเห็น"
         },
@@ -475,6 +486,41 @@
         "comingSoon": "เร็วๆ นี้",
         "newsEmpty": "ยังไม่มีข่าวตลาด",
         "commentsEmpty": "ยังไม่มีความคิดเห็น",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "ยังไม่มีข่าวตลาด",
           "error": "โหลดข่าวตลาดล้มเหลว",

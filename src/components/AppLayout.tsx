@@ -119,6 +119,8 @@ import { ReferralCapture } from "../features/referral/components/ReferralCapture
 import { mpChatAutoLoginPendingAtom } from "../features/mpchat-miniapp/state";
 import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniapp/state";
 import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
+import { readTelegramMiniAppContext } from "../features/telegram-miniapp/launchParams";
+import { readMpChatMiniAppContext } from "../features/mpchat-miniapp/launchParams";
 
 type PositionValueSource = "kalshi" | "polymarket" | "dflow";
 type PositionValueResponse = {
@@ -543,6 +545,33 @@ function formatMaybeUsdc(amount: number | null, loaded: boolean): string {
   return loaded && amount != null ? `$${formatUsdc(amount)}` : "--";
 }
 
+function asDisplayText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function asDisplayId(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+function getMiniAppAccountDisplayName(): string | undefined {
+  const telegramUser = readTelegramMiniAppContext()?.user;
+  const telegramName =
+    asDisplayText(telegramUser?.first_name) ??
+    asDisplayText(telegramUser?.username) ??
+    asDisplayId(telegramUser?.id);
+  if (telegramName) return telegramName;
+
+  const mpChatUser = readMpChatMiniAppContext()?.user;
+  return (
+    asDisplayText(mpChatUser?.firstName) ??
+    asDisplayText(mpChatUser?.first_name) ??
+    asDisplayText(mpChatUser?.username) ??
+    asDisplayId(mpChatUser?.id)
+  );
+}
+
 // Small rounded icon chip shared by dropdown rows (balance / positions /
 // menu actions), matching the quick-link / sign-out chip style.
 function RowIconChip({ children }: { children: React.ReactNode }) {
@@ -623,6 +652,7 @@ function WalletMenuRow({
 //   verifying  → the same verify row, disabled with a trailing spinner
 function WalletEntry({
   address,
+  displayName,
   venueIcon,
   chainLabel,
   chainIcon,
@@ -637,6 +667,7 @@ function WalletEntry({
   onWithdraw,
 }: {
   address?: string;
+  displayName?: string;
   venueIcon: React.ReactNode;
   chainLabel: string;
   chainIcon: React.ReactNode;
@@ -652,6 +683,7 @@ function WalletEntry({
 }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const identityLabel = displayName ?? (address ? truncateAddress(address) : "—");
 
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
@@ -666,7 +698,7 @@ function WalletEntry({
 
   return (
     <div>
-      {/* Identity header: venue logo + address + chain / status pills */}
+      {/* Identity header: venue logo + account label + chain / status pills */}
       <div className="flex items-start gap-3 px-3 py-2">
         <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
           {venueIcon}
@@ -674,9 +706,9 @@ function WalletEntry({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-zinc-300 truncate">
-              {address ? truncateAddress(address) : "—"}
+              {identityLabel}
             </span>
-            {address && (
+            {address && !displayName && (
               <button
                 type="button"
                 className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors cursor-pointer"
@@ -905,6 +937,7 @@ function LanguageMenuItem() {
 interface BalanceDropdownProps {
   solanaAddress?: string;
   evmAddress?: string;
+  accountDisplayName?: string;
   kalshiUsdcBalance: number | null;
   polymarketUsdcBalance: number | null;
   kalshiBalanceLoaded: boolean;
@@ -935,6 +968,7 @@ interface BalanceDropdownProps {
 function BalanceDropdownContent({
   solanaAddress,
   evmAddress,
+  accountDisplayName,
   kalshiUsdcBalance,
   polymarketUsdcBalance,
   kalshiBalanceLoaded,
@@ -971,6 +1005,7 @@ function BalanceDropdownContent({
         {ENABLE_KALSHI && solanaAddress && (
           <WalletEntry
             address={solanaAddress}
+            displayName={accountDisplayName}
             venueIcon={<KalshiIcon width={40} height={40} />}
             chainLabel="Solana"
             chainIcon={<SolanaIcon width={12} height={12} />}
@@ -1000,6 +1035,7 @@ function BalanceDropdownContent({
         {evmAddress && (
           <WalletEntry
             address={evmAddress}
+            displayName={accountDisplayName}
             venueIcon={<PolymarketIcon width={40} height={40} />}
             chainLabel="Polygon"
             chainIcon={<PolygonIcon width={12} height={12} />}
@@ -1159,6 +1195,7 @@ function PredictAccountControl() {
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
   const telegramAutoLoginPending = useAtomValue(telegramMiniAppAutoLoginPendingAtom);
   const polymarketAutoSetupPending = useAtomValue(polymarketAutoSetupPendingAtom);
+  const accountDisplayName = getMiniAppAccountDisplayName();
   useEffect(() => {
     console.info("[tg-login] account-control gate", {
       authStatus: status,
@@ -1462,6 +1499,7 @@ function PredictAccountControl() {
   const dropdownProps: BalanceDropdownProps = {
     solanaAddress,
     evmAddress,
+    accountDisplayName,
     kalshiUsdcBalance,
     polymarketUsdcBalance,
     kalshiBalanceLoaded,

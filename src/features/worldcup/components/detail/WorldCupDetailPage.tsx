@@ -612,6 +612,9 @@ export function WorldCupDetailPage({
 
           {(mobileTab === "center" ||
             mobileTab === "live" ||
+            mobileTab === "overview" ||
+            mobileTab === "stats" ||
+            mobileTab === "lineup" ||
             mobileTab === "news" ||
             mobileTab === "comments") && (
             <MatchCenterTabs
@@ -853,6 +856,9 @@ type MobileTabKey =
   | "markets"
   | "live"
   | "center"
+  | "overview"
+  | "stats"
+  | "lineup"
   | "news"
   | "comments"
   | "positions"
@@ -868,6 +874,9 @@ type MobileTabKey =
 const MOBILE_TABS = [
   { key: "markets", labelKey: "extend.worldcup.detail.markets.title" },
   { key: "live", labelKey: "extend.worldcup.live" },
+  { key: "overview", labelKey: "extend.worldcup.detail.tab.overview" },
+  { key: "stats", labelKey: "extend.worldcup.detail.tab.stats" },
+  { key: "lineup", labelKey: "extend.worldcup.detail.tab.lineup" },
   ...(ENABLE_WORLD_CUP_MATCH_CENTER
     ? [{ key: "center", labelKey: "extend.worldcup.detail.tab.center" } as const]
     : []),

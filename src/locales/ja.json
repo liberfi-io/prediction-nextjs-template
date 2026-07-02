@@ -398,10 +398,13 @@
         "bra": "ブラジル",
         "can": "カナダ",
         "cdr": "コンゴ民主共和国",
+        "cod": "コンゴ民主共和国",
         "che": "スイス",
+        "sui": "スイス",
         "civ": "コートジボワール",
         "col": "コロンビア",
         "cvi": "カーボベルデ",
+        "cpv": "カーボベルデ",
         "cze": "チェコ",
         "ecu": "エクアドル",
         "egy": "エジプト",
@@ -412,21 +415,25 @@
         "gha": "ガーナ",
         "hai": "ハイチ",
         "hrv": "クロアチア",
+        "cro": "クロアチア",
         "irn": "イラン",
         "irq": "イラク",
         "jor": "ヨルダン",
         "jpn": "日本",
         "kor": "キュラソー",
+        "cuw": "キュラソー",
         "kr": "韓国",
         "ksa": "サウジアラビア",
         "mar": "モロッコ",
         "mex": "メキシコ",
         "nld": "オランダ",
+        "ned": "オランダ",
         "nor": "ノルウェー",
         "nzl": "ニュージーランド",
         "pan": "パナマ",
         "par": "パラグアイ",
         "prt": "ポルトガル",
+        "por": "ポルトガル",
         "qat": "カタール",
         "rsa": "南アフリカ",
         "sco": "スコットランド",
@@ -435,6 +442,7 @@
         "tun": "チュニジア",
         "tur": "トルコ",
         "ury": "ウルグアイ",
+        "uru": "ウルグアイ",
         "usa": "アメリカ合衆国",
         "uzb": "ウズベキスタン"
       },
@@ -463,6 +471,9 @@
         },
         "tab": {
           "center": "試合センター",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "市場ニュース",
           "comments": "コメント"
         },
@@ -475,6 +486,41 @@
         "comingSoon": "近日公開",
         "newsEmpty": "市場ニュースはまだありません",
         "commentsEmpty": "コメントはまだありません",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "市場ニュースはまだありません",
           "error": "市場ニュースの読み込みに失敗しました",

@@ -360,10 +360,13 @@
         "bra": "巴西",
         "can": "加拿大",
         "cdr": "剛果民主共和國",
+        "cod": "剛果民主共和國",
         "che": "瑞士",
+        "sui": "瑞士",
         "civ": "科特迪瓦",
         "col": "哥倫比亞",
         "cvi": "佛得角",
+        "cpv": "佛得角",
         "cze": "捷克",
         "ecu": "厄瓜多爾",
         "egy": "埃及",
@@ -374,21 +377,25 @@
         "gha": "加納",
         "hai": "海地",
         "hrv": "克羅地亞",
+        "cro": "克羅地亞",
         "irn": "伊朗",
         "irq": "伊拉克",
         "jor": "約旦",
         "jpn": "日本",
         "kor": "庫拉索",
+        "cuw": "庫拉索",
         "kr": "韓國",
         "ksa": "沙特阿拉伯",
         "mar": "摩洛哥",
         "mex": "墨西哥",
         "nld": "荷蘭",
+        "ned": "荷蘭",
         "nor": "挪威",
         "nzl": "新西蘭",
         "pan": "巴拿馬",
         "par": "巴拉圭",
         "prt": "葡萄牙",
+        "por": "葡萄牙",
         "qat": "卡塔爾",
         "rsa": "南非",
         "sco": "蘇格蘭",
@@ -397,6 +404,7 @@
         "tun": "突尼斯",
         "tur": "土耳其",
         "ury": "烏拉圭",
+        "uru": "烏拉圭",
         "usa": "美國",
         "uzb": "烏茲別克斯坦"
       },
@@ -431,6 +439,9 @@
         },
         "tab": {
           "center": "比賽中心",
+          "overview": "概况",
+          "stats": "数据",
+          "lineup": "阵容",
           "news": "市場新聞",
           "comments": "評論"
         },
@@ -443,6 +454,41 @@
         "comingSoon": "敬請期待",
         "newsEmpty": "暫無市場新聞",
         "commentsEmpty": "暫無評論",
+        "liveInfo": {
+          "overview": {
+            "venue": "场馆",
+            "capacity": "容量",
+            "city": "城市",
+            "referee": "裁判",
+            "weather": "天气",
+            "temperature": "气温"
+          },
+          "stats": {
+            "title": "技术统计",
+            "shots": "射门",
+            "shotsOnTarget": "射正",
+            "possession": "控球率",
+            "passes": "传球次数",
+            "corners": "角球",
+            "offsides": "越位",
+            "fouls": "犯规",
+            "yellowCards": "黄牌",
+            "redCards": "红牌",
+            "saves": "扑救"
+          },
+          "form": {
+            "title": "近况（近 5 场）",
+            "latestFirst": "由近到远"
+          },
+          "h2h": {
+            "title": "交锋历史"
+          },
+          "lineup": {
+            "pending": "首发名单将于开赛前约 1 小时公布",
+            "corePlayers": "球队核心球员",
+            "substitutes": "替补"
+          }
+        },
         "news": {
           "empty": "暫無市場新聞",
           "error": "市場新聞載入失敗",

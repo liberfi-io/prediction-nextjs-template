@@ -398,10 +398,13 @@
         "bra": "Brazil",
         "can": "Canada",
         "cdr": "Congo",
+        "cod": "Congo",
         "che": "Thụy Sĩ",
+        "sui": "Thụy Sĩ",
         "civ": "Bờ Biển Ngà",
         "col": "Colombia",
         "cvi": "Cabo Verde",
+        "cpv": "Cabo Verde",
         "cze": "Séc",
         "ecu": "Ecuador",
         "egy": "Ai Cập",
@@ -412,21 +415,25 @@
         "gha": "Ghana",
         "hai": "Haiti",
         "hrv": "Croatia",
+        "cro": "Croatia",
         "irn": "Iran",
         "irq": "Iraq",
         "jor": "Jordan",
         "jpn": "Nhật Bản",
         "kor": "Curaçao",
+        "cuw": "Curaçao",
         "kr": "Hàn Quốc",
         "ksa": "Ả Rập Xê Út",
         "mar": "Ma-rốc",
         "mex": "Mexico",
         "nld": "Hà Lan",
+        "ned": "Hà Lan",
         "nor": "Na Uy",
         "nzl": "New Zealand",
         "pan": "Panama",
         "par": "Paraguay",
         "prt": "Bồ Đào Nha",
+        "por": "Bồ Đào Nha",
         "qat": "Qatar",
         "rsa": "Nam Phi",
         "sco": "Scotland",
@@ -435,6 +442,7 @@
         "tun": "Tunisia",
         "tur": "Thổ Nhĩ Kỳ",
         "ury": "Uruguay",
+        "uru": "Uruguay",
         "usa": "Hoa Kỳ",
         "uzb": "Uzbekistan"
       },
@@ -463,6 +471,9 @@
         },
         "tab": {
           "center": "Trung tâm trận đấu",
+          "overview": "Overview",
+          "stats": "Data",
+          "lineup": "Lineup",
           "news": "Tin tức thị trường",
           "comments": "Bình luận"
         },
@@ -475,6 +486,41 @@
         "comingSoon": "Sắp ra mắt",
         "newsEmpty": "Chưa có tin tức thị trường",
         "commentsEmpty": "Chưa có bình luận",
+        "liveInfo": {
+          "overview": {
+            "venue": "Venue",
+            "capacity": "Capacity",
+            "city": "City",
+            "referee": "Referee",
+            "weather": "Weather",
+            "temperature": "Temperature"
+          },
+          "stats": {
+            "title": "Match stats",
+            "shots": "Shots",
+            "shotsOnTarget": "Shots on target",
+            "possession": "Possession",
+            "passes": "Passes",
+            "corners": "Corners",
+            "offsides": "Offsides",
+            "fouls": "Fouls",
+            "yellowCards": "Yellow cards",
+            "redCards": "Red cards",
+            "saves": "Saves"
+          },
+          "form": {
+            "title": "Form (last 5)",
+            "latestFirst": "Latest first"
+          },
+          "h2h": {
+            "title": "Head to head"
+          },
+          "lineup": {
+            "pending": "Starting lineups are published about 1 hour before kickoff",
+            "corePlayers": "Key players",
+            "substitutes": "Substitutes"
+          }
+        },
         "news": {
           "empty": "Chưa có tin tức thị trường",
           "error": "Không tải được tin tức thị trường",

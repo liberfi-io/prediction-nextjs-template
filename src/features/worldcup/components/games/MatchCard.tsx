@@ -6,7 +6,18 @@ import { useTranslation } from "@liberfi.io/i18n";
 import { cn, useScreen } from "@liberfi.io/ui";
 import { EventCommentsWidget, type TradeOutcome } from "@liberfi.io/ui-predict";
 import { ENABLE_WORLD_CUP_MATCH_CENTER } from "src/libs/featureFlags";
-import type { WcMatch, WcTeam } from "../../types";
+import type {
+  WcHeadToHeadMatch,
+  WcLiveInfo,
+  WcLiveStats,
+  WcMatch,
+  WcPlayerSummary,
+  WcTeam,
+  WcTeamSquad,
+  WcTeamStatLine,
+} from "../../types";
+import { useWorldcupMatchLiveInfo } from "../../data/queries";
+import { useWorldcupMatchStats } from "../../data/live";
 import { convertPrice, formatLine, type OddsFormat } from "../../odds/convert-price";
 import { OddsNumber, type OddsNumberVariant } from "../../odds/OddsNumber";
 import { TeamFlag } from "../TeamFlag";
@@ -18,7 +29,7 @@ import { MarketNewsWidget } from "../detail/feeds/MarketNewsWidget";
 import { displayableBuyPrice } from "../../odds/displayable-price";
 
 type PillColors = { bg: string; text: string; shadow: string };
-type CardPanelTab = "live" | "center" | "news" | "comments";
+type CardPanelTab = "live" | "center" | "overview" | "stats" | "lineup" | "news" | "comments";
 type WorldCupTranslate = (key: `extend.${string}`, options?: Record<string, unknown>) => string;
 
 // Neutral fill for non-moneyline buttons. Solid enough to read as an enabled
@@ -56,6 +67,21 @@ function teamColors(hex: string): PillColors {
 
 function teamName(t: WorldCupTranslate, team: WcTeam): string {
   return t(`extend.worldcup.teamName.${team.code.toLowerCase()}`);
+}
+
+function teamNameByCode(t: WorldCupTranslate, match: WcMatch, code?: string): string {
+  const upper = code?.toUpperCase();
+  if (!upper) return "-";
+  if (upper === match.home.code) return teamName(t, match.home);
+  if (upper === match.away.code) return teamName(t, match.away);
+  return t(`extend.worldcup.teamName.${upper.toLowerCase()}`);
+}
+
+function teamByCode(match: WcMatch, code?: string): WcTeam | null {
+  const upper = code?.toUpperCase();
+  if (upper === match.home.code) return match.home;
+  if (upper === match.away.code) return match.away;
+  return null;
 }
 
 /**
@@ -238,6 +264,581 @@ function HeaderMeta({ match }: { match: WcMatch }) {
   );
 }
 
+function hasStatData(stats?: WcLiveStats): boolean {
+  return Boolean(
+    stats?.stats?.some((line) =>
+      [
+        line.possessionPct,
+        line.shotsTotal,
+        line.shotsOnTarget,
+        line.corners,
+        line.offsides,
+        line.fouls,
+        line.yellowCards,
+        line.redCards,
+        line.passesTotal,
+        line.passesAccurate,
+        line.saves,
+      ].some((value) => typeof value === "number"),
+    ),
+  );
+}
+
+function InfoIcon({ type }: { type: "venue" | "capacity" | "city" | "referee" | "weather" | "temperature" }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (type === "venue") {
+    return (
+      <svg {...common}>
+        <path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z" />
+        <circle cx="12" cy="10" r="2.5" />
+      </svg>
+    );
+  }
+  if (type === "capacity") {
+    return (
+      <svg {...common}>
+        <path d="M16 21v-2a4 4 0 0 0-8 0v2" />
+        <circle cx="12" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M19 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+  if (type === "city") {
+    return (
+      <svg {...common}>
+        <path d="M3 21h18" />
+        <path d="M5 21V7l8-4v18" />
+        <path d="M19 21V11l-6-4" />
+        <path d="M9 9h1" />
+        <path d="M9 13h1" />
+        <path d="M9 17h1" />
+      </svg>
+    );
+  }
+  if (type === "referee") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="7" r="4" />
+        <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
+      </svg>
+    );
+  }
+  if (type === "weather") {
+    return (
+      <svg {...common}>
+        <path d="M12 2v2" />
+        <path d="m4.93 4.93 1.41 1.41" />
+        <path d="M20 12h2" />
+        <path d="m19.07 4.93-1.41 1.41" />
+        <path d="M15.5 13.5A4.5 4.5 0 0 0 7 15" />
+        <path d="M5 19h11a3 3 0 0 0 0-6h-.5" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M14 14.76V5a2 2 0 1 0-4 0v9.76a4 4 0 1 0 4 0Z" />
+      <path d="M12 6v8" />
+    </svg>
+  );
+}
+
+function PanelSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="space-y-3 p-1">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-12 animate-pulse rounded-[10px] bg-zinc-800/50" />
+      ))}
+    </div>
+  );
+}
+
+function PanelEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-32 items-center justify-center rounded-[10px] border border-zinc-800 bg-zinc-950/30 text-sm text-zinc-500">
+      {message}
+    </div>
+  );
+}
+
+export function OverviewPanel({
+  info,
+  loading,
+  t,
+}: {
+  info?: WcLiveInfo;
+  loading: boolean;
+  t: WorldCupTranslate;
+}) {
+  if (loading) return <PanelSkeleton rows={6} />;
+  const overview = info?.overview;
+  const items = [
+    {
+      key: "venue",
+      icon: "venue" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.venue"),
+      value: overview?.stadiumName,
+    },
+    {
+      key: "capacity",
+      icon: "capacity" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.capacity"),
+      value: overview?.stadiumCapacity?.toLocaleString(),
+    },
+    {
+      key: "city",
+      icon: "city" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.city"),
+      value: overview?.city,
+    },
+    {
+      key: "referee",
+      icon: "referee" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.referee"),
+      value: overview?.referee,
+    },
+    {
+      key: "weather",
+      icon: "weather" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.weather"),
+      value: overview?.weatherLabel,
+    },
+    {
+      key: "temperature",
+      icon: "temperature" as const,
+      label: t("extend.worldcup.detail.liveInfo.overview.temperature"),
+      value: undefined,
+    },
+  ];
+  if (!items.some((item) => item.value)) {
+    return <PanelEmpty message={t("extend.worldcup.detail.info.empty")} />;
+  }
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {items.map((item) => (
+        <div
+          key={item.key}
+          className="flex min-h-[76px] items-center gap-3 rounded-[12px] border border-zinc-800 bg-zinc-950/30 px-3"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <InfoIcon type={item.icon} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xs text-zinc-500">{item.label}</span>
+            <span className="block truncate text-base font-semibold text-zinc-100">
+              {item.value ?? "-"}
+            </span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function statValue(line: WcTeamStatLine | undefined, key: keyof WcTeamStatLine): number | undefined {
+  const value = line?.[key];
+  return typeof value === "number" ? value : undefined;
+}
+
+function StatsBar({
+  label,
+  left,
+  right,
+  percent = false,
+}: {
+  label: string;
+  left?: number;
+  right?: number;
+  percent?: boolean;
+}) {
+  const max = percent ? 100 : Math.max(left ?? 0, right ?? 0, 1);
+  const leftWidth = `${Math.min(100, ((left ?? 0) / max) * 100)}%`;
+  const rightWidth = `${Math.min(100, ((right ?? 0) / max) * 100)}%`;
+  const fmt = (value?: number) => (value === undefined ? "-" : percent ? `${value}%` : String(value));
+  return (
+    <div className="space-y-1.5">
+      <div className="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2 text-xs">
+        <span className="font-semibold tabular-nums text-zinc-300">{fmt(left)}</span>
+        <span className="text-center text-zinc-500">{label}</span>
+        <span className="text-right font-semibold tabular-nums text-zinc-300">{fmt(right)}</span>
+      </div>
+      <div className="grid h-1.5 grid-cols-2 overflow-hidden rounded-full bg-zinc-800">
+        <div className="flex justify-end bg-zinc-800">
+          <div className="h-full rounded-l-full bg-primary" style={{ width: leftWidth }} />
+        </div>
+        <div className="bg-zinc-800">
+          <div className="h-full rounded-r-full bg-zinc-500" style={{ width: rightWidth }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TechnicalStatsPanel({
+  match,
+  stats,
+  t,
+}: {
+  match: WcMatch;
+  stats: WcLiveStats;
+  t: WorldCupTranslate;
+}) {
+  const home =
+    stats.stats.find((line) => line.teamCode === match.home.code) ??
+    stats.stats[0];
+  const away =
+    stats.stats.find((line) => line.teamCode === match.away.code) ??
+    stats.stats[1];
+  const rows: Array<{ key: keyof WcTeamStatLine; label: string; percent?: boolean }> = [
+    { key: "shotsTotal", label: t("extend.worldcup.detail.liveInfo.stats.shots") },
+    { key: "shotsOnTarget", label: t("extend.worldcup.detail.liveInfo.stats.shotsOnTarget") },
+    { key: "possessionPct", label: t("extend.worldcup.detail.liveInfo.stats.possession"), percent: true },
+    { key: "passesTotal", label: t("extend.worldcup.detail.liveInfo.stats.passes") },
+    { key: "corners", label: t("extend.worldcup.detail.liveInfo.stats.corners") },
+    { key: "offsides", label: t("extend.worldcup.detail.liveInfo.stats.offsides") },
+    { key: "fouls", label: t("extend.worldcup.detail.liveInfo.stats.fouls") },
+    { key: "yellowCards", label: t("extend.worldcup.detail.liveInfo.stats.yellowCards") },
+    { key: "redCards", label: t("extend.worldcup.detail.liveInfo.stats.redCards") },
+    { key: "saves", label: t("extend.worldcup.detail.liveInfo.stats.saves") },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm font-semibold text-zinc-100">
+        <div className="flex min-w-0 items-center gap-2">
+          <TeamFlag team={match.home} size={22} />
+          <span className="truncate">{teamName(t, match.home)}</span>
+        </div>
+        <span className="text-xs font-medium text-zinc-500">
+          {t("extend.worldcup.detail.liveInfo.stats.title")}
+        </span>
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          <span className="truncate">{teamName(t, match.away)}</span>
+          <TeamFlag team={match.away} size={22} />
+        </div>
+      </div>
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <StatsBar
+            key={row.key}
+            label={row.label}
+            left={statValue(home, row.key)}
+            right={statValue(away, row.key)}
+            percent={row.percent}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function resultTone(result?: string): string {
+  const normalized = result?.toUpperCase();
+  if (normalized === "W") return "bg-emerald-500/15 text-emerald-300";
+  if (normalized === "L") return "bg-red-500/15 text-red-300";
+  return "bg-zinc-800 text-zinc-300";
+}
+
+function resultSelectedTone(result?: string): string {
+  const normalized = result?.toUpperCase();
+  if (normalized === "W") return "ring-emerald-400/70";
+  if (normalized === "L") return "ring-red-400/70";
+  return "ring-zinc-500/70";
+}
+
+function TeamFormBlock({
+  match,
+  form,
+  t,
+}: {
+  match: WcMatch;
+  form: WcLiveInfo["teamForm"][number];
+  t: WorldCupTranslate;
+}) {
+  const team = teamByCode(match, form.teamCode);
+  const visibleMatches = form.matches.slice(0, 5);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selected = visibleMatches[selectedIndex] ?? visibleMatches[0];
+  return (
+    <div className="space-y-3 rounded-[12px] border border-zinc-800 bg-zinc-950/30 p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+        {team ? <TeamFlag team={team} size={24} /> : null}
+        <span>{teamNameByCode(t, match, form.teamCode)}</span>
+      </div>
+      <div className="flex gap-1.5">
+        {visibleMatches.map((item, i) => (
+          <button
+            key={`${item.date ?? ""}-${i}`}
+            type="button"
+            onClick={() => setSelectedIndex(i)}
+            className={cn(
+              "flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] text-sm font-bold transition-colors",
+              resultTone(item.result),
+              selectedIndex === i &&
+                cn("ring-1 ring-offset-1 ring-offset-zinc-950", resultSelectedTone(item.result)),
+            )}
+          >
+            {item.result ?? "-"}
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <div className="text-xs text-zinc-500">
+          {[
+            selected.score,
+            selected.opponentCode
+              ? `${t("extend.worldcup.versus")} ${teamNameByCode(t, match, selected.opponentCode)}`
+              : null,
+            selected.homeAway,
+            selected.date,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeadToHeadRow({
+  item,
+  match,
+  t,
+}: {
+  item: WcHeadToHeadMatch;
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[8px] bg-zinc-900/50 px-3 py-2 text-xs">
+      <span className="truncate text-zinc-300">{teamNameByCode(t, match, item.homeCode)}</span>
+      <span className="font-semibold tabular-nums text-zinc-100">
+        {item.homeScore ?? "-"} - {item.awayScore ?? "-"}
+      </span>
+      <span className="truncate text-right text-zinc-300">
+        {teamNameByCode(t, match, item.awayCode)}
+      </span>
+    </div>
+  );
+}
+
+function FormAndHistoryPanel({
+  info,
+  match,
+  t,
+}: {
+  info?: WcLiveInfo;
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  const forms = info?.teamForm ?? [];
+  const h2h = info?.headToHead;
+  if (forms.length === 0 && !h2h?.matches?.length) {
+    return <PanelEmpty message={t("extend.worldcup.detail.info.empty")} />;
+  }
+  return (
+    <div className="space-y-4">
+      {forms.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold text-zinc-300">
+              {t("extend.worldcup.detail.liveInfo.form.title")}
+            </h4>
+            <span className="text-xs text-zinc-500">
+              {t("extend.worldcup.detail.liveInfo.form.latestFirst")}
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {forms.map((form) => (
+              <TeamFormBlock key={form.teamCode} match={match} form={form} t={t} />
+            ))}
+          </div>
+        </section>
+      )}
+      {h2h?.matches?.length ? (
+        <section className="space-y-2">
+          <h4 className="text-sm font-semibold text-zinc-300">
+            {t("extend.worldcup.detail.liveInfo.h2h.title")}
+          </h4>
+          <div className="grid gap-1.5">
+            {h2h.matches.slice(0, 5).map((item, i) => (
+              <HeadToHeadRow key={`${item.date ?? ""}-${i}`} item={item} match={match} t={t} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+export function StatsPanel({
+  info,
+  loading,
+  match,
+  realtimeStats,
+  t,
+}: {
+  info?: WcLiveInfo;
+  loading: boolean;
+  match: WcMatch;
+  realtimeStats?: WcLiveStats;
+  t: WorldCupTranslate;
+}) {
+  if (loading) return <PanelSkeleton rows={8} />;
+  const stats = realtimeStats ?? info?.liveStats;
+  if (hasStatData(stats)) {
+    return <TechnicalStatsPanel match={match} stats={stats!} t={t} />;
+  }
+  return <FormAndHistoryPanel info={info} match={match} t={t} />;
+}
+
+function PlayerRow({ player }: { player: WcPlayerSummary }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 text-sm">
+      {player.number !== undefined ? (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-800 px-1 text-xs font-semibold text-zinc-400">
+          {player.number}
+        </span>
+      ) : (
+        <span className="h-5 min-w-5 rounded-full border border-secondary/70" />
+      )}
+      <span className="min-w-0 flex-1 truncate text-zinc-200">{player.name}</span>
+      {player.position ? (
+        <span className="shrink-0 text-xs text-zinc-500">{player.position}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function SquadHeader({
+  squad,
+  match,
+  t,
+}: {
+  squad: WcTeamSquad;
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  const team = teamByCode(match, squad.teamCode);
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-zinc-100">
+        {team ? <TeamFlag team={team} size={24} /> : null}
+        <span className="truncate">{teamNameByCode(t, match, squad.teamCode)}</span>
+      </div>
+      {squad.formation ? (
+        <span className="rounded-full border border-secondary/40 bg-secondary/10 px-2 py-0.5 text-xs font-semibold text-secondary">
+          {squad.formation}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function CorePlayersPanel({
+  squads,
+  match,
+  t,
+}: {
+  squads: WcTeamSquad[];
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="text-center text-sm text-zinc-500">
+        {t("extend.worldcup.detail.liveInfo.lineup.pending")}
+      </div>
+      <section className="space-y-3">
+        <h4 className="text-sm font-semibold text-zinc-300">
+          {t("extend.worldcup.detail.liveInfo.lineup.corePlayers")}
+        </h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {squads.map((squad) => (
+            <div key={squad.teamCode} className="space-y-3">
+              <SquadHeader squad={squad} match={match} t={t} />
+              <div className="space-y-2">
+                {squad.corePlayers.slice(0, 6).map((player, i) => (
+                  <PlayerRow key={`${player.playerId ?? player.name}-${i}`} player={player} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function FullLineupPanel({
+  squads,
+  match,
+  t,
+}: {
+  squads: WcTeamSquad[];
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {squads.map((squad) => (
+        <div key={squad.teamCode} className="space-y-3 sm:border-r sm:border-zinc-800 sm:pr-4 sm:last:border-r-0 sm:last:pr-0">
+          <SquadHeader squad={squad} match={match} t={t} />
+          <div className="space-y-2">
+            {(squad.starters ?? []).map((player, i) => (
+              <PlayerRow key={`${player.playerId ?? player.name}-${i}`} player={player} />
+            ))}
+          </div>
+          {(squad.substitutes?.length ?? 0) > 0 && (
+            <div className="space-y-2 pt-1">
+              <div className="text-xs font-semibold text-zinc-500">
+                {t("extend.worldcup.detail.liveInfo.lineup.substitutes")}
+              </div>
+              {squad.substitutes!.map((player, i) => (
+                <PlayerRow key={`${player.playerId ?? player.name}-${i}`} player={player} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function LineupPanel({
+  info,
+  loading,
+  match,
+  t,
+}: {
+  info?: WcLiveInfo;
+  loading: boolean;
+  match: WcMatch;
+  t: WorldCupTranslate;
+}) {
+  if (loading) return <PanelSkeleton rows={7} />;
+  const squads = info?.squads ?? [];
+  if (!squads.some((squad) => squad.corePlayers.length || squad.starters?.length)) {
+    return <PanelEmpty message={t("extend.worldcup.detail.info.empty")} />;
+  }
+  const hasStarters = squads.some((squad) => (squad.starters?.length ?? 0) > 0);
+  return hasStarters ? (
+    <FullLineupPanel squads={squads} match={match} t={t} />
+  ) : (
+    <CorePlayersPanel squads={squads} match={match} t={t} />
+  );
+}
+
 function MatchCardImpl({
   match,
   format,
@@ -287,7 +888,7 @@ function MatchCardImpl({
   const marketsDisabled = match.status === "final" || Boolean(match.liveState?.ended);
   const hasLive = hasLiveVideos(match.liveVideos, match);
   const [panelTab, setPanelTab] = useState<CardPanelTab>(
-    hasLive ? "live" : ENABLE_WORLD_CUP_MATCH_CENTER ? "center" : "news",
+    hasLive ? "live" : "overview",
   );
   const wasWidgetOpenRef = useRef(false);
 
@@ -455,7 +1056,8 @@ function MatchCardImpl({
       const centerTabs: CardPanelTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
         ? ["center", "news", "comments"]
         : ["news", "comments"];
-      return hasLive ? ["live", ...centerTabs] : centerTabs;
+      const infoTabs: CardPanelTab[] = ["overview", "stats", "lineup"];
+      return hasLive ? ["live", ...infoTabs, ...centerTabs] : [...infoTabs, ...centerTabs];
     },
     [hasLive],
   );
@@ -464,7 +1066,8 @@ function MatchCardImpl({
       const centerTabs: CardPanelTab[] = ENABLE_WORLD_CUP_MATCH_CENTER
         ? ["center", "news", "comments"]
         : ["news", "comments"];
-      return hasLive ? ["live", ...centerTabs] : centerTabs;
+      const infoTabs: CardPanelTab[] = ["overview", "stats", "lineup"];
+      return hasLive ? ["live", ...infoTabs, ...centerTabs] : [...infoTabs, ...centerTabs];
     },
     [hasLive],
   );
@@ -473,7 +1076,7 @@ function MatchCardImpl({
   useEffect(() => {
     if (widgetOpen && !wasWidgetOpenRef.current) {
       setPanelTab(
-        hasLive ? "live" : ENABLE_WORLD_CUP_MATCH_CENTER ? "center" : "news",
+        hasLive ? "live" : "overview",
       );
     }
     wasWidgetOpenRef.current = widgetOpen;
@@ -505,6 +1108,18 @@ function MatchCardImpl({
   const effectivePanelTab: CardPanelTab = panelTabs.includes(panelTab)
     ? panelTab
     : panelTabs[0];
+  const liveInfoEnabled =
+    widgetOpen &&
+    (effectivePanelTab === "overview" ||
+      effectivePanelTab === "stats" ||
+      effectivePanelTab === "lineup");
+  const { data: liveInfo, isLoading: isLiveInfoLoading } =
+    useWorldcupMatchLiveInfo(match.matchId, { enabled: liveInfoEnabled });
+  const realtimeStats = useWorldcupMatchStats(
+    widgetOpen && effectivePanelTab === "stats" && match.status === "live"
+      ? match.matchId
+      : undefined,
+  );
 
   const panelContent = (() => {
     switch (effectivePanelTab) {
@@ -518,6 +1133,33 @@ function MatchCardImpl({
         );
       case "center":
         return <SportsWidget match={match} className={isDesktop ? "h-170" : "h-136"} />;
+      case "overview":
+        return (
+          <OverviewPanel
+            info={liveInfo}
+            loading={isLiveInfoLoading}
+            t={translate}
+          />
+        );
+      case "stats":
+        return (
+          <StatsPanel
+            info={liveInfo}
+            loading={isLiveInfoLoading}
+            match={match}
+            realtimeStats={realtimeStats}
+            t={translate}
+          />
+        );
+      case "lineup":
+        return (
+          <LineupPanel
+            info={liveInfo}
+            loading={isLiveInfoLoading}
+            match={match}
+            t={translate}
+          />
+        );
       case "comments":
         return (
           <EventCommentsWidget
