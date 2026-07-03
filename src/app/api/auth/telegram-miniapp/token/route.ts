@@ -11,7 +11,7 @@ import {
 
 export async function POST(request: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken || !process.env.TELEGRAM_PRIVY_JWT_PRIVATE_KEY) {
+  if (!process.env.TELEGRAM_PRIVY_JWT_PRIVATE_KEY) {
     return NextResponse.json(
       { mode: "unsupported", reason: "TELEGRAM_LOGIN_NOT_CONFIGURED" },
       { status: 503 },

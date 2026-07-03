@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 
 export interface VerifiedTelegramMiniAppContext {
   tgUserId: string;
+  provider?: "telegram";
+  providerNamespace?: string;
+  providerSubject?: string;
+  operatorBotId?: string;
+  operatorBotUsername?: string;
   tgChatId?: string;
   tgChatType?: string;
   tgChatSource?: "init_data" | "start_param";
@@ -14,6 +19,64 @@ export interface VerifiedTelegramMiniAppContext {
   authDate: number;
   authMode?: TelegramMiniAppAuthMode;
   subject?: string;
+}
+
+interface BotVerifyResponse {
+  success?: boolean;
+  provider?: string;
+  provider_namespace?: string;
+  provider_user_id?: string;
+  provider_subject?: string;
+  operator_bot_id?: number | string;
+  operator_bot_username?: string;
+  tg_user_id?: string;
+  telegram_username?: string;
+  language_code?: string;
+  start_param?: string;
+}
+
+export async function verifyTelegramMiniAppViaBotService(input: {
+  botUsername: string;
+  initData: string;
+  startParam?: string;
+}): Promise<VerifiedTelegramMiniAppContext> {
+  const baseUrl = process.env.TG_BOT_S2S_URL;
+  const token = process.env.TG_BOT_S2S_API_TOKEN;
+  if (!baseUrl?.trim() || !token?.trim()) {
+    throw new Error("TELEGRAM_LOGIN_NOT_CONFIGURED");
+  }
+  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/s2s/miniapp/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      bot_username: input.botUsername,
+      init_data: input.initData,
+      start_param: input.startParam,
+    }),
+  });
+  const body = (await response.json().catch(() => ({}))) as BotVerifyResponse;
+  if (!response.ok || body.success === false) {
+    throw new Error("TELEGRAM_INIT_DATA_INVALID");
+  }
+  const tgUserId = body.provider_user_id || body.tg_user_id;
+  if (!tgUserId || !body.provider_namespace || !body.operator_bot_id) {
+    throw new Error("TELEGRAM_INIT_DATA_INVALID");
+  }
+  return {
+    tgUserId,
+    provider: "telegram",
+    providerNamespace: body.provider_namespace,
+    providerSubject: body.provider_subject || `telegram:${body.provider_namespace}:${tgUserId}`,
+    operatorBotId: String(body.operator_bot_id),
+    operatorBotUsername: body.operator_bot_username || input.botUsername,
+    username: body.telegram_username,
+    languageCode: body.language_code,
+    startParam: body.start_param || input.startParam,
+    authDate: Math.floor(Date.now() / 1000),
+  };
 }
 
 interface TelegramInitDataUser {
@@ -146,6 +209,11 @@ export function verifyTelegramSession(
 
   return {
     tgUserId,
+    provider: context.provider,
+    providerNamespace: context.providerNamespace,
+    providerSubject: context.providerSubject,
+    operatorBotId: context.operatorBotId,
+    operatorBotUsername: context.operatorBotUsername,
     tgChatId: asIdString(context.tgChatId),
     tgChatType: context.tgChatType,
     tgChatSource: context.tgChatSource,

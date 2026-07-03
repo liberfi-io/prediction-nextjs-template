@@ -34,9 +34,14 @@ export function getTelegramPrivyBotIdentity(): string {
 }
 
 export function buildTelegramPrivySubject(
-  context: Pick<VerifiedTelegramMiniAppContext, "tgUserId">,
+  context: Pick<
+    VerifiedTelegramMiniAppContext,
+    "tgUserId" | "providerSubject" | "providerNamespace" | "operatorBotUsername"
+  >,
 ): string {
-  return `telegram-miniapp:${getTelegramPrivyBotIdentity()}:${context.tgUserId}`;
+  if (context.providerSubject) return context.providerSubject;
+  if (context.providerNamespace) return `telegram:${context.providerNamespace}:${context.tgUserId}`;
+  return `telegram-miniapp:${context.operatorBotUsername || getTelegramPrivyBotIdentity()}:${context.tgUserId}`;
 }
 
 export function signTelegramPrivyJwt(context: VerifiedTelegramMiniAppContext): string {
@@ -49,6 +54,9 @@ export function signTelegramPrivyJwt(context: VerifiedTelegramMiniAppContext): s
   const audience = process.env.TELEGRAM_PRIVY_JWT_AUDIENCE || DEFAULT_PRIVY_JWT_AUDIENCE;
   const tokenPayload = {
     telegram_user_id: context.tgUserId,
+    ...(context.providerNamespace ? { provider_namespace: context.providerNamespace } : {}),
+    ...(context.operatorBotId ? { operator_bot_id: context.operatorBotId } : {}),
+    ...(context.operatorBotUsername ? { operator_bot_username: context.operatorBotUsername } : {}),
     ...(context.username ? { telegram_username: context.username } : {}),
     ...(context.firstName ? { telegram_first_name: context.firstName } : {}),
     ...(context.languageCode ? { telegram_language_code: context.languageCode } : {}),

@@ -6,6 +6,7 @@ import {
   numberFromEnv,
   signTelegramSession,
   type VerifiedTelegramMiniAppContext,
+  verifyTelegramMiniAppViaBotService,
   verifyTelegramMiniAppInitData,
   verifyTelegramSession,
 } from "src/libs/server/telegramMiniApp";
@@ -13,18 +14,16 @@ import {
 interface TelegramMiniAppAuthRequest {
   initData?: string;
   startParam?: string;
+  botUsername?: string;
 }
 
 const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 export async function POST(request: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) {
-    return new NextResponse(null, { status: 204 });
-  }
 
   try {
-    const { initData, startParam } = (await request.json()) as TelegramMiniAppAuthRequest;
+    const { initData, startParam, botUsername } = (await request.json()) as TelegramMiniAppAuthRequest;
     if (!initData?.trim()) {
       return NextResponse.json(
         { success: false, error: "Missing Telegram initData" },
@@ -32,20 +31,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const context = verifyTelegramMiniAppInitData({
-      initData,
-      botToken,
-      maxAgeSeconds: numberFromEnv(
-        process.env.TG_MINIAPP_INITDATA_MAX_AGE,
-        DEFAULT_COOKIE_MAX_AGE_SECONDS,
-      ),
-    });
+    const context = botUsername?.trim()
+      ? await verifyTelegramMiniAppViaBotService({ botUsername, initData, startParam })
+      : botToken
+        ? verifyTelegramMiniAppInitData({
+            initData,
+            botToken,
+            maxAgeSeconds: numberFromEnv(
+              process.env.TG_MINIAPP_INITDATA_MAX_AGE,
+              DEFAULT_COOKIE_MAX_AGE_SECONDS,
+            ),
+          })
+        : null;
+    if (!context) {
+      return new NextResponse(null, { status: 204 });
+    }
     const effectiveStartParam = startParam?.trim() || context.startParam;
     const parsedStartParam = effectiveStartParam ? parseStartParam(effectiveStartParam) : null;
     const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
     const tgChatType =
       context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);
-    const cookieContext = preserveExistingAuthSession(request, botToken, {
+    const sessionSecret = getTelegramSessionSecret(botToken);
+    const cookieContext = preserveExistingAuthSession(request, sessionSecret, {
       ...context,
       ...(tgChatId ? { tgChatId } : {}),
       ...(tgChatType ? { tgChatType } : {}),
@@ -62,7 +69,7 @@ export async function POST(request: NextRequest) {
     );
     const token = signTelegramSession(
       cookieContext,
-      getTelegramSessionSecret(botToken),
+      sessionSecret,
     );
 
     const response = NextResponse.json({ success: true });
@@ -98,7 +105,7 @@ function stringifyId(value: number | null | undefined): string | undefined {
 
 function preserveExistingAuthSession(
   request: NextRequest,
-  botToken: string,
+  sessionSecret: string,
   nextContext: VerifiedTelegramMiniAppContext,
 ): VerifiedTelegramMiniAppContext {
   const sessionToken = request.cookies.get(getTelegramSessionCookieName())?.value;
@@ -107,9 +114,16 @@ function preserveExistingAuthSession(
   try {
     const existingContext = verifyTelegramSession(
       sessionToken,
-      getTelegramSessionSecret(botToken),
+      sessionSecret,
     );
     if (existingContext.tgUserId !== nextContext.tgUserId) return nextContext;
+    if (
+      existingContext.providerNamespace &&
+      nextContext.providerNamespace &&
+      existingContext.providerNamespace !== nextContext.providerNamespace
+    ) {
+      return nextContext;
+    }
 
     return {
       ...nextContext,

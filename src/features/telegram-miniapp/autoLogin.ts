@@ -1,4 +1,5 @@
 import { peekTelegramStartParam, readTelegramInitData } from "./launchParams";
+import { currentTelegramBotUsername } from "./botContext";
 
 export type TelegramMiniAppBootstrap =
   | {
@@ -17,10 +18,12 @@ export async function fetchTelegramMiniAppBootstrap(): Promise<
   TelegramMiniAppBootstrap | undefined
 > {
   const initData = readTelegramInitData();
+  const botUsername = currentTelegramBotUsername();
   const body = initData?.trim()
     ? {
         initData,
         startParam: peekTelegramStartParam(),
+        botUsername,
       }
     : {};
 

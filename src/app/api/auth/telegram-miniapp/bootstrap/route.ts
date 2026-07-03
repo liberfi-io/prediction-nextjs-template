@@ -7,6 +7,7 @@ import {
   numberFromEnv,
   signTelegramSession,
   verifyTelegramMiniAppInitData,
+  verifyTelegramMiniAppViaBotService,
   verifyTelegramSession,
   type VerifiedTelegramMiniAppContext,
 } from "src/libs/server/telegramMiniApp";
@@ -18,13 +19,14 @@ import {
 interface TelegramMiniAppBootstrapRequest {
   initData?: string;
   startParam?: string;
+  botUsername?: string;
 }
 
 const DEFAULT_INIT_DATA_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 export async function POST(request: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken || !process.env.TELEGRAM_PRIVY_JWT_PRIVATE_KEY) {
+  if (!process.env.TELEGRAM_PRIVY_JWT_PRIVATE_KEY) {
     return NextResponse.json(
       { mode: "unsupported", reason: "TELEGRAM_LOGIN_NOT_CONFIGURED" },
       { status: 503 },
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json().catch(() => ({}))) as TelegramMiniAppBootstrapRequest;
-    const context = resolveTelegramContext(request, body, botToken);
+    const context = await resolveTelegramContext(request, body, botToken);
     const subject = buildTelegramPrivySubject(context);
 
     // Telegram Mini App login is custom-JWT only. The stable `custom_auth`
@@ -57,11 +59,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function resolveTelegramContext(
+async function resolveTelegramContext(
   request: NextRequest,
   body: TelegramMiniAppBootstrapRequest,
-  botToken: string,
-): VerifiedTelegramMiniAppContext {
+  botToken?: string,
+): Promise<VerifiedTelegramMiniAppContext> {
+  if (body.initData?.trim() && body.botUsername?.trim()) {
+    return verifyTelegramMiniAppViaBotService({
+      botUsername: body.botUsername,
+      initData: body.initData,
+      startParam: body.startParam,
+    });
+  }
   const cookieName = getTelegramSessionCookieName();
   const sessionToken = request.cookies.get(cookieName)?.value;
   if (sessionToken) {
@@ -74,6 +83,9 @@ function resolveTelegramContext(
 
   if (!body.initData?.trim()) {
     throw new Error("TELEGRAM_SESSION_EXPIRED");
+  }
+  if (!botToken) {
+    throw new Error("TELEGRAM_LOGIN_NOT_CONFIGURED");
   }
 
   const context = verifyTelegramMiniAppInitData({
@@ -105,7 +117,7 @@ function resolveTelegramContext(
 function setSessionCookie(
   response: NextResponse,
   context: VerifiedTelegramMiniAppContext,
-  botToken: string,
+  botToken?: string,
 ) {
   const maxAge = getTelegramSessionMaxAge();
   response.cookies.set(
