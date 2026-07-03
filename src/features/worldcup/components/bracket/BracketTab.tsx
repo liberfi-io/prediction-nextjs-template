@@ -10,10 +10,10 @@ import { BracketMatchNode } from "./BracketMatchNode";
 
 const BRACKET_VISUAL_MATCH_ORDER: Record<string, string[]> = {
   r32: [
-    "M74",
-    "M77",
     "M73",
     "M75",
+    "M74",
+    "M77",
     "M83",
     "M84",
     "M81",

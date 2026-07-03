@@ -101,6 +101,12 @@ export const KNOCKOUT_MATCH_SLUGS: Array<[string, string]> = [
   ["M86", "fifwc-arg-cvi-2026-07-03"],
   ["M87", "fifwc-col-gha-2026-07-03"],
   ["M88", "fifwc-aus-egy-2026-07-03"],
+  ["M89", "fifwc-can-mar-2026-07-04"],
+  ["M90", "fifwc-par-fra-2026-07-04"],
+  ["M91", "fifwc-bra-nor-2026-07-05"],
+  ["M92", "fifwc-mex-eng-2026-07-05"],
+  ["M93", "fifwc-prt-esp-2026-07-06"],
+  ["M94", "fifwc-usa-bel-2026-07-06"],
 ];
 
 /**
@@ -159,8 +165,8 @@ export const KNOCKOUT_MATCHES: Array<
   ["M86", "r32", "1J", "2H", 1783116000000, "Miami Stadium", "Miami"],
   ["M87", "r32", "1K", "3DEIJL", 1783128600000, "Kansas City Stadium", "Kansas City"],
   ["M88", "r32", "2D", "2G", 1783101600000, "Dallas Stadium", "Dallas"],
-  ["M89", "r16", "W74", "W77", 1783198800000, "Philadelphia Stadium", "Philadelphia"],
-  ["M90", "r16", "W73", "W75", 1783184400000, "Houston Stadium", "Houston"],
+  ["M89", "r16", "W73", "W75", 1783184400000, "Houston Stadium", "Houston"],
+  ["M90", "r16", "W74", "W77", 1783198800000, "Philadelphia Stadium", "Philadelphia"],
   ["M91", "r16", "W76", "W78", 1783281600000, "New York/New Jersey Stadium", "New York"],
   ["M92", "r16", "W79", "W80", 1783296000000, "Mexico City Stadium", "Mexico City"],
   ["M93", "r16", "W83", "W84", 1783364400000, "Dallas Stadium", "Dallas"],
