@@ -5,6 +5,7 @@ import {
   getTelegramSessionMaxAge,
   getTelegramSessionSecret,
   numberFromEnv,
+  resolveTelegramBotServiceUsername,
   signTelegramSession,
   verifyTelegramMiniAppInitData,
   verifyTelegramMiniAppViaBotService,
@@ -34,14 +35,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await request.json().catch(() => ({}))) as TelegramMiniAppBootstrapRequest;
+    const body = (await request
+      .json()
+      .catch(() => ({}))) as TelegramMiniAppBootstrapRequest;
     const context = await resolveTelegramContext(request, body, botToken);
     const subject = buildTelegramPrivySubject(context);
 
     // Telegram Mini App login is custom-JWT only. The stable `custom_auth`
     // subject means Privy idempotently logs the same user in (created on first
     // login, reused on return), so no Privy server lookup is needed here.
-    const sessionContext = { ...context, authMode: "custom_jwt" as const, subject };
+    const sessionContext = {
+      ...context,
+      authMode: "custom_jwt" as const,
+      subject,
+    };
     const response = NextResponse.json({
       mode: "custom_jwt",
       telegramUserId: context.tgUserId,
@@ -51,9 +58,13 @@ export async function POST(request: NextRequest) {
     setSessionCookie(response, sessionContext, botToken);
     return response;
   } catch (error: unknown) {
-    const code = error instanceof Error ? error.message : "TELEGRAM_INIT_DATA_INVALID";
+    const code =
+      error instanceof Error ? error.message : "TELEGRAM_INIT_DATA_INVALID";
     if (code === "TELEGRAM_LOGIN_NOT_CONFIGURED") {
-      return NextResponse.json({ mode: "unsupported", reason: code }, { status: 503 });
+      return NextResponse.json(
+        { mode: "unsupported", reason: code },
+        { status: 503 },
+      );
     }
     return NextResponse.json({ error: code }, { status: 401 });
   }
@@ -64,9 +75,13 @@ async function resolveTelegramContext(
   body: TelegramMiniAppBootstrapRequest,
   botToken?: string,
 ): Promise<VerifiedTelegramMiniAppContext> {
-  if (body.initData?.trim() && body.botUsername?.trim()) {
+  const serviceBotUsername = resolveTelegramBotServiceUsername({
+    botUsername: body.botUsername,
+    startParam: body.startParam,
+  });
+  if (body.initData?.trim() && serviceBotUsername) {
     return verifyTelegramMiniAppViaBotService({
-      botUsername: body.botUsername,
+      botUsername: serviceBotUsername,
       initData: body.initData,
       startParam: body.startParam,
     });
@@ -75,7 +90,10 @@ async function resolveTelegramContext(
   const sessionToken = request.cookies.get(cookieName)?.value;
   if (sessionToken) {
     try {
-      return verifyTelegramSession(sessionToken, getTelegramSessionSecret(botToken));
+      return verifyTelegramSession(
+        sessionToken,
+        getTelegramSessionSecret(botToken),
+      );
     } catch {
       // Fall through to initData verification.
     }
@@ -98,10 +116,13 @@ async function resolveTelegramContext(
     ),
   });
   const effectiveStartParam = body.startParam?.trim() || context.startParam;
-  const parsedStartParam = effectiveStartParam ? parseStartParam(effectiveStartParam) : null;
+  const parsedStartParam = effectiveStartParam
+    ? parseStartParam(effectiveStartParam)
+    : null;
   const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
   const tgChatType =
-    context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);
+    context.tgChatType ??
+    (tgChatId ? (parsedStartParam?.tgChatType ?? undefined) : undefined);
   return {
     ...context,
     ...(tgChatId ? { tgChatId } : {}),
@@ -134,5 +155,7 @@ function setSessionCookie(
 }
 
 function stringifyId(value: number | null | undefined): string | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : undefined;
 }

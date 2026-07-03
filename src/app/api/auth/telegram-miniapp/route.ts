@@ -4,6 +4,7 @@ import {
   getTelegramSessionCookieName,
   getTelegramSessionSecret,
   numberFromEnv,
+  resolveTelegramBotServiceUsername,
   signTelegramSession,
   type VerifiedTelegramMiniAppContext,
   verifyTelegramMiniAppViaBotService,
@@ -23,7 +24,8 @@ export async function POST(request: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
   try {
-    const { initData, startParam, botUsername } = (await request.json()) as TelegramMiniAppAuthRequest;
+    const { initData, startParam, botUsername } =
+      (await request.json()) as TelegramMiniAppAuthRequest;
     if (!initData?.trim()) {
       return NextResponse.json(
         { success: false, error: "Missing Telegram initData" },
@@ -31,8 +33,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const context = botUsername?.trim()
-      ? await verifyTelegramMiniAppViaBotService({ botUsername, initData, startParam })
+    const serviceBotUsername = resolveTelegramBotServiceUsername({
+      botUsername,
+      startParam,
+    });
+    const context = serviceBotUsername
+      ? await verifyTelegramMiniAppViaBotService({
+          botUsername: serviceBotUsername,
+          initData,
+          startParam,
+        })
       : botToken
         ? verifyTelegramMiniAppInitData({
             initData,
@@ -47,10 +57,14 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { status: 204 });
     }
     const effectiveStartParam = startParam?.trim() || context.startParam;
-    const parsedStartParam = effectiveStartParam ? parseStartParam(effectiveStartParam) : null;
-    const tgChatId = context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
+    const parsedStartParam = effectiveStartParam
+      ? parseStartParam(effectiveStartParam)
+      : null;
+    const tgChatId =
+      context.tgChatId ?? stringifyId(parsedStartParam?.tgChatId);
     const tgChatType =
-      context.tgChatType ?? (tgChatId ? parsedStartParam?.tgChatType ?? undefined : undefined);
+      context.tgChatType ??
+      (tgChatId ? (parsedStartParam?.tgChatType ?? undefined) : undefined);
     const sessionSecret = getTelegramSessionSecret(botToken);
     const cookieContext = preserveExistingAuthSession(request, sessionSecret, {
       ...context,
@@ -67,10 +81,7 @@ export async function POST(request: NextRequest) {
       process.env.TG_MINIAPP_COOKIE_MAX_AGE,
       DEFAULT_COOKIE_MAX_AGE_SECONDS,
     );
-    const token = signTelegramSession(
-      cookieContext,
-      sessionSecret,
-    );
+    const token = signTelegramSession(cookieContext, sessionSecret);
 
     const response = NextResponse.json({ success: true });
     response.cookies.set(getTelegramSessionCookieName(), token, {
@@ -92,7 +103,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Invalid Telegram initData",
+        error:
+          error instanceof Error ? error.message : "Invalid Telegram initData",
       },
       { status: 401 },
     );
@@ -100,7 +112,9 @@ export async function POST(request: NextRequest) {
 }
 
 function stringifyId(value: number | null | undefined): string | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : undefined;
 }
 
 function preserveExistingAuthSession(
@@ -108,14 +122,13 @@ function preserveExistingAuthSession(
   sessionSecret: string,
   nextContext: VerifiedTelegramMiniAppContext,
 ): VerifiedTelegramMiniAppContext {
-  const sessionToken = request.cookies.get(getTelegramSessionCookieName())?.value;
+  const sessionToken = request.cookies.get(
+    getTelegramSessionCookieName(),
+  )?.value;
   if (!sessionToken) return nextContext;
 
   try {
-    const existingContext = verifyTelegramSession(
-      sessionToken,
-      sessionSecret,
-    );
+    const existingContext = verifyTelegramSession(sessionToken, sessionSecret);
     if (existingContext.tgUserId !== nextContext.tgUserId) return nextContext;
     if (
       existingContext.providerNamespace &&

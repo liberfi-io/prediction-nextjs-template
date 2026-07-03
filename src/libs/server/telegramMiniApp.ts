@@ -45,18 +45,21 @@ export async function verifyTelegramMiniAppViaBotService(input: {
   if (!baseUrl?.trim() || !token?.trim()) {
     throw new Error("TELEGRAM_LOGIN_NOT_CONFIGURED");
   }
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/s2s/miniapp/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const response = await fetch(
+    `${baseUrl.replace(/\/$/, "")}/s2s/miniapp/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        bot_username: input.botUsername,
+        init_data: input.initData,
+        start_param: input.startParam,
+      }),
     },
-    body: JSON.stringify({
-      bot_username: input.botUsername,
-      init_data: input.initData,
-      start_param: input.startParam,
-    }),
-  });
+  );
   const body = (await response.json().catch(() => ({}))) as BotVerifyResponse;
   if (!response.ok || body.success === false) {
     throw new Error("TELEGRAM_INIT_DATA_INVALID");
@@ -69,7 +72,9 @@ export async function verifyTelegramMiniAppViaBotService(input: {
     tgUserId,
     provider: "telegram",
     providerNamespace: body.provider_namespace,
-    providerSubject: body.provider_subject || `telegram:${body.provider_namespace}:${tgUserId}`,
+    providerSubject:
+      body.provider_subject ||
+      `telegram:${body.provider_namespace}:${tgUserId}`,
     operatorBotId: String(body.operator_bot_id),
     operatorBotUsername: body.operator_bot_username || input.botUsername,
     username: body.telegram_username,
@@ -77,6 +82,27 @@ export async function verifyTelegramMiniAppViaBotService(input: {
     startParam: body.start_param || input.startParam,
     authDate: Math.floor(Date.now() / 1000),
   };
+}
+
+export function resolveTelegramBotServiceUsername(input: {
+  botUsername?: string;
+  startParam?: string;
+}): string | undefined {
+  const explicit = cleanBotUsername(input.botUsername);
+  if (explicit) return explicit;
+  if (isCloneStartParam(input.startParam)) {
+    return cleanBotUsername(process.env.TELEGRAM_BOT_USERNAME);
+  }
+  return undefined;
+}
+
+function isCloneStartParam(startParam?: string): boolean {
+  return /^clone_[A-Za-z0-9_-]+$/.test(startParam?.trim() || "");
+}
+
+function cleanBotUsername(username?: string): string | undefined {
+  const clean = username?.trim().replace(/^@/, "");
+  return clean || undefined;
 }
 
 interface TelegramInitDataUser {
@@ -122,7 +148,9 @@ export function verifyTelegramMiniAppInitData({
     .map(([key, value]) => `${key}=${value}`)
     .join("\n");
 
-  const secretKey = createHmac("sha256", "WebAppData").update(botToken).digest();
+  const secretKey = createHmac("sha256", "WebAppData")
+    .update(botToken)
+    .digest();
   const calculatedHash = createHmac("sha256", secretKey)
     .update(dataCheckString)
     .digest("hex");
@@ -135,7 +163,8 @@ export function verifyTelegramMiniAppInitData({
 
   const userRaw = params.get("user");
   const user = parseJsonParam<TelegramInitDataUser>(userRaw);
-  const tgUserId = extractJsonFieldString(userRaw, "id") ?? asIdString(user?.id);
+  const tgUserId =
+    extractJsonFieldString(userRaw, "id") ?? asIdString(user?.id);
   if (!tgUserId) {
     throw new Error("TELEGRAM_INIT_DATA_INVALID");
   }
@@ -157,7 +186,9 @@ export function verifyTelegramMiniAppInitData({
 }
 
 export function getTelegramSessionCookieName(): string {
-  return process.env.TG_MINIAPP_COOKIE_NAME || TELEGRAM_SESSION_COOKIE_DEFAULT_NAME;
+  return (
+    process.env.TG_MINIAPP_COOKIE_NAME || TELEGRAM_SESSION_COOKIE_DEFAULT_NAME
+  );
 }
 
 export function getTelegramSessionMaxAge(): number {
@@ -228,12 +259,18 @@ export function verifyTelegramSession(
   };
 }
 
-export function numberFromEnv(value: string | undefined, fallback: number): number {
+export function numberFromEnv(
+  value: string | undefined,
+  fallback: number,
+): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function assertAuthDate(authDateValue: string | null, maxAgeSeconds: number): number {
+function assertAuthDate(
+  authDateValue: string | null,
+  maxAgeSeconds: number,
+): number {
   const authDate = Number(authDateValue);
   if (!Number.isFinite(authDate) || authDate <= 0) {
     throw new Error("TELEGRAM_INIT_DATA_INVALID");
@@ -266,12 +303,18 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function asStringParam(params: URLSearchParams, key: string): string | undefined {
+function asStringParam(
+  params: URLSearchParams,
+  key: string,
+): string | undefined {
   const value = params.get(key);
   return value?.trim() ? value : undefined;
 }
 
-function extractJsonFieldString(raw: string | null, key: string): string | undefined {
+function extractJsonFieldString(
+  raw: string | null,
+  key: string,
+): string | undefined {
   if (!raw) return undefined;
   const match = raw.match(new RegExp(`"${key}"\\s*:\\s*"?([^",}]+)"?`));
   return match?.[1]?.trim();
