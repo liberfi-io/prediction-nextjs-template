@@ -30,6 +30,10 @@ import {
   readTelegramInitData,
 } from "../../telegram-miniapp/launchParams";
 import {
+  currentTelegramBotUsername,
+  currentTelegramMiniAppShortName,
+} from "../../telegram-miniapp/botContext";
+import {
   isLikelyMpChatLaunch,
   readMpChatInitData,
 } from "../../mpchat-miniapp/launchParams";
@@ -49,6 +53,8 @@ const REBATE_USD_FORMAT = { prefix: "$", short: false, precision: 6 } as const;
 const DEFAULT_TELEGRAM_MINI_APP_URL = "https://t.me/liberfi_live_bot/liberfi_prediction_app";
 const DEFAULT_MPCHAT_MINI_APP_URL = "https://mp.net/liberfi_live_bot/liberfi_prediction_app";
 const SAFE_REFERRAL_RE = /^[A-Za-z0-9_]+$/;
+const SAFE_TELEGRAM_BOT_USERNAME_RE = /^[A-Za-z0-9_]{5,32}$/;
+const SAFE_TELEGRAM_MINI_APP_SHORT_NAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 type InviteLinkPlatform = "telegram" | "mpchat" | "web";
 
 function isTelegramMiniAppEnvironment(): boolean {
@@ -63,12 +69,27 @@ function detectInviteLinkPlatform(): InviteLinkPlatform {
   return "web";
 }
 
-function buildTelegramInviteLink(code: string): string | null {
+function buildTelegramInviteLink(
+  code: string,
+  context?: { botUsername?: string; shortName?: string },
+): string | null {
   if (!SAFE_REFERRAL_RE.test(code)) return null;
   try {
     const url = new URL(
       process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL || DEFAULT_TELEGRAM_MINI_APP_URL,
     );
+    const cleanBotUsername = context?.botUsername?.trim().replace(/^@/, "");
+    if (cleanBotUsername && SAFE_TELEGRAM_BOT_USERNAME_RE.test(cleanBotUsername)) {
+      const parts = url.pathname.split("/");
+      parts[1] = cleanBotUsername;
+      url.pathname = parts.join("/");
+    }
+    const cleanShortName = context?.shortName?.trim().replace(/^\/+/, "");
+    if (cleanShortName && SAFE_TELEGRAM_MINI_APP_SHORT_NAME_RE.test(cleanShortName)) {
+      const parts = url.pathname.split("/");
+      parts[2] = cleanShortName;
+      url.pathname = parts.join("/");
+    }
     url.searchParams.set("startapp", `v1-r${code}`);
     return url.toString();
   } catch {
@@ -94,7 +115,10 @@ function buildInviteLink(code: string, platform: InviteLinkPlatform): string {
     if (mpChatLink) return mpChatLink;
   }
   if (platform === "telegram") {
-    const telegramLink = buildTelegramInviteLink(code);
+    const telegramLink = buildTelegramInviteLink(code, {
+      botUsername: currentTelegramBotUsername(),
+      shortName: currentTelegramMiniAppShortName(),
+    });
     if (telegramLink) return telegramLink;
   }
   if (typeof window === "undefined") return `?invite=${code}`;
