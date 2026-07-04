@@ -59,6 +59,7 @@ type InviteLinkPlatform = "telegram" | "mpchat" | "web";
 
 function isTelegramMiniAppEnvironment(): boolean {
   if (typeof window === "undefined") return false;
+  if (currentTelegramBotUsername()) return true;
   return Boolean(readTelegramInitData() || peekTelegramStartParam());
 }
 
