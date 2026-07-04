@@ -107,6 +107,8 @@ export const KNOCKOUT_MATCH_SLUGS: Array<[string, string]> = [
   ["M92", "fifwc-mex-eng-2026-07-05"],
   ["M93", "fifwc-prt-esp-2026-07-06"],
   ["M94", "fifwc-usa-bel-2026-07-06"],
+  ["M95", "fifwc-arg-egy-2026-07-07"],
+  ["M96", "fifwc-che-col-2026-07-07"],
 ];
 
 /**
