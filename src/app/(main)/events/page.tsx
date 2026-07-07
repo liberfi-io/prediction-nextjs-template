@@ -12,6 +12,7 @@ import { PredictListPage } from "src/components/page/PredictListPage";
 import { ENABLE_KALSHI } from "src/libs/featureFlags";
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
+import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
 
 async function getPredictionLocaleContext() {
   const [lang, cookieStore, headerStore] = await Promise.all([
@@ -58,7 +59,7 @@ export default async function Page() {
         fetchEventsPage(client, {
           ...params,
           ...(pageParam ? { cursor: pageParam } : {}),
-        }),
+        }).then(filterTradableEventsPage),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage: {
         has_more?: boolean;
