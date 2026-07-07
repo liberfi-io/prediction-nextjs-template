@@ -114,15 +114,16 @@ function Pill({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   const displayPrice = displayableBuyPrice(price);
+  const effectiveDisabled = disabled || displayPrice === null;
   const handleEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled) return;
+    if (effectiveDisabled) return;
     const el = e.currentTarget;
     el.style.setProperty("--shadow-offset", "1px");
     el.style.transform = "translateY(2px)";
   };
 
   const handleLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled) return;
+    if (effectiveDisabled) return;
     const el = e.currentTarget;
     el.style.setProperty("--shadow-offset", "3px");
     el.style.transform = "translateY(0px)";
@@ -131,13 +132,13 @@ function Pill({
   return (
     <button
       type="button"
-      disabled={disabled}
+      disabled={effectiveDisabled}
       onClick={onClick}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       className={cn(
         "flex w-full min-w-0 items-center justify-between gap-1.5 rounded-[9px] px-2.5 will-change-transform [-webkit-tap-highlight-color:transparent]",
-        disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
+        effectiveDisabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
         grow ? "min-h-[34px] flex-1" : tall ? "h-[38px]" : "h-[34px]",
       )}
       style={

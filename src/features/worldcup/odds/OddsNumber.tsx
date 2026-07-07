@@ -63,6 +63,12 @@ function asRollableNumber(value: string | number): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function fractionDigits(value: string | number): number | null {
+  if (typeof value === "number") return null;
+  const match = value.trim().match(/^[+-]?\d+\.(\d+)$/);
+  return match ? match[1].length : null;
+}
+
 function FadeOddsNumber({
   value,
   className,
@@ -111,11 +117,13 @@ function FadeOddsNumber({
 
 function RollOddsNumber({
   value,
+  fractionDigits,
   prefix,
   suffix,
   className,
 }: {
   value: number;
+  fractionDigits?: number | null;
   prefix?: string;
   suffix?: string;
   className?: string;
@@ -125,6 +133,15 @@ function RollOddsNumber({
       value={value}
       prefix={prefix}
       suffix={suffix}
+      format={
+        fractionDigits !== null && fractionDigits !== undefined
+          ? {
+              minimumFractionDigits: fractionDigits,
+              maximumFractionDigits: fractionDigits,
+              useGrouping: false,
+            }
+          : undefined
+      }
       className={className}
       willChange
       transformTiming={NUMBERFLOW_TRANSFORM_TIMING}
@@ -164,12 +181,13 @@ export function OddsNumber({
 
   const numeric = asRollableNumber(value);
   const useRoll = variant === "roll" || (variant === "auto" && numeric !== null);
+  const decimals = fractionDigits(value);
 
   let inner: React.ReactNode;
   if (!visible) {
     inner = <span className={className}>{String(value)}</span>;
   } else if (useRoll && numeric !== null) {
-    inner = <RollOddsNumber value={numeric} className={className} />;
+    inner = <RollOddsNumber value={numeric} fractionDigits={decimals} className={className} />;
   } else {
     inner = <FadeOddsNumber value={String(value)} className={className} />;
   }
