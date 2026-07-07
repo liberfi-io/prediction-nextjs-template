@@ -50,6 +50,12 @@ import {
 } from "../detail/marketGrouping";
 import { worldcupMarketSelectedSurfaceLabel } from "../detail/marketDisplay";
 import { resolveMarketDeepLink } from "../detail/deepLink";
+import {
+  applyCardOrderbookPrices,
+  collectCardOddsTargets,
+  tradeMarketForCode,
+  useCardOrderbookPrices,
+} from "./cardOrderbookPrices";
 
 type GroupBy = "stage" | "time";
 
@@ -205,27 +211,6 @@ function todayMatchWindow(nowMs: number): { startMs: number; endMs: number } {
   return { startMs: start.getTime(), endMs: end.getTime() };
 }
 
-function tradeMarketForCode(match: WcMatch, marketCode: string): PredictMarket | null {
-  const markets = match.tradeMarkets;
-  if (!markets) return null;
-  switch (marketCode) {
-    case "mlh":
-      return markets.moneylineHome ?? null;
-    case "mld":
-      return markets.moneylineDraw ?? null;
-    case "mla":
-      return markets.moneylineAway ?? null;
-    case "sph":
-      return markets.spreadHome ?? null;
-    case "spa":
-      return markets.spreadAway ?? null;
-    default:
-      return marketCode === "to" || marketCode.startsWith("to")
-        ? markets.total ?? null
-        : null;
-  }
-}
-
 function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
   const outcomes = market.outcomes?.length
     ? [{ ...market.outcomes[0], label }, ...market.outcomes.slice(1)]
@@ -272,7 +257,7 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   );
   const prefetchMatchEvent = usePrefetchWorldcupMatchEvent();
   const { liveStates, marketState } = useWorldcupRealtime();
-  const matches = useMemo(
+  const realtimeMatches = useMemo(
     () => {
       const marketMatches = applyMarketRealtimeToMatches(rawMatches, marketState);
       return marketMatches.map((m) => {
@@ -281,6 +266,20 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
       });
     },
     [rawMatches, liveStates, marketState]
+  );
+  const cardOddsTargets = useMemo(
+    () => collectCardOddsTargets(realtimeMatches),
+    [realtimeMatches],
+  );
+  const cardOrderbookPrices = useCardOrderbookPrices(cardOddsTargets);
+  const matches = useMemo(
+    () =>
+      applyCardOrderbookPrices(
+        realtimeMatches,
+        cardOddsTargets,
+        cardOrderbookPrices,
+      ),
+    [cardOddsTargets, cardOrderbookPrices, realtimeMatches],
   );
 
   const effectiveGroupBy = todayOnly ? "time" : groupBy;
