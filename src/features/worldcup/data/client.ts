@@ -1528,7 +1528,7 @@ function leadOutcome(market: WcMarketDto): WcOutcomeDto | undefined {
 
 /** Adapt a single backend prop event into the local {@link WcProp} shape. */
 function adaptPropEvent(dto: WcPropEventDto): WcProp {
-  const markets = dto.markets ?? [];
+  const markets = (dto.markets ?? []).filter((market) => market.status === "open");
 
   let outcomes: WcOutcome[];
   if (isBinaryProp(markets)) {
@@ -1569,7 +1569,7 @@ function adaptPropEvent(dto: WcPropEventDto): WcProp {
     title: dto.title,
     titleTrans: dto.title_trans,
     volume: dto.volume ?? 0,
-    marketCount: dto.market_count,
+    marketCount: markets.length,
     outcomes,
   };
 }
@@ -1579,7 +1579,8 @@ export function adaptProps(dto: WcPropsResponseDto): WcProp[] {
   return (dto.props ?? [])
     .slice()
     .sort((a, b) => a.display_order - b.display_order)
-    .map(adaptPropEvent);
+    .map(adaptPropEvent)
+    .filter((event) => event.outcomes.length > 0);
 }
 
 export const WORLDCUP_PROPS_QUERY_KEY = ["worldcup", "props"] as const;
