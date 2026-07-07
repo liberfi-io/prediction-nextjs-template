@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   cn,
@@ -16,9 +17,14 @@ import {
   useScreen,
 } from "@liberfi.io/ui";
 import type {
+  PriceHistoryResponse,
   PredictEvent,
   PredictMarket,
   ProviderSource,
+} from "@liberfi.io/react-predict";
+import {
+  pickBestAsk,
+  useRealtimeOrderbook,
 } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
@@ -42,7 +48,7 @@ import { DetailHeader, RulesContent, RefContent } from "./DetailHeader";
 import { MatchBanner } from "./MatchBanner";
 import { MatchCenterTabs } from "./MatchCenterTabs";
 import { OddsFormatSelect } from "../OddsFormatSelect";
-import { MarketsPanel } from "./MarketsPanel";
+import { MarketsPanel, useVisibleOrderbookPrices } from "./MarketsPanel";
 import { MobileBuyTradePanel } from "./MobileBuyTradePanel";
 import { TradePanel } from "./TradePanel";
 import { TradeModal } from "src/components/TradeModal";
@@ -87,6 +93,8 @@ type TranslatedMarket = PredictMarket & {
   question_trans?: unknown;
   outcomes?: TranslatedOutcome[];
 };
+
+const CHART_PRICE_HISTORY_RANGES = ["1d", "1w", "1m", "all"] as const;
 
 function translatedText(base: string | undefined, translated: unknown): string | undefined {
   return typeof translated === "string" && translated.trim() ? translated : base;
@@ -181,6 +189,32 @@ function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
   return changed ? { ...market, outcomes } : market;
 }
 
+function priceHistoryQueryKey(
+  slug: string,
+  source: ProviderSource,
+  range: (typeof CHART_PRICE_HISTORY_RANGES)[number],
+) {
+  return ["predict", "price-history", slug, source, range];
+}
+
+function withLatestHistoryPrice(
+  history: PriceHistoryResponse | undefined,
+  price: number,
+): PriceHistoryResponse | undefined {
+  if (!history?.points?.length) return history;
+
+  const nextPoint = { t: Math.floor(Date.now() / 1000), p: price };
+  const points = history.points;
+  const last = points[points.length - 1];
+  if (last && Math.abs(last.p - price) < 0.000001) return history;
+
+  const nextPoints =
+    last && nextPoint.t - last.t <= 60
+      ? [...points.slice(0, -1), { ...last, p: price }]
+      : [...points, nextPoint];
+  return { ...history, points: nextPoints };
+}
+
 export function WorldCupDetailPage({
   id,
   initialMarket = null,
@@ -204,6 +238,7 @@ export function WorldCupDetailPage({
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
+  const queryClient = useQueryClient();
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
@@ -413,6 +448,78 @@ export function WorldCupDetailPage({
     (price: number) => convertPrice(price, oddsFormat),
     [oddsFormat],
   );
+  const selectedMarket = selection?.option.market;
+  const selectedGroup = selection?.group;
+  const activeCategory = selectedGroup
+    ? categoryOfGroup(cats, selectedGroup)
+    : "gameLines";
+  const allOpenMarkets = useMemo(() => {
+    const bySlug = new Map<string, PredictMarket>();
+    for (const group of allGroups(cats)) {
+      for (const option of group.options) {
+        if (option.market.status === "open") {
+          bySlug.set(option.market.slug, option.market);
+        }
+      }
+    }
+    return [...bySlug.values()];
+  }, [cats]);
+  const chartPrioritySlugs = useMemo(
+    () =>
+      new Set(
+        (selectedGroup?.options ?? [])
+          .filter((option) => option.market.status === "open")
+          .map((option) => option.market.slug),
+      ),
+    [selectedGroup],
+  );
+  const { data: liveSelectedOrderbook } = useRealtimeOrderbook(
+    {
+      slug: selectedMarket?.slug ?? "",
+      source: selectedMarket?.source ?? "polymarket",
+      outcome: "yes",
+    },
+    { enabled: Boolean(selectedMarket) && selectedMarket?.status === "open" },
+  );
+  const liveSelectedPrice = useMemo(() => {
+    if (
+      !selectedMarket ||
+      liveSelectedOrderbook?.market_id !== selectedMarket.slug ||
+      liveSelectedOrderbook?.outcome !== "yes"
+    ) {
+      return null;
+    }
+    const ask = pickBestAsk(liveSelectedOrderbook, "yes");
+    return ask != null && ask > 0 ? ask : null;
+  }, [liveSelectedOrderbook, selectedMarket]);
+  const orderbookPricesBySlug = useVisibleOrderbookPrices(
+    allOpenMarkets,
+    selectedMarket?.slug,
+    liveSelectedPrice,
+    chartPrioritySlugs,
+  );
+
+  useEffect(() => {
+    if (orderbookPricesBySlug.size === 0 || allOpenMarkets.length === 0) return;
+
+    const marketsBySlug = new Map(allOpenMarkets.map((market) => [market.slug, market]));
+    const syncChartHistoryPrices = () => {
+      orderbookPricesBySlug.forEach((price, slug) => {
+        const market = marketsBySlug.get(slug);
+        if (!market || price <= 0) return;
+        for (const range of CHART_PRICE_HISTORY_RANGES) {
+          queryClient.setQueryData<PriceHistoryResponse>(
+            priceHistoryQueryKey(market.slug, market.source, range),
+            (history) => withLatestHistoryPrice(history, price),
+          );
+        }
+      });
+    };
+
+    syncChartHistoryPrices();
+    const interval = window.setInterval(syncChartHistoryPrices, 2_000);
+    return () => window.clearInterval(interval);
+  }, [allOpenMarkets, orderbookPricesBySlug, queryClient]);
 
   if (isLoading && !event) {
     return <WorldCupDetailSkeleton />;
@@ -433,15 +540,10 @@ export function WorldCupDetailPage({
     );
   }
 
-  const selectedMarket = selection?.option.market;
   const selectedDisplayMarket = selectedMarket
     ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket), hint)
     : selectedMarket;
   const displayEvent = withTranslatedEventTitle(event, worldcupMatchTitle(match, hint));
-  const selectedGroup = selection?.group;
-  const activeCategory = selectedGroup
-    ? categoryOfGroup(cats, selectedGroup)
-    : "gameLines";
 
   // Header label, e.g. "Moneyline (Mexico)" / "Totals (0.5)".
   const groupLabel = selectedGroup
@@ -565,6 +667,7 @@ export function WorldCupDetailPage({
                 selectedOutcome={outcome}
                 onSelect={handleMobileMarketSelect}
                 onInspect={handleMobileMarketInspect}
+                orderbookPricesBySlug={orderbookPricesBySlug}
                 renderInlineOrderbook={(slug, inlineOutcome) => {
                   const inlineSelection = findSelection(cats, slug, inlineOutcome);
                   const inlineMarket = inlineSelection?.option.market;
@@ -731,6 +834,7 @@ export function WorldCupDetailPage({
                   selectedSlug={selectedSlug}
                   selectedOutcome={outcome}
                   onSelect={handleSelect}
+                  orderbookPricesBySlug={orderbookPricesBySlug}
                   className="flex-1 border-0 bg-transparent"
                 />
               </MarketSwitcherFrame>

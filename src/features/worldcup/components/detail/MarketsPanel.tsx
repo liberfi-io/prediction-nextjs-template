@@ -103,6 +103,7 @@ export function MarketsPanel({
   onSelect,
   onInspect,
   renderInlineOrderbook,
+  orderbookPricesBySlug: externalOrderbookPricesBySlug,
   className,
 }: {
   cats: CategorizedMarkets;
@@ -112,9 +113,11 @@ export function MarketsPanel({
   onSelect: (slug: string, outcome?: "yes" | "no") => void;
   onInspect?: (slug: string, outcome?: "yes" | "no") => void;
   renderInlineOrderbook?: (slug: string, outcome: "yes" | "no") => ReactNode;
+  orderbookPricesBySlug?: Map<string, number>;
   className?: string;
 }) {
   const { t } = useTranslation();
+  const usesExternalOrderbookPrices = Boolean(externalOrderbookPricesBySlug);
 
   const [category, setCategory] = useState<MarketCategory>(activeCategory);
   const [expandedMarket, setExpandedMarket] = useState<{
@@ -129,10 +132,10 @@ export function MarketsPanel({
   // snapshot, which drifts from the live WS book).
   const selectedMarket = useMemo(
     () =>
-      selectedSlug
+      selectedSlug && !usesExternalOrderbookPrices
         ? findSelection(cats, selectedSlug, selectedOutcome)?.option.market
         : undefined,
-    [cats, selectedOutcome, selectedSlug],
+    [cats, selectedOutcome, selectedSlug, usesExternalOrderbookPrices],
   );
   const { data: liveOrderbook } = useRealtimeOrderbook(
     {
@@ -208,12 +211,14 @@ export function MarketsPanel({
       ),
     [visibleMarkets],
   );
-  const orderbookPricesBySlug = useVisibleOrderbookPrices(
-    allOpenMarkets,
+  const localOrderbookPricesBySlug = useVisibleOrderbookPrices(
+    usesExternalOrderbookPrices ? [] : allOpenMarkets,
     selectedMarket?.slug,
     liveSelectedPrice,
     prioritySlugs,
   );
+  const orderbookPricesBySlug =
+    externalOrderbookPricesBySlug ?? localOrderbookPricesBySlug;
 
   return (
     <div
@@ -830,7 +835,7 @@ const SEED_BATCH_SIZE = 100;
  * useRealtimeOrderbook / MobileTradeBar on the shared, un-ref-counted client)
  * and instead has its live price mirrored into the map via `selectedPrice`.
  */
-function useVisibleOrderbookPrices(
+export function useVisibleOrderbookPrices(
   markets: MarketOption["market"][],
   selectedSlug?: string,
   selectedPrice?: number | null,
