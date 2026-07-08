@@ -93,7 +93,7 @@ export function resolveTelegramBotServiceUsername(input: {
   if (isCloneStartParam(input.startParam)) {
     return cleanBotUsername(process.env.TELEGRAM_BOT_USERNAME);
   }
-  return undefined;
+  return cleanBotUsername(process.env.TELEGRAM_BOT_USERNAME);
 }
 
 function isCloneStartParam(startParam?: string): boolean {

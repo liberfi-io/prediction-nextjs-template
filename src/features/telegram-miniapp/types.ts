@@ -11,6 +11,7 @@ export interface ParsedStartParam {
   tgChatId: number | null;
   tgChatType: string | null;
   referral: string | null;
+  operatorSegment: string | null;
 }
 
 export interface TelegramWebAppUser {

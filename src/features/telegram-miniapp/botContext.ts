@@ -10,7 +10,7 @@ export function currentTelegramBotUsername(): string | undefined {
     window.sessionStorage.setItem(BOT_USERNAME_KEY, fromPath);
     return fromPath;
   }
-  return window.sessionStorage.getItem(BOT_USERNAME_KEY) || undefined;
+  return undefined;
 }
 
 export function currentTelegramMiniAppShortName(): string | undefined {

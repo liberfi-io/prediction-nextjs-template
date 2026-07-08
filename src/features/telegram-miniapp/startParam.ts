@@ -4,6 +4,7 @@ const START_PARAM_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const TARGET_RE = /^[A-Za-z0-9_]+$/;
 const REFERRAL_RE = /^[A-Za-z0-9_]+$/;
 const CHAT_ID_RE = /^g[0-9A-Za-z]+$/;
+const OPERATOR_RE = /^o[0-9A-Za-z]+$/;
 const MARKET_RE = /^(?:mlh|mld|mla|sp|to|to[0-9]+|btts)$/;
 const OUTCOME_RE = /^[yn]$/;
 const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -17,6 +18,7 @@ const EMPTY_PARSED_START_PARAM: ParsedStartParam = {
   tgChatId: null,
   tgChatType: null,
   referral: null,
+  operatorSegment: null,
 };
 
 function parseReferral(segment: string): string | null {
@@ -42,6 +44,11 @@ function parseTelegramChatId(segment: string): number | null {
 
   if (value <= 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) return null;
   return -Number(value);
+}
+
+function parseOperatorSegment(segment: string): string | null {
+  if (!OPERATOR_RE.test(segment)) return null;
+  return segment;
 }
 
 function inferTelegramChatType(tgChatId: number): string {
@@ -114,6 +121,16 @@ export function parseStartParam(value: string): ParsedStartParam | null {
       continue;
     }
 
+    if (segment.startsWith("o")) {
+      if (parsed.operatorSegment) return null;
+      const operatorSegment = parseOperatorSegment(segment);
+      if (operatorSegment) {
+        parsed.operatorSegment = operatorSegment;
+      }
+      cursor += 1;
+      continue;
+    }
+
     if (parts.length === 2 && cursor === 1) {
       const referral = parseBareReferral(segment);
       if (!referral) return null;
@@ -122,7 +139,7 @@ export function parseStartParam(value: string): ParsedStartParam | null {
       continue;
     }
 
-    return null;
+    cursor += 1;
   }
 
   return parsed;
