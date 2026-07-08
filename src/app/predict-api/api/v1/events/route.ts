@@ -52,5 +52,7 @@ export async function GET(request: NextRequest) {
   }
 
   const page = (await upstream.json()) as PredictPage<PredictEvent>;
-  return NextResponse.json(filterTradableEventsPage(page));
+  const withMarkets = request.nextUrl.searchParams.get("with_markets");
+  const requireMarkets = withMarkets !== "false" && withMarkets !== "0";
+  return NextResponse.json(filterTradableEventsPage(page, { requireMarkets }));
 }
