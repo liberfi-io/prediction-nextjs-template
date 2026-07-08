@@ -211,6 +211,48 @@ function todayMatchWindow(nowMs: number): { startMs: number; endMs: number } {
   return { startMs: start.getTime(), endMs: end.getTime() };
 }
 
+function localDayWindow(timestampMs: number): { startMs: number; endMs: number } {
+  const start = new Date(timestampMs);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+
+  return { startMs: start.getTime(), endMs: end.getTime() };
+}
+
+function matchesInWindow(
+  matches: WcMatch[],
+  window: { startMs: number; endMs: number },
+): WcMatch[] {
+  return matches.filter(
+    (match) =>
+      match.kickoffMs >= window.startMs && match.kickoffMs < window.endMs,
+  );
+}
+
+function visibleTimeMatches(matches: WcMatch[], nowMs: number): WcMatch[] {
+  return matches.filter((match) => !isHiddenFromTimeList(match, nowMs));
+}
+
+function fallbackTodayMatches(matches: WcMatch[], nowMs: number): WcMatch[] {
+  const nextMatch = [...matches]
+    .filter((match) => match.kickoffMs >= nowMs)
+    .sort((a, b) => a.kickoffMs - b.kickoffMs)[0];
+
+  if (nextMatch) {
+    return visibleTimeMatches(
+      matchesInWindow(matches, localDayWindow(nextMatch.kickoffMs)),
+      nowMs,
+    );
+  }
+
+  const latestMatch = [...matches].sort((a, b) => b.kickoffMs - a.kickoffMs)[0];
+  return latestMatch
+    ? matchesInWindow(matches, localDayWindow(latestMatch.kickoffMs))
+    : [];
+}
+
 function withCleanLabel(market: PredictMarket, label: string): PredictMarket {
   const outcomes = market.outcomes?.length
     ? [{ ...market.outcomes[0], label }, ...market.outcomes.slice(1)]
@@ -285,16 +327,19 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
   const effectiveGroupBy = todayOnly ? "time" : groupBy;
 
   const displayMatches = useMemo(() => {
-    const windowedMatches = todayOnly
-      ? (() => {
-          const { startMs, endMs } = todayMatchWindow(nowMs);
-          return matches.filter((m) => m.kickoffMs >= startMs && m.kickoffMs < endMs);
-        })()
-      : matches;
+    if (todayOnly) {
+      const todayMatches = visibleTimeMatches(
+        matchesInWindow(matches, todayMatchWindow(nowMs)),
+        nowMs,
+      );
+      return todayMatches.length > 0
+        ? todayMatches
+        : fallbackTodayMatches(matches, nowMs);
+    }
 
     return effectiveGroupBy === "time"
-      ? windowedMatches.filter((m) => !isHiddenFromTimeList(m, nowMs))
-      : windowedMatches;
+      ? visibleTimeMatches(matches, nowMs)
+      : matches;
   }, [effectiveGroupBy, matches, nowMs, todayOnly]);
 
   useEffect(() => {
