@@ -5,6 +5,14 @@ import type {
 } from "@liberfi.io/react-predict";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
 
+function buildPredictUrl(baseUrl: string, path: string, search: string) {
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const normalizedPath = path.replace(/^\/+/, "");
+  const url = new URL(normalizedPath, normalizedBase);
+  url.search = search;
+  return url;
+}
+
 export async function GET(request: NextRequest) {
   const baseUrl = process.env.PREDICT_URL;
   if (!baseUrl) {
@@ -14,8 +22,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const upstreamUrl = new URL("/api/v1/events", baseUrl);
-  upstreamUrl.search = request.nextUrl.search;
+  const upstreamUrl = buildPredictUrl(
+    baseUrl,
+    "/api/v1/events",
+    request.nextUrl.search,
+  );
 
   const upstream = await fetch(upstreamUrl, {
     cache: "no-store",
