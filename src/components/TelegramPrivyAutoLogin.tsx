@@ -20,6 +20,7 @@ import { usePrivySessionSignerProvisioning } from "src/features/privy-session-si
 const TELEGRAM_DETECTION_TIMEOUT_MS = 5000;
 const TELEGRAM_DETECTION_INTERVAL_MS = 100;
 const JWT_RESYNC_INTERVAL_MS = 60 * 1000;
+const BOOTSTRAP_RETRY_DELAYS_MS = [0, 500, 1500, 3000, 5000] as const;
 
 export function TelegramPrivyAutoLogin() {
   const { status, user } = useAuth();
@@ -72,21 +73,45 @@ export function TelegramPrivyAutoLogin() {
     if (bootstrapStartedRef.current) return;
     bootstrapStartedRef.current = true;
 
+    let cancelled = false;
     setBootstrapLoading(true);
     console.info("[tg-login] bootstrap fetch start");
-    void fetchTelegramMiniAppBootstrap()
-      .then((result) => {
-        const resolved =
-          result ?? { mode: "unsupported" as const, reason: "BOOTSTRAP_FAILED" };
-        console.info("[tg-login] bootstrap result", {
-          mode: resolved.mode,
-          reason: "reason" in resolved ? resolved.reason : undefined,
+    void (async () => {
+      for (let attempt = 0; attempt < BOOTSTRAP_RETRY_DELAYS_MS.length; attempt += 1) {
+        const delay = BOOTSTRAP_RETRY_DELAYS_MS[attempt];
+        if (delay > 0) {
+          await sleep(delay);
+        }
+        if (cancelled) return;
+
+        const result = await fetchTelegramMiniAppBootstrap();
+        if (cancelled) return;
+        if (result?.mode === "custom_jwt" || result?.reason === "TELEGRAM_LOGIN_NOT_CONFIGURED") {
+          console.info("[tg-login] bootstrap result", {
+            mode: result.mode,
+            reason: "reason" in result ? result.reason : undefined,
+            attempt: attempt + 1,
+          });
+          setBootstrap(result);
+          setBootstrapLoading(false);
+          return;
+        }
+        console.info("[tg-login] bootstrap retry", {
+          attempt: attempt + 1,
+          mode: result?.mode,
+          reason: result && "reason" in result ? result.reason : undefined,
         });
-        setBootstrap(resolved);
-      })
-      .finally(() => {
-        setBootstrapLoading(false);
-      });
+      }
+
+      if (cancelled) return;
+      const failed = { mode: "unsupported" as const, reason: "BOOTSTRAP_FAILED" };
+      console.info("[tg-login] bootstrap result", failed);
+      setBootstrap(failed);
+      setBootstrapLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [detectionComplete, isTelegramLaunch]);
 
   const jwtAuthEnabled =
@@ -179,4 +204,8 @@ export function TelegramPrivyAutoLogin() {
   });
 
   return null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

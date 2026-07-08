@@ -18,11 +18,15 @@ export async function fetchTelegramMiniAppBootstrap(): Promise<
   TelegramMiniAppBootstrap | undefined
 > {
   const initData = readTelegramInitData();
+  const startParam = peekTelegramStartParam();
   const botUsername = currentTelegramBotUsername();
+  if (!initData?.trim() && startParam?.trim()) {
+    return undefined;
+  }
   const body = initData?.trim()
     ? {
         initData,
-        startParam: peekTelegramStartParam(),
+        startParam,
         botUsername,
       }
     : {};
