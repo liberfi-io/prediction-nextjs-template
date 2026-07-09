@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { TradeOutcome } from "@liberfi.io/ui-predict";
 import {
   pickBestAsk,
@@ -39,6 +39,13 @@ interface CardOddsTarget {
 }
 
 const ORDERBOOK_SEED_BATCH_SIZE = 100;
+const ORDERBOOK_REFRESH_INTERVAL_MS = 15_000;
+
+interface CardOrderbookTargetItem {
+  slug: string;
+  source: ProviderSource;
+  outcome: TradeOutcome;
+}
 
 export function tradeMarketForCode(match: WcMatch, marketCode: string): PredictMarket | null {
   const markets = match.tradeMarkets;
@@ -177,11 +184,7 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
 
   const targetItems = useMemo(
     () =>
-      JSON.parse(targetItemsKey) as {
-        slug: string;
-        source: ProviderSource;
-        outcome: TradeOutcome;
-      }[],
+      JSON.parse(targetItemsKey) as CardOrderbookTargetItem[],
     [targetItemsKey],
   );
   const targetKeys = useMemo(
@@ -195,6 +198,44 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
   const targetKeysRef = useRef(targetKeys);
   targetKeysRef.current = targetKeys;
   const pricesByKey = useWorldcupOrderbookPriceMap(targetItems);
+  const targetItemsRef = useRef(targetItems);
+  targetItemsRef.current = targetItems;
+
+  const fetchAndPublishOrderbooks = useCallback(
+    async (
+      items: CardOrderbookTargetItem[],
+      options?: { cancelled?: () => boolean; markSeeded?: boolean },
+    ) => {
+      try {
+        const results = await predictClient.getOrderbooks(
+          items.map((item) => ({
+            slug: item.slug,
+            source: item.source,
+            outcome: item.outcome,
+          })),
+        );
+        if (options?.cancelled?.()) return;
+        for (const result of results) {
+          const price =
+            result.orderbook?.market_id === result.slug &&
+            result.orderbook.outcome === result.outcome
+              ? pickBestAsk(result.orderbook, result.outcome)
+              : null;
+          if (options?.markSeeded) {
+            seededKeysRef.current.add(oddsKey(result.slug, result.outcome));
+          }
+          if (price == null || price <= 0) continue;
+          publishWorldcupOrderbookPrice(result.slug, result.outcome, price);
+        }
+      } catch {
+        if (!options?.markSeeded || options?.cancelled?.()) return;
+        for (const item of items) {
+          seededKeysRef.current.add(oddsKey(item.slug, item.outcome));
+        }
+      }
+    },
+    [predictClient],
+  );
 
   useEffect(() => {
     const pending = targetItems.filter(
@@ -204,35 +245,11 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
 
     let cancelled = false;
 
-    const applySeed = (slug: string, outcome: TradeOutcome, price: number | null) => {
-      const key = oddsKey(slug, outcome);
-      seededKeysRef.current.add(key);
-      if (cancelled || price == null || price <= 0) return;
-      publishWorldcupOrderbookPrice(slug, outcome, price);
-    };
-
     const fetchChunk = async (chunk: typeof pending) => {
-      try {
-        const results = await predictClient.getOrderbooks(
-          chunk.map((item) => ({
-            slug: item.slug,
-            source: item.source,
-            outcome: item.outcome,
-          })),
-        );
-        if (cancelled) return;
-        for (const result of results) {
-          const price =
-            result.orderbook?.market_id === result.slug &&
-            result.orderbook.outcome === result.outcome
-              ? pickBestAsk(result.orderbook, result.outcome)
-              : null;
-          applySeed(result.slug, result.outcome, price);
-        }
-      } catch {
-        if (cancelled) return;
-        for (const item of chunk) applySeed(item.slug, item.outcome, null);
-      }
+      await fetchAndPublishOrderbooks(chunk, {
+        cancelled: () => cancelled,
+        markSeeded: true,
+      });
     };
 
     void (async () => {
@@ -245,7 +262,31 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
     return () => {
       cancelled = true;
     };
-  }, [predictClient, targetItems]);
+  }, [fetchAndPublishOrderbooks, targetItems]);
+
+  useEffect(() => {
+    if (targetItems.length === 0) return;
+    let cancelled = false;
+
+    const refresh = async () => {
+      const items = targetItemsRef.current;
+      for (let i = 0; i < items.length; i += ORDERBOOK_SEED_BATCH_SIZE) {
+        if (cancelled) return;
+        await fetchAndPublishOrderbooks(items.slice(i, i + ORDERBOOK_SEED_BATCH_SIZE), {
+          cancelled: () => cancelled,
+        });
+      }
+    };
+
+    const id = window.setInterval(() => {
+      void refresh();
+    }, ORDERBOOK_REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [fetchAndPublishOrderbooks, targetItems.length]);
 
   useEffect(() => {
     seededKeysRef.current.forEach((key) => {

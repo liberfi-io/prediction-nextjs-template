@@ -830,6 +830,7 @@ function formatSignedLine(value: number): string {
 // The batch orderbook endpoint caps a request at 100 markets; chunk so the
 // active tab's markets land in the first request.
 const SEED_BATCH_SIZE = 100;
+const ORDERBOOK_REFRESH_INTERVAL_MS = 15_000;
 
 /**
  * Tracks the live YES best-ask for every open market of the match.
@@ -876,6 +877,26 @@ export function useVisibleOrderbookPrices(
       }[],
     [subscribedMarketsKey],
   );
+  const refreshMarketsKey = useMemo(() => {
+    const list = markets
+      .filter((market) => market.status === "open")
+      .map((market) => ({
+        slug: market.slug,
+        source: (market.source ?? "polymarket") as ProviderSource,
+      }))
+      .sort((a, b) => a.slug.localeCompare(b.slug));
+    return JSON.stringify(list);
+  }, [markets]);
+  const refreshMarkets = useMemo(
+    () =>
+      JSON.parse(refreshMarketsKey) as {
+        slug: string;
+        source: ProviderSource;
+      }[],
+    [refreshMarketsKey],
+  );
+  const refreshMarketsRef = useRef(refreshMarkets);
+  refreshMarketsRef.current = refreshMarkets;
   const subscribedSlugSet = useMemo(
     () => new Set(subscribedMarkets.map((market) => market.slug)),
     [subscribedMarkets],
@@ -915,6 +936,41 @@ export function useVisibleOrderbookPrices(
   const subscribedSlugSetRef = useRef(subscribedSlugSet);
   subscribedSlugSetRef.current = subscribedSlugSet;
 
+  const fetchAndPublishOrderbooks = useCallback(
+    async (
+      items: { slug: string; source: ProviderSource }[],
+      options?: { cancelled?: () => boolean; markSeeded?: boolean },
+    ) => {
+      try {
+        const results = await predictClient.getOrderbooks(
+          items.map((market) => ({
+            slug: market.slug,
+            source: market.source,
+            outcome: "yes" as const,
+          })),
+        );
+        if (options?.cancelled?.()) return;
+        const bySlug = new Map(results.map((result) => [result.slug, result]));
+        for (const market of items) {
+          const orderbook = bySlug.get(market.slug)?.orderbook;
+          const price =
+            orderbook &&
+            orderbook.market_id === market.slug &&
+            orderbook.outcome === "yes"
+              ? pickBestAsk(orderbook, "yes")
+              : null;
+          if (options?.markSeeded) seededSlugsRef.current.add(market.slug);
+          if (price == null || price <= 0) continue;
+          publishWorldcupOrderbookPrice(market.slug, "yes", price);
+        }
+      } catch {
+        if (!options?.markSeeded || options?.cancelled?.()) return;
+        for (const market of items) seededSlugsRef.current.add(market.slug);
+      }
+    },
+    [predictClient],
+  );
+
   // REST seed: the server pushes no snapshot on subscribe, so fetch one for
   // every not-yet-seeded market to render before the first WS push (and as a
   // fallback when WS is down). A single batch request replaces the previous
@@ -933,39 +989,13 @@ export function useVisibleOrderbookPrices(
 
     let cancelled = false;
 
-    const applySeed = (slug: string, price: number | null) => {
-      seededSlugsRef.current.add(slug);
-      if (cancelled || price == null || price <= 0) return;
-      publishWorldcupOrderbookPrice(slug, "yes", price);
-    };
-
     const fetchChunk = async (
       chunk: { slug: string; source: ProviderSource }[],
     ) => {
-      try {
-        const results = await predictClient.getOrderbooks(
-          chunk.map((market) => ({
-            slug: market.slug,
-            source: market.source,
-            outcome: "yes" as const,
-          })),
-        );
-        if (cancelled) return;
-        const bySlug = new Map(results.map((result) => [result.slug, result]));
-        for (const market of chunk) {
-          const orderbook = bySlug.get(market.slug)?.orderbook;
-          const price =
-            orderbook &&
-            orderbook.market_id === market.slug &&
-            orderbook.outcome === "yes"
-              ? pickBestAsk(orderbook, "yes")
-              : null;
-          applySeed(market.slug, price);
-        }
-      } catch {
-        if (cancelled) return;
-        for (const market of chunk) applySeed(market.slug, null);
-      }
+      await fetchAndPublishOrderbooks(chunk, {
+        cancelled: () => cancelled,
+        markSeeded: true,
+      });
     };
 
     void (async () => {
@@ -978,7 +1008,31 @@ export function useVisibleOrderbookPrices(
     return () => {
       cancelled = true;
     };
-  }, [predictClient, prioritySlugs, subscribedMarkets]);
+  }, [fetchAndPublishOrderbooks, prioritySlugs, subscribedMarkets]);
+
+  useEffect(() => {
+    if (refreshMarkets.length === 0) return;
+    let cancelled = false;
+
+    const refresh = async () => {
+      const items = refreshMarketsRef.current;
+      for (let i = 0; i < items.length; i += SEED_BATCH_SIZE) {
+        if (cancelled) return;
+        await fetchAndPublishOrderbooks(items.slice(i, i + SEED_BATCH_SIZE), {
+          cancelled: () => cancelled,
+        });
+      }
+    };
+
+    const id = window.setInterval(() => {
+      void refresh();
+    }, ORDERBOOK_REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [fetchAndPublishOrderbooks, refreshMarkets.length]);
 
   // Mirror the selected market's live best-ask into the same map so the panel
   // reads one price source for every market. This keeps the price continuous
