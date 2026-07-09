@@ -1,4 +1,8 @@
-import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
+import type {
+  PredictEvent,
+  PredictMarket,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 
 /**
  * World Cup domain types — self-contained in the template (ADR-6).
@@ -182,6 +186,10 @@ export interface WcOutcome {
   price: number;
   /** Provider token id when returned by the BFF. */
   tokenId?: string;
+  /** Market slug for lightweight list payloads without `tradeMarkets`. */
+  marketSlug?: string;
+  /** Provider source for {@link marketSlug}. */
+  marketSource?: ProviderSource;
   /** Realtime best bid in [0,1]. */
   bestBid?: number;
   /** Realtime best ask in [0,1]. */

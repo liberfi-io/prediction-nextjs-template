@@ -67,9 +67,13 @@ function marketSource(market: PredictMarket | null | undefined): ProviderSource 
   return (market?.source ?? "polymarket") as ProviderSource;
 }
 
+function outcomeSource(outcome: WcOutcome): ProviderSource {
+  return (outcome.marketSource ?? "polymarket") as ProviderSource;
+}
+
 export function collectCardOddsTargets(matches: WcMatch[]): CardOddsTarget[] {
   const targets: CardOddsTarget[] = [];
-  const push = (
+  const pushMarket = (
     match: WcMatch,
     path: CardOddsPath,
     market: PredictMarket | null,
@@ -84,22 +88,62 @@ export function collectCardOddsTargets(matches: WcMatch[]): CardOddsTarget[] {
       path,
     });
   };
+  const pushOutcome = (
+    match: WcMatch,
+    path: CardOddsPath,
+    cardOutcome: WcOutcome,
+    outcome: TradeOutcome,
+  ) => {
+    if (!cardOutcome.marketSlug) return;
+    targets.push({
+      matchId: match.matchId,
+      slug: cardOutcome.marketSlug,
+      source: outcomeSource(cardOutcome),
+      outcome,
+      path,
+    });
+  };
+  const push = (
+    match: WcMatch,
+    path: CardOddsPath,
+    market: PredictMarket | null,
+    cardOutcome: WcOutcome,
+    outcome: TradeOutcome,
+  ) => {
+    if (market) {
+      pushMarket(match, path, market, outcome);
+      return;
+    }
+    pushOutcome(match, path, cardOutcome, outcome);
+  };
 
   for (const match of matches) {
     if (match.status === "final" || match.liveState?.ended) continue;
 
-    push(match, "moneyline.home", tradeMarketForCode(match, "mlh"), "yes");
-    push(match, "moneyline.draw", tradeMarketForCode(match, "mld"), "yes");
-    push(match, "moneyline.away", tradeMarketForCode(match, "mla"), "yes");
+    push(match, "moneyline.home", tradeMarketForCode(match, "mlh"), match.moneyline.home, "yes");
+    push(match, "moneyline.draw", tradeMarketForCode(match, "mld"), match.moneyline.draw, "yes");
+    push(match, "moneyline.away", tradeMarketForCode(match, "mla"), match.moneyline.away, "yes");
 
     const spreadMarketCode = match.spread.line < 0 ? "sph" : "spa";
     const spreadMarket = tradeMarketForCode(match, spreadMarketCode);
-    push(match, "spread.home", spreadMarket, match.spread.line < 0 ? "yes" : "no");
-    push(match, "spread.away", spreadMarket, match.spread.line < 0 ? "no" : "yes");
+    push(
+      match,
+      "spread.home",
+      spreadMarket,
+      match.spread.home,
+      match.spread.line < 0 ? "yes" : "no",
+    );
+    push(
+      match,
+      "spread.away",
+      spreadMarket,
+      match.spread.away,
+      match.spread.line < 0 ? "no" : "yes",
+    );
 
     const totalMarket = tradeMarketForCode(match, "to");
-    push(match, "total.over", totalMarket, "yes");
-    push(match, "total.under", totalMarket, "no");
+    push(match, "total.over", totalMarket, match.total.over, "yes");
+    push(match, "total.under", totalMarket, match.total.under, "no");
   }
 
   return targets;

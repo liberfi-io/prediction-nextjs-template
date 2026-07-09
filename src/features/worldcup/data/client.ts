@@ -9,7 +9,11 @@
  * client-side.
  */
 
-import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
+import type {
+  PredictEvent,
+  PredictMarket,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 import type {
   WcBracketNode,
   WcFeed,
@@ -52,6 +56,7 @@ export interface WcOutcomeDto {
 
 export interface WcMarketDto {
   slug?: string;
+  source?: ProviderSource;
   condition_id: string;
   sports_market_type: string;
   group_item_title?: string;
@@ -324,6 +329,7 @@ function outcomePrice(o?: WcOutcomeDto): number {
 function outcomeBase(
   label: string,
   outcome?: WcOutcomeDto,
+  market?: WcMarketDto,
   extra: Partial<WcOutcome> = {},
 ): WcOutcome {
   return {
@@ -331,6 +337,8 @@ function outcomeBase(
     labelTrans: outcome?.name_trans,
     price: outcomePrice(outcome),
     tokenId: outcome?.token_id,
+    marketSlug: market?.slug,
+    marketSource: market?.source ?? "polymarket",
     bestBid: outcome?.best_bid,
     bestAsk: outcome?.best_ask,
     ...extra,
@@ -373,32 +381,34 @@ function buildMoneyline(
   home: WcTeam,
   away: WcTeam,
 ): WcMoneyline {
-  let homeO: WcOutcomeDto | undefined;
-  let drawO: WcOutcomeDto | undefined;
-  let awayO: WcOutcomeDto | undefined;
-  const leftover: WcOutcomeDto[] = [];
+  let homeO: { market: WcMarketDto; outcome: WcOutcomeDto } | undefined;
+  let drawO: { market: WcMarketDto; outcome: WcOutcomeDto } | undefined;
+  let awayO: { market: WcMarketDto; outcome: WcOutcomeDto } | undefined;
+  const leftover: { market: WcMarketDto; outcome: WcOutcomeDto }[] = [];
 
   for (const m of markets) {
     if (m.sports_market_type !== SMT_MONEYLINE) continue;
     const title = (m.group_item_title ?? "").trim().toLowerCase();
     const outcome = primaryOutcome(m);
-    if (isDrawTitle(title)) drawO = outcome;
-    else if (homeKeys.has(title)) homeO = outcome;
-    else if (awayKeys.has(title)) awayO = outcome;
-    else if (outcome) leftover.push(outcome);
+    if (!outcome) continue;
+    const entry = { market: m, outcome };
+    if (isDrawTitle(title)) drawO = entry;
+    else if (homeKeys.has(title)) homeO = entry;
+    else if (awayKeys.has(title)) awayO = entry;
+    else leftover.push(entry);
   }
 
   // Assign any unmatched markets to still-empty slots in encounter order.
-  for (const outcome of leftover) {
-    if (!homeO) homeO = outcome;
-    else if (!awayO) awayO = outcome;
-    else if (!drawO) drawO = outcome;
+  for (const entry of leftover) {
+    if (!homeO) homeO = entry;
+    else if (!awayO) awayO = entry;
+    else if (!drawO) drawO = entry;
   }
 
   return {
-    home: outcomeBase(home.code, homeO, { teamCode: home.code }),
-    draw: outcomeBase("Draw", drawO),
-    away: outcomeBase(away.code, awayO, { teamCode: away.code }),
+    home: outcomeBase(home.code, homeO?.outcome, homeO?.market, { teamCode: home.code }),
+    draw: outcomeBase("Draw", drawO?.outcome, drawO?.market),
+    away: outcomeBase(away.code, awayO?.outcome, awayO?.market, { teamCode: away.code }),
   };
 }
 
@@ -440,13 +450,13 @@ function buildSpread(
   return favIsHome
     ? {
         line: -mag,
-        home: outcomeBase(home.code, cover, { teamCode: home.code }),
-        away: outcomeBase(away.code, other, { teamCode: away.code }),
+        home: outcomeBase(home.code, cover, fav, { teamCode: home.code }),
+        away: outcomeBase(away.code, other, fav, { teamCode: away.code }),
       }
     : {
         line: mag,
-        home: outcomeBase(home.code, other, { teamCode: home.code }),
-        away: outcomeBase(away.code, cover, { teamCode: away.code }),
+        home: outcomeBase(home.code, other, fav, { teamCode: home.code }),
+        away: outcomeBase(away.code, cover, fav, { teamCode: away.code }),
       };
 }
 
@@ -469,8 +479,8 @@ function buildTotal(markets: WcMarketDto[]): WcTotal {
   }
   return {
     line: num(m.line),
-    over: outcomeBase("Over", over),
-    under: outcomeBase("Under", under),
+    over: outcomeBase("Over", over, m),
+    under: outcomeBase("Under", under, m),
   };
 }
 
