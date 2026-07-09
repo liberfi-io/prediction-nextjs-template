@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
+import {
+  pickBestAsk,
+  useRealtimeOrderbook,
+} from "@liberfi.io/react-predict";
 import type {
   PredictEvent,
   PredictMarket,
@@ -17,6 +21,11 @@ import {
 import { convertPrice } from "../../odds/convert-price";
 import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
+import {
+  clearWorldcupOrderbookPrice,
+  publishWorldcupOrderbookPrice,
+  useWorldcupOrderbookPrice,
+} from "../../orderbookPriceStore";
 import { sportsType } from "./marketGrouping";
 
 export function formatBuyOddsPrice(
@@ -96,6 +105,21 @@ export function getTradeDisplayLabels({
   };
 }
 
+export function withOutcomePrice(
+  market: PredictMarket,
+  outcome: TradeOutcome,
+  price: number | undefined,
+): PredictMarket {
+  if (price === undefined || price <= 0) return market;
+  const index = outcome === "yes" ? 0 : 1;
+  if (!market.outcomes?.[index]) return market;
+  const outcomes = [...market.outcomes];
+  const current = outcomes[index];
+  if (current.best_ask === price && current.price === price) return market;
+  outcomes[index] = { ...current, best_ask: price, price };
+  return { ...market, outcomes };
+}
+
 /**
  * Buy/Sell trade panel: a segmented Buy/Sell switch above the matching trade
  * form. Shared by the desktop right-rail aside and the trade modal so both
@@ -126,6 +150,38 @@ export function TradePanel({
 }) {
   const { t } = useTranslation();
   const [format] = useOddsFormat();
+  const sharedOutcomePrice = useWorldcupOrderbookPrice(market.slug, outcome);
+  const { data: liveOrderbook } = useRealtimeOrderbook(
+    {
+      slug: market.slug,
+      source: market.source ?? "polymarket",
+      outcome,
+    },
+    { enabled: market.status === "open" },
+  );
+  const hasLiveOutcomeBook =
+    liveOrderbook?.market_id === market.slug && liveOrderbook?.outcome === outcome;
+  const liveOutcomePrice = useMemo(() => {
+    if (!hasLiveOutcomeBook) {
+      return null;
+    }
+    const ask = pickBestAsk(liveOrderbook, outcome);
+    return ask != null && ask > 0 ? ask : null;
+  }, [hasLiveOutcomeBook, liveOrderbook, outcome]);
+
+  useEffect(() => {
+    if (!hasLiveOutcomeBook) return;
+    if (liveOutcomePrice == null || liveOutcomePrice <= 0) {
+      clearWorldcupOrderbookPrice(market.slug, outcome);
+      return;
+    }
+    publishWorldcupOrderbookPrice(market.slug, outcome, liveOutcomePrice);
+  }, [hasLiveOutcomeBook, liveOutcomePrice, market.slug, outcome]);
+
+  const effectiveMarket = useMemo(
+    () => withOutcomePrice(market, outcome, sharedOutcomePrice),
+    [market, outcome, sharedOutcomePrice],
+  );
   const oddsFormatter = useCallback(
     (price: number) =>
       side === "buy" ? formatBuyOddsPrice(price, format) : convertPrice(price, format),
@@ -133,8 +189,8 @@ export function TradePanel({
   );
   const eventTitle = event.title_trans || event.title;
   const { actionLabel, marketTitle, outcomeLabel, outcomeLabels } = useMemo(
-    () => getTradeDisplayLabels({ market, outcome, side, t }),
-    [market, outcome, side, t],
+    () => getTradeDisplayLabels({ market: effectiveMarket, outcome, side, t }),
+    [effectiveMarket, outcome, side, t],
   );
 
   return (
@@ -179,7 +235,7 @@ export function TradePanel({
         <div className="worldcup-trade-panel-form">
           <SellFormWidget
             key={`sell-${market.slug}`}
-            market={market}
+            market={effectiveMarket}
             variant="flat"
             initialOutcome={outcome}
             initialPositionSide={initialPositionSide}
@@ -194,7 +250,7 @@ export function TradePanel({
         <div className="worldcup-trade-panel-form">
           <TradeFormWidget
             key={`buy-${market.slug}`}
-            market={market}
+            market={effectiveMarket}
             variant="flat"
             initialOutcome={outcome}
             oddsFormatter={oddsFormatter}

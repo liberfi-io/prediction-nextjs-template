@@ -14,13 +14,22 @@ import type {
   ProviderSource,
 } from "@liberfi.io/react-predict";
 import {
+  pickBestAsk,
+  useRealtimeOrderbook,
+} from "@liberfi.io/react-predict";
+import {
   formatShares,
   KycModal,
   useTradeForm,
   type TradeOutcome,
 } from "@liberfi.io/ui-predict";
 import { useAuthCallback } from "@liberfi.io/wallet-connector";
-import { getTradeDisplayLabels } from "./TradePanel";
+import {
+  clearWorldcupOrderbookPrice,
+  publishWorldcupOrderbookPrice,
+  useWorldcupOrderbookPrice,
+} from "../../orderbookPriceStore";
+import { getTradeDisplayLabels, withOutcomePrice } from "./TradePanel";
 
 const QUICK_AMOUNTS = [1, 5, 10, 100] as const;
 const EMPTY_VALUE = "-";
@@ -64,6 +73,38 @@ export function MobileBuyTradePanel({
   oddsFormatter?: (price: number) => string;
 }) {
   const { t } = useTranslation();
+  const sharedOutcomePrice = useWorldcupOrderbookPrice(market.slug, outcome);
+  const { data: liveOrderbook } = useRealtimeOrderbook(
+    {
+      slug: market.slug,
+      source: market.source ?? "polymarket",
+      outcome,
+    },
+    { enabled: market.status === "open" },
+  );
+  const hasLiveOutcomeBook =
+    liveOrderbook?.market_id === market.slug && liveOrderbook?.outcome === outcome;
+  const liveOutcomePrice = useMemo(() => {
+    if (!hasLiveOutcomeBook) {
+      return null;
+    }
+    const ask = pickBestAsk(liveOrderbook, outcome);
+    return ask != null && ask > 0 ? ask : null;
+  }, [hasLiveOutcomeBook, liveOrderbook, outcome]);
+
+  useEffect(() => {
+    if (!hasLiveOutcomeBook) return;
+    if (liveOutcomePrice == null || liveOutcomePrice <= 0) {
+      clearWorldcupOrderbookPrice(market.slug, outcome);
+      return;
+    }
+    publishWorldcupOrderbookPrice(market.slug, outcome, liveOutcomePrice);
+  }, [hasLiveOutcomeBook, liveOutcomePrice, market.slug, outcome]);
+
+  const effectiveMarket = useMemo(
+    () => withOutcomePrice(market, outcome, sharedOutcomePrice),
+    [market, outcome, sharedOutcomePrice],
+  );
   const {
     outcome: activeOutcome,
     orderType,
@@ -94,7 +135,7 @@ export function MobileBuyTradePanel({
     submit,
     notifyInsufficientBalance,
   } = useTradeForm({
-    market,
+    market: effectiveMarket,
     initialOutcome: outcome,
     onInsufficientBalance,
   });
@@ -115,12 +156,12 @@ export function MobileBuyTradePanel({
   const eventTitle = event.title_trans || event.title;
   const { actionLabel, marketTitle, outcomeLabel } = useMemo(
     () => getTradeDisplayLabels({
-      market,
+      market: effectiveMarket,
       outcome: activeOutcome,
       side: "buy",
       t,
     }),
-    [activeOutcome, market, t],
+    [activeOutcome, effectiveMarket, t],
   );
   const maxAmount = maxBuyAmount ?? floorUsd(usdcBalance ?? 0);
   const totalPayment = hasAmount ? estimatedCost + estimatedFee : 0;

@@ -27,6 +27,12 @@ import type {
 import { convertPrice } from "../../odds/convert-price";
 import { displayableBuyPrice } from "../../odds/displayable-price";
 import { useOddsFormat } from "../../odds/OddsFormatProvider";
+import {
+  clearWorldcupOrderbookPrice,
+  publishWorldcupOrderbookPrice,
+  useWorldcupOrderbookPriceMap,
+  worldcupOrderbookPriceKey,
+} from "../../orderbookPriceStore";
 import { formatVolume } from "../util";
 import {
   type CategorizedMarkets,
@@ -843,9 +849,6 @@ export function useVisibleOrderbookPrices(
 ): Map<string, number> {
   const predictClient = usePredictClient();
   const { wsClient } = usePredictWsClient();
-  const [pricesBySlug, setPricesBySlug] = useState<Map<string, number>>(
-    () => new Map(),
-  );
   // Slugs already covered by a REST snapshot, so the seed only ever fetches a
   // market once.
   const seededSlugsRef = useRef<Set<string>>(new Set());
@@ -877,6 +880,35 @@ export function useVisibleOrderbookPrices(
     () => new Set(subscribedMarkets.map((market) => market.slug)),
     [subscribedMarkets],
   );
+  const priceTargets = useMemo(
+    () =>
+      markets
+        .filter((market) => market.status === "open")
+        .map((market) => ({
+          slug: market.slug,
+          outcome: "yes" as const,
+        })),
+    [markets],
+  );
+  const sharedPricesByKey = useWorldcupOrderbookPriceMap(priceTargets);
+  const pricesBySlug = useMemo(() => {
+    const next = new Map<string, number>();
+    for (const target of priceTargets) {
+      const price = sharedPricesByKey.get(
+        worldcupOrderbookPriceKey(target.slug, target.outcome),
+      );
+      if (price !== undefined) next.set(target.slug, price);
+    }
+    if (
+      selectedSlug &&
+      selectedPrice != null &&
+      selectedPrice > 0 &&
+      !next.has(selectedSlug)
+    ) {
+      next.set(selectedSlug, selectedPrice);
+    }
+    return next;
+  }, [priceTargets, selectedPrice, selectedSlug, sharedPricesByKey]);
 
   // Latest valid-slug set, read by the long-lived WS listener so it does not
   // re-register on every selection/category change.
@@ -887,8 +919,7 @@ export function useVisibleOrderbookPrices(
   // every not-yet-seeded market to render before the first WS push (and as a
   // fallback when WS is down). A single batch request replaces the previous
   // per-market fan-out; markets in the active tab are placed in the first chunk
-  // so they fill immediately while the rest stream in behind them. The seed
-  // never overwrites a slug that already has a (fresher) WS value.
+  // so they fill immediately while the rest stream in behind them.
   useEffect(() => {
     const pending = subscribedMarkets.filter(
       (market) => !seededSlugsRef.current.has(market.slug),
@@ -905,12 +936,7 @@ export function useVisibleOrderbookPrices(
     const applySeed = (slug: string, price: number | null) => {
       seededSlugsRef.current.add(slug);
       if (cancelled || price == null || price <= 0) return;
-      setPricesBySlug((prev) => {
-        if (prev.has(slug)) return prev;
-        const next = new Map(prev);
-        next.set(slug, price);
-        return next;
-      });
+      publishWorldcupOrderbookPrice(slug, "yes", price);
     };
 
     const fetchChunk = async (
@@ -960,34 +986,16 @@ export function useVisibleOrderbookPrices(
   // dropping to the stale static snapshot.
   useEffect(() => {
     if (!selectedSlug || selectedPrice == null || selectedPrice <= 0) return;
-    setPricesBySlug((prev) => {
-      if (prev.get(selectedSlug) === selectedPrice) return prev;
-      const next = new Map(prev);
-      next.set(selectedSlug, selectedPrice);
-      return next;
-    });
+    publishWorldcupOrderbookPrice(selectedSlug, "yes", selectedPrice);
   }, [selectedSlug, selectedPrice]);
 
   // Drop prices (and seed tracking) for markets that left the match's set. The
-  // selected slug is retained even though it is excluded from the subscription,
-  // so its last live price survives until it rejoins.
+  // selected slug is retained even though it is excluded from the subscription.
   useEffect(() => {
     seededSlugsRef.current.forEach((slug) => {
       if (!subscribedSlugSet.has(slug)) seededSlugsRef.current.delete(slug);
     });
-    setPricesBySlug((prev) => {
-      let changed = false;
-      const next = new Map<string, number>();
-      prev.forEach((price, slug) => {
-        if (subscribedSlugSet.has(slug) || slug === selectedSlug) {
-          next.set(slug, price);
-          return;
-        }
-        changed = true;
-      });
-      return changed ? next : prev;
-    });
-  }, [selectedSlug, subscribedSlugSet]);
+  }, [subscribedSlugSet]);
 
   // Long-lived WS listener, registered once per client. Reads the valid-slug
   // set from a ref so it survives selection/category changes without
@@ -1010,18 +1018,11 @@ export function useVisibleOrderbookPrices(
         spread: msg.data.spread,
       };
       const ask = pickBestAsk(orderbook, "yes");
-      setPricesBySlug((prev) => {
-        if (ask == null || ask <= 0) {
-          if (!prev.has(slug)) return prev;
-          const next = new Map(prev);
-          next.delete(slug);
-          return next;
-        }
-        if (prev.get(slug) === ask) return prev;
-        const next = new Map(prev);
-        next.set(slug, ask);
-        return next;
-      });
+      if (ask == null || ask <= 0) {
+        clearWorldcupOrderbookPrice(slug, "yes");
+        return;
+      }
+      publishWorldcupOrderbookPrice(slug, "yes", ask);
     });
   }, [wsClient]);
 

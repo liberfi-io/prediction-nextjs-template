@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
-import {
-  applyLiveStateToMatch,
-  applyMarketRealtimeToMatches,
-} from "../../data/client";
+import { applyLiveStateToMatch } from "../../data/client";
 import { useWorldcupRealtime } from "../../data/live";
 import {
   usePrefetchWorldcupMatchEvent,
@@ -298,16 +295,14 @@ export function GamesTab({ mode = "all" }: GamesTabProps) {
     tradeRequest?.event && tradeRequest.market ? "" : tradeRequest?.match.slug ?? "",
   );
   const prefetchMatchEvent = usePrefetchWorldcupMatchEvent();
-  const { liveStates, marketState } = useWorldcupRealtime();
+  const { liveStates } = useWorldcupRealtime();
   const realtimeMatches = useMemo(
-    () => {
-      const marketMatches = applyMarketRealtimeToMatches(rawMatches, marketState);
-      return marketMatches.map((m) => {
+    () =>
+      rawMatches.map((m) => {
         const liveState = liveStates[m.matchId];
         return liveState ? applyLiveStateToMatch(m, liveState) : m;
-      });
-    },
-    [rawMatches, liveStates, marketState]
+      }),
+    [rawMatches, liveStates],
   );
   const cardOddsTargets = useMemo(
     () => collectCardOddsTargets(realtimeMatches),

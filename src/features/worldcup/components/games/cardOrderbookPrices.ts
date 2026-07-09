@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { TradeOutcome } from "@liberfi.io/ui-predict";
 import {
   pickBestAsk,
@@ -14,6 +14,12 @@ import {
   type WsOrderbookEvent,
 } from "@liberfi.io/react-predict";
 import type { WcMatch, WcOutcome } from "../../types";
+import {
+  clearWorldcupOrderbookPrice,
+  publishWorldcupOrderbookPrice,
+  useWorldcupOrderbookPriceMap,
+  worldcupOrderbookPriceKey,
+} from "../../orderbookPriceStore";
 
 type CardOddsPath =
   | "moneyline.home"
@@ -56,7 +62,7 @@ export function tradeMarketForCode(match: WcMatch, marketCode: string): PredictM
 }
 
 function oddsKey(slug: string, outcome: TradeOutcome): string {
-  return `${slug}:${outcome}`;
+  return worldcupOrderbookPriceKey(slug, outcome);
 }
 
 function isTradeOutcome(value: unknown): value is TradeOutcome {
@@ -152,7 +158,6 @@ export function collectCardOddsTargets(matches: WcMatch[]): CardOddsTarget[] {
 export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, number> {
   const predictClient = usePredictClient();
   const { wsClient } = usePredictWsClient();
-  const [pricesByKey, setPricesByKey] = useState<Map<string, number>>(() => new Map());
   const seededKeysRef = useRef<Set<string>>(new Set());
 
   const targetItemsKey = useMemo(() => {
@@ -189,6 +194,7 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
   );
   const targetKeysRef = useRef(targetKeys);
   targetKeysRef.current = targetKeys;
+  const pricesByKey = useWorldcupOrderbookPriceMap(targetItems);
 
   useEffect(() => {
     const pending = targetItems.filter(
@@ -202,12 +208,7 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
       const key = oddsKey(slug, outcome);
       seededKeysRef.current.add(key);
       if (cancelled || price == null || price <= 0) return;
-      setPricesByKey((prev) => {
-        if (prev.has(key)) return prev;
-        const next = new Map(prev);
-        next.set(key, price);
-        return next;
-      });
+      publishWorldcupOrderbookPrice(slug, outcome, price);
     };
 
     const fetchChunk = async (chunk: typeof pending) => {
@@ -250,18 +251,6 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
     seededKeysRef.current.forEach((key) => {
       if (!targetKeys.has(key)) seededKeysRef.current.delete(key);
     });
-    setPricesByKey((prev) => {
-      let changed = false;
-      const next = new Map<string, number>();
-      prev.forEach((price, key) => {
-        if (targetKeys.has(key)) {
-          next.set(key, price);
-          return;
-        }
-        changed = true;
-      });
-      return changed ? next : prev;
-    });
   }, [targetKeys]);
 
   useEffect(() => {
@@ -281,18 +270,11 @@ export function useCardOrderbookPrices(targets: CardOddsTarget[]): Map<string, n
         spread: msg.data.spread,
       };
       const price = pickBestAsk(orderbook, outcome);
-      setPricesByKey((prev) => {
-        if (price == null || price <= 0) {
-          if (!prev.has(key)) return prev;
-          const next = new Map(prev);
-          next.delete(key);
-          return next;
-        }
-        if (prev.get(key) === price) return prev;
-        const next = new Map(prev);
-        next.set(key, price);
-        return next;
-      });
+      if (price == null || price <= 0) {
+        clearWorldcupOrderbookPrice(slug, outcome);
+        return;
+      }
+      publishWorldcupOrderbookPrice(slug, outcome, price);
     });
   }, [wsClient]);
 
