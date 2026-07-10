@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast } from "@liberfi.io/ui";
 import { Chain } from "@liberfi.io/types";
 import { EventDetailPage, usePredictWallet } from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { useSimilarEvents } from "@liberfi.io/react-predict";
+import {
+  eventQueryKey,
+  similarEventsQueryKey,
+  useSimilarEvents,
+} from "@liberfi.io/react-predict";
 import type { ProviderSource } from "@liberfi.io/react-predict";
 import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
@@ -16,12 +21,15 @@ import {
 } from "../FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
 import { trackMatchDetailView } from "../../lib/analytics";
+import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
 
 export function PredictDetailPage({ id, source }: { id: string; source: ProviderSource }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const lang = useResolvedApiLang();
   const { onOpen: openFundWallet } =
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
@@ -47,6 +55,13 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
     { slug: id, source, limit: 4 },
     { staleTime: Infinity },
   );
+
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: eventQueryKey(id, source) });
+    void queryClient.invalidateQueries({
+      queryKey: similarEventsQueryKey(id, source, { limit: 4 }),
+    });
+  }, [id, source, lang, queryClient]);
 
   useEffect(() => {
     similarEvents?.forEach((ev) => router.prefetch(predictEventHref(ev)));

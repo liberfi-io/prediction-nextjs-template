@@ -16,6 +16,7 @@ import {
 } from "src/features/worldcup/data/prefetch";
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
+import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
@@ -65,7 +66,8 @@ async function resolvePredictEventBySlug(slug: string): Promise<
     }
   | null
 > {
-  const client = getServerPredictClient();
+  const { requestHeaders } = await getPredictionLocaleContext();
+  const client = getServerPredictClient({ headers: requestHeaders });
 
   for (const source of SOURCE_PRIORITY) {
     try {
