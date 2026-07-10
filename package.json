@@ -14,22 +14,26 @@
   "dependencies": {
     "@heroui/react": "^2.8.10",
     "@heroui/theme": "^2.4.26",
-    "@liberfi.io/hooks": "^0.1.258",
-    "@liberfi.io/i18n": "^0.1.263",
-    "@liberfi.io/react-predict": "^0.3.64",
-    "@liberfi.io/types": "^0.4.66",
-    "@liberfi.io/ui": "^0.3.66",
-    "@liberfi.io/ui-predict": "^4.0.64",
-    "@liberfi.io/ui-scaffold": "^2.0.65",
-    "@liberfi.io/utils": "^0.2.65",
-    "@liberfi.io/wallet-connector": "^0.2.65",
-    "@liberfi.io/wallet-connector-privy": "^1.1.63",
+    "@liberfi.io/hooks": "^0.1.259",
+    "@liberfi.io/i18n": "^0.1.264",
+    "@liberfi.io/react-predict": "^0.3.65",
+    "@liberfi.io/types": "^0.4.67",
+    "@liberfi.io/ui": "^0.3.67",
+    "@liberfi.io/ui-predict": "^4.0.65",
+    "@liberfi.io/ui-scaffold": "^2.0.66",
+    "@liberfi.io/utils": "^0.2.66",
+    "@liberfi.io/wallet-connector": "^0.2.66",
+    "@liberfi.io/wallet-connector-privy": "^1.1.64",
     "@marsidev/react-turnstile": "^1.5.3",
     "@number-flow/react": "^0.6.0",
     "@paulmillr/qr": "^0.2.1",
     "@privy-io/react-auth": "^3.16.0",
     "@privy-io/server-auth": "^1.18.12",
+    "@solana-program/memo": "0.8.0",
+    "@solana-program/system": "0.10.0",
+    "@solana-program/token": "0.9.0",
     "@solana/spl-token": "^0.4.13",
+    "@solana/sysvars": "5.5.1",
     "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-virtual": "^3.13.23",
@@ -75,5 +79,13 @@
     "typescript-eslint": "^8.18.1",
     "url-loader": "^4.1.1"
   },
-  "packageManager": "pnpm@9.5.0"
+  "packageManager": "pnpm@9.5.0",
+  "pnpm": {
+    "overrides": {
+      "@solana-program/memo": "0.8.0",
+      "@solana-program/system": "0.10.0",
+      "@solana-program/token": "0.9.0",
+      "@solana/sysvars": "5.5.1"
+    }
+  }
 }

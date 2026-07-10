@@ -52,14 +52,16 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
       : (evmWallet?.address ?? "");
 
   const { data: similarEvents } = useSimilarEvents(
-    { slug: id, source, limit: 4 },
+    { slug: id, source, limit: 4, lang },
     { staleTime: Infinity },
   );
 
   useEffect(() => {
-    void queryClient.invalidateQueries({ queryKey: eventQueryKey(id, source) });
     void queryClient.invalidateQueries({
-      queryKey: similarEventsQueryKey(id, source, { limit: 4 }),
+      queryKey: eventQueryKey(id, source, lang),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: similarEventsQueryKey(id, source, { limit: 4, lang }),
     });
   }, [id, source, lang, queryClient]);
 
@@ -115,6 +117,7 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
         <EventDetailPage
           eventSlug={id}
           source={source}
+          lang={lang}
           walletAddress={walletAddress}
           onSimilarEventClick={handleSimilarEventClick}
           onBack={() => router.back()}

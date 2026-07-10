@@ -63,16 +63,17 @@ async function resolvePredictEventBySlug(slug: string): Promise<
   | {
       event: PredictEvent;
       source: ProviderSource;
+      lang: string;
     }
   | null
 > {
-  const { requestHeaders } = await getPredictionLocaleContext();
+  const { lang, requestHeaders } = await getPredictionLocaleContext();
   const client = getServerPredictClient({ headers: requestHeaders });
 
   for (const source of SOURCE_PRIORITY) {
     try {
-      const event = await fetchEvent(client, slug, source);
-      if (event.slug === slug) return { event, source };
+      const event = await fetchEvent(client, slug, source, lang);
+      if (event.slug === slug) return { event, source, lang };
     } catch (error) {
       if (isNotFoundLikeError(error)) continue;
       throw error;
@@ -167,7 +168,7 @@ export default async function Page({ params, searchParams }: PageProps) {
   if (!resolved) notFound();
 
   queryClient.setQueryData(
-    eventQueryKey(slug, resolved.source),
+    eventQueryKey(slug, resolved.source, resolved.lang),
     resolved.event,
   );
 
