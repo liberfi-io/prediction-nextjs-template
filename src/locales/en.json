@@ -45,15 +45,58 @@
       "subtitle": "World Cup Smart Money",
       "scopedTag": "FIFA World Cup 2026",
       "discover": "Discover",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Smart Live Feed" },
-      "scopes": { "all": "All", "worldcup": "World Cup" },
-      "liveFeed": {
-        "comingSoon": "Smart Live Feed is coming soon",
-        "description": "Real-time smart-money trades will stream here."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Smart Live Feed"
       },
-      "interval": { "1d": "1D", "7d": "7D", "30d": "30D", "all": "All" },
-      "intervalShort": { "1d": "1D", "7d": "7D", "30d": "30D" },
-      "podium": { "champion": "Champion", "second": "2nd", "third": "3rd" },
+      "scopes": {
+        "all": "All",
+        "worldcup": "World Cup"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D",
+        "all": "All"
+      },
+      "intervalShort": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D"
+      },
+      "podium": {
+        "champion": "Champion",
+        "second": "2nd",
+        "third": "3rd"
+      },
       "col": {
         "winRate": "win rate",
         "markets": "markets",
@@ -101,9 +144,24 @@
         "settlementRatio": "Settled Ratio",
         "avgEntryCount": "Avg Entries"
       },
-      "tabs": { "positions": "Positions", "closed": "Closed", "activity": "Activity" },
-      "pos": { "avgEntry": "Avg", "last": "Last" },
-      "activity": { "buy": "Buy", "sell": "Sell", "redeem": "Redeem" },
+      "tabs": {
+        "positions": "Positions",
+        "closed": "Closed",
+        "activity": "Activity"
+      },
+      "pos": {
+        "avgEntry": "Avg",
+        "last": "Last"
+      },
+      "activity": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "redeem": "Redeem",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "No open positions",
       "noClosed": "No closed positions",
       "noActivity": "No activity yet",
@@ -146,9 +204,18 @@
         "colUnrealizedPnl": "Unrealized",
         "colLastActive": "Active",
         "colStatus": "Status",
-        "tabs": { "all": "All", "open": "Open", "closed": "Closed" },
-        "status": { "won": "WON", "lost": "LOST", "open": "OPEN" }
-      }
+        "tabs": {
+          "all": "All",
+          "open": "Open",
+          "closed": "Closed"
+        },
+        "status": {
+          "won": "WON",
+          "lost": "LOST",
+          "open": "OPEN"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Referral Rewards",
@@ -190,9 +257,7 @@
         "totalAvailableBalance": "Total Available Balance",
         "totalPositions": "Total Positions",
         "portfolioTotal": "Portfolio Total",
-        "unverified": "Unverified",
-        "totalAvailableBalance": "Total Available Balance",
-        "totalPositions": "Total Positions"
+        "unverified": "Unverified"
       },
       "fundWallet": {
         "title": "Fund Wallet",

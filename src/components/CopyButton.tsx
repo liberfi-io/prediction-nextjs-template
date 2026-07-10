@@ -15,10 +15,12 @@
  */
 
 import { useCallback, useState } from "react";
-import { cn } from "@liberfi.io/ui";
+import { cn, toast } from "@liberfi.io/ui";
+import { useTranslation } from "@liberfi.io/i18n";
 
 /** Shared copy state + handler. Returns the `copied` flag and a click handler. */
-function useCopy(value: string) {
+function useCopy(value: string, copiedMessage?: string) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = useCallback(
     async (e: React.SyntheticEvent) => {
@@ -28,12 +30,13 @@ function useCopy(value: string) {
       try {
         await navigator.clipboard.writeText(value);
         setCopied(true);
+        toast.success(copiedMessage ?? t("extend.referral.copied", { defaultValue: "Copied" }));
         setTimeout(() => setCopied(false), 2000);
       } catch {
         // Clipboard may be unavailable (insecure context); ignore.
       }
     },
-    [value],
+    [copiedMessage, t, value],
   );
   return { copied, copy };
 }
@@ -57,13 +60,15 @@ export function CopyButton({
   title = "Copy",
   className,
   size = 12,
+  copiedMessage,
 }: {
   value: string;
   title?: string;
   className?: string;
   size?: number;
+  copiedMessage?: string;
 }) {
-  const { copied, copy } = useCopy(value);
+  const { copied, copy } = useCopy(value, copiedMessage);
   return (
     <button
       type="button"
@@ -91,15 +96,17 @@ export function CopyInline({
   title = "Copy",
   className,
   size = 12,
+  copiedMessage,
   children,
 }: {
   value: string;
   title?: string;
   className?: string;
   size?: number;
+  copiedMessage?: string;
   children: React.ReactNode;
 }) {
-  const { copied, copy } = useCopy(value);
+  const { copied, copy } = useCopy(value, copiedMessage);
   return (
     <span
       role="button"

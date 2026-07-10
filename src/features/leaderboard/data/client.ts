@@ -17,6 +17,7 @@ import type {
   PositionSortField,
   PositionStatus,
   SmartLeaderboard,
+  SmartMoneyLiveFeedPage,
   SmartWalletEntry,
   SortOrder,
   SmartEventRef,
@@ -30,6 +31,10 @@ import type {
   WalletPositionsPage,
   WalletTokenPnl,
 } from "../types";
+import {
+  adaptSmartMoneyLiveActivity,
+  type SmartMoneyLiveFeedDto,
+} from "./liveFeedAdapter";
 
 // ---------------------------------------------------------------------------
 // Backend transport DTOs (snake_case, mirror internal/domain/prediction_smart.go)
@@ -567,6 +572,9 @@ export const walletActivitiesQueryKey = (
   tag?: string | null,
 ) => ["leaderboard", "wallet-activities", wallet, interval ?? "all", tag || "all"] as const;
 
+export const smartMoneyLiveFeedQueryKey = (tag?: string | null) =>
+  ["leaderboard", "smart-money-live-feed", tag || "all"] as const;
+
 export const portfolioPnlQueryKey = (
   user: string,
   interval?: LeaderboardInterval,
@@ -823,3 +831,34 @@ export async function fetchWalletActivities(
 
 /** Default leaderboard page size. */
 export const LEADERBOARD_PAGE_SIZE = 50;
+
+/** Default smart-money live feed snapshot size. */
+export const SMART_LIVE_FEED_LIMIT = 50;
+
+/** Fetch + adapt the smart-money live feed snapshot. */
+export async function fetchSmartMoneyLiveFeed(
+  baseUrl: string,
+  opts: { limit?: number; tag?: string | null; lang?: string } = {},
+): Promise<SmartMoneyLiveFeedPage> {
+  const params = new URLSearchParams({
+    feed: "smart_money",
+    limit: String(opts.limit ?? SMART_LIVE_FEED_LIMIT),
+    order: "desc",
+  });
+  if (opts.tag) params.set("tag", opts.tag);
+  const dto = await getJson<SmartMoneyLiveFeedDto>(
+    baseUrl,
+    `activities/live-feed?${params.toString()}`,
+    opts.lang,
+  );
+  return {
+    tag: dto.tag ?? (dto as { scope?: string }).scope,
+    cursor: dto.cursor ?? null,
+    limit: dto.limit,
+    order: dto.order,
+    retentionDays: dto.retention_days,
+    activities: (dto.activities ?? [])
+      .map(adaptSmartMoneyLiveActivity)
+      .filter((row): row is NonNullable<typeof row> => Boolean(row)),
+  };
+}

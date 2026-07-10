@@ -35,15 +35,58 @@
       "subtitle": "Smart Money Coupe du Monde",
       "scopedTag": "Coupe du Monde FIFA 2026",
       "discover": "Découvrir",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Flux smart en direct" },
-      "scopes": { "all": "Tout", "worldcup": "Coupe du Monde" },
-      "liveFeed": {
-        "comingSoon": "Le flux smart en direct arrive bientôt",
-        "description": "Les trades smart money en temps réel apparaîtront ici."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Flux smart en direct"
       },
-      "interval": { "1d": "1J", "7d": "7J", "30d": "30J", "all": "Tout" },
-      "intervalShort": { "1d": "1J", "7d": "7J", "30d": "30J" },
-      "podium": { "champion": "Champion", "second": "2e", "third": "3e" },
+      "scopes": {
+        "all": "Tout",
+        "worldcup": "Coupe du Monde"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1J",
+        "7d": "7J",
+        "30d": "30J",
+        "all": "Tout"
+      },
+      "intervalShort": {
+        "1d": "1J",
+        "7d": "7J",
+        "30d": "30J"
+      },
+      "podium": {
+        "champion": "Champion",
+        "second": "2e",
+        "third": "3e"
+      },
       "col": {
         "winRate": "taux de réussite",
         "markets": "marchés",
@@ -91,9 +134,24 @@
         "settlementRatio": "Taux de règlement",
         "avgEntryCount": "Entrées moyennes"
       },
-      "tabs": { "positions": "Positions", "closed": "Clôturées", "activity": "Activité" },
-      "pos": { "avgEntry": "Moy", "last": "Dernier" },
-      "activity": { "buy": "Achat", "sell": "Vente", "redeem": "Rachat" },
+      "tabs": {
+        "positions": "Positions",
+        "closed": "Clôturées",
+        "activity": "Activité"
+      },
+      "pos": {
+        "avgEntry": "Moy",
+        "last": "Dernier"
+      },
+      "activity": {
+        "buy": "Achat",
+        "sell": "Vente",
+        "redeem": "Rachat",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Aucune position ouverte",
       "noClosed": "Aucune position clôturée",
       "noActivity": "Aucune activité",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "Latent",
         "colLastActive": "Activité",
         "colStatus": "Statut",
-        "tabs": { "all": "Tout", "open": "Ouvert", "closed": "Clôturées" },
-        "status": { "won": "GAGNÉ", "lost": "PERDU", "open": "OUVERT" }
-      }
+        "tabs": {
+          "all": "Tout",
+          "open": "Ouvert",
+          "closed": "Clôturées"
+        },
+        "status": {
+          "won": "GAGNÉ",
+          "lost": "PERDU",
+          "open": "OUVERT"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Récompenses de parrainage",

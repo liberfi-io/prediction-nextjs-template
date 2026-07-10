@@ -35,15 +35,58 @@
       "subtitle": "Smart Money World Cup",
       "scopedTag": "FIFA World Cup 2026",
       "discover": "Khám phá",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Nguồn smart trực tiếp" },
-      "scopes": { "all": "Tất cả", "worldcup": "World Cup" },
-      "liveFeed": {
-        "comingSoon": "Nguồn smart trực tiếp sắp ra mắt",
-        "description": "Các giao dịch smart money theo thời gian thực sẽ hiển thị tại đây."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Nguồn smart trực tiếp"
       },
-      "interval": { "1d": "1N", "7d": "7N", "30d": "30N", "all": "Tất cả" },
-      "intervalShort": { "1d": "1N", "7d": "7N", "30d": "30N" },
-      "podium": { "champion": "Vô địch", "second": "Hạng 2", "third": "Hạng 3" },
+      "scopes": {
+        "all": "Tất cả",
+        "worldcup": "World Cup"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1N",
+        "7d": "7N",
+        "30d": "30N",
+        "all": "Tất cả"
+      },
+      "intervalShort": {
+        "1d": "1N",
+        "7d": "7N",
+        "30d": "30N"
+      },
+      "podium": {
+        "champion": "Vô địch",
+        "second": "Hạng 2",
+        "third": "Hạng 3"
+      },
       "col": {
         "winRate": "tỷ lệ thắng",
         "markets": "thị trường",
@@ -91,9 +134,24 @@
         "settlementRatio": "Tỷ lệ thanh toán",
         "avgEntryCount": "Số lần vào lệnh TB"
       },
-      "tabs": { "positions": "Vị thế", "closed": "Đã đóng", "activity": "Hoạt động" },
-      "pos": { "avgEntry": "TB", "last": "Mới nhất" },
-      "activity": { "buy": "Mua", "sell": "Bán", "redeem": "Đổi thưởng" },
+      "tabs": {
+        "positions": "Vị thế",
+        "closed": "Đã đóng",
+        "activity": "Hoạt động"
+      },
+      "pos": {
+        "avgEntry": "TB",
+        "last": "Mới nhất"
+      },
+      "activity": {
+        "buy": "Mua",
+        "sell": "Bán",
+        "redeem": "Đổi thưởng",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Không có vị thế mở",
       "noClosed": "Không có vị thế đã đóng",
       "noActivity": "Chưa có hoạt động",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "Chưa thực hiện",
         "colLastActive": "Hoạt động",
         "colStatus": "Trạng thái",
-        "tabs": { "all": "Tất cả", "open": "Mở", "closed": "Đã đóng" },
-        "status": { "won": "THẮNG", "lost": "THUA", "open": "MỞ" }
-      }
+        "tabs": {
+          "all": "Tất cả",
+          "open": "Mở",
+          "closed": "Đã đóng"
+        },
+        "status": {
+          "won": "THẮNG",
+          "lost": "THUA",
+          "open": "MỞ"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Phần thưởng giới thiệu",

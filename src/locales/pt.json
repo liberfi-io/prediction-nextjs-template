@@ -35,15 +35,58 @@
       "subtitle": "Smart Money da Copa",
       "scopedTag": "Copa do Mundo FIFA 2026",
       "discover": "Descobrir",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Feed smart ao vivo" },
-      "scopes": { "all": "Tudo", "worldcup": "Copa" },
-      "liveFeed": {
-        "comingSoon": "O feed smart ao vivo chegará em breve",
-        "description": "As operações smart money em tempo real aparecerão aqui."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Feed smart ao vivo"
       },
-      "interval": { "1d": "1D", "7d": "7D", "30d": "30D", "all": "Tudo" },
-      "intervalShort": { "1d": "1D", "7d": "7D", "30d": "30D" },
-      "podium": { "champion": "Campeão", "second": "2º", "third": "3º" },
+      "scopes": {
+        "all": "Tudo",
+        "worldcup": "Copa"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D",
+        "all": "Tudo"
+      },
+      "intervalShort": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D"
+      },
+      "podium": {
+        "champion": "Campeão",
+        "second": "2º",
+        "third": "3º"
+      },
       "col": {
         "winRate": "taxa de acerto",
         "markets": "mercados",
@@ -91,9 +134,24 @@
         "settlementRatio": "Taxa de liquidação",
         "avgEntryCount": "Entradas médias"
       },
-      "tabs": { "positions": "Posições", "closed": "Fechadas", "activity": "Atividade" },
-      "pos": { "avgEntry": "Méd", "last": "Último" },
-      "activity": { "buy": "Compra", "sell": "Venda", "redeem": "Resgate" },
+      "tabs": {
+        "positions": "Posições",
+        "closed": "Fechadas",
+        "activity": "Atividade"
+      },
+      "pos": {
+        "avgEntry": "Méd",
+        "last": "Último"
+      },
+      "activity": {
+        "buy": "Compra",
+        "sell": "Venda",
+        "redeem": "Resgate",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Sem posições abertas",
       "noClosed": "Sem posições fechadas",
       "noActivity": "Ainda sem atividade",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "Não realizado",
         "colLastActive": "Ativo",
         "colStatus": "Status",
-        "tabs": { "all": "Todos", "open": "Abertos", "closed": "Fechadas" },
-        "status": { "won": "GANHOU", "lost": "PERDEU", "open": "ABERTO" }
-      }
+        "tabs": {
+          "all": "Todos",
+          "open": "Abertos",
+          "closed": "Fechadas"
+        },
+        "status": {
+          "won": "GANHOU",
+          "lost": "PERDEU",
+          "open": "ABERTO"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Recompensas de indicação",
@@ -180,9 +247,7 @@
         "totalAvailableBalance": "Saldo disponível total",
         "totalPositions": "Posições totais",
         "portfolioTotal": "Total da carteira",
-        "unverified": "Não verificado",
-        "totalAvailableBalance": "Saldo disponível total",
-        "totalPositions": "Posições totais"
+        "unverified": "Não verificado"
       },
       "fundWallet": {
         "title": "Adicionar Fundos",

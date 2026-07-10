@@ -20,13 +20,11 @@
 import {
   useEffect,
   useLayoutEffect,
-  useMemo,
   useReducer,
   useRef,
   useState,
   type RefObject,
 } from "react";
-import type { PredictMarket } from "@liberfi.io/react-predict";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTickAge } from "@liberfi.io/hooks";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -49,19 +47,7 @@ import {
   pnlColorClass,
   shortAddress,
 } from "../format";
-import { useWorldcupMatches } from "../../worldcup/data/queries";
-import { resolveWorldcupEventAttribution } from "../../worldcup/data/resolve-event-attribution";
-import {
-  FIFA_AVATAR,
-  buildWorldcupTeamHint,
-  worldcupMatchTitle,
-  type WorldCupTranslate,
-} from "../../worldcup/display";
-import {
-  marketLabel as worldcupMarketLabel,
-  sportsType,
-} from "../../worldcup/components/detail/marketGrouping";
-import type { WcMatch } from "../../worldcup/types";
+import type { WorldCupTranslate } from "../../worldcup/display";
 import type {
   LeaderboardInterval,
   PositionSortField,
@@ -77,6 +63,13 @@ import {
   TotalValueCard,
   YieldRiskCard,
 } from "./SummaryCards";
+import { ActivityTypeBadge } from "./ActivityTypeBadge";
+import {
+  leaderboardDisplay,
+  transText,
+  useWorldcupMatchBySlug,
+  type WorldcupMatchBySlug,
+} from "./activityDisplay";
 import { PositionsTableSkeleton, WalletDetailSkeleton } from "./skeletons";
 
 type DetailTab = "open" | "closed" | "activity";
@@ -93,155 +86,6 @@ const ROW_ESTIMATE = 64;
 /** Position table grid template (desktop). */
 const TABLE_GRID =
   "grid-cols-[minmax(160px,1.7fr)_128px_64px_96px_80px_96px_88px_88px_78px_62px]";
-
-function transText(trans: string | undefined, base: string | undefined): string {
-  return trans || base || "";
-}
-
-type LeaderboardDisplayItem = Pick<
-  WalletTokenPnl | WalletActivity,
-  | "eventSlug"
-  | "eventTitle"
-  | "eventTitleTrans"
-  | "eventImageUrl"
-  | "marketImageUrl"
-  | "marketQuestion"
-  | "marketQuestionTrans"
-  | "outcome"
-  | "outcomeTrans"
-  | "conditionId"
-  | "tokenId"
-  | "event"
-  | "market"
->;
-type WorldcupMatchBySlug = Map<string, WcMatch>;
-type LeaderboardDisplay = {
-  title: string;
-  subtitle: string;
-  imageUrl?: string;
-  outcomeLabel?: string;
-};
-
-function leaderboardEventTitle(item: LeaderboardDisplayItem): string {
-  return (
-    transText(item.event?.titleTrans, item.event?.title) ||
-    transText(item.eventTitleTrans, item.eventTitle) ||
-    transText(item.market?.questionTrans, item.market?.question) ||
-    transText(item.marketQuestionTrans, item.marketQuestion) ||
-    "—"
-  );
-}
-
-function leaderboardOutcomeLabel(item: LeaderboardDisplayItem): string {
-  const outcome = item.market?.outcomes?.[0];
-  return (
-    transText(outcome?.labelTrans, outcome?.label) ||
-    transText(item.outcomeTrans, item.outcome) ||
-    ""
-  );
-}
-
-function leaderboardMarketQuestion(item: LeaderboardDisplayItem): string {
-  return (
-    transText(item.market?.questionTrans, item.market?.question) ||
-    transText(item.marketQuestionTrans, item.marketQuestion) ||
-    leaderboardOutcomeLabel(item)
-  );
-}
-
-function worldcupMatchSlugForLeaderboardItem(item: LeaderboardDisplayItem): string | null {
-  if (item.event?.worldcupMatchSlug) return item.event.worldcupMatchSlug;
-  const slug = item.market?.eventSlug || item.event?.slug || item.eventSlug;
-  if (!slug) return null;
-  return resolveWorldcupEventAttribution(slug)?.matchSlug ?? null;
-}
-
-function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | undefined {
-  const market = item.market;
-  if (!market) return undefined;
-  return {
-    slug: market.slug || item.conditionId || item.tokenId || "",
-    source: "polymarket",
-    status: "open",
-    event_slug: market.eventSlug || item.eventSlug || "",
-    question: market.question || item.marketQuestion || "",
-    question_trans: market.questionTrans,
-    image_url: market.imageUrl,
-    outcomes: (market.outcomes ?? []).map((outcome) => ({
-      label: outcome.label || "",
-      label_trans: outcome.labelTrans,
-    })),
-    provider_meta: market.providerMeta,
-  } as PredictMarket;
-}
-
-function isWorldcupMoneylineMarket(market: PredictMarket): boolean {
-  const type = sportsType(market);
-  return type === "moneyline" || type === "soccer_match_winner";
-}
-
-function worldcupMoneylineOutcomeLabel(
-  market: PredictMarket | undefined,
-  match: WcMatch,
-  translate: WorldCupTranslate,
-): string | undefined {
-  if (!market || !isWorldcupMoneylineMarket(market)) return undefined;
-  const hint = buildWorldcupTeamHint(match, translate);
-  const label = worldcupMarketLabel(market, hint);
-  if (!label) return undefined;
-  if (hint?.drawLabel && label === hint.drawLabel) {
-    return translate("extend.worldcup.moneylineDraw");
-  }
-  if (hint?.homeLabel && label === hint.homeLabel) {
-    return translate("extend.worldcup.teamWins", { team: hint.homeLabel });
-  }
-  if (hint?.awayLabel && label === hint.awayLabel) {
-    return translate("extend.worldcup.teamWins", { team: hint.awayLabel });
-  }
-  return undefined;
-}
-
-function leaderboardDisplay(
-  item: LeaderboardDisplayItem,
-  worldcupMatchBySlug: WorldcupMatchBySlug,
-  translate: WorldCupTranslate,
-): LeaderboardDisplay {
-  const matchSlug = worldcupMatchSlugForLeaderboardItem(item);
-  const match = matchSlug ? worldcupMatchBySlug.get(matchSlug) : undefined;
-  if (match) {
-    const hint = buildWorldcupTeamHint(match, translate);
-    const market = toWorldcupPredictMarket(item);
-    const outcomeLabel = worldcupMoneylineOutcomeLabel(market, match, translate);
-    return {
-      title: worldcupMatchTitle(match, hint) ?? leaderboardEventTitle(item),
-      subtitle: outcomeLabel
-        ? ""
-        : market
-          ? worldcupMarketLabel(market, hint)
-          : leaderboardMarketQuestion(item),
-      imageUrl: FIFA_AVATAR,
-      outcomeLabel,
-    };
-  }
-
-  return {
-    title: leaderboardEventTitle(item),
-    subtitle: leaderboardOutcomeLabel(item),
-    imageUrl: item.market?.imageUrl || item.marketImageUrl || item.event?.imageUrl || item.eventImageUrl,
-  };
-}
-
-function useWorldcupMatchBySlug(items: LeaderboardDisplayItem[], enabled = true): WorldcupMatchBySlug {
-  const hasWorldcupRows = useMemo(
-    () => enabled && items.some((item) => Boolean(worldcupMatchSlugForLeaderboardItem(item))),
-    [enabled, items],
-  );
-  const { data } = useWorldcupMatches({ enabled: hasWorldcupRows });
-  return useMemo(
-    () => new Map((data ?? []).map((match) => [match.slug, match])),
-    [data],
-  );
-}
 
 export function WalletDetailPanel({
   wallet,
@@ -727,7 +571,6 @@ function MarketAvatar({
   const [failed, setFailed] = useState(false);
   if (src && !failed) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt=""
@@ -922,22 +765,6 @@ function ActivityList({
   );
 }
 
-type ActivityTypeLabelKey =
-  | "extend.leaderboard.activity.buy"
-  | "extend.leaderboard.activity.sell"
-  | "extend.leaderboard.activity.redeem";
-
-function activityTypeMeta(type: string): { key: ActivityTypeLabelKey; className: string } {
-  const lower = type.toLowerCase();
-  if (lower === "sell") {
-    return { key: "extend.leaderboard.activity.sell", className: "bg-bearish/10 text-bearish" };
-  }
-  if (lower === "redeem") {
-    return { key: "extend.leaderboard.activity.redeem", className: "bg-primary/10 text-primary" };
-  }
-  return { key: "extend.leaderboard.activity.buy", className: "bg-bullish/10 text-bullish" };
-}
-
 function ActivityRow({
   activity,
   last,
@@ -948,7 +775,6 @@ function ActivityRow({
   worldcupMatchBySlug: WorldcupMatchBySlug;
 }) {
   const { t } = useTranslation();
-  const meta = activityTypeMeta(activity.type);
   const display = leaderboardDisplay(activity, worldcupMatchBySlug, t as WorldCupTranslate);
   const outcome = transText(activity.outcomeTrans, activity.outcome);
 
@@ -970,9 +796,7 @@ function ActivityRow({
           <div className="line-clamp-1 text-xs text-zinc-400">{display.subtitle}</div>
         )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
-          <span className={cn("rounded px-1.5 py-0.5 font-medium", meta.className)}>
-            {t(meta.key)}
-          </span>
+          <ActivityTypeBadge type={activity.type} />
           {outcome && <span className="text-zinc-400">{outcome}</span>}
           <span className="tabular-nums">
             {formatPrice(activity.price)} ·{" "}

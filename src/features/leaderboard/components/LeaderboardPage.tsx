@@ -36,17 +36,8 @@ import { SmartMoneyBoard } from "./SmartMoneyBoard";
 
 const VIEWS: LeaderboardView[] = ["smart-money", "live-feed"];
 
-/**
- * Smart Live Feed is not built yet — hide its tab (and ignore `?view=live-feed`)
- * until it ships. Flip to `true` to re-enable.
- */
-const ENABLE_LIVE_FEED = false;
-const VISIBLE_VIEWS: LeaderboardView[] = ENABLE_LIVE_FEED
-  ? VIEWS
-  : VIEWS.filter((v) => v !== "live-feed");
-
 function parseView(value: string | null): LeaderboardView {
-  return value === "live-feed" && ENABLE_LIVE_FEED ? "live-feed" : "smart-money";
+  return value === "live-feed" ? "live-feed" : "smart-money";
 }
 
 export function LeaderboardPage() {
@@ -101,24 +92,6 @@ export function LeaderboardPage() {
     [router, searchParams],
   );
 
-  const handleSelect = useCallback(
-    (wallet: string) => {
-      const qs = buildLeaderboardSearch({ interval, scope });
-      router.push(`/leaderboard/${encodeURIComponent(wallet)}${qs}`, {
-        scroll: false,
-      });
-    },
-    [interval, router, scope],
-  );
-
-  const handlePrefetch = useCallback(
-    (wallet: string) => {
-      const qs = buildLeaderboardSearch({ interval, scope });
-      router.prefetch(`/leaderboard/${encodeURIComponent(wallet)}${qs}`);
-    },
-    [interval, router, scope],
-  );
-
   const handleScope = useCallback(
     (next: LeaderboardScope) => {
       setPendingScope(next);
@@ -145,7 +118,25 @@ export function LeaderboardPage() {
   );
 
   const activeScope = pendingScope ?? scope;
-  const leaderboardTag = leaderboardTagForScope(scope);
+  const leaderboardTag = leaderboardTagForScope(activeScope);
+
+  const handleSelect = useCallback(
+    (wallet: string) => {
+      const qs = buildLeaderboardSearch({ interval, scope: activeScope });
+      router.push(`/leaderboard/${encodeURIComponent(wallet)}${qs}`, {
+        scroll: false,
+      });
+    },
+    [activeScope, interval, router],
+  );
+
+  const handlePrefetch = useCallback(
+    (wallet: string) => {
+      const qs = buildLeaderboardSearch({ interval, scope: activeScope });
+      router.prefetch(`/leaderboard/${encodeURIComponent(wallet)}${qs}`);
+    },
+    [activeScope, interval, router],
+  );
 
   const boardProps = useMemo(
     () => ({
@@ -168,7 +159,7 @@ export function LeaderboardPage() {
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
       <div className="shrink-0 border-b border-zinc-800/60 bg-[#0a0a0b]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4 py-2 sm:px-6 lg:px-10 xl:px-12">
-          {VISIBLE_VIEWS.map((v) => (
+          {VIEWS.map((v) => (
             <button
               key={v}
               type="button"
@@ -187,49 +178,49 @@ export function LeaderboardPage() {
       </div>
 
       <div className="mx-auto flex w-full max-w-[1280px] min-h-0 flex-1 flex-col px-4 sm:px-6 lg:px-10 xl:px-12">
-        {view === "smart-money" && (
-          <div className="flex shrink-0 flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex gap-x-1.5 pl-1 lg:w-full lg:gap-x-2">
-                {SCOPES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleScope(s)}
-                    className={cn(
-                      "flex min-w-14 shrink-0 cursor-pointer items-center justify-center gap-x-1 rounded-2xl border px-3 py-1.5 text-sm font-medium uppercase transition-colors",
-                      activeScope === s
-                        ? "border-primary/40 bg-primary/15 text-primary"
-                        : "border-border/80 text-neutral-500 hover:bg-primary/10 hover:text-primary",
-                    )}
-                  >
-                    {s === WORLDCUP_SCOPE && (
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden
-                      >
-                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                        <path d="M4 22h16" />
-                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-                      </svg>
-                    )}
-                    {s === WORLDCUP_SCOPE
-                      ? t("extend.leaderboard.scopedTag")
-                      : t("extend.leaderboard.scopes.all")}
-                  </button>
-                ))}
-              </div>
+        <div className="flex shrink-0 flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-x-1.5 pl-1 lg:w-full lg:gap-x-2">
+              {SCOPES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleScope(s)}
+                  className={cn(
+                    "flex min-w-14 shrink-0 cursor-pointer items-center justify-center gap-x-1 rounded-2xl border px-3 py-1.5 text-sm font-medium uppercase transition-colors",
+                    activeScope === s
+                      ? "border-primary/40 bg-primary/15 text-primary"
+                      : "border-border/80 text-neutral-500 hover:bg-primary/10 hover:text-primary",
+                  )}
+                >
+                  {s === WORLDCUP_SCOPE && (
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                      <path d="M4 22h16" />
+                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                    </svg>
+                  )}
+                  {s === WORLDCUP_SCOPE
+                    ? t("extend.leaderboard.scopedTag")
+                    : t("extend.leaderboard.scopes.all")}
+                </button>
+              ))}
             </div>
+          </div>
+          {view === "smart-money" && (
             <div className="flex w-fit items-center gap-1 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-1 backdrop-blur lg:shrink-0">
               {INTERVAL_OPTIONS.map((iv) => (
                 <button
@@ -247,12 +238,12 @@ export function LeaderboardPage() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {view !== "smart-money" ? (
-          <div className="min-h-0 flex-1">
-            <SmartLiveFeed />
+          <div className="flex min-h-0 w-full flex-1">
+            <SmartLiveFeed tag={leaderboardTag} scope={activeScope} />
           </div>
         ) : (
           <div className="flex min-h-0 w-full flex-1 pb-4">

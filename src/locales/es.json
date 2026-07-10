@@ -35,15 +35,58 @@
       "subtitle": "Smart Money del Mundial",
       "scopedTag": "Copa Mundial FIFA 2026",
       "discover": "Descubrir",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Feed smart en vivo" },
-      "scopes": { "all": "Todo", "worldcup": "Mundial" },
-      "liveFeed": {
-        "comingSoon": "El feed smart en vivo llegará pronto",
-        "description": "Las operaciones smart money en tiempo real aparecerán aquí."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Feed smart en vivo"
       },
-      "interval": { "1d": "1D", "7d": "7D", "30d": "30D", "all": "Todo" },
-      "intervalShort": { "1d": "1D", "7d": "7D", "30d": "30D" },
-      "podium": { "champion": "Campeón", "second": "2.º", "third": "3.º" },
+      "scopes": {
+        "all": "Todo",
+        "worldcup": "Mundial"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D",
+        "all": "Todo"
+      },
+      "intervalShort": {
+        "1d": "1D",
+        "7d": "7D",
+        "30d": "30D"
+      },
+      "podium": {
+        "champion": "Campeón",
+        "second": "2.º",
+        "third": "3.º"
+      },
       "col": {
         "winRate": "tasa de acierto",
         "markets": "mercados",
@@ -91,9 +134,24 @@
         "settlementRatio": "Tasa de liquidación",
         "avgEntryCount": "Entradas promedio"
       },
-      "tabs": { "positions": "Posiciones", "closed": "Cerradas", "activity": "Actividad" },
-      "pos": { "avgEntry": "Prom", "last": "Último" },
-      "activity": { "buy": "Compra", "sell": "Venta", "redeem": "Canje" },
+      "tabs": {
+        "positions": "Posiciones",
+        "closed": "Cerradas",
+        "activity": "Actividad"
+      },
+      "pos": {
+        "avgEntry": "Prom",
+        "last": "Último"
+      },
+      "activity": {
+        "buy": "Compra",
+        "sell": "Venta",
+        "redeem": "Canje",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Sin posiciones abiertas",
       "noClosed": "Sin posiciones cerradas",
       "noActivity": "Aún no hay actividad",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "No realizado",
         "colLastActive": "Activo",
         "colStatus": "Estado",
-        "tabs": { "all": "Todos", "open": "Abiertos", "closed": "Cerradas" },
-        "status": { "won": "GANADO", "lost": "PERDIDO", "open": "ABIERTO" }
-      }
+        "tabs": {
+          "all": "Todos",
+          "open": "Abiertos",
+          "closed": "Cerradas"
+        },
+        "status": {
+          "won": "GANADO",
+          "lost": "PERDIDO",
+          "open": "ABIERTO"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Recompensas por referidos",
@@ -180,9 +247,7 @@
         "totalAvailableBalance": "Saldo disponible total",
         "totalPositions": "Posiciones totales",
         "portfolioTotal": "Total de la cartera",
-        "unverified": "No verificado",
-        "totalAvailableBalance": "Saldo disponible total",
-        "totalPositions": "Posiciones totales"
+        "unverified": "No verificado"
       },
       "fundWallet": {
         "title": "Fondos en la billetera",

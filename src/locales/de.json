@@ -35,15 +35,58 @@
       "subtitle": "WM Smart Money",
       "scopedTag": "FIFA-Weltmeisterschaft 2026",
       "discover": "Entdecken",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Smart Live Feed" },
-      "scopes": { "all": "Gesamt", "worldcup": "WM" },
-      "liveFeed": {
-        "comingSoon": "Smart Live Feed kommt bald",
-        "description": "Echtzeit-Trades von Smart Money werden hier gestreamt."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Smart Live Feed"
       },
-      "interval": { "1d": "1T", "7d": "7T", "30d": "30T", "all": "Gesamt" },
-      "intervalShort": { "1d": "1T", "7d": "7T", "30d": "30T" },
-      "podium": { "champion": "Champion", "second": "2.", "third": "3." },
+      "scopes": {
+        "all": "Gesamt",
+        "worldcup": "WM"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1T",
+        "7d": "7T",
+        "30d": "30T",
+        "all": "Gesamt"
+      },
+      "intervalShort": {
+        "1d": "1T",
+        "7d": "7T",
+        "30d": "30T"
+      },
+      "podium": {
+        "champion": "Champion",
+        "second": "2.",
+        "third": "3."
+      },
       "col": {
         "winRate": "Trefferquote",
         "markets": "Märkte",
@@ -91,9 +134,24 @@
         "settlementRatio": "Abrechnungsquote",
         "avgEntryCount": "Ø Einstiege"
       },
-      "tabs": { "positions": "Positionen", "closed": "Geschlossen", "activity": "Aktivität" },
-      "pos": { "avgEntry": "Ø", "last": "Letzter" },
-      "activity": { "buy": "Kauf", "sell": "Verkauf", "redeem": "Einlösen" },
+      "tabs": {
+        "positions": "Positionen",
+        "closed": "Geschlossen",
+        "activity": "Aktivität"
+      },
+      "pos": {
+        "avgEntry": "Ø",
+        "last": "Letzter"
+      },
+      "activity": {
+        "buy": "Kauf",
+        "sell": "Verkauf",
+        "redeem": "Einlösen",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Keine offenen Positionen",
       "noClosed": "Keine geschlossenen Positionen",
       "noActivity": "Noch keine Aktivität",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "Unrealisiert",
         "colLastActive": "Aktiv",
         "colStatus": "Status",
-        "tabs": { "all": "Alle", "open": "Offen", "closed": "Geschlossen" },
-        "status": { "won": "GEWONNEN", "lost": "VERLOREN", "open": "OFFEN" }
-      }
+        "tabs": {
+          "all": "Alle",
+          "open": "Offen",
+          "closed": "Geschlossen"
+        },
+        "status": {
+          "won": "GEWONNEN",
+          "lost": "VERLOREN",
+          "open": "OFFEN"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Empfehlungsprämien",
@@ -177,12 +244,10 @@
         "totalBalance": "Gesamt USDC",
         "availableBalance": "Verfügbares Guthaben",
         "positions": "Positionen",
-        "totalAvailableBalance": "Verfügbares Guthaben gesamt",
-        "totalPositions": "Positionen gesamt",
-        "portfolioTotal": "Portfolio gesamt",
-        "unverified": "Nicht verifiziert",
         "totalAvailableBalance": "Gesamtes verfügbares Guthaben",
-        "totalPositions": "Gesamtpositionen"
+        "totalPositions": "Gesamtpositionen",
+        "portfolioTotal": "Portfolio gesamt",
+        "unverified": "Nicht verifiziert"
       },
       "fundWallet": {
         "title": "Wallet aufladen",

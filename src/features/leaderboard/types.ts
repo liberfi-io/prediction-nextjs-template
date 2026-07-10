@@ -273,3 +273,52 @@ export interface WalletActivitiesPage {
   cursor?: string;
   activities: WalletActivity[];
 }
+
+export type SmartMoneyLiveActivityType =
+  | "buy"
+  | "sell"
+  | "redeem"
+  | "inventory_adjust"
+  | "merge"
+  | "split"
+  | "unknown";
+
+/** One smart-money live feed row. `timestamp` is normalized to epoch milliseconds. */
+export interface SmartMoneyLiveActivity extends LocalMarketRef {
+  activityId?: string;
+  type: SmartMoneyLiveActivityType;
+  wallet: string;
+  taker?: string;
+  traderName?: string;
+  traderImage?: string;
+  traderTags: string[];
+  conditionId?: string;
+  marketId?: string;
+  marketQuestion?: string;
+  marketQuestionTrans?: string;
+  marketIcon?: string;
+  eventSlug?: string;
+  tokenId?: string;
+  outcome?: string;
+  outcomeTrans?: string;
+  price: number;
+  quantity: number;
+  amount: number;
+  amountInUsd: number;
+  timestamp?: number;
+  logIndex?: number;
+  txHash?: string;
+  seqIndex?: string;
+  source?: string;
+  tags: string[];
+}
+
+/** A page of smart-money live feed activities. */
+export interface SmartMoneyLiveFeedPage {
+  tag?: string;
+  cursor?: string | null;
+  limit: number;
+  order: "desc";
+  retentionDays?: number;
+  activities: SmartMoneyLiveActivity[];
+}

@@ -35,15 +35,58 @@
       "subtitle": "Smart Money Чемпионата мира",
       "scopedTag": "Чемпионат мира FIFA 2026",
       "discover": "Обзор",
-      "views": { "smartMoney": "Smart Money", "liveFeed": "Smart Live Feed" },
-      "scopes": { "all": "Все", "worldcup": "ЧМ" },
-      "liveFeed": {
-        "comingSoon": "Smart Live Feed скоро появится",
-        "description": "Здесь будут показываться сделки smart money в реальном времени."
+      "views": {
+        "smartMoney": "Smart Money",
+        "liveFeed": "Smart Live Feed"
       },
-      "interval": { "1d": "1д", "7d": "7д", "30d": "30д", "all": "Всё время" },
-      "intervalShort": { "1d": "1д", "7d": "7д", "30d": "30д" },
-      "podium": { "champion": "Чемпион", "second": "2-е", "third": "3-е" },
+      "scopes": {
+        "all": "Все",
+        "worldcup": "ЧМ"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1д",
+        "7d": "7д",
+        "30d": "30д",
+        "all": "Всё время"
+      },
+      "intervalShort": {
+        "1d": "1д",
+        "7d": "7д",
+        "30d": "30д"
+      },
+      "podium": {
+        "champion": "Чемпион",
+        "second": "2-е",
+        "third": "3-е"
+      },
       "col": {
         "winRate": "винрейт",
         "markets": "рынки",
@@ -91,9 +134,24 @@
         "settlementRatio": "Доля расчётов",
         "avgEntryCount": "Среднее число входов"
       },
-      "tabs": { "positions": "Позиции", "closed": "Закрытые", "activity": "Активность" },
-      "pos": { "avgEntry": "Сред", "last": "Послед" },
-      "activity": { "buy": "Покупка", "sell": "Продажа", "redeem": "Погашение" },
+      "tabs": {
+        "positions": "Позиции",
+        "closed": "Закрытые",
+        "activity": "Активность"
+      },
+      "pos": {
+        "avgEntry": "Сред",
+        "last": "Послед"
+      },
+      "activity": {
+        "buy": "Покупка",
+        "sell": "Продажа",
+        "redeem": "Погашение",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "Нет открытых позиций",
       "noClosed": "Нет закрытых позиций",
       "noActivity": "Пока нет активности",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "Нереализ.",
         "colLastActive": "Активность",
         "colStatus": "Статус",
-        "tabs": { "all": "Все", "open": "Открытые", "closed": "Закрытые" },
-        "status": { "won": "ВЫИГРЫШ", "lost": "ПРОИГРЫШ", "open": "ОТКРЫТО" }
-      }
+        "tabs": {
+          "all": "Все",
+          "open": "Открытые",
+          "closed": "Закрытые"
+        },
+        "status": {
+          "won": "ВЫИГРЫШ",
+          "lost": "ПРОИГРЫШ",
+          "open": "ОТКРЫТО"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "Реферальные награды",
@@ -180,9 +247,7 @@
         "totalAvailableBalance": "Общий доступный баланс",
         "totalPositions": "Всего позиций",
         "portfolioTotal": "Итого портфеля",
-        "unverified": "Не подтверждён",
-        "totalAvailableBalance": "Общий доступный баланс",
-        "totalPositions": "Всего позиций"
+        "unverified": "Не подтверждён"
       },
       "fundWallet": {
         "title": "Пополнить кошелек",

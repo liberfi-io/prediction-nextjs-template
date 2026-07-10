@@ -35,15 +35,58 @@
       "subtitle": "월드컵 스마트 머니",
       "scopedTag": "FIFA 월드컵 2026",
       "discover": "발견",
-      "views": { "smartMoney": "스마트 머니", "liveFeed": "스마트 라이브 피드" },
-      "scopes": { "all": "전체", "worldcup": "월드컵" },
-      "liveFeed": {
-        "comingSoon": "스마트 라이브 피드가 곧 제공됩니다",
-        "description": "실시간 스마트 머니 거래가 여기에 표시됩니다."
+      "views": {
+        "smartMoney": "스마트 머니",
+        "liveFeed": "스마트 라이브 피드"
       },
-      "interval": { "1d": "1일", "7d": "7일", "30d": "30일", "all": "전체" },
-      "intervalShort": { "1d": "1일", "7d": "7일", "30d": "30일" },
-      "podium": { "champion": "챔피언", "second": "2위", "third": "3위" },
+      "scopes": {
+        "all": "전체",
+        "worldcup": "월드컵"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1일",
+        "7d": "7일",
+        "30d": "30일",
+        "all": "전체"
+      },
+      "intervalShort": {
+        "1d": "1일",
+        "7d": "7일",
+        "30d": "30일"
+      },
+      "podium": {
+        "champion": "챔피언",
+        "second": "2위",
+        "third": "3위"
+      },
       "col": {
         "winRate": "승률",
         "markets": "마켓",
@@ -91,9 +134,24 @@
         "settlementRatio": "정산 비율",
         "avgEntryCount": "평균 진입 횟수"
       },
-      "tabs": { "positions": "포지션", "closed": "청산", "activity": "활동" },
-      "pos": { "avgEntry": "평균", "last": "최근" },
-      "activity": { "buy": "매수", "sell": "매도", "redeem": "상환" },
+      "tabs": {
+        "positions": "포지션",
+        "closed": "청산",
+        "activity": "활동"
+      },
+      "pos": {
+        "avgEntry": "평균",
+        "last": "최근"
+      },
+      "activity": {
+        "buy": "매수",
+        "sell": "매도",
+        "redeem": "상환",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "보유 포지션 없음",
       "noClosed": "청산된 포지션 없음",
       "noActivity": "활동 없음",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "미실현",
         "colLastActive": "활동",
         "colStatus": "상태",
-        "tabs": { "all": "전체", "open": "오픈", "closed": "청산" },
-        "status": { "won": "승", "lost": "패", "open": "오픈" }
-      }
+        "tabs": {
+          "all": "전체",
+          "open": "오픈",
+          "closed": "청산"
+        },
+        "status": {
+          "won": "승",
+          "lost": "패",
+          "open": "오픈"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "리퍼럴 보상",

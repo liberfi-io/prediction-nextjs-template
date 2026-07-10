@@ -45,15 +45,58 @@
       "subtitle": "世界盃聰明錢",
       "scopedTag": "2026 世界盃",
       "discover": "發現",
-      "views": { "smartMoney": "聰明錢", "liveFeed": "即時動態" },
-      "scopes": { "all": "全部", "worldcup": "世界盃" },
-      "liveFeed": {
-        "comingSoon": "即時動態即將上線",
-        "description": "聰明錢的即時交易將在這裡推送。"
+      "views": {
+        "smartMoney": "聰明錢",
+        "liveFeed": "即時動態"
       },
-      "interval": { "1d": "1天", "7d": "7天", "30d": "30天", "all": "全部" },
-      "intervalShort": { "1d": "1日", "7d": "7日", "30d": "30日" },
-      "podium": { "champion": "冠軍", "second": "亞軍", "third": "季軍" },
+      "scopes": {
+        "all": "全部",
+        "worldcup": "世界盃"
+      },
+      "liveFeed": {
+        "title": "即時動態",
+        "statusLive": "即時",
+        "statusConnecting": "連線中",
+        "statusOffline": "離線",
+        "filter": "篩選",
+        "walletType": "錢包類型",
+        "type": "類型",
+        "category": "分類",
+        "amount": "金額",
+        "shares": "份額",
+        "price": "價格",
+        "sort": "排序",
+        "all": "全部",
+        "time": "時間",
+        "trader": "交易者",
+        "market": "市場",
+        "outcome": "結果",
+        "empty": "暫無即時動態",
+        "clear": "清除",
+        "sortTimeDesc": "最新",
+        "sortAmountDesc": "金額由高到低",
+        "sortAmountAsc": "金額由低到高",
+        "sortPriceDesc": "價格由高到低",
+        "sortPriceAsc": "價格由低到高",
+        "sortSharesDesc": "份額由高到低",
+        "sortSharesAsc": "份額由低到高"
+      },
+      "interval": {
+        "1d": "1天",
+        "7d": "7天",
+        "30d": "30天",
+        "all": "全部"
+      },
+      "intervalShort": {
+        "1d": "1日",
+        "7d": "7日",
+        "30d": "30日"
+      },
+      "podium": {
+        "champion": "冠軍",
+        "second": "亞軍",
+        "third": "季軍"
+      },
       "col": {
         "winRate": "勝率",
         "markets": "場次",
@@ -101,9 +144,24 @@
         "settlementRatio": "結算比例",
         "avgEntryCount": "平均加倉次數"
       },
-      "tabs": { "positions": "持倉", "closed": "已平倉", "activity": "活動" },
-      "pos": { "avgEntry": "均價", "last": "最新" },
-      "activity": { "buy": "買入", "sell": "賣出", "redeem": "贖回" },
+      "tabs": {
+        "positions": "持倉",
+        "closed": "已平倉",
+        "activity": "活動"
+      },
+      "pos": {
+        "avgEntry": "均價",
+        "last": "最新"
+      },
+      "activity": {
+        "buy": "買入",
+        "sell": "賣出",
+        "redeem": "贖回",
+        "inventoryAdjust": "庫存調整",
+        "merge": "合併",
+        "split": "拆分",
+        "unknown": "未知"
+      },
       "noPositions": "暫無持倉",
       "noClosed": "暫無已平倉",
       "noActivity": "暫無活動",
@@ -146,9 +204,18 @@
         "colUnrealizedPnl": "未實現",
         "colLastActive": "最近活躍",
         "colStatus": "狀態",
-        "tabs": { "all": "全部", "open": "持倉中", "closed": "已平倉" },
-        "status": { "won": "盈利", "lost": "虧損", "open": "持倉" }
-      }
+        "tabs": {
+          "all": "全部",
+          "open": "持倉中",
+          "closed": "已平倉"
+        },
+        "status": {
+          "won": "盈利",
+          "lost": "虧損",
+          "open": "持倉"
+        }
+      },
+      "copiedAddress": "已複製地址"
     },
     "referral": {
       "title": "返佣獎勵",
@@ -190,9 +257,7 @@
         "totalAvailableBalance": "總可用餘額",
         "totalPositions": "總倉位",
         "portfolioTotal": "投資組合總值",
-        "unverified": "未驗證",
-        "totalAvailableBalance": "總可用餘額",
-        "totalPositions": "總倉位"
+        "unverified": "未驗證"
       },
       "fundWallet": {
         "title": "資金錢包",

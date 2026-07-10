@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { subscribeCentrifugoJson } from "../../../libs/centrifugoJsonClient";
 import {
   adaptLiveState,
   adaptLiveStats,
@@ -13,15 +14,6 @@ import type { WcLiveStats, WcMatchLiveState } from "../types";
 
 const CHANNEL = "worldcup.matches";
 const MATCH_CHANNEL_PREFIX = "worldcup.match.";
-const DEFAULT_WS_URL = "ws://localhost:8003/connection/websocket?format=json";
-
-function centrifugoURL(): string | null {
-  return process.env.NEXT_PUBLIC_CENTRIFUGO_WS_URL || DEFAULT_WS_URL;
-}
-
-function send(ws: WebSocket, payload: unknown): void {
-  ws.send(`${JSON.stringify(payload)}\n`);
-}
 
 function isLiveUpdate(value: unknown): value is WorldcupMatchLiveUpdate {
   const update = value as WorldcupMatchLiveUpdate;
@@ -62,14 +54,6 @@ export function useWorldcupRealtime(): WorldcupRealtimeState {
   const [states, setStates] = useState<Record<string, WcMatchLiveState>>({});
 
   useEffect(() => {
-    const url = centrifugoURL();
-    if (!url || typeof WebSocket === "undefined") return;
-
-    let closed = false;
-    let reconnectTimer: number | undefined;
-    let ws: WebSocket | undefined;
-    let attempt = 0;
-
     const applyUpdate = (update: WorldcupMatchLiveUpdate) => {
       const state = adaptLiveState(update.state);
       if (!state) return;
@@ -80,46 +64,12 @@ export function useWorldcupRealtime(): WorldcupRealtimeState {
       });
     };
 
-    const connect = () => {
-      ws = new WebSocket(url);
-      ws.onopen = () => {
-        attempt = 0;
-        if (!ws) return;
-        send(ws, { id: 1, connect: {} });
-      };
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(String(event.data));
-          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
-            send(ws, { id: 2, subscribe: { channel: CHANNEL } });
-            return;
-          }
-          const data = msg.push?.pub?.data;
-          if (isLiveUpdate(data)) {
-            applyUpdate(data);
-          }
-        } catch {
-          // Ignore malformed realtime frames.
-        }
-      };
-      ws.onclose = () => {
-        if (closed) return;
-        const delay = Math.min(1000 * 2 ** attempt, 15000);
-        attempt += 1;
-        reconnectTimer = window.setTimeout(connect, delay);
-      };
-      ws.onerror = () => {
-        ws?.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      closed = true;
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      ws?.close();
-    };
+    return subscribeCentrifugoJson({
+      channel: CHANNEL,
+      onData: (data) => {
+        if (isLiveUpdate(data)) applyUpdate(data);
+      },
+    });
   }, []);
 
   return {
@@ -146,14 +96,9 @@ export function useWorldcupMatchLive(
 
   useEffect(() => {
     setState(undefined);
-    const url = centrifugoURL();
-    if (!matchId || !url || typeof WebSocket === "undefined") return;
+    if (!matchId) return;
 
     const channel = `${MATCH_CHANNEL_PREFIX}${matchId}.live`;
-    let closed = false;
-    let reconnectTimer: number | undefined;
-    let ws: WebSocket | undefined;
-    let attempt = 0;
 
     const applyUpdate = (update: WorldcupMatchLiveUpdate) => {
       const next = adaptLiveState(update.state);
@@ -161,44 +106,12 @@ export function useWorldcupMatchLive(
       setState((current) => (shouldReplace(current, next) ? next : current));
     };
 
-    const connect = () => {
-      ws = new WebSocket(url);
-      ws.onopen = () => {
-        attempt = 0;
-        if (!ws) return;
-        send(ws, { id: 1, connect: {} });
-      };
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(String(event.data));
-          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
-            send(ws, { id: 2, subscribe: { channel } });
-            return;
-          }
-          const data = msg.push?.pub?.data;
-          if (isLiveUpdate(data)) applyUpdate(data);
-        } catch {
-          // Ignore malformed realtime frames.
-        }
-      };
-      ws.onclose = () => {
-        if (closed) return;
-        const delay = Math.min(1000 * 2 ** attempt, 15000);
-        attempt += 1;
-        reconnectTimer = window.setTimeout(connect, delay);
-      };
-      ws.onerror = () => {
-        ws?.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      closed = true;
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      ws?.close();
-    };
+    return subscribeCentrifugoJson({
+      channel,
+      onData: (data) => {
+        if (isLiveUpdate(data)) applyUpdate(data);
+      },
+    });
   }, [matchId]);
 
   return state;
@@ -211,14 +124,9 @@ export function useWorldcupMatchStats(
 
   useEffect(() => {
     setStats(undefined);
-    const url = centrifugoURL();
-    if (!matchId || !url || typeof WebSocket === "undefined") return;
+    if (!matchId) return;
 
     const channel = `${MATCH_CHANNEL_PREFIX}${matchId}.stats`;
-    let closed = false;
-    let reconnectTimer: number | undefined;
-    let ws: WebSocket | undefined;
-    let attempt = 0;
 
     const applyUpdate = (update: WorldcupMatchStatsUpdate) => {
       if (update.match_id !== matchId) return;
@@ -227,44 +135,12 @@ export function useWorldcupMatchStats(
       setStats(next);
     };
 
-    const connect = () => {
-      ws = new WebSocket(url);
-      ws.onopen = () => {
-        attempt = 0;
-        if (!ws) return;
-        send(ws, { id: 1, connect: {} });
-      };
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(String(event.data));
-          if (msg.id === 1 && msg.connect && ws?.readyState === WebSocket.OPEN) {
-            send(ws, { id: 2, subscribe: { channel } });
-            return;
-          }
-          const data = msg.push?.pub?.data;
-          if (isStatsUpdate(data)) applyUpdate(data);
-        } catch {
-          // Ignore malformed realtime frames.
-        }
-      };
-      ws.onclose = () => {
-        if (closed) return;
-        const delay = Math.min(1000 * 2 ** attempt, 15000);
-        attempt += 1;
-        reconnectTimer = window.setTimeout(connect, delay);
-      };
-      ws.onerror = () => {
-        ws?.close();
-      };
-    };
-
-    connect();
-
-    return () => {
-      closed = true;
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      ws?.close();
-    };
+    return subscribeCentrifugoJson({
+      channel,
+      onData: (data) => {
+        if (isStatsUpdate(data)) applyUpdate(data);
+      },
+    });
   }, [matchId]);
 
   return stats;

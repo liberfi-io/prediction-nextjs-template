@@ -35,15 +35,58 @@
       "subtitle": "ワールドカップ スマートマネー",
       "scopedTag": "FIFAワールドカップ2026",
       "discover": "発見",
-      "views": { "smartMoney": "スマートマネー", "liveFeed": "スマートライブフィード" },
-      "scopes": { "all": "全体", "worldcup": "ワールドカップ" },
-      "liveFeed": {
-        "comingSoon": "スマートライブフィードは近日公開です",
-        "description": "スマートマネーのリアルタイム取引がここに表示されます。"
+      "views": {
+        "smartMoney": "スマートマネー",
+        "liveFeed": "スマートライブフィード"
       },
-      "interval": { "1d": "1日", "7d": "7日", "30d": "30日", "all": "全期間" },
-      "intervalShort": { "1d": "1日", "7d": "7日", "30d": "30日" },
-      "podium": { "champion": "優勝", "second": "2位", "third": "3位" },
+      "scopes": {
+        "all": "全体",
+        "worldcup": "ワールドカップ"
+      },
+      "liveFeed": {
+        "title": "Live Feed",
+        "statusLive": "Live",
+        "statusConnecting": "Connecting",
+        "statusOffline": "Offline",
+        "filter": "Filter",
+        "walletType": "Wallet Type",
+        "type": "Type",
+        "category": "Category",
+        "amount": "Amount",
+        "shares": "Shares",
+        "price": "Price",
+        "sort": "Sort",
+        "all": "All",
+        "time": "Time",
+        "trader": "Trader",
+        "market": "Market",
+        "outcome": "Outcome",
+        "empty": "No live activity yet",
+        "clear": "Clear",
+        "sortTimeDesc": "Newest",
+        "sortAmountDesc": "Amount high to low",
+        "sortAmountAsc": "Amount low to high",
+        "sortPriceDesc": "Price high to low",
+        "sortPriceAsc": "Price low to high",
+        "sortSharesDesc": "Shares high to low",
+        "sortSharesAsc": "Shares low to high"
+      },
+      "interval": {
+        "1d": "1日",
+        "7d": "7日",
+        "30d": "30日",
+        "all": "全期間"
+      },
+      "intervalShort": {
+        "1d": "1日",
+        "7d": "7日",
+        "30d": "30日"
+      },
+      "podium": {
+        "champion": "優勝",
+        "second": "2位",
+        "third": "3位"
+      },
       "col": {
         "winRate": "勝率",
         "markets": "マーケット",
@@ -91,9 +134,24 @@
         "settlementRatio": "決済率",
         "avgEntryCount": "平均エントリー回数"
       },
-      "tabs": { "positions": "ポジション", "closed": "クローズ", "activity": "アクティビティ" },
-      "pos": { "avgEntry": "平均", "last": "最新" },
-      "activity": { "buy": "買い", "sell": "売り", "redeem": "償還" },
+      "tabs": {
+        "positions": "ポジション",
+        "closed": "クローズ",
+        "activity": "アクティビティ"
+      },
+      "pos": {
+        "avgEntry": "平均",
+        "last": "最新"
+      },
+      "activity": {
+        "buy": "買い",
+        "sell": "売り",
+        "redeem": "償還",
+        "inventoryAdjust": "Inventory",
+        "merge": "Merge",
+        "split": "Split",
+        "unknown": "Unknown"
+      },
       "noPositions": "オープンポジションなし",
       "noClosed": "クローズ済みポジションなし",
       "noActivity": "アクティビティはまだありません",
@@ -136,9 +194,18 @@
         "colUnrealizedPnl": "含み",
         "colLastActive": "最終",
         "colStatus": "ステータス",
-        "tabs": { "all": "すべて", "open": "保有中", "closed": "クローズ" },
-        "status": { "won": "勝ち", "lost": "負け", "open": "保有" }
-      }
+        "tabs": {
+          "all": "すべて",
+          "open": "保有中",
+          "closed": "クローズ"
+        },
+        "status": {
+          "won": "勝ち",
+          "lost": "負け",
+          "open": "保有"
+        }
+      },
+      "copiedAddress": "Address copied"
     },
     "referral": {
       "title": "リファラル報酬",

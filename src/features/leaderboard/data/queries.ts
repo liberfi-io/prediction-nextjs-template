@@ -24,10 +24,12 @@ import type {
 } from "../types";
 import {
   LEADERBOARD_PAGE_SIZE,
+  SMART_LIVE_FEED_LIMIT,
   fetchPortfolioDailyPnl,
   fetchPortfolioPnl,
   fetchPortfolioPositions,
   fetchSmartLeaderboard,
+  fetchSmartMoneyLiveFeed,
   fetchWalletActivities,
   fetchWalletDailyPnl,
   fetchWalletPnl,
@@ -36,6 +38,7 @@ import {
   portfolioDailyPnlQueryKey,
   portfolioPnlQueryKey,
   portfolioPositionsQueryKey,
+  smartMoneyLiveFeedQueryKey,
   walletActivitiesQueryKey,
   walletDailyPnlQueryKey,
   walletPnlQueryKey,
@@ -69,6 +72,22 @@ export function useSmartMoneyBoard(interval: LeaderboardInterval, tag?: string |
         tag,
       }),
     staleTime: WALLET_STALE_MS,
+  });
+}
+
+/** Fetch the smart-money live feed initial snapshot. Realtime updates arrive via WS. */
+export function useSmartMoneyLiveFeed(tag?: string | null) {
+  const lang = useApiLang();
+  return useQuery({
+    queryKey: [...smartMoneyLiveFeedQueryKey(tag), lang],
+    queryFn: () =>
+      fetchSmartMoneyLiveFeed(CLIENT_BASE, {
+        limit: SMART_LIVE_FEED_LIMIT,
+        lang,
+        tag,
+      }),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
   });
 }
 
