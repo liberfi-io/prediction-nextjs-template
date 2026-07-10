@@ -9,9 +9,8 @@ import { TEAMS } from "../../data/teams";
 import type { WcProp } from "../../types";
 import { useTranslation } from "@liberfi.io/i18n";
 
-// Mirrors the event-detail "similar events" card borders (see ui-predict
-// event-similar-events.ui), minus the source badge — all worldcup events are
-// Polymarket, so the provider label is noise here.
+// Mirrors the event-detail "similar events" card borders and compact metadata
+// layout (see ui-predict event-similar-events.ui).
 const REST_BORDER = "rgba(39,39,42,0.6)";
 const HOVER_BORDER = "rgba(63,63,70,0.8)";
 
