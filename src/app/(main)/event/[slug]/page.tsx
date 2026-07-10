@@ -1,6 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import type { PredictEvent, ProviderSource } from "@liberfi.io/react-predict";
-import { eventQueryKey } from "@liberfi.io/react-predict/server";
+import { eventQueryKey, fetchEvent } from "@liberfi.io/react-predict/server";
 import { notFound, redirect } from "next/navigation";
 import { PredictDetailPage } from "src/components/page/PredictDetailPage";
 import { WorldCupDetailPage } from "src/features/worldcup/components/detail/WorldCupDetailPage";
@@ -17,7 +17,7 @@ import {
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
-import { fetchLocalizedPredictEvent } from "src/lib/localizePredictEvent";
+import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
 interface PageProps {
@@ -66,18 +66,13 @@ async function resolvePredictEventBySlug(slug: string): Promise<
     }
   | null
 > {
-  const { lang, requestHeaders } = await getPredictionLocaleContext();
-  const endpoint = process.env.PREDICT_URL!;
+  const { requestHeaders } = await getPredictionLocaleContext();
+  const client = getServerPredictClient({ headers: requestHeaders });
 
   for (const source of SOURCE_PRIORITY) {
     try {
-      const event = await fetchLocalizedPredictEvent(endpoint, slug, source, lang, {
-        headers: requestHeaders,
-        cache: "no-store",
-      });
-      if (event.slug === slug) {
-        return { event, source };
-      }
+      const event = await fetchEvent(client, slug, source);
+      if (event.slug === slug) return { event, source };
     } catch (error) {
       if (isNotFoundLikeError(error)) continue;
       throw error;

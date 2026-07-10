@@ -121,10 +121,6 @@ import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniap
 import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
 import { readTelegramMiniAppContext } from "../features/telegram-miniapp/launchParams";
 import { readMpChatMiniAppContext } from "../features/mpchat-miniapp/launchParams";
-import {
-  fetchLocalizedPredictEvent,
-  fetchLocalizedSimilarPredictEvents,
-} from "../lib/localizePredictEvent";
 
 type PositionValueSource = "kalshi" | "polymarket" | "dflow";
 type PositionValueResponse = {
@@ -260,31 +256,13 @@ export function AppLayout({ children }: PropsWithChildren) {
 
 function ServiceProviders({ children }: PropsWithChildren) {
   const apiLang = useResolvedApiLang();
-  const predictClient = useMemo(() => {
-    const endpoint = baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL;
-    const headers = () => ({ "Accept-Language": apiLang });
-    const client = new PredictClient(endpoint, { headers });
-
-    client.getEvent = async (
-      ...args: Parameters<PredictClient["getEvent"]>
-    ) =>
-      fetchLocalizedPredictEvent(endpoint, args[0], args[1], apiLang, {
-        headers: headers(),
-      });
-    client.getSimilarEvents = async (
-      ...args: Parameters<PredictClient["getSimilarEvents"]>
-    ) =>
-      fetchLocalizedSimilarPredictEvents(
-        endpoint,
-        args[0],
-        args[1],
-        args[2],
-        apiLang,
-        { headers: headers() },
-      );
-
-    return client;
-  }, [apiLang]);
+  const predictClient = useMemo(
+    () =>
+      new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL, {
+        headers: () => ({ "Accept-Language": apiLang }),
+      }),
+    [apiLang],
+  );
 
   // Live WebSocket client for orderbook/price/trade subscriptions. Falls back
   // to `null` when the env var is not configured, in which case the SDK's
