@@ -56,10 +56,14 @@ export function LeaderboardPage() {
   const [isPending, startTransition] = useTransition();
   const [pendingInterval, setPendingInterval] = useState<LeaderboardInterval | null>(null);
   const [pendingScope, setPendingScope] = useState<LeaderboardScope | null>(null);
+  const [pendingView, setPendingView] = useState<LeaderboardView | null>(null);
   useEffect(() => {
     setPendingInterval(null);
     setPendingScope(null);
   }, [interval, scope]);
+  useEffect(() => {
+    setPendingView(null);
+  }, [view]);
 
   /** Replace the URL search params without scrolling or adding history noise. */
   const updateParams = useCallback(
@@ -113,10 +117,15 @@ export function LeaderboardPage() {
 
   // Switching sub-tab clears any open wallet detail.
   const handleView = useCallback(
-    (next: LeaderboardView) => updateParams({ view: next }, true),
-    [updateParams],
+    (next: LeaderboardView) => {
+      if (next === (pendingView ?? view)) return;
+      setPendingView(next);
+      updateParams({ view: next }, true);
+    },
+    [pendingView, updateParams, view],
   );
 
+  const activeView = pendingView ?? view;
   const activeScope = pendingScope ?? scope;
   const leaderboardTag = leaderboardTagForScope(activeScope);
 
@@ -166,7 +175,7 @@ export function LeaderboardPage() {
               onClick={() => handleView(v)}
               className={cn(
                 "cursor-pointer rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                view === v
+                activeView === v
                   ? "bg-bullish/15 text-bullish"
                   : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
               )}
@@ -220,7 +229,7 @@ export function LeaderboardPage() {
               ))}
             </div>
           </div>
-          {view === "smart-money" && (
+          {activeView === "smart-money" && (
             <div className="flex w-fit items-center gap-1 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-1 backdrop-blur lg:shrink-0">
               {INTERVAL_OPTIONS.map((iv) => (
                 <button
@@ -241,7 +250,7 @@ export function LeaderboardPage() {
           )}
         </div>
 
-        {view !== "smart-money" ? (
+        {activeView !== "smart-money" ? (
           <div className="flex min-h-0 w-full flex-1">
             <SmartLiveFeed tag={leaderboardTag} scope={activeScope} />
           </div>

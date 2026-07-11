@@ -13,6 +13,7 @@
  */
 
 import {
+  MouseEvent,
   PropsWithChildren,
   Suspense,
   useCallback,
@@ -49,6 +50,7 @@ import {
   PredictSearchModal,
   PREDICT_SEARCH_MODAL_ID,
   PredictWalletProvider,
+  EventsPageSkeleton,
   KycModal,
   SetupModal,
   usePredictWallet,
@@ -121,6 +123,14 @@ import { telegramMiniAppAutoLoginPendingAtom } from "../features/telegram-miniap
 import { polymarketAutoSetupPendingAtom } from "../lib/polymarketAutoSetupState";
 import { readTelegramMiniAppContext } from "../features/telegram-miniapp/launchParams";
 import { readMpChatMiniAppContext } from "../features/mpchat-miniapp/launchParams";
+import { PortfolioSkeleton } from "./page/portfolio-skeleton";
+import { LeaderboardSkeleton } from "../features/leaderboard/components/skeletons";
+import { WorldCupTabSkeleton } from "../features/worldcup/components/skeletons";
+import { normalizeTab } from "../features/worldcup/tabs";
+import {
+  setOptimisticNavigationTarget,
+  useOptimisticNavigationTarget,
+} from "./navigationTransition";
 
 type PositionValueSource = "kalshi" | "polymarket" | "dflow";
 type PositionValueResponse = {
@@ -144,6 +154,40 @@ const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
 
 function navPathname(href: string): string {
   return href.split("?")[0] || "/";
+}
+
+function currentNavHref(pathname: string): string {
+  if (typeof window === "undefined") return pathname;
+  return `${pathname}${window.location.search}`;
+}
+
+function sortedSearchEntries(params: URLSearchParams): string[] {
+  return Array.from(params.entries())
+    .map(([key, value]) => `${key}\u0000${value}`)
+    .sort();
+}
+
+function sameNavDestination(currentHref: string, targetHref: string): boolean {
+  const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const current = new URL(currentHref, base);
+  const target = new URL(targetHref, base);
+  if (current.pathname !== target.pathname) return false;
+
+  const currentEntries = sortedSearchEntries(current.searchParams);
+  const targetEntries = sortedSearchEntries(target.searchParams);
+  if (currentEntries.length !== targetEntries.length) return false;
+  return currentEntries.every((entry, index) => entry === targetEntries[index]);
+}
+
+function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    !event.defaultPrevented
+  );
 }
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
@@ -288,6 +332,13 @@ function PageShell({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
+  const optimisticNav = useOptimisticNavigationTarget();
+  const activePathname = optimisticNav?.pathname ?? pathname;
+  const showPendingContent = Boolean(
+    optimisticNav &&
+      pathname === optimisticNav.fromPathname &&
+      pathname !== optimisticNav.pathname,
+  );
 
   const navItems: NavItem[] = useMemo(
     () =>
@@ -350,12 +401,28 @@ function PageShell({ children }: PropsWithChildren) {
     return () => clearTimeout(timer);
   }, [router, pathname]);
 
-  const onNavigate = useCallback(
-    (href: string) => {
-      router.push(href);
+  const navigateWithOptimism = useCallback(
+    (href: string, options?: { replace?: boolean }) => {
+      setOptimisticNavigationTarget({
+        href,
+        pathname: navPathname(href),
+        fromPathname: pathname,
+      });
+      if (options?.replace) router.replace(href);
+      else router.push(href);
     },
-    [router],
+    [pathname, router],
   );
+
+  useEffect(() => {
+    if (!optimisticNav) return;
+    if (
+      pathname === optimisticNav.pathname ||
+      pathname !== optimisticNav.fromPathname
+    ) {
+      setOptimisticNavigationTarget(null);
+    }
+  }, [optimisticNav, pathname]);
 
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
     useAsyncModal(PREDICT_SEARCH_MODAL_ID);
@@ -394,8 +461,8 @@ function PageShell({ children }: PropsWithChildren) {
         <ReferralCapture />
       </Suspense>
       <Scaffold
-        pathname={pathname}
-        onNavigate={onNavigate}
+        pathname={activePathname}
+        onNavigate={navigateWithOptimism}
         headerHeight={48}
         headerVisible={["desktop", "tablet", "mobile"]}
         footerVisible={["mobile"]}
@@ -417,13 +484,13 @@ function PageShell({ children }: PropsWithChildren) {
                     .filter((item) => item.key !== "matches")
                     .map((item) => {
                       const itemPathname = navPathname(item.href);
-                      const active = pathname.startsWith(itemPathname);
+                      const active = activePathname.startsWith(itemPathname);
                       return (
                         <NavTab
                           key={item.key}
                           item={item}
                           active={active}
-                          onNavigate={onNavigate}
+                          pathname={pathname}
                         />
                       );
                     })}
@@ -453,18 +520,76 @@ function PageShell({ children }: PropsWithChildren) {
                 >
                   <SearchIcon width={14} height={14} />
                 </button>
-                <PredictAccountControl />
+                <PredictAccountControl onNavigate={navigateWithOptimism} />
               </div>
             </div>
           </ScaffoldHeader>
         }
         footer={<ScaffoldFooter navItems={footerNavItems} />}
       >
-        {children}
+        {showPendingContent && optimisticNav ? (
+          <NavigationPendingFallback pathname={optimisticNav.pathname} />
+        ) : (
+          children
+        )}
       </Scaffold>
       <FundWalletModal />
       <SetupWalletModal />
     </PredictWalletProvider>
+  );
+}
+
+function NavigationPendingFallback({ pathname }: { pathname: string }) {
+  if (pathname.startsWith("/leaderboard")) return <LeaderboardSkeleton />;
+
+  if (pathname.startsWith("/events")) return <EventsPageSkeleton />;
+
+  if (pathname.startsWith("/portfolio")) {
+    return (
+      <div className="bg-zinc-950/50 sm:h-[calc(100vh-var(--header-height))] sm:min-h-0 sm:overflow-hidden">
+        <div className="mx-auto h-full max-w-[1200px] px-2 pt-3 sm:flex sm:flex-col sm:px-6 sm:pt-8 lg:px-8">
+          <PortfolioSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname.startsWith("/world-cup")) {
+    const tab = normalizeTab(pathname.split("/")[2]);
+    return (
+      <div className="w-full pb-6 sm:pb-16">
+        <div className="mx-auto w-full max-w-338 px-4 sm:px-6 sm:pt-4">
+          <WorldCupTabSkeleton tab={tab} />
+        </div>
+      </div>
+    );
+  }
+
+  return <GenericNavigationSkeleton />;
+}
+
+function GenericNavigationSkeleton() {
+  return (
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="h-8 w-40 animate-pulse rounded-lg bg-zinc-800/70" />
+      <div className="grid gap-3 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-28 animate-pulse rounded-lg border border-zinc-800/70 bg-zinc-900/50"
+          />
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-zinc-800/70 bg-zinc-950/40">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-14 animate-pulse border-b border-zinc-800/60 bg-zinc-900/30 last:border-b-0"
+            style={{ animationDelay: `${i * 80}ms` }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -475,19 +600,34 @@ function PageShell({ children }: PropsWithChildren) {
 function NavTab({
   item,
   active,
-  onNavigate,
+  pathname,
 }: {
   item: NavItem;
   active: boolean;
-  onNavigate: (href: string) => void;
+  pathname: string;
 }) {
-  const handlePress = useCallback(() => {
-    onNavigate(item.href);
-  }, [onNavigate, item.href]);
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!isPlainLeftClick(event)) return;
+
+      if (sameNavDestination(currentNavHref(pathname), item.href)) {
+        event.preventDefault();
+        return;
+      }
+
+      setOptimisticNavigationTarget({
+        href: item.href,
+        pathname: navPathname(item.href),
+        fromPathname: pathname,
+      });
+    },
+    [item.href, pathname],
+  );
 
   return (
-    <button
-      type="button"
+    <Link
+      href={item.href}
+      prefetch={false}
       data-active={active}
       className={cn(
         "px-3 py-1.5 text-sm font-medium rounded-[10px] transition-colors cursor-pointer whitespace-nowrap focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
@@ -496,7 +636,7 @@ function NavTab({
           ? "text-[#c7ff2e]"
           : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40",
       )}
-      onClick={handlePress}
+      onClick={handleClick}
       aria-label={item.label}
       aria-current={active ? "page" : undefined}
     >
@@ -511,7 +651,7 @@ function NavTab({
       <span className={item.key === "worldcup" ? "pl-[4px]" : undefined}>
         {item.label}
       </span>
-    </button>
+    </Link>
   );
 }
 
@@ -1189,7 +1329,11 @@ function BalanceDropdownContent({
 // while (de)authenticating, and the balance trigger + dropdown once signed in.
 // Replaces the former separate PredictBalanceIndicator / PredictDepositButton /
 // PredictAccountButton trio.
-function PredictAccountControl() {
+function PredictAccountControl({
+  onNavigate,
+}: {
+  onNavigate?: (href: string) => void;
+}) {
   const { t } = useTranslation();
   const { status, signIn, signOut } = useAuth();
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
@@ -1463,9 +1607,10 @@ function PredictAccountControl() {
   const handleNavigate = useCallback(
     (href: string) => {
       setIsOpen(false);
-      router.push(href);
+      if (onNavigate) onNavigate(href);
+      else router.push(href);
     },
-    [router],
+    [onNavigate, router],
   );
 
   useEffect(() => {
