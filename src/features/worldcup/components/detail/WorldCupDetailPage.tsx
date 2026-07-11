@@ -9,23 +9,14 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@liberfi.io/i18n";
-import {
-  cn,
-  toast,
-  useScreen,
-} from "@liberfi.io/ui";
+import { cn, toast, useScreen } from "@liberfi.io/ui";
 import type {
-  PriceHistoryResponse,
   PredictEvent,
   PredictMarket,
   ProviderSource,
 } from "@liberfi.io/react-predict";
-import {
-  pickBestAsk,
-  useRealtimeOrderbook,
-} from "@liberfi.io/react-predict";
+import { pickBestAsk, useRealtimeOrderbook } from "@liberfi.io/react-predict";
 import {
   EventPriceChart,
   EventMarketDetailWidget,
@@ -94,28 +85,38 @@ type TranslatedMarket = PredictMarket & {
   outcomes?: TranslatedOutcome[];
 };
 
-const CHART_PRICE_HISTORY_RANGES = ["1d", "1w", "1m", "all"] as const;
-
-function translatedText(base: string | undefined, translated: unknown): string | undefined {
-  return typeof translated === "string" && translated.trim() ? translated : base;
+function translatedText(
+  base: string | undefined,
+  translated: unknown,
+): string | undefined {
+  return typeof translated === "string" && translated.trim()
+    ? translated
+    : base;
 }
 
 function withTranslatedEventTitle(
   event: PredictEvent,
   titleOverride?: string,
 ): PredictEvent {
-  if (titleOverride && titleOverride !== event.title) return { ...event, title: titleOverride };
+  if (titleOverride && titleOverride !== event.title)
+    return { ...event, title: titleOverride };
   const translated = event as TranslatedEvent;
   const title = translatedText(event.title, translated.title_trans);
   return title && title !== event.title ? { ...event, title } : event;
 }
 
-function localizeKnownLabel(label: string | undefined, hint?: TeamHint): string | undefined {
+function localizeKnownLabel(
+  label: string | undefined,
+  hint?: TeamHint,
+): string | undefined {
   if (!label || !hint) return label;
   const normalized = label.trim().toLowerCase();
   if (hint.homeLabel && hint.homeKeys.has(normalized)) return hint.homeLabel;
   if (hint.awayLabel && hint.awayKeys.has(normalized)) return hint.awayLabel;
-  if (hint.drawLabel && (normalized === "draw" || normalized === "tie" || normalized === "平")) {
+  if (
+    hint.drawLabel &&
+    (normalized === "draw" || normalized === "tie" || normalized === "平")
+  ) {
     return hint.drawLabel;
   }
   if (hint.yesLabel && normalized === "yes") return hint.yesLabel;
@@ -129,7 +130,8 @@ function withTranslatedMarketText(
 ): PredictMarket {
   const translatedMarket = market as TranslatedMarket;
   const question =
-    translatedText(market.question, translatedMarket.question_trans) ?? market.question;
+    translatedText(market.question, translatedMarket.question_trans) ??
+    market.question;
   let changed = question !== market.question;
   const outcomes = market.outcomes?.map((outcome) => {
     const translatedOutcome = outcome as TranslatedOutcome;
@@ -160,9 +162,15 @@ function withCleanLabel(
   label: string,
   hint?: TeamHint,
 ): PredictMarket {
-  const displayMarket = withTranslatedMarketText(withSettledOutcomePrices(market), hint);
+  const displayMarket = withTranslatedMarketText(
+    withSettledOutcomePrices(market),
+    hint,
+  );
   const outcomes = displayMarket.outcomes?.length
-    ? [{ ...displayMarket.outcomes[0], label }, ...displayMarket.outcomes.slice(1)]
+    ? [
+        { ...displayMarket.outcomes[0], label },
+        ...displayMarket.outcomes.slice(1),
+      ]
     : displayMarket.outcomes;
   return { ...displayMarket, question: label, outcomes };
 }
@@ -173,7 +181,10 @@ function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
   let changed = false;
   const outcomes = market.outcomes?.length
     ? market.outcomes.map((outcome) => {
-        if (typeof outcome.price !== "number" || !Number.isFinite(outcome.price)) {
+        if (
+          typeof outcome.price !== "number" ||
+          !Number.isFinite(outcome.price)
+        ) {
           return outcome;
         }
         changed = changed || outcome.best_bid !== outcome.price;
@@ -187,32 +198,6 @@ function withSettledOutcomePrices(market: PredictMarket): PredictMarket {
     : market.outcomes;
 
   return changed ? { ...market, outcomes } : market;
-}
-
-function priceHistoryQueryKey(
-  slug: string,
-  source: ProviderSource,
-  range: (typeof CHART_PRICE_HISTORY_RANGES)[number],
-) {
-  return ["predict", "price-history", slug, source, range];
-}
-
-function withLatestHistoryPrice(
-  history: PriceHistoryResponse | undefined,
-  price: number,
-): PriceHistoryResponse | undefined {
-  if (!history?.points?.length) return history;
-
-  const nextPoint = { t: Math.floor(Date.now() / 1000), p: price };
-  const points = history.points;
-  const last = points[points.length - 1];
-  if (last && Math.abs(last.p - price) < 0.000001) return history;
-
-  const nextPoints =
-    last && nextPoint.t - last.t <= 60
-      ? [...points.slice(0, -1), { ...last, p: price }]
-      : [...points, nextPoint];
-  return { ...history, points: nextPoints };
 }
 
 export function WorldCupDetailPage({
@@ -238,7 +223,6 @@ export function WorldCupDetailPage({
     useAsyncModal<FundWalletParams>(FUND_WALLET_MODAL_ID);
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
-  const queryClient = useQueryClient();
 
   const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
   const { data: matches = [] } = useWorldcupMatches();
@@ -267,7 +251,10 @@ export function WorldCupDetailPage({
     [showLiveTab],
   );
 
-  const hint = useMemo(() => buildWorldcupTeamHint(match, translate), [match, translate]);
+  const hint = useMemo(
+    () => buildWorldcupTeamHint(match, translate),
+    [match, translate],
+  );
   const cats = useMemo(
     () => categorizeMarkets(event?.markets ?? [], hint),
     [event?.markets, hint],
@@ -296,12 +283,14 @@ export function WorldCupDetailPage({
   const deepLinkOutcome = initialOutcome?.trim() || null;
   const hasCompleteDeepLink = Boolean(
     exactInitialMarketSlug ||
-      (deepLinkMarket && normalizeDeepLinkOutcome(deepLinkOutcome)),
+    (deepLinkMarket && normalizeDeepLinkOutcome(deepLinkOutcome)),
   );
 
   // Resolve the active selection, falling back to the first open market.
   const selection = useMemo(() => {
-    const found = selectedSlug ? findSelection(cats, selectedSlug, outcome) : undefined;
+    const found = selectedSlug
+      ? findSelection(cats, selectedSlug, outcome)
+      : undefined;
     return found ?? defaultSelection(cats);
   }, [cats, outcome, selectedSlug]);
 
@@ -391,11 +380,14 @@ export function WorldCupDetailPage({
     });
   }, [event, initialMarketSlug]);
 
-  const handleSelect = useCallback((slug: string, selectedOutcome: TradeOutcome = "yes") => {
-    setSelectedSlug(slug);
-    setOutcome(selectedOutcome);
-    setSide("buy");
-  }, []);
+  const handleSelect = useCallback(
+    (slug: string, selectedOutcome: TradeOutcome = "yes") => {
+      setSelectedSlug(slug);
+      setOutcome(selectedOutcome);
+      setSide("buy");
+    },
+    [],
+  );
   const handleMobileMarketSelect = useCallback(
     (slug: string, selectedOutcome: TradeOutcome = "yes") => {
       handleSelect(slug, selectedOutcome);
@@ -499,27 +491,15 @@ export function WorldCupDetailPage({
     chartPrioritySlugs,
   );
 
-  useEffect(() => {
-    if (orderbookPricesBySlug.size === 0 || allOpenMarkets.length === 0) return;
-
-    const marketsBySlug = new Map(allOpenMarkets.map((market) => [market.slug, market]));
-    const syncChartHistoryPrices = () => {
-      orderbookPricesBySlug.forEach((price, slug) => {
-        const market = marketsBySlug.get(slug);
-        if (!market || price <= 0) return;
-        for (const range of CHART_PRICE_HISTORY_RANGES) {
-          queryClient.setQueryData<PriceHistoryResponse>(
-            priceHistoryQueryKey(market.slug, market.source, range),
-            (history) => withLatestHistoryPrice(history, price),
-          );
-        }
-      });
-    };
-
-    syncChartHistoryPrices();
-    const interval = window.setInterval(syncChartHistoryPrices, 2_000);
-    return () => window.clearInterval(interval);
-  }, [allOpenMarkets, orderbookPricesBySlug, queryClient]);
+  const chartOrderbookQuotes = useMemo(() => {
+    const quotes = new Map<string, { bestAsk?: number }>();
+    orderbookPricesBySlug.forEach((price, slug) => {
+      if (price > 0 && Number.isFinite(price)) {
+        quotes.set(`${slug}:yes`, { bestAsk: price });
+      }
+    });
+    return quotes;
+  }, [orderbookPricesBySlug]);
 
   if (isLoading && !event) {
     return <WorldCupDetailSkeleton />;
@@ -543,7 +523,10 @@ export function WorldCupDetailPage({
   const selectedDisplayMarket = selectedMarket
     ? withTranslatedMarketText(withSettledOutcomePrices(selectedMarket), hint)
     : selectedMarket;
-  const displayEvent = withTranslatedEventTitle(event, worldcupMatchTitle(match, hint));
+  const displayEvent = withTranslatedEventTitle(
+    event,
+    worldcupMatchTitle(match, hint),
+  );
 
   // Header label, e.g. "Moneyline (Mexico)" / "Totals (0.5)".
   const groupLabel = selectedGroup
@@ -556,7 +539,12 @@ export function WorldCupDetailPage({
       : groupLabel;
   const selectedSurfaceLabel = (option: MarketOption) =>
     selectedGroup
-      ? worldcupMarketSelectedSurfaceLabel(selectedGroup, option, hint, translate)
+      ? worldcupMarketSelectedSurfaceLabel(
+          selectedGroup,
+          option,
+          hint,
+          translate,
+        )
       : groupLabel;
 
   const selectedLabel =
@@ -574,7 +562,9 @@ export function WorldCupDetailPage({
     ? {
         ...displayEvent,
         markets: Array.from(
-          new Map(selectedGroup.options.map((o) => [o.market.slug, o])).values(),
+          new Map(
+            selectedGroup.options.map((o) => [o.market.slug, o]),
+          ).values(),
         ).map((o) => withCleanLabel(o.market, optionDisplayLabel(o), hint)),
       }
     : displayEvent;
@@ -632,6 +622,7 @@ export function WorldCupDetailPage({
         <EventPriceChart
           event={chartEvent}
           volume={event.volume ?? undefined}
+          orderbookQuotes={chartOrderbookQuotes}
         />
 
         {/* Tabbed lower content */}
@@ -669,7 +660,11 @@ export function WorldCupDetailPage({
                 onInspect={handleMobileMarketInspect}
                 orderbookPricesBySlug={orderbookPricesBySlug}
                 renderInlineOrderbook={(slug, inlineOutcome) => {
-                  const inlineSelection = findSelection(cats, slug, inlineOutcome);
+                  const inlineSelection = findSelection(
+                    cats,
+                    slug,
+                    inlineOutcome,
+                  );
                   const inlineMarket = inlineSelection?.option.market;
                   if (!inlineSelection || !inlineMarket) return null;
 
@@ -808,6 +803,7 @@ export function WorldCupDetailPage({
               fillHeight
               event={chartEvent}
               volume={event.volume ?? undefined}
+              orderbookQuotes={chartOrderbookQuotes}
             />
           </div>
 
@@ -933,7 +929,9 @@ function MarketSwitcherFrame({
           )}
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }
@@ -982,7 +980,12 @@ const MOBILE_TABS = [
   { key: "stats", labelKey: "extend.worldcup.detail.tab.stats" },
   { key: "lineup", labelKey: "extend.worldcup.detail.tab.lineup" },
   ...(ENABLE_WORLD_CUP_MATCH_CENTER
-    ? [{ key: "center", labelKey: "extend.worldcup.detail.tab.center" } as const]
+    ? [
+        {
+          key: "center",
+          labelKey: "extend.worldcup.detail.tab.center",
+        } as const,
+      ]
     : []),
   { key: "news", labelKey: "extend.worldcup.detail.tab.news" },
   { key: "comments", labelKey: "extend.worldcup.detail.tab.comments" },
