@@ -46,7 +46,7 @@ function bracketSortValue(round: string, matchId: string): number {
 export function BracketTab() {
   const { t } = useTranslation();
   const { data: nodes = [], isPending } = useWorldcupBracket();
-  const [round, setRound] = useState("r8");
+  const [round, setRound] = useState("r4");
 
   const byRound = useMemo(() => {
     const map = new Map<string, typeof nodes>();

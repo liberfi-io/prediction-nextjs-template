@@ -73,7 +73,7 @@ const FALLBACK_MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
 const LIVE_VIDEO_AUTOPEN_LEAD_MS = 5 * 60 * 1000;
 const LIVE_VIDEO_AUTOPEN_LAG_MS = 60 * 60 * 1000;
 const FIFA_AVATAR = "/worldcup/fifa.webp";
-const KNOCKOUT_STAGE_ORDER = ["r8", "r16", "r32", "r4", "r3rd", "final"] as const;
+const KNOCKOUT_STAGE_ORDER = ["r4", "r8", "r16", "r32", "r3rd", "final"] as const;
 
 function stageSectionKey(match: WcMatch): string {
   return match.groupCode ? `group-${match.groupCode}` : match.stage;
