@@ -13,7 +13,19 @@ import { configs as tsConfigs, plugin as tsPlugin, parser as tsParser } from "ty
 import unusedImports from "eslint-plugin-unused-imports";
 
 export default [
-  { ignores: ["**/dist/", "**/.next/", "**/.yarn/", "**/.vscode/", "**/.idea/"] },
+  {
+    ignores: [
+      "**/dist/",
+      "**/.next/",
+      "**/.plans/",
+      "**/.vercel/",
+      "**/.yarn/",
+      "**/.vscode/",
+      "**/.idea/",
+      "build-config/",
+      "public/*.js",
+    ],
+  },
   js.configs.recommended,
   ...tsConfigs.recommended,
   importPlugin.flatConfigs.recommended,
@@ -107,4 +119,17 @@ export default [
     },
   },
   { plugins: { "@next/next": nextPlugin } },
+  {
+    files: ["*.cjs", "*.mjs"],
+    languageOptions: {
+      globals: {
+        module: "readonly",
+        process: "readonly",
+        require: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ];
