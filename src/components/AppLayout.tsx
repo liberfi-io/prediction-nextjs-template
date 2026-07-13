@@ -427,30 +427,43 @@ function PageShell({ children }: PropsWithChildren) {
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
     useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
-  const handlePredictHover = useCallback(
-    (event: PredictEvent) => {
-      router.prefetch(predictEventHref(event));
+  type PredictSearchNavigationTarget = Partial<PredictEvent> & {
+    detail_url?: string;
+  };
+
+  const predictSearchHref = useCallback(
+    (target: PredictSearchNavigationTarget) => {
+      if (target.detail_url) return target.detail_url;
+      return predictEventHref(target as PredictEvent);
     },
-    [router],
+    [],
+  );
+
+  const handlePredictHover = useCallback(
+    (result: PredictSearchNavigationTarget) => {
+      router.prefetch(predictSearchHref(result));
+    },
+    [predictSearchHref, router],
   );
 
   const searchModalParams = useMemo(
     () => ({
-      getEventHref: (event: PredictEvent) => predictEventHref(event),
+      getEventHref: (result: PredictSearchNavigationTarget) =>
+        predictSearchHref(result),
       LinkComponent: NoPrefetchLink,
       onHover: handlePredictHover,
       // When Kalshi is disabled, restrict search to Polymarket events only.
       source: ENABLE_KALSHI ? undefined : ("polymarket" as const),
     }),
-    [handlePredictHover],
+    [handlePredictHover, predictSearchHref],
   );
 
   const handleSelectEvent = useCallback(
-    (event: PredictEvent) => {
-      router.push(predictEventHref(event));
+    (result: PredictSearchNavigationTarget) => {
+      router.push(predictSearchHref(result));
       closePredictSearch();
     },
-    [router, closePredictSearch],
+    [predictSearchHref, router, closePredictSearch],
   );
 
   return (
