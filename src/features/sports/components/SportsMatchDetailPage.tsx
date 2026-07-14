@@ -1,6 +1,7 @@
 "use client";
 
 import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
+import { useSportsMatchMarketGroups } from "../live/useSportsMatchMarketGroups";
 import type { SportsMatchDetail } from "../types";
 
 interface SportsMatchDetailPageProps {
@@ -14,7 +15,11 @@ export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
   );
   const liveState = realtimeLiveState ?? match.live_state;
   const status = liveState?.status ?? match.status;
-  const marketGroups = match.market_groups ?? [];
+  const marketGroups = useSportsMatchMarketGroups(
+    match.section,
+    match.match_group_slug,
+    match.market_groups ?? [],
+  );
 
   return (
     <main className="min-h-[calc(100vh-var(--header-height))] bg-[#09090b] px-3 py-4 text-zinc-100 sm:px-6">
