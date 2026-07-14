@@ -44,7 +44,7 @@ import {
   useDeployPolymarketDepositWallet,
   polymarketSetupQueryKey,
 } from "@liberfi.io/react-predict";
-import type { PredictEvent } from "@liberfi.io/react-predict";
+import type { PredictSearchResult } from "@liberfi.io/react-predict";
 import {
   SearchEventsButton,
   PredictSearchModal,
@@ -93,7 +93,6 @@ import {
   type NavItem,
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { predictEventHref } from "./page/predict-source";
 import { ENABLE_KALSHI, SPORTS_FEATURE_FLAGS } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
 import { AutoSetupPolymarketDepositWallet } from "./AutoSetupPolymarketDepositWallet";
@@ -445,20 +444,15 @@ function PageShell({ children }: PropsWithChildren) {
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
     useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
-  type PredictSearchNavigationTarget = Partial<PredictEvent> & {
-    detail_url?: string;
-  };
-
   const predictSearchHref = useCallback(
-    (target: PredictSearchNavigationTarget) => {
-      if (target.detail_url) return target.detail_url;
-      return predictEventHref(target as PredictEvent);
+    (target: PredictSearchResult) => {
+      return target.detail_url;
     },
     [],
   );
 
   const handlePredictHover = useCallback(
-    (result: PredictSearchNavigationTarget) => {
+    (result: PredictSearchResult) => {
       router.prefetch(predictSearchHref(result));
     },
     [predictSearchHref, router],
@@ -466,8 +460,7 @@ function PageShell({ children }: PropsWithChildren) {
 
   const searchModalParams = useMemo(
     () => ({
-      getEventHref: (result: PredictSearchNavigationTarget) =>
-        predictSearchHref(result),
+      getEventHref: (result: PredictSearchResult) => predictSearchHref(result),
       LinkComponent: NoPrefetchLink,
       onHover: handlePredictHover,
       // When Kalshi is disabled, restrict search to Polymarket events only.
@@ -477,7 +470,7 @@ function PageShell({ children }: PropsWithChildren) {
   );
 
   const handleSelectEvent = useCallback(
-    (result: PredictSearchNavigationTarget) => {
+    (result: PredictSearchResult) => {
       router.push(predictSearchHref(result));
       closePredictSearch();
     },
