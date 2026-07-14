@@ -3,6 +3,17 @@ import type { PredictEvent, ProviderSource } from "@liberfi.io/react-predict";
 import { eventQueryKey, fetchEvent } from "@liberfi.io/react-predict/server";
 import { notFound, redirect } from "next/navigation";
 import { PredictDetailPage } from "src/components/page/PredictDetailPage";
+import {
+  SportsMatchDetailPage,
+  SportsMatchDetailSkeleton,
+} from "src/features/sports/components/SportsMatchDetailPage";
+import { createSportsSsrDeadline } from "src/features/sports/route/sportsSsrDeadline";
+import {
+  resolveSportsEventRoute,
+  type SportsRoutingResult,
+  type SportsSection,
+} from "src/features/sports/route/resolveSportsEventRoute";
+import type { SportsMatchDetail } from "src/features/sports/types";
 import { WorldCupDetailPage } from "src/features/worldcup/components/detail/WorldCupDetailPage";
 import { isWorldcupMarketCode } from "src/features/worldcup/components/detail/deepLink";
 import { fetchWorldcupMatchEvent } from "src/features/worldcup/data/client";
@@ -17,6 +28,7 @@ import {
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
+import { resolveSportsFeatureFlags } from "src/libs/featureFlags";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
@@ -27,6 +39,24 @@ interface PageProps {
 
 const PREFETCH_TIMEOUT_MS = 3000;
 const SOURCE_PRIORITY = ["polymarket", "kalshi"] as const;
+
+type ResolvedPredictEvent = {
+  event: PredictEvent;
+  source: ProviderSource;
+  lang: string;
+};
+
+type RuntimeSportsClient = {
+  getSportsRouting?: (
+    slug: string,
+    params?: { lang?: string },
+  ) => Promise<SportsRoutingResult>;
+  getSportsMatchDetail?: (
+    section: SportsSection,
+    matchGroupSlug: string,
+    params?: { lang?: string },
+  ) => Promise<SportsMatchDetail>;
+};
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
@@ -59,14 +89,9 @@ function isNotFoundLikeError(error: unknown): boolean {
   return message.includes("not found") || /\b404\b/.test(message);
 }
 
-async function resolvePredictEventBySlug(slug: string): Promise<
-  | {
-      event: PredictEvent;
-      source: ProviderSource;
-      lang: string;
-    }
-  | null
-> {
+async function resolvePredictEventBySlug(
+  slug: string,
+): Promise<ResolvedPredictEvent | null> {
   const { lang, requestHeaders } = await getPredictionLocaleContext();
   const client = getServerPredictClient({ headers: requestHeaders });
 
@@ -133,16 +158,25 @@ async function renderWorldcupMatchPage(
 export default async function Page({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { market = null, outcome = null } = await searchParams;
+  const search = new URLSearchParams();
+  if (market) search.set("market", market);
+  if (outcome) search.set("outcome", outcome);
 
   const worldcupAttribution = resolveWorldcupEventAttribution(slug);
   if (worldcupAttribution?.kind === "match") {
-    return renderWorldcupMatchPage(worldcupAttribution.matchSlug, market, outcome);
+    return renderWorldcupMatchPage(
+      worldcupAttribution.matchSlug,
+      market,
+      outcome,
+    );
   }
 
   if (worldcupAttribution?.kind === "event") {
     const base = process.env.PREDICT_URL;
     if (!base) {
-      redirect(canonicalWorldcupHref(worldcupAttribution.matchSlug, null, outcome));
+      redirect(
+        canonicalWorldcupHref(worldcupAttribution.matchSlug, null, outcome),
+      );
     }
 
     const lang = mapToApiLang(await detectLanguage());
@@ -157,24 +191,91 @@ export default async function Page({ params, searchParams }: PageProps) {
           worldcupAttribution.sourceEventSlug,
         )
       : null;
-    redirect(canonicalWorldcupHref(worldcupAttribution.matchSlug, marketSlug, outcome));
+    redirect(
+      canonicalWorldcupHref(worldcupAttribution.matchSlug, marketSlug, outcome),
+    );
+  }
+
+  const localeContext = await getPredictionLocaleContext();
+  const client = getServerPredictClient({
+    headers: localeContext.requestHeaders,
+  });
+  const sportsClient = client as unknown as RuntimeSportsClient;
+  const deadline = createSportsSsrDeadline(PREFETCH_TIMEOUT_MS);
+  const fallbackCache: { resolved: ResolvedPredictEvent | null } = {
+    resolved: null,
+  };
+  const sportsRoute = await resolveSportsEventRoute({
+    slug,
+    searchParams: search,
+    lang: localeContext.lang,
+    flags: resolveSportsFeatureFlags(process.env),
+    deadline,
+    resolveWorldcupAttribution: () => null,
+    fetchSportsRouting: (_slug, lang) =>
+      sportsClient.getSportsRouting?.(_slug, { lang }) ?? Promise.resolve(null),
+    fetchFallbackEvent: async (_slug) => {
+      const resolved = await resolvePredictEventBySlug(_slug);
+      fallbackCache.resolved = resolved;
+      return resolved ? { event_slug: resolved.event.slug } : null;
+    },
+    fetchSportsMatchDetail: (section, matchGroupSlug, lang) =>
+      sportsClient.getSportsMatchDetail?.(section, matchGroupSlug, { lang }) ??
+      Promise.resolve(null),
+  });
+
+  if (sportsRoute.kind === "sports_child_redirect") {
+    redirect(sportsRoute.redirect_to);
+  }
+
+  if (sportsRoute.kind === "sports_match") {
+    return (
+      <SportsMatchDetailPage
+        match={sportsRoute.detail as SportsMatchDetail}
+        initialMarketSlug={market}
+        initialOutcome={normalizeSportsOutcome(outcome)}
+      />
+    );
+  }
+
+  if (sportsRoute.kind === "sports_match_skeleton") {
+    return (
+      <SportsMatchDetailSkeleton
+        matchGroupSlug={sportsRoute.match_group_slug}
+      />
+    );
+  }
+
+  if (sportsRoute.kind === "not_found") {
+    notFound();
   }
 
   const queryClient = createServerQueryClient();
-  const resolved = await withTimeout(
-    resolvePredictEventBySlug(slug),
-    PREFETCH_TIMEOUT_MS,
-  );
+  const eventSlug =
+    sportsRoute.kind === "sports_prop" || sportsRoute.kind === "fallback_event"
+      ? sportsRoute.event_slug
+      : slug;
+  const resolved =
+    fallbackCache.resolved?.event.slug === eventSlug
+      ? fallbackCache.resolved
+      : await withTimeout(
+          resolvePredictEventBySlug(eventSlug),
+          PREFETCH_TIMEOUT_MS,
+        );
   if (!resolved) notFound();
 
   queryClient.setQueryData(
-    eventQueryKey(slug, resolved.source, resolved.lang),
+    eventQueryKey(eventSlug, resolved.source, resolved.lang),
     resolved.event,
   );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictDetailPage id={slug} source={resolved.source} />
+      <PredictDetailPage id={eventSlug} source={resolved.source} />
     </HydrationBoundary>
   );
+}
+
+function normalizeSportsOutcome(outcome: string | null): "yes" | "no" | null {
+  return outcome === "yes" || outcome === "no" ? outcome : null;
 }

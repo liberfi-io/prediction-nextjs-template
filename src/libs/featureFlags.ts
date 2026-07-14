@@ -18,3 +18,50 @@ export const ENABLE_KALSHI = process.env.NEXT_PUBLIC_ENABLE_KALSHI === "true";
  * the required third-party service package is purchased.
  */
 export const ENABLE_WORLD_CUP_MATCH_CENTER = false;
+
+export interface SportsFeatureFlags {
+  sports_enabled: boolean;
+  esports_enabled: boolean;
+  sports_match_detail_enabled: boolean;
+  sports_match_detail_soccer_enabled: boolean;
+  sports_match_detail_baseball_enabled: boolean;
+  esports_match_detail_cs2_enabled: boolean;
+}
+
+function enabled(value: string | undefined): boolean {
+  return value === "true";
+}
+
+export function resolveSportsFeatureFlags(
+  env: Record<string, string | undefined>,
+): SportsFeatureFlags {
+  return {
+    sports_enabled: enabled(env.NEXT_PUBLIC_ENABLE_SPORTS),
+    esports_enabled: enabled(env.NEXT_PUBLIC_ENABLE_ESPORTS),
+    sports_match_detail_enabled: enabled(
+      env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL,
+    ),
+    sports_match_detail_soccer_enabled: enabled(
+      env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_SOCCER,
+    ),
+    sports_match_detail_baseball_enabled: enabled(
+      env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_BASEBALL,
+    ),
+    esports_match_detail_cs2_enabled: enabled(
+      env.NEXT_PUBLIC_ENABLE_ESPORTS_MATCH_DETAIL_CS2,
+    ),
+  };
+}
+
+export const SPORTS_FEATURE_FLAGS = resolveSportsFeatureFlags({
+  NEXT_PUBLIC_ENABLE_SPORTS: process.env.NEXT_PUBLIC_ENABLE_SPORTS,
+  NEXT_PUBLIC_ENABLE_ESPORTS: process.env.NEXT_PUBLIC_ENABLE_ESPORTS,
+  NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL:
+    process.env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL,
+  NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_SOCCER:
+    process.env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_SOCCER,
+  NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_BASEBALL:
+    process.env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL_BASEBALL,
+  NEXT_PUBLIC_ENABLE_ESPORTS_MATCH_DETAIL_CS2:
+    process.env.NEXT_PUBLIC_ENABLE_ESPORTS_MATCH_DETAIL_CS2,
+});

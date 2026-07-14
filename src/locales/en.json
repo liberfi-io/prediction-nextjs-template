@@ -38,7 +38,9 @@
       "leaderboard": "Leaderboard",
       "portfolio": "Portfolio",
       "profile": "Profile",
-      "referral": "Referral"
+      "referral": "Referral",
+      "sports": "Sports",
+      "esports": "Esports"
     },
     "leaderboard": {
       "title": "Leaderboard",
@@ -715,6 +717,30 @@
       "firstHalfPrefix": "1st half",
       "secondHalfPrefix": "2nd half",
       "periodMarketLabel": "{{period}} {{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "Sports",
+        "esports": "Esports"
+      },
+      "filters": {
+        "live": "Live",
+        "upcoming": "Upcoming",
+        "all": "All"
+      },
+      "market": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
+      "detail": {
+        "loading": "Loading match",
+        "unavailable": "Match unavailable"
+      },
+      "empty": {
+        "matches": "No matches available",
+        "props": "No props available"
+      }
     }
   },
   "common": {

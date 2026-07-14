@@ -28,7 +28,9 @@
       "leaderboard": "Classifica",
       "portfolio": "Portafoglio",
       "profile": "Profilo",
-      "referral": "Referral"
+      "referral": "Referral",
+      "sports": "Sports",
+      "esports": "Esports"
     },
     "leaderboard": {
       "title": "Classifica",
@@ -698,6 +700,30 @@
       "firstHalfPrefix": "1° tempo",
       "secondHalfPrefix": "2° tempo",
       "periodMarketLabel": "{{period}} {{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "Sports",
+        "esports": "Esports"
+      },
+      "filters": {
+        "live": "Live",
+        "upcoming": "Upcoming",
+        "all": "All"
+      },
+      "market": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
+      "detail": {
+        "loading": "Loading match",
+        "unavailable": "Match unavailable"
+      },
+      "empty": {
+        "matches": "No matches available",
+        "props": "No props available"
+      }
     }
   },
   "common": {

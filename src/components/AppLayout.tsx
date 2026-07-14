@@ -44,7 +44,7 @@ import {
   useDeployPolymarketDepositWallet,
   polymarketSetupQueryKey,
 } from "@liberfi.io/react-predict";
-import type { PredictEvent } from "@liberfi.io/react-predict";
+import type { PredictSearchResult } from "@liberfi.io/react-predict";
 import {
   SearchEventsButton,
   PredictSearchModal,
@@ -93,8 +93,7 @@ import {
   type NavItem,
 } from "@liberfi.io/ui-scaffold";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
-import { predictEventHref } from "./page/predict-source";
-import { ENABLE_KALSHI } from "../libs/featureFlags";
+import { ENABLE_KALSHI, SPORTS_FEATURE_FLAGS } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
 import { AutoSetupPolymarketDepositWallet } from "./AutoSetupPolymarketDepositWallet";
 import { MpChatPrivyAutoLogin } from "./MpChatPrivyAutoLogin";
@@ -151,6 +150,7 @@ const NoPrefetchLink: LinkComponentType = (props) => (
 
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
+const SPORTS_FLAGS = SPORTS_FEATURE_FLAGS;
 
 function navPathname(href: string): string {
   return href.split("?")[0] || "/";
@@ -168,7 +168,8 @@ function sortedSearchEntries(params: URLSearchParams): string[] {
 }
 
 function sameNavDestination(currentHref: string, targetHref: string): boolean {
-  const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const base =
+    typeof window !== "undefined" ? window.location.origin : "http://localhost";
   const current = new URL(currentHref, base);
   const target = new URL(targetHref, base);
   if (current.pathname !== target.pathname) return false;
@@ -191,6 +192,16 @@ function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>): boolean {
 }
 
 const navItemsConfig: Omit<NavItem, "label">[] = [
+  {
+    key: "sports",
+    href: "/sports",
+    icon: <ChartLineIcon width={20} height={20} />,
+  },
+  {
+    key: "esports",
+    href: "/esports",
+    icon: <ZapFastIcon width={20} height={20} />,
+  },
   {
     key: "worldcup",
     href: "/world-cup",
@@ -336,16 +347,22 @@ function PageShell({ children }: PropsWithChildren) {
   const activePathname = optimisticNav?.pathname ?? pathname;
   const showPendingContent = Boolean(
     optimisticNav &&
-      pathname === optimisticNav.fromPathname &&
-      pathname !== optimisticNav.pathname,
+    pathname === optimisticNav.fromPathname &&
+    pathname !== optimisticNav.pathname,
   );
 
   const navItems: NavItem[] = useMemo(
     () =>
-      navItemsConfig.map((item) => ({
-        ...item,
-        label: t(`extend.nav.${item.key}`) as string,
-      })),
+      navItemsConfig
+        .filter((item) => {
+          if (item.key === "sports") return SPORTS_FLAGS.sports_enabled;
+          if (item.key === "esports") return SPORTS_FLAGS.esports_enabled;
+          return true;
+        })
+        .map((item) => ({
+          ...item,
+          label: t(`extend.nav.${item.key}`) as string,
+        })),
     [t],
   );
 
@@ -427,30 +444,37 @@ function PageShell({ children }: PropsWithChildren) {
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
     useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
-  const handlePredictHover = useCallback(
-    (event: PredictEvent) => {
-      router.prefetch(predictEventHref(event));
+  const predictSearchHref = useCallback(
+    (target: PredictSearchResult) => {
+      return target.detail_url;
     },
-    [router],
+    [],
+  );
+
+  const handlePredictHover = useCallback(
+    (result: PredictSearchResult) => {
+      router.prefetch(predictSearchHref(result));
+    },
+    [predictSearchHref, router],
   );
 
   const searchModalParams = useMemo(
     () => ({
-      getEventHref: (event: PredictEvent) => predictEventHref(event),
+      getEventHref: (result: PredictSearchResult) => predictSearchHref(result),
       LinkComponent: NoPrefetchLink,
       onHover: handlePredictHover,
       // When Kalshi is disabled, restrict search to Polymarket events only.
       source: ENABLE_KALSHI ? undefined : ("polymarket" as const),
     }),
-    [handlePredictHover],
+    [handlePredictHover, predictSearchHref],
   );
 
   const handleSelectEvent = useCallback(
-    (event: PredictEvent) => {
-      router.push(predictEventHref(event));
+    (result: PredictSearchResult) => {
+      router.push(predictSearchHref(result));
       closePredictSearch();
     },
-    [router, closePredictSearch],
+    [predictSearchHref, router, closePredictSearch],
   );
 
   return (
@@ -823,7 +847,8 @@ function WalletEntry({
 }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const identityLabel = displayName ?? (address ? truncateAddress(address) : "—");
+  const identityLabel =
+    displayName ?? (address ? truncateAddress(address) : "—");
 
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
@@ -1337,8 +1362,12 @@ function PredictAccountControl({
   const { t } = useTranslation();
   const { status, signIn, signOut } = useAuth();
   const mpChatAutoLoginPending = useAtomValue(mpChatAutoLoginPendingAtom);
-  const telegramAutoLoginPending = useAtomValue(telegramMiniAppAutoLoginPendingAtom);
-  const polymarketAutoSetupPending = useAtomValue(polymarketAutoSetupPendingAtom);
+  const telegramAutoLoginPending = useAtomValue(
+    telegramMiniAppAutoLoginPendingAtom,
+  );
+  const polymarketAutoSetupPending = useAtomValue(
+    polymarketAutoSetupPendingAtom,
+  );
   const accountDisplayName = getMiniAppAccountDisplayName();
   useEffect(() => {
     console.info("[tg-login] account-control gate", {
@@ -1373,33 +1402,32 @@ function PredictAccountControl({
   const router = useRouter();
   const { isMobile } = useScreen();
 
-  const {
-    data: positionValueData,
-    isLoading: positionValueLoading,
-  } = useQuery({
-    queryKey: [
-      "predict",
-      "position-value",
-      "multi",
-      ENABLE_KALSHI ? solanaAddress || "" : "",
-      evmAddress || "",
-    ],
-    queryFn: () =>
-      (
-        predictClient as PredictClient & {
-          getPositionValue: (wallets: {
-            kalshi_user?: string;
-            polymarket_user?: string;
-          }) => Promise<PositionValueResponse>;
-        }
-      ).getPositionValue({
-        kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
-        polymarket_user: evmAddress || undefined,
-      }),
-    enabled: Boolean((ENABLE_KALSHI && solanaAddress) || evmAddress),
-    staleTime: 10_000,
-    refetchInterval: 30_000,
-  });
+  const { data: positionValueData, isLoading: positionValueLoading } = useQuery(
+    {
+      queryKey: [
+        "predict",
+        "position-value",
+        "multi",
+        ENABLE_KALSHI ? solanaAddress || "" : "",
+        evmAddress || "",
+      ],
+      queryFn: () =>
+        (
+          predictClient as PredictClient & {
+            getPositionValue: (wallets: {
+              kalshi_user?: string;
+              polymarket_user?: string;
+            }) => Promise<PositionValueResponse>;
+          }
+        ).getPositionValue({
+          kalshi_user: ENABLE_KALSHI ? solanaAddress || undefined : undefined,
+          polymarket_user: evmAddress || undefined,
+        }),
+      enabled: Boolean((ENABLE_KALSHI && solanaAddress) || evmAddress),
+      staleTime: 10_000,
+      refetchInterval: 30_000,
+    },
+  );
 
   const cashKalshiCents = toCents(kalshiUsdcBalance ?? 0);
   const cashPolymarketCents = toCents(polymarketUsdcBalance ?? 0);

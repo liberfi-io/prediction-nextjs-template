@@ -28,7 +28,9 @@
       "leaderboard": "리더보드",
       "portfolio": "포트폴리오",
       "profile": "프로필",
-      "referral": "리퍼럴"
+      "referral": "리퍼럴",
+      "sports": "Sports",
+      "esports": "Esports"
     },
     "leaderboard": {
       "title": "리더보드",
@@ -698,6 +700,30 @@
       "firstHalfPrefix": "전반",
       "secondHalfPrefix": "후반",
       "periodMarketLabel": "{{period}} {{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "Sports",
+        "esports": "Esports"
+      },
+      "filters": {
+        "live": "Live",
+        "upcoming": "Upcoming",
+        "all": "All"
+      },
+      "market": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
+      "detail": {
+        "loading": "Loading match",
+        "unavailable": "Match unavailable"
+      },
+      "empty": {
+        "matches": "No matches available",
+        "props": "No props available"
+      }
     }
   },
   "common": {

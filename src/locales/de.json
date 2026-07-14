@@ -28,7 +28,9 @@
       "leaderboard": "Bestenliste",
       "portfolio": "Portfolio",
       "profile": "Profil",
-      "referral": "Empfehlung"
+      "referral": "Empfehlung",
+      "sports": "Sports",
+      "esports": "Esports"
     },
     "leaderboard": {
       "title": "Bestenliste",
@@ -698,6 +700,30 @@
       "firstHalfPrefix": "1. Halbzeit",
       "secondHalfPrefix": "2. Halbzeit",
       "periodMarketLabel": "{{period}} {{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "Sports",
+        "esports": "Esports"
+      },
+      "filters": {
+        "live": "Live",
+        "upcoming": "Upcoming",
+        "all": "All"
+      },
+      "market": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
+      "detail": {
+        "loading": "Loading match",
+        "unavailable": "Match unavailable"
+      },
+      "empty": {
+        "matches": "No matches available",
+        "props": "No props available"
+      }
     }
   },
   "common": {
