@@ -24,14 +24,18 @@ export function createSportsSsrDeadline(
       }
 
       const controller = new AbortController();
-      const timer = setTimeout(() => {
-        controller.abort();
-      }, remaining);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error("sports ssr deadline exceeded"));
+        }, remaining);
+      });
 
       try {
-        return await op(controller.signal);
+        return await Promise.race([op(controller.signal), timeout]);
       } finally {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
       }
     },
   };

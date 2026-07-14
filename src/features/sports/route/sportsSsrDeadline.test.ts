@@ -26,4 +26,12 @@ describe("createSportsSsrDeadline", () => {
       ),
     ).rejects.toThrow("aborted");
   });
+
+  it("rejects operations that ignore abort signals", async () => {
+    const deadline = createSportsSsrDeadline(1);
+
+    await expect(
+      deadline.withRemainingTimeout(() => new Promise(() => {})),
+    ).rejects.toThrow("sports ssr deadline exceeded");
+  });
 });
