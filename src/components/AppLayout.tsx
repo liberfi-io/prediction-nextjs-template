@@ -151,6 +151,7 @@ const NoPrefetchLink: LinkComponentType = (props) => (
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
 const SPORTS_FLAGS = SPORTS_FEATURE_FLAGS;
+const TEMPORARILY_HIDDEN_NAV_ITEMS = new Set(["sports", "esports"]);
 
 function navPathname(href: string): string {
   return href.split("?")[0] || "/";
@@ -355,6 +356,7 @@ function PageShell({ children }: PropsWithChildren) {
     () =>
       navItemsConfig
         .filter((item) => {
+          if (TEMPORARILY_HIDDEN_NAV_ITEMS.has(item.key)) return false;
           if (item.key === "sports") return SPORTS_FLAGS.sports_enabled;
           if (item.key === "esports") return SPORTS_FLAGS.esports_enabled;
           return true;
