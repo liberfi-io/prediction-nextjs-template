@@ -31,6 +31,8 @@ export interface SportsLiveState {
   clock?: string | null;
   period?: string | null;
   score?: unknown;
+  score_state?: unknown;
+  observed_at_unix_ms?: number;
 }
 
 export interface SportsMarketOutcome {

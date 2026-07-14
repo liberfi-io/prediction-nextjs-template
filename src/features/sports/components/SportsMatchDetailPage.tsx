@@ -1,3 +1,6 @@
+"use client";
+
+import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
 import type { SportsMatchDetail } from "../types";
 
 interface SportsMatchDetailPageProps {
@@ -5,6 +8,12 @@ interface SportsMatchDetailPageProps {
 }
 
 export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
+  const realtimeLiveState = useSportsMatchLiveState(
+    match.section,
+    match.match_group_slug,
+  );
+  const liveState = realtimeLiveState ?? match.live_state;
+  const status = liveState?.status ?? match.status;
   const marketGroups = match.market_groups ?? [];
 
   return (
@@ -13,11 +22,7 @@ export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
         <section className="min-w-0 space-y-4">
           <div className="rounded-lg border border-zinc-900 bg-zinc-950 p-4">
             <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-              {[
-                match.sport_slug ?? match.game_slug,
-                match.league_slug,
-                match.status,
-              ]
+              {[match.sport_slug ?? match.game_slug, match.league_slug, status]
                 .filter(Boolean)
                 .map((item) => (
                   <span key={item}>{item}</span>
@@ -33,6 +38,19 @@ export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
               >
                 {new Date(match.start_time).toLocaleString()}
               </time>
+            )}
+            {(liveState?.status_text ||
+              liveState?.period ||
+              liveState?.clock) && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-400">
+                {[liveState.status_text, liveState.period, liveState.clock]
+                  .filter(Boolean)
+                  .map((item) => (
+                    <span key={item} className="rounded bg-zinc-900 px-2 py-1">
+                      {item}
+                    </span>
+                  ))}
+              </div>
             )}
           </div>
 
