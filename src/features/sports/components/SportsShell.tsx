@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
 import type {
   SportsMatchCard as SportsMatchCardData,
   SportsPageData,
+  SportsPageFilters,
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
@@ -13,9 +15,10 @@ import type {
 interface SportsShellProps {
   section: SportsSection;
   data: SportsPageData;
+  filters: SportsPageFilters;
 }
 
-export function SportsShell({ section, data }: SportsShellProps) {
+export function SportsShell({ section, data, filters }: SportsShellProps) {
   const { t } = useTranslation();
   const taxonomy = useMemo(
     () => data.taxonomy?.sections?.find((item) => item.section === section),
@@ -34,19 +37,29 @@ export function SportsShell({ section, data }: SportsShellProps) {
                   : "extend.sports.nav.sports",
               )}
             </div>
-            <TaxonomyRail nodes={taxonomy?.children ?? []} />
+            <TaxonomyRail
+              nodes={taxonomy?.children ?? []}
+              section={section}
+              filters={filters}
+            />
           </div>
         </aside>
 
         <section className="min-w-0 space-y-4">
           <div className="flex items-center gap-2 overflow-x-auto border-b border-zinc-900 pb-3 lg:hidden">
             {(taxonomy?.children ?? []).map((node) => (
-              <span
+              <Link
                 key={node.slug}
-                className="shrink-0 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300"
+                href={taxonomyHref(section, filters, node)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1.5 text-sm",
+                  isTaxonomyNodeActive(filters, node)
+                    ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                    : "border-zinc-800 bg-zinc-900 text-zinc-300",
+                )}
               >
                 {node.label}
-              </span>
+              </Link>
             ))}
           </div>
 
@@ -82,18 +95,38 @@ export function SportsShell({ section, data }: SportsShellProps) {
   );
 }
 
-function TaxonomyRail({ nodes }: { nodes: SportsTaxonomyNode[] }) {
+function TaxonomyRail({
+  nodes,
+  section,
+  filters,
+}: {
+  nodes: SportsTaxonomyNode[];
+  section: SportsSection;
+  filters: SportsPageFilters;
+}) {
   if (nodes.length === 0) return null;
   return (
     <nav className="space-y-1">
       {nodes.map((node) => (
         <div key={node.slug}>
-          <div className="rounded-md px-2 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-900">
+          <Link
+            href={taxonomyHref(section, filters, node)}
+            className={cn(
+              "block rounded-md px-2 py-2 text-sm font-medium hover:bg-zinc-900",
+              isTaxonomyNodeActive(filters, node)
+                ? "bg-zinc-900 text-emerald-100"
+                : "text-zinc-300",
+            )}
+          >
             {node.label}
-          </div>
+          </Link>
           {node.children && node.children.length > 0 && (
             <div className="ml-3 border-l border-zinc-900 pl-2">
-              <TaxonomyRail nodes={node.children} />
+              <TaxonomyRail
+                nodes={node.children}
+                section={section}
+                filters={filters}
+              />
             </div>
           )}
         </div>
@@ -104,7 +137,10 @@ function TaxonomyRail({ nodes }: { nodes: SportsTaxonomyNode[] }) {
 
 function MatchCard({ match }: { match: SportsMatchCardData }) {
   return (
-    <article className="rounded-lg border border-zinc-900 bg-zinc-950 p-3">
+    <Link
+      href={`/event/${encodeURIComponent(match.match_group_slug)}`}
+      className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs text-zinc-500">
@@ -149,7 +185,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           </div>
         ))}
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -159,4 +195,55 @@ function EmptyState({ label }: { label: string }) {
       {label}
     </div>
   );
+}
+
+function taxonomyHref(
+  section: SportsSection,
+  filters: SportsPageFilters,
+  node: SportsTaxonomyNode,
+): string {
+  const params = new URLSearchParams();
+  const nextFilters = taxonomyNodeFilter(filters, node);
+  for (const [key, value] of Object.entries(nextFilters)) {
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  return `/${section}${qs ? `?${qs}` : ""}`;
+}
+
+function taxonomyNodeFilter(
+  filters: SportsPageFilters,
+  node: SportsTaxonomyNode,
+): SportsPageFilters {
+  if (node.node_type === "sport") return { sport_slug: node.slug };
+  if (node.node_type === "game") return { game_slug: node.slug };
+  if (node.node_type === "league") {
+    return {
+      sport_slug: filters.sport_slug,
+      game_slug: filters.game_slug,
+      league_slug: node.slug,
+    };
+  }
+  if (node.node_type === "tournament") {
+    return {
+      sport_slug: filters.sport_slug,
+      game_slug: filters.game_slug,
+      league_slug: filters.league_slug,
+      tournament_slug: node.slug,
+    };
+  }
+  return filters;
+}
+
+function isTaxonomyNodeActive(
+  filters: SportsPageFilters,
+  node: SportsTaxonomyNode,
+): boolean {
+  if (node.node_type === "sport") return filters.sport_slug === node.slug;
+  if (node.node_type === "game") return filters.game_slug === node.slug;
+  if (node.node_type === "league") return filters.league_slug === node.slug;
+  if (node.node_type === "tournament") {
+    return filters.tournament_slug === node.slug;
+  }
+  return false;
 }

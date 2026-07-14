@@ -108,3 +108,10 @@ export interface SportsPageData {
   matches: SportsMatchCard[];
   props: SportsPropEventCard[];
 }
+
+export interface SportsPageFilters {
+  sport_slug?: string;
+  game_slug?: string;
+  league_slug?: string;
+  tournament_slug?: string;
+}

@@ -1,6 +1,7 @@
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import type {
   SportsPageData,
+  SportsPageFilters,
   SportsSection,
   SportsTaxonomyResponse,
 } from "../types";
@@ -24,11 +25,15 @@ export async function prefetchSportsPageData(input: {
   lang: string;
   requestHeaders?: HeadersInit;
   deadline: SportsSsrDeadline;
+  filters?: SportsPageFilters;
 }): Promise<SportsPageData> {
   const client = getServerPredictClient({
     headers: input.requestHeaders,
   }) as RuntimeSportsClient;
-  const params = input.lang ? { lang: input.lang } : {};
+  const params = {
+    ...(input.filters ?? {}),
+    ...(input.lang ? { lang: input.lang } : {}),
+  };
 
   const readTaxonomy =
     input.section === "esports"
