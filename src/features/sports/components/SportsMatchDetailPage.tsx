@@ -6,9 +6,15 @@ import type { SportsMatchDetail } from "../types";
 
 interface SportsMatchDetailPageProps {
   match: SportsMatchDetail;
+  initialMarketSlug?: string | null;
+  initialOutcome?: string | null;
 }
 
-export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
+export function SportsMatchDetailPage({
+  match,
+  initialMarketSlug,
+  initialOutcome,
+}: SportsMatchDetailPageProps) {
   const realtimeLiveState = useSportsMatchLiveState(
     match.section,
     match.match_group_slug,
@@ -103,7 +109,12 @@ export function SportsMatchDetailPage({ match }: SportsMatchDetailPageProps) {
                         {(market.outcomes ?? []).map((outcome) => (
                           <div
                             key={`${market.market_slug}:${outcome.outcome}`}
-                            className="rounded-md bg-zinc-900 px-3 py-2"
+                            className={
+                              market.market_slug === initialMarketSlug &&
+                              outcome.outcome === initialOutcome
+                                ? "rounded-md border border-emerald-700 bg-emerald-950 px-3 py-2"
+                                : "rounded-md bg-zinc-900 px-3 py-2"
+                            }
                           >
                             <div className="text-xs text-zinc-500">
                               {outcome.label}

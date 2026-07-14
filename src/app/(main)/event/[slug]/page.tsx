@@ -230,7 +230,11 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   if (sportsRoute.kind === "sports_match") {
     return (
-      <SportsMatchDetailPage match={sportsRoute.detail as SportsMatchDetail} />
+      <SportsMatchDetailPage
+        match={sportsRoute.detail as SportsMatchDetail}
+        initialMarketSlug={market}
+        initialOutcome={normalizeSportsOutcome(outcome)}
+      />
     );
   }
 
@@ -270,4 +274,8 @@ export default async function Page({ params, searchParams }: PageProps) {
       <PredictDetailPage id={eventSlug} source={resolved.source} />
     </HydrationBoundary>
   );
+}
+
+function normalizeSportsOutcome(outcome: string | null): "yes" | "no" | null {
+  return outcome === "yes" || outcome === "no" ? outcome : null;
 }
