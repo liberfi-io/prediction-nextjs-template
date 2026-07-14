@@ -51,7 +51,7 @@ export default [
       parser: tsParser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.js", "*.mjs", "*.cjs", "*.ts"],
+          allowDefaultProject: ["*.js", "*.mjs", "*.cjs", "*.ts", "scripts/*.mjs"],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: Infinity,
         },
       },
@@ -120,9 +120,10 @@ export default [
   },
   { plugins: { "@next/next": nextPlugin } },
   {
-    files: ["*.cjs", "*.mjs"],
+    files: ["*.cjs", "*.mjs", "scripts/*.mjs"],
     languageOptions: {
       globals: {
+        console: "readonly",
         module: "readonly",
         process: "readonly",
         require: "readonly",

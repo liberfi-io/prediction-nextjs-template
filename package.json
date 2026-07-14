@@ -11,7 +11,7 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test --pass-with-no-tests",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/typecheck.mjs",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },
