@@ -8,6 +8,7 @@ import type {
   SportsMatchCard as SportsMatchCardData,
   SportsPageData,
   SportsPageFilters,
+  SportsPropEventCard as SportsPropEventCardData,
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
@@ -80,13 +81,23 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {data.matches.length > 0 ? (
-              data.matches.map((match) => (
-                <MatchCard key={match.match_group_slug} match={match} />
-              ))
-            ) : (
-              <EmptyState label={t("extend.sports.empty.matches")} />
+          <div className="space-y-5">
+            <section className="space-y-3">
+              {data.matches.length > 0 ? (
+                data.matches.map((match) => (
+                  <MatchCard key={match.match_group_slug} match={match} />
+                ))
+              ) : (
+                <EmptyState label={t("extend.sports.empty.matches")} />
+              )}
+            </section>
+
+            {data.props.length > 0 && (
+              <section className="space-y-3">
+                {data.props.map((event) => (
+                  <PropEventCard key={event.event_slug} event={event} />
+                ))}
+              </section>
             )}
           </div>
         </section>
@@ -185,6 +196,57 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           </div>
         ))}
       </div>
+    </Link>
+  );
+}
+
+function PropEventCard({ event }: { event: SportsPropEventCardData }) {
+  return (
+    <Link
+      href={`/event/${encodeURIComponent(event.event_slug)}`}
+      className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs text-zinc-500">
+            {[
+              event.prop_type,
+              event.sport_slug ?? event.game_slug,
+              event.status,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+          <h2 className="mt-1 truncate text-sm font-semibold text-zinc-100">
+            {event.title}
+          </h2>
+        </div>
+      </div>
+
+      {event.markets && event.markets.length > 0 && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {event.markets.map((market) => (
+            <div
+              key={market.market_slug}
+              className="rounded-md bg-zinc-900 px-3 py-2"
+            >
+              <div className="truncate text-xs text-zinc-500">
+                {market.label}
+              </div>
+              <div className="mt-1 flex gap-2 overflow-hidden">
+                {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
+                  <span
+                    key={`${market.market_slug}:${outcome.outcome}`}
+                    className="min-w-0 truncate text-sm font-medium text-zinc-200"
+                  >
+                    {outcome.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Link>
   );
 }

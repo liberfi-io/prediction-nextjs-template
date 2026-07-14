@@ -97,6 +97,9 @@ export interface SportsPropEventCard {
   prop_type?: string;
   section: SportsSection;
   sport_slug?: string;
+  game_slug?: string;
+  league_slug?: string;
+  tournament_slug?: string;
   title: string;
   status?: string;
   parent_match_group_slug?: string;
