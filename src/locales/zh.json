@@ -19,7 +19,9 @@
       "worldcup": "世界盃",
       "leaderboard": "排行榜",
       "portfolio": "持倉",
-      "profile": "個人中心"
+      "profile": "個人中心",
+      "sports": "體育",
+      "esports": "電競"
     },
     "leaderboard": {
       "title": "排行榜",
@@ -664,6 +666,30 @@
       "firstHalfPrefix": "半场",
       "secondHalfPrefix": "下半场",
       "periodMarketLabel": "{{period}}{{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "體育",
+        "esports": "電競"
+      },
+      "filters": {
+        "live": "即時",
+        "upcoming": "即將開始",
+        "all": "全部"
+      },
+      "market": {
+        "moneyline": "勝負盤",
+        "spread": "讓分盤",
+        "total": "大小盤"
+      },
+      "detail": {
+        "loading": "正在載入比賽",
+        "unavailable": "比賽暫不可用"
+      },
+      "empty": {
+        "matches": "暫無比賽",
+        "props": "暫無特殊盤"
+      }
     }
   },
   "common": {

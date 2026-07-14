@@ -28,7 +28,9 @@
       "leaderboard": "Classement",
       "portfolio": "Portefeuille",
       "profile": "Profil",
-      "referral": "Parrainage"
+      "referral": "Parrainage",
+      "sports": "Sports",
+      "esports": "Esports"
     },
     "leaderboard": {
       "title": "Classement",
@@ -698,6 +700,30 @@
       "firstHalfPrefix": "1re mi-temps",
       "secondHalfPrefix": "2e mi-temps",
       "periodMarketLabel": "{{period}} {{market}}"
+    },
+    "sports": {
+      "nav": {
+        "sports": "Sports",
+        "esports": "Esports"
+      },
+      "filters": {
+        "live": "Live",
+        "upcoming": "Upcoming",
+        "all": "All"
+      },
+      "market": {
+        "moneyline": "Moneyline",
+        "spread": "Spread",
+        "total": "Total"
+      },
+      "detail": {
+        "loading": "Loading match",
+        "unavailable": "Match unavailable"
+      },
+      "empty": {
+        "matches": "No matches available",
+        "props": "No props available"
+      }
     }
   },
   "common": {
