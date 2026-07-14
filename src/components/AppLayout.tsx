@@ -388,7 +388,7 @@ function PageShell({ children }: PropsWithChildren) {
     if (pathname === "/") return;
 
     const prefetchAll = () => {
-      navItemsConfig.forEach((item) => {
+      navItems.forEach((item) => {
         if (navPathname(item.href) !== pathname) {
           router.prefetch(item.href);
         }
@@ -416,7 +416,7 @@ function PageShell({ children }: PropsWithChildren) {
 
     const timer = setTimeout(prefetchAll, 1500);
     return () => clearTimeout(timer);
-  }, [router, pathname]);
+  }, [navItems, router, pathname]);
 
   const navigateWithOptimism = useCallback(
     (href: string, options?: { replace?: boolean }) => {

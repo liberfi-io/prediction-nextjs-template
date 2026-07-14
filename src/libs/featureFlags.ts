@@ -32,12 +32,16 @@ function enabled(value: string | undefined): boolean {
   return value === "true";
 }
 
+function enabledUnlessFalse(value: string | undefined): boolean {
+  return value !== "false";
+}
+
 export function resolveSportsFeatureFlags(
   env: Record<string, string | undefined>,
 ): SportsFeatureFlags {
   return {
-    sports_enabled: enabled(env.NEXT_PUBLIC_ENABLE_SPORTS),
-    esports_enabled: enabled(env.NEXT_PUBLIC_ENABLE_ESPORTS),
+    sports_enabled: enabledUnlessFalse(env.NEXT_PUBLIC_ENABLE_SPORTS),
+    esports_enabled: enabledUnlessFalse(env.NEXT_PUBLIC_ENABLE_ESPORTS),
     sports_match_detail_enabled: enabled(
       env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL,
     ),
