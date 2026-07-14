@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
@@ -21,6 +21,7 @@ interface SportsShellProps {
 
 export function SportsShell({ section, data, filters }: SportsShellProps) {
   const { t } = useTranslation();
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const taxonomy = useMemo(
     () => data.taxonomy?.sections?.find((item) => item.section === section),
     [data.taxonomy?.sections, section],
@@ -48,6 +49,13 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
 
         <section className="min-w-0 space-y-4">
           <div className="flex items-center gap-2 overflow-x-auto border-b border-zinc-900 pb-3 lg:hidden">
+            <button
+              type="button"
+              className="shrink-0 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm font-medium text-zinc-100"
+              onClick={() => setFilterDrawerOpen(true)}
+            >
+              {t("extend.sports.filters.all")}
+            </button>
             {(taxonomy?.children ?? []).map((node) => (
               <Link
                 key={node.slug}
@@ -63,6 +71,19 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
               </Link>
             ))}
           </div>
+          {filterDrawerOpen && (
+            <SportsFilterDrawer
+              section={section}
+              filters={filters}
+              nodes={taxonomy?.children ?? []}
+              title={t(
+                section === "esports"
+                  ? "extend.sports.nav.esports"
+                  : "extend.sports.nav.sports",
+              )}
+              onClose={() => setFilterDrawerOpen(false)}
+            />
+          )}
 
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -103,6 +124,44 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
         </section>
       </div>
     </main>
+  );
+}
+
+function SportsFilterDrawer({
+  section,
+  filters,
+  nodes,
+  title,
+  onClose,
+}: {
+  section: SportsSection;
+  filters: SportsPageFilters;
+  nodes: SportsTaxonomyNode[];
+  title: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 lg:hidden">
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+      />
+      <aside className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-lg border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-zinc-100">{title}</div>
+          <button
+            type="button"
+            className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300"
+            onClick={onClose}
+          >
+            X
+          </button>
+        </div>
+        <TaxonomyRail nodes={nodes} section={section} filters={filters} />
+      </aside>
+    </div>
   );
 }
 
