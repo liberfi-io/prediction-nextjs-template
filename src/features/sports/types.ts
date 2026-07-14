@@ -39,6 +39,12 @@ export interface SportsMarketOutcome {
   price?: number;
   best_bid?: number;
   best_ask?: number;
+  last_trade_price?: number;
+  orderbook?: {
+    market_slug: string;
+    source: "polymarket";
+    outcome: "yes" | "no";
+  };
 }
 
 export interface SportsInlineMarket {
@@ -46,6 +52,24 @@ export interface SportsInlineMarket {
   market_type?: string;
   label: string;
   outcomes?: SportsMarketOutcome[];
+}
+
+export interface SportsMarket extends SportsInlineMarket {
+  condition_id?: string;
+  market_category?: string;
+  period?: string;
+  line?: number;
+  active?: boolean;
+  closed?: boolean;
+  accepting_orders?: boolean;
+  volume?: number;
+  liquidity?: number;
+}
+
+export interface SportsMarketGroup {
+  market_category: string;
+  label: string;
+  markets?: SportsMarket[];
 }
 
 export interface SportsMatchCard {
@@ -61,6 +85,10 @@ export interface SportsMatchCard {
   market_count?: number;
   live_state?: SportsLiveState;
   inline_markets?: SportsInlineMarket[];
+}
+
+export interface SportsMatchDetail extends SportsMatchCard {
+  market_groups?: SportsMarketGroup[];
 }
 
 export interface SportsPropEventCard {

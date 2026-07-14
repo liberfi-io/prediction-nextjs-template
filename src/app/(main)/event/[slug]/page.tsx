@@ -3,13 +3,17 @@ import type { PredictEvent, ProviderSource } from "@liberfi.io/react-predict";
 import { eventQueryKey, fetchEvent } from "@liberfi.io/react-predict/server";
 import { notFound, redirect } from "next/navigation";
 import { PredictDetailPage } from "src/components/page/PredictDetailPage";
+import {
+  SportsMatchDetailPage,
+  SportsMatchDetailSkeleton,
+} from "src/features/sports/components/SportsMatchDetailPage";
 import { createSportsSsrDeadline } from "src/features/sports/route/sportsSsrDeadline";
 import {
   resolveSportsEventRoute,
-  type SportsMatchDetailLike,
   type SportsRoutingResult,
   type SportsSection,
 } from "src/features/sports/route/resolveSportsEventRoute";
+import type { SportsMatchDetail } from "src/features/sports/types";
 import { WorldCupDetailPage } from "src/features/worldcup/components/detail/WorldCupDetailPage";
 import { isWorldcupMarketCode } from "src/features/worldcup/components/detail/deepLink";
 import { fetchWorldcupMatchEvent } from "src/features/worldcup/data/client";
@@ -51,7 +55,7 @@ type RuntimeSportsClient = {
     section: SportsSection,
     matchGroupSlug: string,
     params?: { lang?: string },
-  ) => Promise<SportsMatchDetailLike>;
+  ) => Promise<SportsMatchDetail>;
 };
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -151,24 +155,6 @@ async function renderWorldcupMatchPage(
   );
 }
 
-function renderSportsMatchSkeleton(matchGroupSlug: string) {
-  return (
-    <main className="min-h-[calc(100vh-var(--header-height))] bg-[#09090b] px-3 py-4 text-zinc-100 sm:px-6">
-      <div className="mx-auto w-full max-w-[1120px] space-y-4">
-        <div className="rounded-lg border border-zinc-900 bg-zinc-950 p-4">
-          <div className="h-4 w-40 animate-pulse rounded bg-zinc-900" />
-          <div className="mt-4 h-8 w-full max-w-lg animate-pulse rounded bg-zinc-900" />
-          <div className="mt-3 text-sm text-zinc-500">{matchGroupSlug}</div>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="h-80 animate-pulse rounded-lg border border-zinc-900 bg-zinc-950" />
-          <div className="h-80 animate-pulse rounded-lg border border-zinc-900 bg-zinc-950" />
-        </div>
-      </div>
-    </main>
-  );
-}
-
 export default async function Page({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { market = null, outcome = null } = await searchParams;
@@ -242,11 +228,18 @@ export default async function Page({ params, searchParams }: PageProps) {
     redirect(sportsRoute.redirect_to);
   }
 
-  if (
-    sportsRoute.kind === "sports_match" ||
-    sportsRoute.kind === "sports_match_skeleton"
-  ) {
-    return renderSportsMatchSkeleton(sportsRoute.match_group_slug);
+  if (sportsRoute.kind === "sports_match") {
+    return (
+      <SportsMatchDetailPage match={sportsRoute.detail as SportsMatchDetail} />
+    );
+  }
+
+  if (sportsRoute.kind === "sports_match_skeleton") {
+    return (
+      <SportsMatchDetailSkeleton
+        matchGroupSlug={sportsRoute.match_group_slug}
+      />
+    );
   }
 
   if (sportsRoute.kind === "not_found") {
