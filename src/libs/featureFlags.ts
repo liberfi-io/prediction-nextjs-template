@@ -57,6 +57,15 @@ export function resolveSportsFeatureFlags(
   };
 }
 
+export function isSportsNavigationEnabled(
+  itemKey: string,
+  flags: SportsFeatureFlags,
+): boolean {
+  if (itemKey === "sports") return flags.sports_enabled;
+  if (itemKey === "esports") return flags.esports_enabled;
+  return true;
+}
+
 export const SPORTS_FEATURE_FLAGS = resolveSportsFeatureFlags({
   NEXT_PUBLIC_ENABLE_SPORTS: process.env.NEXT_PUBLIC_ENABLE_SPORTS,
   NEXT_PUBLIC_ENABLE_ESPORTS: process.env.NEXT_PUBLIC_ENABLE_ESPORTS,

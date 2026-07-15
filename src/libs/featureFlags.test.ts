@@ -1,4 +1,7 @@
-import { resolveSportsFeatureFlags } from "./featureFlags";
+import {
+  isSportsNavigationEnabled,
+  resolveSportsFeatureFlags,
+} from "./featureFlags";
 
 describe("resolveSportsFeatureFlags", () => {
   it("enables sports list pages by default and keeps detail flags explicit", () => {
@@ -42,5 +45,18 @@ describe("resolveSportsFeatureFlags", () => {
       sports_enabled: false,
       esports_enabled: false,
     });
+  });
+});
+
+describe("isSportsNavigationEnabled", () => {
+  const flags = resolveSportsFeatureFlags({});
+
+  it("shows Sports and Esports navigation when their list flags are enabled", () => {
+    expect(isSportsNavigationEnabled("sports", flags)).toBe(true);
+    expect(isSportsNavigationEnabled("esports", flags)).toBe(true);
+  });
+
+  it("does not apply Sports flags to unrelated navigation items", () => {
+    expect(isSportsNavigationEnabled("events", flags)).toBe(true);
   });
 });
