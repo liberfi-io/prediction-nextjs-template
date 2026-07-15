@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
@@ -26,100 +26,121 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
     () => data.taxonomy?.sections?.find((item) => item.section === section),
     [data.taxonomy?.sections, section],
   );
+  const taxonomyNodes = taxonomy?.children ?? [];
+  const sectionTitle = t(
+    section === "esports"
+      ? "extend.sports.nav.esports"
+      : "extend.sports.nav.sports",
+  );
 
   return (
-    <main className="min-h-[calc(100vh-var(--header-height))] bg-[#09090b] text-zinc-100">
-      <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-4 px-3 py-4 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
-        <aside className="hidden border-r border-zinc-900 pr-4 lg:block">
-          <div className="sticky top-[calc(var(--header-height)+16px)] space-y-2">
-            <div className="px-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-              {t(
-                section === "esports"
-                  ? "extend.sports.nav.esports"
-                  : "extend.sports.nav.sports",
-              )}
-            </div>
+    <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
+      <div className="mx-auto flex h-full w-full max-w-[1440px] min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="custom-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
+          <div className="space-y-2">
+            <SectionTabs section={section} />
             <TaxonomyRail
-              nodes={taxonomy?.children ?? []}
+              nodes={taxonomyNodes}
               section={section}
               filters={filters}
             />
           </div>
         </aside>
 
-        <section className="min-w-0 space-y-4">
-          <div className="flex items-center gap-2 overflow-x-auto border-b border-zinc-900 pb-3 lg:hidden">
-            <button
-              type="button"
-              className="shrink-0 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm font-medium text-zinc-100"
-              onClick={() => setFilterDrawerOpen(true)}
-            >
-              {t("extend.sports.filters.all")}
-            </button>
-            {(taxonomy?.children ?? []).map((node) => (
-              <Link
-                key={node.slug}
-                href={taxonomyHref(section, filters, node)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1.5 text-sm",
-                  isTaxonomyNodeActive(filters, node)
-                    ? "border-emerald-700 bg-emerald-950 text-emerald-100"
-                    : "border-zinc-800 bg-zinc-900 text-zinc-300",
-                )}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="shrink-0 border-b border-zinc-900 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5">
+            <div className="mb-3 lg:hidden">
+              <SectionTabs section={section} />
+            </div>
+            <div className="flex items-center gap-2 pb-3 lg:hidden">
+              <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+                <Link
+                  href={`/${section}`}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
+                    !hasTaxonomyFilter(filters)
+                      ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-300",
+                  )}
+                >
+                  {t("extend.sports.filters.all")}
+                </Link>
+                {taxonomyNodes.map((node) => (
+                  <Link
+                    key={node.slug}
+                    href={taxonomyHref(section, filters, node)}
+                    className={cn(
+                      "shrink-0 rounded-full border px-3 py-1.5 text-sm",
+                      isTaxonomyNodeActive(filters, node)
+                        ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                        : "border-zinc-800 bg-zinc-900 text-zinc-300",
+                    )}
+                  >
+                    {node.label}
+                  </Link>
+                ))}
+              </div>
+              <button
+                type="button"
+                aria-label={sectionTitle}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-300"
+                onClick={() => setFilterDrawerOpen(true)}
               >
-                {node.label}
-              </Link>
-            ))}
+                <span aria-hidden="true" className="grid grid-cols-2 gap-0.5">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="h-1 w-1 rounded-[1px] bg-current"
+                    />
+                  ))}
+                </span>
+              </button>
+            </div>
+            <div className="flex items-end justify-between gap-3 pb-4">
+              <div>
+                <h1 className="text-xl font-semibold text-zinc-50">
+                  {sectionTitle}
+                </h1>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {data.matches.length > 0
+                    ? t("extend.sports.filters.upcoming")
+                    : t("extend.sports.empty.matches")}
+                </p>
+              </div>
+            </div>
           </div>
+
           {filterDrawerOpen && (
             <SportsFilterDrawer
               section={section}
               filters={filters}
-              nodes={taxonomy?.children ?? []}
-              title={t(
-                section === "esports"
-                  ? "extend.sports.nav.esports"
-                  : "extend.sports.nav.sports",
-              )}
+              nodes={taxonomyNodes}
+              title={sectionTitle}
+              allLabel={t("extend.sports.filters.all")}
               onClose={() => setFilterDrawerOpen(false)}
             />
           )}
 
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-semibold text-zinc-50">
-                {t(
-                  section === "esports"
-                    ? "extend.sports.nav.esports"
-                    : "extend.sports.nav.sports",
-                )}
-              </h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                {data.matches.length > 0
-                  ? t("extend.sports.filters.upcoming")
-                  : t("extend.sports.empty.matches")}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <section className="space-y-3">
-              {data.matches.length > 0 ? (
-                data.matches.map((match) => (
-                  <MatchCard key={match.match_group_slug} match={match} />
-                ))
-              ) : (
-                <EmptyState label={t("extend.sports.empty.matches")} />
-              )}
-            </section>
-
-            {data.props.length > 0 && (
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8">
+            <div className="min-w-0 space-y-5 pb-4">
               <section className="space-y-3">
-                {data.props.map((event) => (
-                  <PropEventCard key={event.event_slug} event={event} />
-                ))}
+                {data.matches.length > 0 ? (
+                  data.matches.map((match) => (
+                    <MatchCard key={match.match_group_slug} match={match} />
+                  ))
+                ) : (
+                  <EmptyState label={t("extend.sports.empty.matches")} />
+                )}
               </section>
-            )}
+
+              {data.props.length > 0 && (
+                <section className="space-y-3">
+                  {data.props.map((event) => (
+                    <PropEventCard key={event.event_slug} event={event} />
+                  ))}
+                </section>
+              )}
+            </div>
           </div>
         </section>
       </div>
@@ -132,36 +153,93 @@ function SportsFilterDrawer({
   filters,
   nodes,
   title,
+  allLabel,
   onClose,
 }: {
   section: SportsSection;
   filters: SportsPageFilters;
   nodes: SportsTaxonomyNode[];
   title: string;
+  allLabel: string;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 lg:hidden">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px] lg:hidden">
       <button
         type="button"
         aria-label="Close"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <aside className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-lg border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <aside className="absolute inset-x-0 bottom-0 flex max-h-[91dvh] min-h-0 flex-col rounded-t-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-zinc-700" />
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-900 px-4 py-3">
           <div className="text-sm font-semibold text-zinc-100">{title}</div>
           <button
             type="button"
-            className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300"
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-sm text-zinc-300"
             onClick={onClose}
           >
-            X
+            ×
           </button>
         </div>
-        <TaxonomyRail nodes={nodes} section={section} filters={filters} />
+        <div className="custom-scrollbar min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <Link
+            href={`/${section}`}
+            onClick={onClose}
+            className={cn(
+              "mb-2 block rounded-md px-2 py-2 text-sm font-medium hover:bg-zinc-900",
+              !hasTaxonomyFilter(filters)
+                ? "bg-zinc-900 text-emerald-100"
+                : "text-zinc-300",
+            )}
+          >
+            {allLabel}
+          </Link>
+          <TaxonomyRail
+            nodes={nodes}
+            section={section}
+            filters={filters}
+            onNavigate={onClose}
+          />
+        </div>
       </aside>
     </div>
+  );
+}
+
+function SectionTabs({ section }: { section: SportsSection }) {
+  const { t } = useTranslation();
+
+  return (
+    <nav
+      className="grid grid-cols-2 rounded-lg bg-zinc-900 p-1"
+      aria-label="Sports"
+    >
+      {(["sports", "esports"] as const).map((item) => (
+        <Link
+          key={item}
+          href={`/${item}`}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-center text-sm font-medium transition-colors",
+            section === item
+              ? "bg-zinc-700 text-zinc-50 shadow-sm"
+              : "text-zinc-400 hover:text-zinc-200",
+          )}
+        >
+          {t(`extend.sports.nav.${item}`)}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -169,10 +247,12 @@ function TaxonomyRail({
   nodes,
   section,
   filters,
+  onNavigate,
 }: {
   nodes: SportsTaxonomyNode[];
   section: SportsSection;
   filters: SportsPageFilters;
+  onNavigate?: () => void;
 }) {
   if (nodes.length === 0) return null;
   return (
@@ -181,6 +261,7 @@ function TaxonomyRail({
         <div key={node.slug}>
           <Link
             href={taxonomyHref(section, filters, node)}
+            onClick={onNavigate}
             className={cn(
               "block rounded-md px-2 py-2 text-sm font-medium hover:bg-zinc-900",
               isTaxonomyNodeActive(filters, node)
@@ -196,6 +277,7 @@ function TaxonomyRail({
                 nodes={node.children}
                 section={section}
                 filters={filters}
+                onNavigate={onNavigate}
               />
             </div>
           )}
@@ -367,4 +449,13 @@ function isTaxonomyNodeActive(
     return filters.tournament_slug === node.slug;
   }
   return false;
+}
+
+function hasTaxonomyFilter(filters: SportsPageFilters): boolean {
+  return Boolean(
+    filters.sport_slug ||
+    filters.game_slug ||
+    filters.league_slug ||
+    filters.tournament_slug,
+  );
 }
