@@ -115,6 +115,8 @@ export const KNOCKOUT_MATCH_SLUGS: Array<[string, string]> = [
   ["M100", "fifwc-arg-che-2026-07-11"],
   ["M101", "fifwc-fra-esp-2026-07-14"],
   ["M102", "fifwc-eng-arg-2026-07-15"],
+  ["M103", "fifwc-fra-eng-2026-07-18"],
+  ["M104", "fifwc-esp-arg-2026-07-19"],
 ];
 
 /**
@@ -187,8 +189,8 @@ export const KNOCKOUT_MATCHES: Array<
   ["M100", "r8", "Argentina", "Switzerland", 1783818000000, "Arrowhead Stadium", "Kansas City"],
   ["M101", "r4", "France", "Spain", 1784055600000, "Dallas Stadium", "Dallas"],
   ["M102", "r4", "England", "Argentina", 1784142000000, "Atlanta Stadium", "Atlanta"],
-  ["M103", "r3rd", "RU101", "RU102", 1784408400000, "Miami Stadium", "Miami"],
-  ["M104", "final", "W101", "W102", 1784487600000, "New York/New Jersey Stadium", "New York"],
+  ["M103", "r3rd", "France", "England", 1784408400000, "Hard Rock Stadium", "Miami Gardens"],
+  ["M104", "final", "Spain", "Argentina", 1784487600000, "MetLife Stadium", "East Rutherford"],
 ];
 
 /**
