@@ -1,6 +1,7 @@
 import {
   isSportsNavigationEnabled,
   resolveSportsFeatureFlags,
+  resolveSportsNavigationEnabled,
 } from "./featureFlags";
 
 describe("resolveSportsFeatureFlags", () => {
@@ -54,6 +55,23 @@ describe("isSportsNavigationEnabled", () => {
   it("shows Sports and Esports navigation when their list flags are enabled", () => {
     expect(isSportsNavigationEnabled("sports", flags)).toBe(true);
     expect(isSportsNavigationEnabled("esports", flags)).toBe(true);
+  });
+
+  it("can hide Sports and Esports navigation without disabling their pages", () => {
+    const navigationEnabled = resolveSportsNavigationEnabled({
+      NEXT_PUBLIC_ENABLE_SPORTS_NAVIGATION: "false",
+    });
+
+    expect(navigationEnabled).toBe(false);
+    expect(isSportsNavigationEnabled("sports", flags, navigationEnabled)).toBe(
+      false,
+    );
+    expect(isSportsNavigationEnabled("esports", flags, navigationEnabled)).toBe(
+      false,
+    );
+    expect(isSportsNavigationEnabled("events", flags, navigationEnabled)).toBe(
+      true,
+    );
   });
 
   it("does not apply Sports flags to unrelated navigation items", () => {

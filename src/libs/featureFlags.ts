@@ -60,11 +60,31 @@ export function resolveSportsFeatureFlags(
 export function isSportsNavigationEnabled(
   itemKey: string,
   flags: SportsFeatureFlags,
+  navigationEnabled = true,
 ): boolean {
-  if (itemKey === "sports") return flags.sports_enabled;
-  if (itemKey === "esports") return flags.esports_enabled;
+  if (itemKey === "sports") {
+    return navigationEnabled && flags.sports_enabled;
+  }
+  if (itemKey === "esports") {
+    return navigationEnabled && flags.esports_enabled;
+  }
   return true;
 }
+
+/**
+ * Resolves whether Sports and Esports appear in the main navigation without
+ * changing the availability of their routes.
+ */
+export function resolveSportsNavigationEnabled(
+  env: Record<string, string | undefined>,
+): boolean {
+  return enabledUnlessFalse(env.NEXT_PUBLIC_ENABLE_SPORTS_NAVIGATION);
+}
+
+export const SPORTS_NAVIGATION_ENABLED = resolveSportsNavigationEnabled({
+  NEXT_PUBLIC_ENABLE_SPORTS_NAVIGATION:
+    process.env.NEXT_PUBLIC_ENABLE_SPORTS_NAVIGATION,
+});
 
 export const SPORTS_FEATURE_FLAGS = resolveSportsFeatureFlags({
   NEXT_PUBLIC_ENABLE_SPORTS: process.env.NEXT_PUBLIC_ENABLE_SPORTS,

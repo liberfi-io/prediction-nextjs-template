@@ -96,6 +96,7 @@ import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
   ENABLE_KALSHI,
   SPORTS_FEATURE_FLAGS,
+  SPORTS_NAVIGATION_ENABLED,
   isSportsNavigationEnabled,
 } from "../libs/featureFlags";
 import { AuthProviders } from "./AuthProviders";
@@ -358,7 +359,13 @@ function PageShell({ children }: PropsWithChildren) {
   const navItems: NavItem[] = useMemo(
     () =>
       navItemsConfig
-        .filter((item) => isSportsNavigationEnabled(item.key, SPORTS_FLAGS))
+        .filter((item) =>
+          isSportsNavigationEnabled(
+            item.key,
+            SPORTS_FLAGS,
+            SPORTS_NAVIGATION_ENABLED,
+          ),
+        )
         .map((item) => ({
           ...item,
           label: t(`extend.nav.${item.key}`) as string,
