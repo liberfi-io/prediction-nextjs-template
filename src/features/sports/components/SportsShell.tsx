@@ -271,7 +271,7 @@ function TaxonomyRail({
               </span>
             </Link>
             {hasChildren && (
-              <div className="ml-3 border-l border-zinc-900 pl-2">
+              <div className="ml-3 pl-2">
                 <TaxonomyRail
                   nodes={node.children ?? []}
                   section={section}
