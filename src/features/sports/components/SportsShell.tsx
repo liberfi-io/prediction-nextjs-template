@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn } from "@liberfi.io/ui";
+import { ChevronDownIcon, cn } from "@liberfi.io/ui";
 import type {
   SportsMatchCard as SportsMatchCardData,
   SportsPageData,
@@ -12,6 +13,7 @@ import type {
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
+import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 
 interface SportsShellProps {
   section: SportsSection;
@@ -216,41 +218,72 @@ function TaxonomyRail({
   section,
   filters,
   onNavigate,
+  parentIcon,
 }: {
   nodes: SportsTaxonomyNode[];
   section: SportsSection;
   filters: SportsPageFilters;
   onNavigate?: () => void;
+  parentIcon?: string;
 }) {
   if (nodes.length === 0) return null;
   return (
     <nav className="space-y-1">
-      {nodes.map((node) => (
-        <div key={node.slug}>
-          <Link
-            href={taxonomyHref(section, filters, node)}
-            onClick={onNavigate}
-            className={cn(
-              "block rounded-md px-2 py-2 text-sm font-medium hover:bg-zinc-900",
-              isTaxonomyNodeActive(filters, node)
-                ? "bg-zinc-900 text-emerald-100"
-                : "text-zinc-300",
+      {nodes.map((node) => {
+        const hasChildren = Boolean(node.children?.length);
+        const icon = resolveSportsTaxonomyIcon(node.slug, parentIcon);
+
+        return (
+          <div key={node.slug}>
+            <Link
+              href={taxonomyHref(section, filters, node)}
+              onClick={onNavigate}
+              className={cn(
+                "flex h-8 min-w-0 items-center justify-between gap-2 rounded-md px-2 text-[13px] font-medium leading-[18px] transition-colors hover:bg-content1",
+                isTaxonomyNodeActive(filters, node)
+                  ? "bg-content1 text-foreground"
+                  : "text-neutral",
+              )}
+            >
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                {icon && (
+                  <Image
+                    src={icon}
+                    alt=""
+                    aria-hidden="true"
+                    width={16}
+                    height={16}
+                    className="h-4 w-4 shrink-0 object-contain"
+                  />
+                )}
+                <span className="truncate">{node.label}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1 text-inherit">
+                {typeof node.count === "number" && (
+                  <span className="tabular-nums">{node.count}</span>
+                )}
+                {hasChildren && (
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0"
+                  />
+                )}
+              </span>
+            </Link>
+            {hasChildren && (
+              <div className="ml-3 border-l border-zinc-900 pl-2">
+                <TaxonomyRail
+                  nodes={node.children ?? []}
+                  section={section}
+                  filters={filters}
+                  onNavigate={onNavigate}
+                  parentIcon={icon}
+                />
+              </div>
             )}
-          >
-            {node.label}
-          </Link>
-          {node.children && node.children.length > 0 && (
-            <div className="ml-3 border-l border-zinc-900 pl-2">
-              <TaxonomyRail
-                nodes={node.children}
-                section={section}
-                filters={filters}
-                onNavigate={onNavigate}
-              />
-            </div>
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </nav>
   );
 }

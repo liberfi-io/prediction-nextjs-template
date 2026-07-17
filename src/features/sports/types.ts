@@ -5,6 +5,7 @@ export interface SportsTaxonomyNode {
   node_type?: string;
   slug: string;
   label: string;
+  count?: number;
   children?: SportsTaxonomyNode[];
 }
 
