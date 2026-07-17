@@ -37,21 +37,15 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
     <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
       <div className="mx-auto flex h-full w-full max-w-[1440px] min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="custom-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
-          <div className="space-y-2">
-            <SectionTabs section={section} />
-            <TaxonomyRail
-              nodes={taxonomyNodes}
-              section={section}
-              filters={filters}
-            />
-          </div>
+          <TaxonomyRail
+            nodes={taxonomyNodes}
+            section={section}
+            filters={filters}
+          />
         </aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="shrink-0 border-b border-zinc-900 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5">
-            <div className="mb-3 lg:hidden">
-              <SectionTabs section={section} />
-            </div>
             <div className="flex items-center gap-2 pb-3 lg:hidden">
               <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
                 <Link
@@ -214,32 +208,6 @@ function SportsFilterDrawer({
         </div>
       </aside>
     </div>
-  );
-}
-
-function SectionTabs({ section }: { section: SportsSection }) {
-  const { t } = useTranslation();
-
-  return (
-    <nav
-      className="grid grid-cols-2 rounded-lg bg-zinc-900 p-1"
-      aria-label="Sports"
-    >
-      {(["sports", "esports"] as const).map((item) => (
-        <Link
-          key={item}
-          href={`/${item}`}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-center text-sm font-medium transition-colors",
-            section === item
-              ? "bg-zinc-700 text-zinc-50 shadow-sm"
-              : "text-zinc-400 hover:text-zinc-200",
-          )}
-        >
-          {t(`extend.sports.nav.${item}`)}
-        </Link>
-      ))}
-    </nav>
   );
 }
 
