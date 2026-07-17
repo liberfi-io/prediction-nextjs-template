@@ -1,5 +1,5 @@
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const CURRENT_TAXONOMY_SLUGS = [
@@ -95,6 +95,21 @@ const CURRENT_TAXONOMY_SLUGS = [
   "starcraft-brood-war",
 ] as const;
 
+const UNCLIPPED_CATEGORY_SLUGS = [
+  "american-football",
+  "baseball",
+  "basketball",
+  "combat",
+  "cricket",
+  "hockey",
+  "lacrosse",
+  "pickleball",
+  "rugby",
+  "soccer",
+  "table-tennis",
+  "tennis",
+] as const;
+
 describe("resolveSportsTaxonomyIcon", () => {
   it("resolves top-level sports and esports icons", () => {
     expect(resolveSportsTaxonomyIcon("soccer")).toBe(
@@ -146,6 +161,18 @@ describe("resolveSportsTaxonomyIcon", () => {
       const icon = resolveSportsTaxonomyIcon(slug);
       expect(icon).toBeDefined();
       expect(existsSync(join(process.cwd(), "public", icon ?? ""))).toBe(true);
+    }
+  });
+
+  it("does not crop category artwork with an empty clip path", () => {
+    for (const slug of UNCLIPPED_CATEGORY_SLUGS) {
+      const icon = resolveSportsTaxonomyIcon(slug);
+      expect(icon).toBeDefined();
+      const source = readFileSync(
+        join(process.cwd(), "public", icon ?? ""),
+        "utf8",
+      );
+      expect(source).not.toContain("clip-path=");
     }
   });
 });
