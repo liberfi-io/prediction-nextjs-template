@@ -31,6 +31,8 @@ import type {
   SportsPageFilters,
   SportsPage,
   SportsPropEventCard as SportsPropEventCardData,
+  SportsParticipant,
+  SportsInlineMarket,
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
@@ -42,6 +44,7 @@ import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
 import { convertPrice } from "../../worldcup/odds/convert-price";
+import type { OddsFormat } from "../../worldcup/odds/convert-price";
 
 type SportsContentTab = "today" | "games" | "props";
 
@@ -932,37 +935,17 @@ function SportsMatchList({
   );
 }
 
-function matchesForToday(
+export function matchesForToday(
   matches: SportsMatchCardData[],
 ): SportsMatchCardData[] {
   const now = new Date();
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(end.getDate() + 2);
-  const inWindow = matches.filter((match) => {
-    const timestamp = Date.parse(match.start_time ?? "");
-    return timestamp >= start.getTime() && timestamp < end.getTime();
-  });
-  if (inWindow.length > 0) return inWindow;
-
-  const next = matches
-    .map((match) => ({ match, timestamp: Date.parse(match.start_time ?? "") }))
-    .filter(
-      ({ timestamp }) =>
-        Number.isFinite(timestamp) && timestamp >= now.getTime(),
-    )
-    .sort((a, b) => a.timestamp - b.timestamp)[0];
-  if (!next) return [];
-  const fallbackStart = new Date(next.timestamp);
-  fallbackStart.setHours(0, 0, 0, 0);
-  const fallbackEnd = new Date(fallbackStart);
-  fallbackEnd.setDate(fallbackEnd.getDate() + 1);
+  end.setDate(end.getDate() + 1);
   return matches.filter((match) => {
     const timestamp = Date.parse(match.start_time ?? "");
-    return (
-      timestamp >= fallbackStart.getTime() && timestamp < fallbackEnd.getTime()
-    );
+    return timestamp >= start.getTime() && timestamp < end.getTime();
   });
 }
 
@@ -996,84 +979,214 @@ function buildMatchRows(
 }
 
 function MatchCard({ match }: { match: SportsMatchCardData }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [format] = useOddsFormat();
   const href = `/event/${encodeURIComponent(match.match_group_slug)}`;
+  const participants = (match.participants ?? []).slice(0, 2);
+  const markets = (match.inline_markets ?? []).slice(0, 3);
+  const open = () => router.push(href);
   return (
-    <article className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 transition-colors hover:border-zinc-700">
-      <Link href={href} className="block p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs text-zinc-500">
-              {[
-                match.sport_slug ?? match.game_slug,
-                match.league_slug,
-                match.status,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </div>
-            <h2 className="mt-1 truncate text-sm font-semibold text-zinc-100">
-              {match.title}
-            </h2>
-          </div>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={open}
+      onKeyDown={(event) => event.key === "Enter" && open()}
+      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.8)]"
+    >
+      <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
           {match.start_time && (
             <SportsStartTime
-              className="shrink-0 text-xs text-zinc-500"
+              className="shrink-0 text-xs font-semibold tabular-nums text-zinc-200"
               value={match.start_time}
             />
           )}
+          <span className="truncate text-xs text-zinc-500">
+            {[match.league_slug, match.status].filter(Boolean).join(" · ")}
+          </span>
         </div>
+        {match.market_count ? (
+          <span className="shrink-0 rounded-full border border-zinc-700/60 bg-zinc-800/50 px-2.5 py-1 text-[11px] font-medium text-zinc-300">
+            +{match.market_count}
+          </span>
+        ) : null}
+      </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {(match.participants ?? []).map((participant) => (
-            <div
-              key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
-              className="flex items-center gap-2 rounded-md bg-zinc-900 px-2 py-2 text-sm"
-            >
-              <span
-                className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300",
-                )}
-              >
-                {(participant.abbreviation ?? participant.name)
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </span>
-              <span className="min-w-0 truncate">{participant.name}</span>
-            </div>
+      <div className="hidden items-stretch gap-3 px-4 pb-3 pt-2.5 md:flex">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+          {participants.length > 0 ? (
+            participants.map((participant) => (
+              <SportsParticipantRow
+                key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
+                participant={participant}
+              />
+            ))
+          ) : (
+            <h2 className="truncate text-sm font-semibold text-zinc-100">
+              {match.title}
+            </h2>
+          )}
+        </div>
+        <div className="flex shrink-0 items-stretch gap-2">
+          {markets.map((market) => (
+            <SportsMarketColumn
+              key={market.market_slug}
+              market={market}
+              format={format}
+              onSelect={open}
+            />
           ))}
         </div>
-      </Link>
-      {(match.inline_markets ?? []).length > 0 && (
-        <div className="grid gap-2 border-t border-zinc-800 p-3 sm:grid-cols-3 sm:p-4">
-          {(match.inline_markets ?? []).slice(0, 3).map((market) => (
-            <div key={market.market_slug} className="min-w-0">
-              <div className="mb-1.5 truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                {market.label}
-              </div>
-              <div className="flex gap-2">
-                {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
-                  <button
-                    key={`${market.market_slug}:${outcome.outcome}`}
-                    type="button"
-                    onClick={() => router.push(href)}
-                    className="flex h-9 min-w-0 flex-1 cursor-pointer items-center justify-between gap-1 rounded-[9px] bg-zinc-700 px-2.5 text-xs font-semibold text-zinc-100 shadow-[0_3px_0_#18181b] transition-transform active:translate-y-0.5 active:shadow-none"
-                  >
-                    <span className="truncate">{outcome.label}</span>
-                    <span className="shrink-0 tabular-nums">
-                      {typeof outcome.price === "number"
-                        ? convertPrice(outcome.price, format)
-                        : "-"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+      </div>
+
+      <div className="flex flex-col gap-3 px-3 pb-3 pt-2.5 md:hidden">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <SportsMobileParticipant participant={participants[0]} />
+          <span className="text-sm font-black text-zinc-500">
+            {t("extend.worldcup.versus")}
+          </span>
+          <SportsMobileParticipant
+            participant={participants[1]}
+            align="right"
+          />
         </div>
+        {markets[0] ? (
+          <div className="grid grid-cols-2 gap-2">
+            {(markets[0].outcomes ?? []).slice(0, 2).map((outcome) => (
+              <SportsOddsButton
+                key={`${markets[0].market_slug}:${outcome.outcome}`}
+                label={outcome.label}
+                price={outcome.price}
+                format={format}
+                onSelect={open}
+              />
+            ))}
+          </div>
+        ) : (
+          <h2 className="truncate text-center text-sm font-semibold text-zinc-100">
+            {match.title}
+          </h2>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SportsParticipantRow({
+  participant,
+}: {
+  participant: SportsParticipant;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <SportsParticipantAvatar participant={participant} />
+      <span className="truncate text-sm font-semibold text-zinc-100">
+        {participant.name}
+      </span>
+    </div>
+  );
+}
+
+function SportsMobileParticipant({
+  participant,
+  align = "left",
+}: {
+  participant?: SportsParticipant;
+  align?: "left" | "right";
+}) {
+  if (!participant) return <span />;
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-center gap-2",
+        align === "right" && "flex-row-reverse text-right",
       )}
-    </article>
+    >
+      <SportsParticipantAvatar participant={participant} />
+      <span className="truncate text-sm font-semibold text-zinc-100">
+        {participant.name}
+      </span>
+    </div>
+  );
+}
+
+function SportsParticipantAvatar({
+  participant,
+}: {
+  participant: SportsParticipant;
+}) {
+  return participant.logo_url ? (
+    <Image
+      src={participant.logo_url}
+      alt=""
+      aria-hidden="true"
+      width={28}
+      height={28}
+      className="h-7 w-7 shrink-0 rounded-full object-contain"
+    />
+  ) : (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[11px] font-semibold text-zinc-300">
+      {(participant.abbreviation ?? participant.name).slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
+function SportsMarketColumn({
+  market,
+  format,
+  onSelect,
+}: {
+  market: SportsInlineMarket;
+  format: OddsFormat;
+  onSelect: () => void;
+}) {
+  return (
+    <div className="flex w-[128px] flex-col gap-2">
+      <span className="truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+        {market.label}
+      </span>
+      {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
+        <SportsOddsButton
+          key={`${market.market_slug}:${outcome.outcome}`}
+          label={outcome.label}
+          price={outcome.price}
+          format={format}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SportsOddsButton({
+  label,
+  price,
+  format,
+  onSelect,
+}: {
+  label: string;
+  price?: number;
+  format: OddsFormat;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={typeof price !== "number"}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+      className="flex h-[34px] w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_#1f1f23] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_#1f1f23] disabled:cursor-not-allowed disabled:opacity-55"
+    >
+      <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide opacity-75">
+        {label}
+      </span>
+      <span className="shrink-0 text-sm font-bold tabular-nums">
+        {typeof price === "number" ? convertPrice(price, format) : "-"}
+      </span>
+    </button>
   );
 }
 

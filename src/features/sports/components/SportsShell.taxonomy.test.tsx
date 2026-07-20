@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { SportsShell } from "./SportsShell";
+import { matchesForToday, SportsShell } from "./SportsShell";
 
 jest.mock("@liberfi.io/ui", () => {
   const actual = jest.requireActual("@liberfi.io/ui");
@@ -54,6 +54,28 @@ const mobileTaxonomyScrollCases = [
 ] as const;
 
 describe("SportsShell taxonomy labels", () => {
+  it("limits the today tab to the current local calendar day", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-07-21T12:00:00+08:00"));
+    try {
+      const today = {
+        match_group_slug: "today",
+        section: "sports" as const,
+        title: "Today",
+        start_time: "2026-07-21T20:00:00+08:00",
+      };
+      const tomorrow = {
+        ...today,
+        match_group_slug: "tomorrow",
+        title: "Tomorrow",
+        start_time: "2026-07-22T00:00:00+08:00",
+      };
+
+      expect(matchesForToday([today, tomorrow])).toEqual([today]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("uses the selected taxonomy label as the title and renders the three list tabs", () => {
     render(
       <SportsShell
