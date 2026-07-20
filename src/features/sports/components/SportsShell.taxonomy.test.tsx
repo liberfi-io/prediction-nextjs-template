@@ -41,10 +41,14 @@ jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
 const mobileTaxonomyScrollCases = [
   ["default live view", {}, "live"],
   ["proposals view", { view: "proposals" as const }, "proposals"],
-  ["top-level taxonomy", { sport_slug: "soccer" }, "soccer"],
+  [
+    "top-level taxonomy",
+    { taxonomy_type: "sport" as const, taxonomy_slug: "soccer" },
+    "soccer",
+  ],
   [
     "nested taxonomy",
-    { sport_slug: "soccer", league_slug: "epl" },
+    { taxonomy_type: "league" as const, taxonomy_slug: "epl" },
     "soccer",
   ],
 ] as const;
@@ -153,7 +157,7 @@ describe("SportsShell taxonomy labels", () => {
     ).toHaveLength(2);
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
-    expect(screen.getAllByText("13")).toHaveLength(2);
+    expect(screen.getAllByText("10")).toHaveLength(2);
     const mobileTaxonomyLink = container.querySelector(
       '[data-taxonomy-scroll-target="soccer"]',
     );
@@ -163,7 +167,7 @@ describe("SportsShell taxonomy labels", () => {
     ).not.toBeNull();
     expect(
       mobileTaxonomyLink?.querySelector(".text-\\[11px\\]")?.textContent,
-    ).toBe("13");
+    ).toBe("10");
     const navigationGroups = container.querySelector(".divide-y");
     expect(navigationGroups?.classList.contains("divide-zinc-800")).toBe(true);
     expect(navigationGroups?.children).toHaveLength(3);
@@ -277,7 +281,7 @@ describe("SportsShell taxonomy labels", () => {
     const { container } = render(
       <SportsShell
         section="sports"
-        filters={{ sport_slug: "soccer", league_slug: "epl" }}
+        filters={{ taxonomy_type: "league", taxonomy_slug: "epl" }}
         data={{
           matches: [],
           props: [],
@@ -314,7 +318,8 @@ describe("SportsShell taxonomy labels", () => {
     const parentLinks = screen.getAllByRole("link", { name: /soccer/i });
     const desktopParentLink = parentLinks.find(
       (link) =>
-        link.getAttribute("href") === "/sports?sport_slug=soccer" &&
+        link.getAttribute("href") ===
+          "/sports?taxonomy_type=sport&taxonomy_slug=soccer" &&
         link.classList.contains("h-8"),
     );
 
@@ -426,7 +431,7 @@ describe("SportsShell taxonomy labels", () => {
       render(
         <SportsShell
           section="sports"
-          filters={{ sport_slug: "soccer" }}
+          filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
           data={{
             matches: [],
             props: [],
@@ -467,7 +472,7 @@ describe("SportsShell taxonomy labels", () => {
     render(
       <SportsShell
         section="sports"
-        filters={{ sport_slug: "soccer" }}
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
         data={{
           matches: [],
           props: [],

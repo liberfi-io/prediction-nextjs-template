@@ -26,10 +26,12 @@ import type {
   SportsMatchCard as SportsMatchCardData,
   SportsPageData,
   SportsPageFilters,
+  SportsPage,
   SportsPropEventCard as SportsPropEventCardData,
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
+import { fetchNextSportsPage } from "../api/client";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
@@ -39,11 +41,101 @@ interface SportsShellProps {
   section: SportsSection;
   data: SportsPageData;
   filters: SportsPageFilters;
+  lang?: string;
 }
 
-export function SportsShell({ section, data, filters }: SportsShellProps) {
+export function SportsShell({
+  section,
+  data,
+  filters,
+  lang,
+}: SportsShellProps) {
   const { t } = useTranslation();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [matches, setMatches] = useState<SportsPage<SportsMatchCardData>>(
+    () => ({
+      items: data.matches,
+      has_more: data.match_pagination?.has_more ?? false,
+      next_cursor: data.match_pagination?.next_cursor,
+      limit: data.match_pagination?.limit ?? 20,
+    }),
+  );
+  const [propPage, setPropPage] = useState<SportsPage<SportsPropEventCardData>>(
+    () => ({
+      items: data.props,
+      has_more: data.prop_pagination?.has_more ?? false,
+      next_cursor: data.prop_pagination?.next_cursor,
+      limit: data.prop_pagination?.limit ?? 20,
+    }),
+  );
+  const [loadingResource, setLoadingResource] = useState<
+    "matches" | "props" | null
+  >(null);
+
+  useEffect(
+    () =>
+      setMatches({
+        items: data.matches,
+        has_more: data.match_pagination?.has_more ?? false,
+        next_cursor: data.match_pagination?.next_cursor,
+        limit: data.match_pagination?.limit ?? 20,
+      }),
+    [data.matches, data.match_pagination],
+  );
+  useEffect(
+    () =>
+      setPropPage({
+        items: data.props,
+        has_more: data.prop_pagination?.has_more ?? false,
+        next_cursor: data.prop_pagination?.next_cursor,
+        limit: data.prop_pagination?.limit ?? 20,
+      }),
+    [data.props, data.prop_pagination],
+  );
+
+  async function loadMore(resource: "matches" | "props") {
+    const currentPage = resource === "matches" ? matches : propPage;
+    if (!currentPage.has_more || !currentPage.next_cursor || loadingResource) {
+      return;
+    }
+    setLoadingResource(resource);
+    try {
+      const nextPage = await fetchNextSportsPage<
+        SportsMatchCardData | SportsPropEventCardData
+      >({
+        section,
+        resource,
+        taxonomy: filters.taxonomy_type
+          ? {
+              taxonomy_type: filters.taxonomy_type,
+              taxonomy_slug: filters.taxonomy_slug,
+            }
+          : undefined,
+        limit: currentPage.limit,
+        cursor: currentPage.next_cursor,
+        lang,
+      });
+      if (resource === "matches") {
+        setMatches((current) => ({
+          ...nextPage,
+          items: [
+            ...current.items,
+            ...(nextPage.items as SportsMatchCardData[]),
+          ],
+        }));
+      } else {
+        setPropPage((current) => ({
+          ...nextPage,
+          items: [
+            ...current.items,
+            ...(nextPage.items as SportsPropEventCardData[]),
+          ],
+        }));
+      }
+    } finally {
+      setLoadingResource(null);
+    }
+  }
   const taxonomy = useMemo(
     () => data.taxonomy?.sections?.find((item) => item.section === section),
     [data.taxonomy?.sections, section],
@@ -149,12 +241,12 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                 </Link>
                 {taxonomyNodes.map((node) => {
                   const icon = resolveSportsTaxonomyIcon(node.slug);
-                  const nodeCount = taxonomyNodeCount(node);
+                  const nodeCount = taxonomyNodeCount(node, filters);
 
                   return (
                     <Link
                       key={node.slug}
-                      href={taxonomyHref(section, filters, node)}
+                      href={taxonomyHref(section, node)}
                       data-taxonomy-scroll-target={node.slug}
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
@@ -210,7 +302,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                   {sectionTitle}
                 </h1>
                 <p className="mt-1 text-sm text-zinc-500">
-                  {data.matches.length > 0
+                  {matches.items.length > 0
                     ? t("extend.sports.filters.upcoming")
                     : filters.view === "proposals"
                       ? t("extend.sports.filters.proposals")
@@ -236,25 +328,39 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
             <div className="min-w-0 space-y-5 pb-4">
               {filters.view !== "proposals" && (
                 <section className="space-y-3">
-                  {data.matches.length > 0 ? (
-                  data.matches.map((match) => (
-                    <MatchCard key={match.match_group_slug} match={match} />
-                  ))
+                  {matches.items.length > 0 ? (
+                    matches.items.map((match) => (
+                      <MatchCard key={match.match_group_slug} match={match} />
+                    ))
                   ) : (
                     <EmptyState label={t("extend.sports.empty.matches")} />
+                  )}
+                  {matches.has_more && matches.next_cursor && (
+                    <LoadMoreButton
+                      label={t("extend.portfolio.loadMore")}
+                      loading={loadingResource === "matches"}
+                      onLoad={() => void loadMore("matches")}
+                    />
                   )}
                 </section>
               )}
 
               {!isSpecialViewActive(filters, "live") && (
                 <section className="space-y-3">
-                  {data.props.length > 0 ? (
-                    data.props.map((event) => (
+                  {propPage.items.length > 0 ? (
+                    propPage.items.map((event) => (
                       <PropEventCard key={event.event_slug} event={event} />
                     ))
                   ) : filters.view === "proposals" ? (
                     <EmptyState label={t("extend.sports.empty.props")} />
                   ) : null}
+                  {propPage.has_more && propPage.next_cursor && (
+                    <LoadMoreButton
+                      label={t("extend.portfolio.loadMore")}
+                      loading={loadingResource === "props"}
+                      onLoad={() => void loadMore("props")}
+                    />
+                  )}
                 </section>
               )}
             </div>
@@ -592,7 +698,7 @@ function TaxonomyRail({
       {nodes.map((node) => {
         const hasChildren = Boolean(node.children?.length);
         const icon = resolveSportsTaxonomyIcon(node.slug, parentIcon);
-        const nodeCount = taxonomyNodeCount(node);
+        const nodeCount = taxonomyNodeCount(node, filters);
         const isActive = isTaxonomyNodeActive(filters, node);
         const isExpanded = nested || expandedTopLevelSlug === node.slug;
         const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -608,7 +714,7 @@ function TaxonomyRail({
         return (
           <div key={node.slug}>
             <Link
-              href={taxonomyHref(section, filters, node)}
+              href={taxonomyHref(section, node)}
               onClick={handleClick}
               className={cn(
                 "flex h-8 min-w-0 items-center justify-between gap-2 rounded-md px-2 text-[13px] font-medium leading-[18px] transition-colors hover:bg-content1",
@@ -775,6 +881,28 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
+function LoadMoreButton({
+  label,
+  loading,
+  onLoad,
+}: {
+  label: string;
+  loading: boolean;
+  onLoad: () => void;
+}) {
+  return (
+    <Button
+      className="mx-auto flex"
+      isLoading={loading}
+      isDisabled={loading}
+      onPress={onLoad}
+      variant="flat"
+    >
+      {label}
+    </Button>
+  );
+}
+
 function findActiveTopLevelSlug(
   nodes: SportsTaxonomyNode[],
   filters: SportsPageFilters,
@@ -805,12 +933,18 @@ function isSpecialViewActive(
   return view === "live" ? filters.view !== "proposals" : filters.view === view;
 }
 
-function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {
-  return node.counts?.total_count ?? node.count;
+function taxonomyNodeCount(
+  node: SportsTaxonomyNode,
+  filters: SportsPageFilters,
+): number | undefined {
+  if (!node.counts) return undefined;
+  if (filters.view === "proposals") return node.counts.prop_count;
+  if (filters.view === "live" || !hasTaxonomyFilter(filters)) {
+    return node.counts.match_count;
+  }
+  return node.counts.total_count;
 }
 
 function hasTaxonomyFilter(filters: SportsPageFilters): boolean {
-  return Boolean(
-    filters.sport_slug || filters.game_slug || filters.league_slug || filters.tournament_slug,
-  );
+  return Boolean(filters.taxonomy_type && filters.taxonomy_slug);
 }

@@ -80,8 +80,11 @@ describe("localizeTaxonomyLabel", () => {
   });
 
   it.each([
-    [{ ...node, node_type: "game" }, "zh-Hant"],
-    [{ ...node, node_type: undefined }, "zh-Hant"],
+    [{ ...node, node_type: "game" } as SportsTaxonomyNode, "zh-Hant"],
+    [
+      { ...node, node_type: undefined } as unknown as SportsTaxonomyNode,
+      "zh-Hant",
+    ],
     [{ ...node, slug: undefined } as unknown as SportsTaxonomyNode, "zh-Hant"],
     [{ ...node, slug: "bad.slug" }, "zh-Hant"],
     [{ ...node, slug: "bad:slug" }, "zh-Hant"],

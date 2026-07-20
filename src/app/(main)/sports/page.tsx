@@ -29,5 +29,7 @@ export default async function Page({
     filters,
   });
 
-  return <SportsShell section="sports" data={data} filters={filters} />;
+  return (
+    <SportsShell section="sports" data={data} filters={filters} lang={lang} />
+  );
 }

@@ -1,17 +1,19 @@
 import { resolveSportsPageFilters } from "./pageFilters";
 
 describe("resolveSportsPageFilters", () => {
-  it("keeps only supported taxonomy query params", () => {
+  it("keeps a complete canonical taxonomy pair and ignores legacy params", () => {
     expect(
       resolveSportsPageFilters({
-        sport_slug: "soccer",
-        league_slug: ["mlb", "ignored"],
-        status: "live",
+        taxonomy_type: "league",
+        taxonomy_slug: ["mlb", "ignored"],
+        sport_slug: "baseball",
       }),
-    ).toEqual({
-      sport_slug: "soccer",
-      league_slug: "mlb",
-    });
+    ).toEqual({ taxonomy_type: "league", taxonomy_slug: "mlb" });
+  });
+
+  it("drops incomplete or unsupported taxonomy filters", () => {
+    expect(resolveSportsPageFilters({ taxonomy_type: "category" })).toEqual({});
+    expect(resolveSportsPageFilters({ taxonomy_slug: "mlb" })).toEqual({});
   });
 
   it("accepts supported sports views and ignores unknown views", () => {

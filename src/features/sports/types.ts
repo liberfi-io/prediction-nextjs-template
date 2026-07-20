@@ -1,12 +1,13 @@
 export type SportsSection = "sports" | "esports";
 
+export type TaxonomyType = "sport" | "game" | "league" | "tournament";
+
 export interface SportsTaxonomyNode {
   section?: SportsSection;
-  node_type?: string;
+  node_type: TaxonomyType;
   slug: string;
   label: string;
   counts?: SportsTaxonomyCounts | null;
-  count?: number;
   children?: SportsTaxonomyNode[];
 }
 
@@ -121,12 +122,39 @@ export interface SportsPageData {
   taxonomy: SportsTaxonomyResponse | null;
   matches: SportsMatchCard[];
   props: SportsPropEventCard[];
+  match_pagination?: SportsPagination;
+  prop_pagination?: SportsPagination;
 }
 
-export interface SportsPageFilters {
+export interface SportsPagination {
+  next_cursor?: string | null;
+  has_more: boolean;
+  limit: number;
+}
+
+export interface SportsPage<T> extends SportsPagination {
+  items: T[];
+}
+
+interface SportsViewFilter {
   view?: "live" | "proposals";
-  sport_slug?: string;
-  game_slug?: string;
-  league_slug?: string;
-  tournament_slug?: string;
+}
+
+export interface TaxonomySelection {
+  taxonomy_type: TaxonomyType;
+  taxonomy_slug: string;
+}
+
+export type SportsPageFilters = SportsViewFilter &
+  (
+    | TaxonomySelection
+    | { taxonomy_type?: undefined; taxonomy_slug?: undefined }
+  );
+
+/** Converts a taxonomy node into the canonical list API parameters. */
+export function taxonomyParams(node: SportsTaxonomyNode): TaxonomySelection {
+  return {
+    taxonomy_type: node.node_type,
+    taxonomy_slug: node.slug,
+  };
 }

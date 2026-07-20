@@ -3,14 +3,14 @@ import type {
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
+import { taxonomyParams } from "../types";
 
 export function taxonomyHref(
   section: SportsSection,
-  filters: SportsPageFilters,
   node: SportsTaxonomyNode,
 ): string {
   const params = new URLSearchParams();
-  const nextFilters = taxonomyNodeFilter(filters, node);
+  const nextFilters = taxonomyNodeFilter(node);
   for (const [key, value] of Object.entries(nextFilters)) {
     if (value) params.set(key, value);
   }
@@ -19,52 +19,17 @@ export function taxonomyHref(
 }
 
 export function taxonomyNodeFilter(
-  filters: SportsPageFilters,
   node: SportsTaxonomyNode,
 ): SportsPageFilters {
-  if (node.node_type === "sport") return { sport_slug: node.slug };
-  if (node.node_type === "game") return { game_slug: node.slug };
-  if (node.node_type === "league") {
-    return {
-      sport_slug: filters.sport_slug,
-      game_slug: filters.game_slug,
-      league_slug: node.slug,
-    };
-  }
-  if (node.node_type === "tournament") {
-    return {
-      sport_slug: filters.sport_slug,
-      game_slug: filters.game_slug,
-      league_slug: filters.league_slug,
-      tournament_slug: node.slug,
-    };
-  }
-  return filters;
+  return taxonomyParams(node);
 }
 
 export function isTaxonomyNodeActive(
   filters: SportsPageFilters,
   node: SportsTaxonomyNode,
 ): boolean {
-  if (node.node_type === "sport") {
-    return (
-      filters.sport_slug === node.slug &&
-      !filters.league_slug &&
-      !filters.tournament_slug
-    );
-  }
-  if (node.node_type === "game") {
-    return (
-      filters.game_slug === node.slug &&
-      !filters.league_slug &&
-      !filters.tournament_slug
-    );
-  }
-  if (node.node_type === "league") {
-    return filters.league_slug === node.slug && !filters.tournament_slug;
-  }
-  if (node.node_type === "tournament") {
-    return filters.tournament_slug === node.slug;
-  }
-  return false;
+  return (
+    filters.taxonomy_type === node.node_type &&
+    filters.taxonomy_slug === node.slug
+  );
 }

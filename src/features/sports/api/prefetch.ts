@@ -9,16 +9,16 @@ import type { SportsSsrDeadline } from "../route/sportsSsrDeadline";
 
 type RuntimeSportsClient = {
   getSportsTaxonomy?: (params: Record<string, unknown>) => Promise<unknown>;
-  getSportsMatches?: (params: Record<string, unknown>) => Promise<unknown>;
-  getSportsProps?: (params: Record<string, unknown>) => Promise<unknown>;
-  getEsportsTaxonomy?: (params: Record<string, unknown>) => Promise<unknown>;
-  getEsportsMatches?: (params: Record<string, unknown>) => Promise<unknown>;
-  getEsportsProps?: (params: Record<string, unknown>) => Promise<unknown>;
 };
 
 interface PageResponse<T> {
   items?: T[];
+  next_cursor?: string | null;
+  has_more?: boolean;
+  limit?: number;
 }
+
+const DEFAULT_LIMIT = 20;
 
 export async function prefetchSportsPageData(input: {
   section: SportsSection;
@@ -37,23 +37,9 @@ export async function prefetchSportsPageData(input: {
     ...(input.lang ? { lang: input.lang } : {}),
   };
 
-  const readTaxonomy =
-    input.section === "esports"
-      ? client.getEsportsTaxonomy
-      : client.getSportsTaxonomy;
-  const readMatches =
-    input.section === "esports"
-      ? client.getEsportsMatches
-      : client.getSportsMatches;
-  const readProps =
-    input.section === "esports"
-      ? client.getEsportsProps
-      : client.getSportsProps;
+  const readTaxonomy = client.getSportsTaxonomy;
   const hasTaxonomyFilter = Boolean(
-    input.filters?.sport_slug ||
-    input.filters?.game_slug ||
-    input.filters?.league_slug ||
-    input.filters?.tournament_slug,
+    input.filters?.taxonomy_type && input.filters.taxonomy_slug,
   );
   const showMatches = input.filters?.view !== "proposals";
   const showProps =
@@ -69,24 +55,66 @@ export async function prefetchSportsPageData(input: {
     input.deadline
       .withRemainingTimeout(() =>
         showMatches
-          ? (readMatches?.call(client, params) ?? Promise.resolve({ items: [] }))
+          ? readSportsPage(input.section, "matches", params)
           : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),
     input.deadline
       .withRemainingTimeout(() =>
         showProps
-          ? (readProps?.call(client, params) ?? Promise.resolve({ items: [] }))
+          ? readSportsPage(input.section, "props", params)
           : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),
   ]);
 
+  const matchPage = normalizePage<SportsPageData["matches"][number]>(matches);
+  const propPage = normalizePage<SportsPageData["props"][number]>(props);
   return {
     taxonomy: taxonomy as SportsTaxonomyResponse | null,
-    matches: ((matches as PageResponse<SportsPageData["matches"][number]>)
-      .items ?? []) as SportsPageData["matches"],
-    props: ((props as PageResponse<SportsPageData["props"][number]>).items ??
-      []) as SportsPageData["props"],
+    matches: matchPage.items,
+    props: propPage.items,
+    match_pagination: paginationFromPage(matchPage),
+    prop_pagination: paginationFromPage(propPage),
+  };
+}
+
+function paginationFromPage<T>({
+  items: _items,
+  ...pagination
+}: ReturnType<typeof normalizePage<T>>) {
+  return pagination;
+}
+
+async function readSportsPage(
+  section: SportsSection,
+  resource: "matches" | "props",
+  params: Record<string, unknown>,
+): Promise<unknown> {
+  const url = new URL(
+    `/api/v1/${section}/${resource}`,
+    ensureTrailingSlash(process.env.PREDICT_URL!),
+  );
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
+  return response.json();
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function normalizePage<T>(value: unknown) {
+  const page = value as PageResponse<T>;
+  return {
+    items: page.items ?? [],
+    next_cursor: page.next_cursor,
+    has_more: Boolean(page.has_more && page.next_cursor),
+    limit: page.limit ?? DEFAULT_LIMIT,
   };
 }

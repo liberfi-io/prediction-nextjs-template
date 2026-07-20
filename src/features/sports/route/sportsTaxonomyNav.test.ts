@@ -9,61 +9,36 @@ describe("sports taxonomy navigation", () => {
     label: "Premier League",
   };
 
-  it("builds links from the slug, never the displayed label", () => {
-    expect(taxonomyHref("sports", {}, node)).toBe("/sports?league_slug=epl");
-    expect(taxonomyHref("sports", {}, { ...node, label: "英超" })).toBe(
-      "/sports?league_slug=epl",
+  it("builds links from the node type and slug", () => {
+    expect(taxonomyHref("sports", node)).toBe(
+      "/sports?taxonomy_type=league&taxonomy_slug=epl",
+    );
+    expect(taxonomyHref("sports", { ...node, label: "英超" })).toBe(
+      "/sports?taxonomy_type=league&taxonomy_slug=epl",
     );
   });
 
-  it("builds an Esports sport link from its slug", () => {
+  it("uses the game node type for an Esports category", () => {
     expect(
-      taxonomyHref(
-        "esports",
-        {},
-        {
-          section: "esports",
-          node_type: "sport",
-          slug: "league-of-legends",
-          label: "League of Legends",
-        },
-      ),
-    ).toBe("/esports?sport_slug=league-of-legends");
+      taxonomyHref("esports", {
+        section: "esports",
+        node_type: "game",
+        slug: "league-of-legends",
+        label: "League of Legends",
+      }),
+    ).toBe("/esports?taxonomy_type=game&taxonomy_slug=league-of-legends");
   });
 
-  it("determines active state from slug fields", () => {
+  it("determines active state from both canonical taxonomy fields", () => {
     expect(
-      isTaxonomyNodeActive({ sport_slug: "soccer", league_slug: "epl" }, node),
+      isTaxonomyNodeActive(
+        { taxonomy_type: "league", taxonomy_slug: "epl" },
+        node,
+      ),
     ).toBe(true);
     expect(
-      isTaxonomyNodeActive({ sport_slug: "soccer", league_slug: "lal" }, node),
-    ).toBe(false);
-  });
-
-  it("only marks the most specific selected taxonomy node as active", () => {
-    const sportNode: SportsTaxonomyNode = {
-      section: "sports",
-      node_type: "sport",
-      slug: "soccer",
-      label: "Soccer",
-    };
-
-    expect(isTaxonomyNodeActive({ sport_slug: "soccer" }, sportNode)).toBe(
-      true,
-    );
-    expect(
       isTaxonomyNodeActive(
-        { sport_slug: "soccer", league_slug: "epl" },
-        sportNode,
-      ),
-    ).toBe(false);
-    expect(
-      isTaxonomyNodeActive(
-        {
-          sport_slug: "soccer",
-          league_slug: "epl",
-          tournament_slug: "premier-league-2026",
-        },
+        { taxonomy_type: "tournament", taxonomy_slug: "epl" },
         node,
       ),
     ).toBe(false);

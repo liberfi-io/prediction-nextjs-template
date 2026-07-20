@@ -1,35 +1,39 @@
-import type { SportsPageFilters } from "../types";
+import type { SportsPageFilters, TaxonomyType } from "../types";
 
 export type SportsPageSearchParams = Record<
   string,
   string | string[] | undefined
 >;
 
-const FILTER_KEYS = [
-  "sport_slug",
-  "game_slug",
-  "league_slug",
-  "tournament_slug",
-] as const;
-
-const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>([
-  "live",
-  "proposals",
+const TAXONOMY_TYPES = new Set<SportsPageFilters["taxonomy_type"]>([
+  "sport",
+  "game",
+  "league",
+  "tournament",
 ]);
+
+const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>(["live", "proposals"]);
 
 export function resolveSportsPageFilters(
   searchParams: SportsPageSearchParams,
 ): SportsPageFilters {
-  const filters: SportsPageFilters = {};
   const view = firstValue(searchParams.view);
-  if (SPORTS_VIEWS.has(view as SportsPageFilters["view"])) {
-    filters.view = view as SportsPageFilters["view"];
+  const viewFilter = SPORTS_VIEWS.has(view as SportsPageFilters["view"])
+    ? { view: view as SportsPageFilters["view"] }
+    : {};
+  const taxonomyType = firstValue(searchParams.taxonomy_type);
+  const taxonomySlug = firstValue(searchParams.taxonomy_slug);
+  if (
+    TAXONOMY_TYPES.has(taxonomyType as SportsPageFilters["taxonomy_type"]) &&
+    taxonomySlug
+  ) {
+    return {
+      ...viewFilter,
+      taxonomy_type: taxonomyType as TaxonomyType,
+      taxonomy_slug: taxonomySlug,
+    };
   }
-  for (const key of FILTER_KEYS) {
-    const value = firstValue(searchParams[key]);
-    if (value) filters[key] = value;
-  }
-  return filters;
+  return viewFilter;
 }
 
 function firstValue(value: string | string[] | undefined): string | undefined {
