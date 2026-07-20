@@ -66,10 +66,19 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
       (element) =>
         element.dataset.taxonomyScrollTarget === mobileTaxonomyScrollTarget,
     );
-    target?.scrollIntoView?.({
-      behavior: "auto",
+    if (!target) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const isFullyVisible =
+      targetRect.left >= containerRect.left &&
+      targetRect.right <= containerRect.right;
+    if (isFullyVisible) return;
+
+    target.scrollIntoView?.({
+      behavior: "smooth",
       block: "nearest",
-      inline: "center",
+      inline: "nearest",
     });
   }, [mobileTaxonomyScrollTarget]);
   const sectionTitle = t(

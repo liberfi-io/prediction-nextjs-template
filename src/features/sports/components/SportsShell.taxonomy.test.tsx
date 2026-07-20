@@ -229,6 +229,15 @@ describe("SportsShell taxonomy labels", () => {
     (_label, filters, expectedTarget) => {
       const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
       const scrollIntoView = jest.fn();
+      const getBoundingClientRect = jest
+        .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+        .mockImplementation(function (this: HTMLElement) {
+          const target = this.dataset.taxonomyScrollTarget;
+          if (target === expectedTarget) {
+            return { left: 320, right: 400 } as DOMRect;
+          }
+          return { left: 0, right: 300 } as DOMRect;
+        });
       Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
         configurable: true,
         value: scrollIntoView,
@@ -276,15 +285,16 @@ describe("SportsShell taxonomy labels", () => {
         );
 
         expect(scrollIntoView).toHaveBeenCalledWith({
-          behavior: "auto",
+          behavior: "smooth",
           block: "nearest",
-          inline: "center",
+          inline: "nearest",
         });
         expect(
           (scrollIntoView.mock.instances[0] as HTMLElement).dataset
             .taxonomyScrollTarget,
         ).toBe(expectedTarget);
       } finally {
+        getBoundingClientRect.mockRestore();
         if (originalScrollIntoView) {
           Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
             configurable: true,
@@ -296,6 +306,58 @@ describe("SportsShell taxonomy labels", () => {
       }
     },
   );
+
+  it("keeps the selected mobile taxonomy pill in place when fully visible", () => {
+    const scrollIntoView = jest.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const getBoundingClientRect = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ left: 0, right: 300 } as DOMRect);
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ sport_slug: "soccer" }}
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: {
+              sections: [
+                {
+                  section: "sports",
+                  children: [
+                    {
+                      section: "sports",
+                      node_type: "sport",
+                      slug: "soccer",
+                      label: "Soccer",
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+        />,
+      );
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      getBoundingClientRect.mockRestore();
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+          configurable: true,
+          value: originalScrollIntoView,
+        });
+      } else {
+        delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+      }
+    }
+  });
 
   it("toggles expansion instead of navigating when the parent is selected", () => {
     render(
