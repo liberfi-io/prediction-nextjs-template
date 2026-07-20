@@ -34,7 +34,16 @@ export function SportsPropsList({
     );
   }
   return (
-    <div className="-mx-2 pb-4">
+    <div className="sports-props-grid -mx-2 pb-4">
+      <style>{`
+        .sports-props-grid .evt-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+        @media (max-width: 1023px) {
+          .sports-props-grid .evt-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (max-width: 767px) {
+          .sports-props-grid .evt-card-grid { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
       <EventsUI
         events={events}
         hasMore={page.has_more && Boolean(page.next_cursor)}
