@@ -39,7 +39,6 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
   );
   const taxonomyNodes = taxonomy?.children ?? [];
   const featuredNodes = taxonomy?.featured ?? [];
-  const navigationCounts = aggregateNavigationCounts(taxonomyNodes);
   const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
   const [expandedTopLevelSlug, setExpandedTopLevelSlug] = useState<
     string | undefined
@@ -63,7 +62,6 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
             filters={filters}
             featuredNodes={featuredNodes}
             taxonomyNodes={taxonomyNodes}
-            navigationCounts={navigationCounts}
             expandedTopLevelSlug={expandedTopLevelSlug}
             onExpandedTopLevelChange={setExpandedTopLevelSlug}
           />
@@ -158,7 +156,6 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
               filters={filters}
               featuredNodes={featuredNodes}
               taxonomyNodes={taxonomyNodes}
-              navigationCounts={navigationCounts}
               title={sectionTitle}
               onClose={() => setFilterDrawerOpen(false)}
               expandedTopLevelSlug={expandedTopLevelSlug}
@@ -204,7 +201,6 @@ function SportsFilterDrawer({
   filters,
   featuredNodes,
   taxonomyNodes,
-  navigationCounts,
   title,
   onClose,
   expandedTopLevelSlug,
@@ -214,7 +210,6 @@ function SportsFilterDrawer({
   filters: SportsPageFilters;
   featuredNodes: SportsTaxonomyNode[];
   taxonomyNodes: SportsTaxonomyNode[];
-  navigationCounts: NavigationCounts;
   title: string;
   onClose: () => void;
   expandedTopLevelSlug?: string;
@@ -255,7 +250,6 @@ function SportsFilterDrawer({
             filters={filters}
             featuredNodes={featuredNodes}
             taxonomyNodes={taxonomyNodes}
-            navigationCounts={navigationCounts}
             onNavigate={onClose}
             expandedTopLevelSlug={expandedTopLevelSlug}
             onExpandedTopLevelChange={onExpandedTopLevelChange}
@@ -266,17 +260,11 @@ function SportsFilterDrawer({
   );
 }
 
-interface NavigationCounts {
-  matches?: number;
-  props?: number;
-}
-
 function SportsNavigation({
   section,
   filters,
   featuredNodes,
   taxonomyNodes,
-  navigationCounts,
   onNavigate,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
@@ -285,7 +273,6 @@ function SportsNavigation({
   filters: SportsPageFilters;
   featuredNodes: SportsTaxonomyNode[];
   taxonomyNodes: SportsTaxonomyNode[];
-  navigationCounts: NavigationCounts;
   onNavigate?: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
@@ -298,14 +285,12 @@ function SportsNavigation({
         <SpecialNavigationLink
           href={`/${section}?view=live`}
           label={t("extend.sports.filters.live")}
-          count={navigationCounts.matches}
           active={isSpecialViewActive(filters, "live")}
           onNavigate={onNavigate}
         />
         <SpecialNavigationLink
           href={`/${section}?view=proposals`}
           label={t("extend.sports.filters.proposals")}
-          count={navigationCounts.props}
           active={isSpecialViewActive(filters, "proposals")}
           onNavigate={onNavigate}
         />
@@ -363,13 +348,11 @@ function NavigationGroup({
 function SpecialNavigationLink({
   href,
   label,
-  count,
   active,
   onNavigate,
 }: {
   href: string;
   label: string;
-  count?: number;
   active: boolean;
   onNavigate?: () => void;
 }) {
@@ -383,9 +366,6 @@ function SpecialNavigationLink({
       )}
     >
       <span>{label}</span>
-      {typeof count === "number" && count > 0 && (
-        <span className="tabular-nums">{count}</span>
-      )}
     </Link>
   );
 }
@@ -630,19 +610,6 @@ function isSpecialViewActive(
 
 function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {
   return node.counts?.total_count ?? node.count;
-}
-
-function aggregateNavigationCounts(
-  nodes: SportsTaxonomyNode[],
-): NavigationCounts {
-  if (nodes.some((node) => !node.counts)) return {};
-  return nodes.reduce<NavigationCounts>(
-    (counts, node) => ({
-      matches: (counts.matches ?? 0) + (node.counts?.match_count ?? 0),
-      props: (counts.props ?? 0) + (node.counts?.prop_count ?? 0),
-    }),
-    { matches: 0, props: 0 },
-  );
 }
 
 function hasTaxonomyFilter(filters: SportsPageFilters): boolean {

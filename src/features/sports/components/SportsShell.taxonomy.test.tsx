@@ -38,7 +38,7 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
   });
 
-  it("renders special, featured, and full taxonomy groups with counts", () => {
+  it("renders navigation groups and keeps counts off special links", () => {
     const { container } = render(
       <SportsShell
         section="sports"
@@ -87,6 +87,11 @@ describe("SportsShell taxonomy labels", () => {
     expect(
       screen.getAllByRole("link", { name: /filters\.proposals/i }),
     ).toHaveLength(2);
+    for (const link of screen.getAllByRole("link", {
+      name: /filters\.(live|proposals)/i,
+    })) {
+      expect(link.textContent).not.toMatch(/\d/);
+    }
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
     expect(screen.getAllByText("13")).toHaveLength(2);
