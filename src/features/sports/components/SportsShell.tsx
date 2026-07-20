@@ -290,13 +290,14 @@ function SportsFilterDrawer({
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose();
       }}
-      size="full"
+      size="lg"
+      placement="bottom"
       hideCloseButton
       backdrop="opaque"
       radius="lg"
       className="lg:hidden"
     >
-      <ModalContent className="h-full w-full">
+      <ModalContent className="max-h-[91dvh] w-full rounded-t-2xl">
         <ModalHeader className="flex items-center justify-between pb-2 pt-4">
           <span className="text-base font-semibold">
             {t("extend.sports.filters.allSportsEvents")}

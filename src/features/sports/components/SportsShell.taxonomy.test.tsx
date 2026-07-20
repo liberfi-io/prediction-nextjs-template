@@ -10,8 +10,22 @@ jest.mock("@liberfi.io/ui", () => {
 
   return {
     ...actual,
-    StyledModal: ({ children, isOpen }: { children: ReactNode; isOpen: boolean }) =>
-      isOpen ? <div role="dialog">{children}</div> : null,
+    StyledModal: ({
+      children,
+      isOpen,
+      placement,
+      size,
+    }: {
+      children: ReactNode;
+      isOpen: boolean;
+      placement?: string;
+      size?: string;
+    }) =>
+      isOpen ? (
+        <div role="dialog" data-placement={placement} data-size={size}>
+          {children}
+        </div>
+      ) : null,
     ModalContent: TestContainer,
     ModalHeader: TestContainer,
     ModalBody: TestContainer,
@@ -238,6 +252,8 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     const dialog = screen.getByRole("dialog");
+    expect(dialog.dataset.placement).toBe("bottom");
+    expect(dialog.dataset.size).toBe("lg");
     expect(
       within(dialog).getByText(/extend\.sports\.filters\.allSportsEvents/i),
     ).toBeDefined();
