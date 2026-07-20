@@ -69,15 +69,11 @@ describe("SportsShell taxonomy labels", () => {
     const spread = market("handicap_points");
     const total = market("total_goals");
 
-    expect(
-      resolvePrimarySportsMarkets(undefined, [
-        {
-          market_category: "main",
-          label: "Main",
-          markets: [total, moneyline, spread],
-        },
-      ]),
-    ).toEqual({ moneyline, spread, total });
+    expect(resolvePrimarySportsMarkets([total, moneyline, spread])).toEqual({
+      moneyline: [moneyline],
+      spread: [spread],
+      total: [total],
+    });
   });
 
   it("limits the today tab to the current local calendar day", () => {

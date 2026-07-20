@@ -1,9 +1,4 @@
-import type {
-  SportsMatchDetail,
-  SportsPage,
-  SportsSection,
-  TaxonomySelection,
-} from "../types";
+import type { SportsPage, SportsSection, TaxonomySelection } from "../types";
 
 /** Loads the next sports page while passing the opaque server cursor unchanged. */
 export async function fetchNextSportsPage<T>(input: {
@@ -35,21 +30,4 @@ export async function fetchNextSportsPage<T>(input: {
     items: page.items ?? [],
     has_more: Boolean(page.has_more && page.next_cursor),
   };
-}
-
-/** Loads the market groups needed by a visible sports match card. */
-export async function fetchSportsMatchDetail(input: {
-  section: SportsSection;
-  matchGroupSlug: string;
-  lang?: string;
-}): Promise<SportsMatchDetail> {
-  const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
-  const url = new URL(
-    `${baseUrl}/api/v1/${input.section}/matches/${encodeURIComponent(input.matchGroupSlug)}`,
-    window.location.origin,
-  );
-  if (input.lang) url.searchParams.set("lang", input.lang);
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
-  return (await response.json()) as SportsMatchDetail;
 }
