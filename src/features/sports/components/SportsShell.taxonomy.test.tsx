@@ -123,6 +123,16 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
     expect(screen.getAllByText("13")).toHaveLength(2);
+    const mobileTaxonomyLink = container.querySelector(
+      '[data-taxonomy-scroll-target="soccer"]',
+    );
+    expect(mobileTaxonomyLink).not.toBeNull();
+    expect(
+      mobileTaxonomyLink?.querySelector('img[src*="soccer.svg"]'),
+    ).not.toBeNull();
+    expect(
+      mobileTaxonomyLink?.querySelector(".text-\\[11px\\]")?.textContent,
+    ).toBe("13");
     const navigationGroups = container.querySelector(".divide-y");
     expect(navigationGroups?.classList.contains("divide-zinc-800")).toBe(true);
     expect(navigationGroups?.children).toHaveLength(3);
@@ -217,73 +227,73 @@ describe("SportsShell taxonomy labels", () => {
   it.each(mobileTaxonomyScrollCases)(
     "scrolls the mobile taxonomy strip for %s",
     (_label, filters, expectedTarget) => {
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    const scrollIntoView = jest.fn();
-    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
-      configurable: true,
-      value: scrollIntoView,
-    });
-
-    try {
-      render(
-        <SportsShell
-          section="sports"
-          filters={{ ...filters }}
-          data={{
-            matches: [],
-            props: [],
-            taxonomy: {
-              sections: [
-                {
-                  section: "sports",
-                  children: [
-                    {
-                      section: "sports",
-                      node_type: "sport",
-                      slug: "basketball",
-                      label: "Basketball",
-                    },
-                    {
-                      section: "sports",
-                      node_type: "sport",
-                      slug: "soccer",
-                      label: "Soccer",
-                      children: [
-                        {
-                          section: "sports",
-                          node_type: "league",
-                          slug: "epl",
-                          label: "Premier League",
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          }}
-        />,
-      );
-
-      expect(scrollIntoView).toHaveBeenCalledWith({
-        behavior: "auto",
-        block: "nearest",
-        inline: "center",
+      const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+      const scrollIntoView = jest.fn();
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        value: scrollIntoView,
       });
-      expect(
-        (scrollIntoView.mock.instances[0] as HTMLElement).dataset
-          .taxonomyScrollTarget,
-      ).toBe(expectedTarget);
-    } finally {
-      if (originalScrollIntoView) {
-        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
-          configurable: true,
-          value: originalScrollIntoView,
+
+      try {
+        render(
+          <SportsShell
+            section="sports"
+            filters={{ ...filters }}
+            data={{
+              matches: [],
+              props: [],
+              taxonomy: {
+                sections: [
+                  {
+                    section: "sports",
+                    children: [
+                      {
+                        section: "sports",
+                        node_type: "sport",
+                        slug: "basketball",
+                        label: "Basketball",
+                      },
+                      {
+                        section: "sports",
+                        node_type: "sport",
+                        slug: "soccer",
+                        label: "Soccer",
+                        children: [
+                          {
+                            section: "sports",
+                            node_type: "league",
+                            slug: "epl",
+                            label: "Premier League",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            }}
+          />,
+        );
+
+        expect(scrollIntoView).toHaveBeenCalledWith({
+          behavior: "auto",
+          block: "nearest",
+          inline: "center",
         });
-      } else {
-        delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+        expect(
+          (scrollIntoView.mock.instances[0] as HTMLElement).dataset
+            .taxonomyScrollTarget,
+        ).toBe(expectedTarget);
+      } finally {
+        if (originalScrollIntoView) {
+          Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+            configurable: true,
+            value: originalScrollIntoView,
+          });
+        } else {
+          delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+        }
       }
-    }
     },
   );
 

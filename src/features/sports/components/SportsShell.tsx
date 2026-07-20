@@ -129,31 +129,46 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                     {t("extend.sports.filters.proposals")}
                   </span>
                 </Link>
-                {taxonomyNodes.map((node) => (
-                  <Link
-                    key={node.slug}
-                    href={taxonomyHref(section, filters, node)}
-                    data-taxonomy-scroll-target={node.slug}
-                    className={cn(
-                      "shrink-0 rounded-full border px-3 py-1.5 text-sm",
-                      isTaxonomyNodeActive(filters, node)
-                        ? "border-emerald-700 bg-emerald-950 text-emerald-100"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-300",
-                    )}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <LocalizedTaxonomyLabel
-                        node={node}
-                        pageSection={section}
-                      />
-                      {(taxonomyNodeCount(node) ?? 0) > 0 && (
-                        <span className="tabular-nums text-zinc-500">
-                          {taxonomyNodeCount(node)}
-                        </span>
+                {taxonomyNodes.map((node) => {
+                  const icon = resolveSportsTaxonomyIcon(node.slug);
+                  const nodeCount = taxonomyNodeCount(node);
+
+                  return (
+                    <Link
+                      key={node.slug}
+                      href={taxonomyHref(section, filters, node)}
+                      data-taxonomy-scroll-target={node.slug}
+                      className={cn(
+                        "shrink-0 rounded-full border px-3 py-1.5 text-sm",
+                        isTaxonomyNodeActive(filters, node)
+                          ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                          : "border-zinc-800 bg-zinc-900 text-zinc-300",
                       )}
-                    </span>
-                  </Link>
-                ))}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {icon && (
+                          <Image
+                            src={icon}
+                            alt=""
+                            aria-hidden="true"
+                            width={16}
+                            height={16}
+                            className="h-4 w-4 shrink-0 object-contain"
+                          />
+                        )}
+                        <LocalizedTaxonomyLabel
+                          node={node}
+                          pageSection={section}
+                        />
+                        {typeof nodeCount === "number" && nodeCount > 0 && (
+                          <span className="text-[11px] tabular-nums text-zinc-500">
+                            {nodeCount}
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
               <button
                 type="button"
