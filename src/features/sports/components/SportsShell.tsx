@@ -10,8 +10,11 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { useTranslation } from "@liberfi.io/i18n";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronDownIcon,
   ModalBody,
@@ -36,6 +39,15 @@ import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
+import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
+import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
+import { convertPrice } from "../../worldcup/odds/convert-price";
+
+type SportsContentTab = "today" | "games" | "props";
+
+const SportsPropsList = dynamic(() =>
+  import("./SportsPropsList").then((module) => module.SportsPropsList),
+);
 
 interface SportsShellProps {
   section: SportsSection;
@@ -71,6 +83,7 @@ export function SportsShell({
   const [loadingResource, setLoadingResource] = useState<
     "matches" | "props" | null
   >(null);
+  const [activeTab, setActiveTab] = useState<SportsContentTab>("today");
 
   useEffect(
     () =>
@@ -143,6 +156,8 @@ export function SportsShell({
   const taxonomyNodes = taxonomy?.children ?? [];
   const featuredNodes = taxonomy?.featured ?? [];
   const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
+  const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, filters);
+  const hasTaxonomySelection = Boolean(activeTaxonomyNode);
   const mobileTaxonomyScrollTarget = isSpecialViewActive(filters, "live")
     ? "live"
     : isSpecialViewActive(filters, "proposals")
@@ -156,6 +171,8 @@ export function SportsShell({
   useEffect(() => {
     if (activeTopLevelSlug) setExpandedTopLevelSlug(activeTopLevelSlug);
   }, [activeTopLevelSlug]);
+
+  useEffect(() => setActiveTab("today"), [filters.taxonomy_slug]);
 
   useEffect(() => {
     const container = mobileTaxonomyScrollRef.current;
@@ -299,17 +316,20 @@ export function SportsShell({
             <div className="flex items-end justify-between gap-3 pb-4">
               <div>
                 <h1 className="text-xl font-semibold text-zinc-50">
-                  {sectionTitle}
+                  {activeTaxonomyNode ? (
+                    <LocalizedTaxonomyLabel
+                      node={activeTaxonomyNode}
+                      pageSection={section}
+                    />
+                  ) : (
+                    sectionTitle
+                  )}
                 </h1>
-                <p className="mt-1 text-sm text-zinc-500">
-                  {matches.items.length > 0
-                    ? t("extend.sports.filters.upcoming")
-                    : filters.view === "proposals"
-                      ? t("extend.sports.filters.proposals")
-                      : t("extend.sports.empty.matches")}
-                </p>
               </div>
             </div>
+            {hasTaxonomySelection && (
+              <SportsContentTabs active={activeTab} onChange={setActiveTab} />
+            )}
           </div>
 
           {filterDrawerOpen && (
@@ -324,46 +344,67 @@ export function SportsShell({
             />
           )}
 
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8">
-            <div className="min-w-0 space-y-5 pb-4">
-              {filters.view !== "proposals" && (
-                <section className="space-y-3">
-                  {matches.items.length > 0 ? (
-                    matches.items.map((match) => (
-                      <MatchCard key={match.match_group_slug} match={match} />
-                    ))
-                  ) : (
-                    <EmptyState label={t("extend.sports.empty.matches")} />
-                  )}
-                  {matches.has_more && matches.next_cursor && (
-                    <LoadMoreButton
-                      label={t("extend.portfolio.loadMore")}
-                      loading={loadingResource === "matches"}
-                      onLoad={() => void loadMore("matches")}
-                    />
-                  )}
-                </section>
-              )}
+          <div
+            id="sports-list-scroll"
+            className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
+          >
+            {hasTaxonomySelection ? (
+              activeTab === "props" ? (
+                <SportsPropsList
+                  page={propPage}
+                  loading={loadingResource === "props"}
+                  onLoadMore={() => void loadMore("props")}
+                />
+              ) : (
+                <SportsMatchList
+                  matches={matches.items}
+                  todayOnly={activeTab === "today"}
+                  hasMore={matches.has_more && Boolean(matches.next_cursor)}
+                  loading={loadingResource === "matches"}
+                  onLoadMore={() => void loadMore("matches")}
+                />
+              )
+            ) : (
+              <div className="min-w-0 space-y-5 pb-4">
+                {filters.view !== "proposals" && (
+                  <section className="space-y-3">
+                    {matches.items.length > 0 ? (
+                      matches.items.map((match) => (
+                        <MatchCard key={match.match_group_slug} match={match} />
+                      ))
+                    ) : (
+                      <EmptyState label={t("extend.sports.empty.matches")} />
+                    )}
+                    {matches.has_more && matches.next_cursor && (
+                      <LoadMoreButton
+                        label={t("extend.portfolio.loadMore")}
+                        loading={loadingResource === "matches"}
+                        onLoad={() => void loadMore("matches")}
+                      />
+                    )}
+                  </section>
+                )}
 
-              {!isSpecialViewActive(filters, "live") && (
-                <section className="space-y-3">
-                  {propPage.items.length > 0 ? (
-                    propPage.items.map((event) => (
-                      <PropEventCard key={event.event_slug} event={event} />
-                    ))
-                  ) : filters.view === "proposals" ? (
-                    <EmptyState label={t("extend.sports.empty.props")} />
-                  ) : null}
-                  {propPage.has_more && propPage.next_cursor && (
-                    <LoadMoreButton
-                      label={t("extend.portfolio.loadMore")}
-                      loading={loadingResource === "props"}
-                      onLoad={() => void loadMore("props")}
-                    />
-                  )}
-                </section>
-              )}
-            </div>
+                {!isSpecialViewActive(filters, "live") && (
+                  <section className="space-y-3">
+                    {propPage.items.length > 0 ? (
+                      propPage.items.map((event) => (
+                        <PropEventCard key={event.event_slug} event={event} />
+                      ))
+                    ) : filters.view === "proposals" ? (
+                      <EmptyState label={t("extend.sports.empty.props")} />
+                    ) : null}
+                    {propPage.has_more && propPage.next_cursor && (
+                      <LoadMoreButton
+                        label={t("extend.portfolio.loadMore")}
+                        loading={loadingResource === "props"}
+                        onLoad={() => void loadMore("props")}
+                      />
+                    )}
+                  </section>
+                )}
+              </div>
+            )}
           </div>
         </section>
       </div>
@@ -770,55 +811,269 @@ function TaxonomyRail({
   );
 }
 
-function MatchCard({ match }: { match: SportsMatchCardData }) {
+function SportsContentTabs({
+  active,
+  onChange,
+}: {
+  active: SportsContentTab;
+  onChange: (tab: SportsContentTab) => void;
+}) {
+  const { t } = useTranslation();
   return (
-    <Link
-      href={`/event/${encodeURIComponent(match.match_group_slug)}`}
-      className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs text-zinc-500">
-            {[
-              match.sport_slug ?? match.game_slug,
-              match.league_slug,
-              match.status,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </div>
-          <h2 className="mt-1 truncate text-sm font-semibold text-zinc-100">
-            {match.title}
-          </h2>
-        </div>
-        {match.start_time && (
-          <SportsStartTime
-            className="shrink-0 text-xs text-zinc-500"
-            value={match.start_time}
-          />
-        )}
-      </div>
+    <nav className="-mx-1 flex gap-1 overflow-x-auto border-t border-zinc-900 py-2 no-scrollbar">
+      {(["today", "games", "props"] as const).map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          aria-current={active === tab ? "page" : undefined}
+          onClick={() => onChange(tab)}
+          className={cn(
+            "shrink-0 cursor-pointer rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors",
+            active === tab
+              ? "bg-zinc-800/70 text-[#c7ff2e]"
+              : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200",
+          )}
+        >
+          {t(`extend.worldcup.tab.${tab}`)}
+        </button>
+      ))}
+    </nav>
+  );
+}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {(match.participants ?? []).map((participant) => (
-          <div
-            key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
-            className="flex items-center gap-2 rounded-md bg-zinc-900 px-2 py-2 text-sm"
-          >
-            <span
-              className={cn(
-                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300",
-              )}
-            >
-              {(participant.abbreviation ?? participant.name)
-                .slice(0, 2)
-                .toUpperCase()}
-            </span>
-            <span className="min-w-0 truncate">{participant.name}</span>
-          </div>
-        ))}
+type MatchListRow =
+  | { kind: "heading"; id: string; title: string }
+  | { kind: "match"; id: string; match: SportsMatchCardData };
+
+function SportsMatchList({
+  matches,
+  todayOnly,
+  hasMore,
+  loading,
+  onLoadMore,
+}: {
+  matches: SportsMatchCardData[];
+  todayOnly: boolean;
+  hasMore: boolean;
+  loading: boolean;
+  onLoadMore: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const visibleMatches = useMemo(
+    () => (todayOnly ? matchesForToday(matches) : matches),
+    [matches, todayOnly],
+  );
+  const rows = useMemo(
+    () => buildMatchRows(visibleMatches, i18n.language || "en"),
+    [i18n.language, visibleMatches],
+  );
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () =>
+      typeof document === "undefined"
+        ? null
+        : document.getElementById("sports-list-scroll"),
+    estimateSize: (index) => (rows[index]?.kind === "heading" ? 38 : 168),
+    overscan: 4,
+  });
+  const virtualItems = virtualizer.getVirtualItems();
+
+  useEffect(() => {
+    const last = virtualItems[virtualItems.length - 1];
+    if (
+      hasMore &&
+      !loading &&
+      (rows.length === 0 || (last && last.index >= rows.length - 3))
+    ) {
+      onLoadMore();
+    }
+  }, [hasMore, loading, onLoadMore, rows.length, virtualItems]);
+
+  return (
+    <div className="min-w-0 pb-4">
+      <div className="mb-3 flex justify-end">
+        <OddsFormatSelect />
       </div>
-    </Link>
+      {rows.length === 0 ? (
+        <EmptyState label={t("extend.sports.empty.matches")} />
+      ) : (
+        <div
+          className="relative w-full"
+          style={{ height: virtualizer.getTotalSize() }}
+        >
+          {virtualItems.map((item) => {
+            const row = rows[item.index];
+            return (
+              <div
+                key={row.id}
+                ref={virtualizer.measureElement}
+                data-index={item.index}
+                className="absolute left-0 top-0 w-full pb-2"
+                style={{ transform: `translateY(${item.start}px)` }}
+              >
+                {row.kind === "heading" ? (
+                  <h3 className="py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    {row.title}
+                  </h3>
+                ) : (
+                  <MatchCard match={row.match} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {loading && (
+        <div className="py-3 text-center text-xs text-zinc-500">
+          {t("extend.portfolio.loadMore")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function matchesForToday(
+  matches: SportsMatchCardData[],
+): SportsMatchCardData[] {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2);
+  const inWindow = matches.filter((match) => {
+    const timestamp = Date.parse(match.start_time ?? "");
+    return timestamp >= start.getTime() && timestamp < end.getTime();
+  });
+  if (inWindow.length > 0) return inWindow;
+
+  const next = matches
+    .map((match) => ({ match, timestamp: Date.parse(match.start_time ?? "") }))
+    .filter(
+      ({ timestamp }) =>
+        Number.isFinite(timestamp) && timestamp >= now.getTime(),
+    )
+    .sort((a, b) => a.timestamp - b.timestamp)[0];
+  if (!next) return [];
+  const fallbackStart = new Date(next.timestamp);
+  fallbackStart.setHours(0, 0, 0, 0);
+  const fallbackEnd = new Date(fallbackStart);
+  fallbackEnd.setDate(fallbackEnd.getDate() + 1);
+  return matches.filter((match) => {
+    const timestamp = Date.parse(match.start_time ?? "");
+    return (
+      timestamp >= fallbackStart.getTime() && timestamp < fallbackEnd.getTime()
+    );
+  });
+}
+
+function buildMatchRows(
+  matches: SportsMatchCardData[],
+  lang: string,
+): MatchListRow[] {
+  const groups = new Map<string, SportsMatchCardData[]>();
+  for (const match of [...matches].sort(
+    (a, b) => Date.parse(a.start_time ?? "") - Date.parse(b.start_time ?? ""),
+  )) {
+    const timestamp = Date.parse(match.start_time ?? "");
+    const title = Number.isFinite(timestamp)
+      ? new Date(timestamp).toLocaleDateString(lang, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        })
+      : "";
+    if (!groups.has(title)) groups.set(title, []);
+    groups.get(title)?.push(match);
+  }
+  return Array.from(groups.entries()).flatMap(([title, items]) => [
+    { kind: "heading" as const, id: `heading:${title}`, title },
+    ...items.map((match) => ({
+      kind: "match" as const,
+      id: match.match_group_slug,
+      match,
+    })),
+  ]);
+}
+
+function MatchCard({ match }: { match: SportsMatchCardData }) {
+  const router = useRouter();
+  const [format] = useOddsFormat();
+  const href = `/event/${encodeURIComponent(match.match_group_slug)}`;
+  return (
+    <article className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 transition-colors hover:border-zinc-700">
+      <Link href={href} className="block p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs text-zinc-500">
+              {[
+                match.sport_slug ?? match.game_slug,
+                match.league_slug,
+                match.status,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+            <h2 className="mt-1 truncate text-sm font-semibold text-zinc-100">
+              {match.title}
+            </h2>
+          </div>
+          {match.start_time && (
+            <SportsStartTime
+              className="shrink-0 text-xs text-zinc-500"
+              value={match.start_time}
+            />
+          )}
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {(match.participants ?? []).map((participant) => (
+            <div
+              key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
+              className="flex items-center gap-2 rounded-md bg-zinc-900 px-2 py-2 text-sm"
+            >
+              <span
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300",
+                )}
+              >
+                {(participant.abbreviation ?? participant.name)
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </span>
+              <span className="min-w-0 truncate">{participant.name}</span>
+            </div>
+          ))}
+        </div>
+      </Link>
+      {(match.inline_markets ?? []).length > 0 && (
+        <div className="grid gap-2 border-t border-zinc-800 p-3 sm:grid-cols-3 sm:p-4">
+          {(match.inline_markets ?? []).slice(0, 3).map((market) => (
+            <div key={market.market_slug} className="min-w-0">
+              <div className="mb-1.5 truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                {market.label}
+              </div>
+              <div className="flex gap-2">
+                {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
+                  <button
+                    key={`${market.market_slug}:${outcome.outcome}`}
+                    type="button"
+                    onClick={() => router.push(href)}
+                    className="flex h-9 min-w-0 flex-1 cursor-pointer items-center justify-between gap-1 rounded-[9px] bg-zinc-700 px-2.5 text-xs font-semibold text-zinc-100 shadow-[0_3px_0_#18181b] transition-transform active:translate-y-0.5 active:shadow-none"
+                  >
+                    <span className="truncate">{outcome.label}</span>
+                    <span className="shrink-0 tabular-nums">
+                      {typeof outcome.price === "number"
+                        ? convertPrice(outcome.price, format)
+                        : "-"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -909,6 +1164,18 @@ function findActiveTopLevelSlug(
 ): string | undefined {
   return nodes.find((node) => taxonomyBranchContainsActiveNode(node, filters))
     ?.slug;
+}
+
+function findTaxonomyNode(
+  nodes: SportsTaxonomyNode[],
+  filters: SportsPageFilters,
+): SportsTaxonomyNode | undefined {
+  for (const node of nodes) {
+    if (isTaxonomyNodeActive(filters, node)) return node;
+    const nested = findTaxonomyNode(node.children ?? [], filters);
+    if (nested) return nested;
+  }
+  return undefined;
 }
 
 function taxonomyBranchContainsActiveNode(

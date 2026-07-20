@@ -54,6 +54,48 @@ const mobileTaxonomyScrollCases = [
 ] as const;
 
 describe("SportsShell taxonomy labels", () => {
+  it("uses the selected taxonomy label as the title and renders the three list tabs", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "soccer",
+    );
+    expect(screen.queryByText(/filters\.upcoming/i)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /worldcup\.tab\.today/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /worldcup\.tab\.games/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
+    ).toBeDefined();
+  });
+
   it("uses the shared localized label at mobile and rail entry points", () => {
     render(
       <SportsShell
