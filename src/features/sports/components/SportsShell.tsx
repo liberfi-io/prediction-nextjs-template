@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import { ChevronDownIcon, cn } from "@liberfi.io/ui";
+import { motion, useAnimation, useReducedMotion } from "framer-motion";
 import type {
   SportsMatchCard as SportsMatchCardData,
   SportsPageData,
@@ -80,7 +81,10 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
                 >
-                  {t("extend.sports.filters.live")}
+                  <span className="flex items-center gap-1.5">
+                    <LiveNavigationIcon className="h-4 w-4 text-bearish" />
+                    {t("extend.sports.filters.live")}
+                  </span>
                 </Link>
                 <Link
                   href={`/${section}?view=proposals`}
@@ -91,7 +95,10 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
                 >
-                  {t("extend.sports.filters.proposals")}
+                  <span className="flex items-center gap-1.5">
+                    <ProposalsNavigationIcon className="h-4 w-4" />
+                    {t("extend.sports.filters.proposals")}
+                  </span>
                 </Link>
                 {taxonomyNodes.map((node) => (
                   <Link
@@ -285,12 +292,14 @@ function SportsNavigation({
         <SpecialNavigationLink
           href={`/${section}?view=live`}
           label={t("extend.sports.filters.live")}
+          icon="live"
           active={isSpecialViewActive(filters, "live")}
           onNavigate={onNavigate}
         />
         <SpecialNavigationLink
           href={`/${section}?view=proposals`}
           label={t("extend.sports.filters.proposals")}
+          icon="proposals"
           active={isSpecialViewActive(filters, "proposals")}
           onNavigate={onNavigate}
         />
@@ -348,11 +357,13 @@ function NavigationGroup({
 function SpecialNavigationLink({
   href,
   label,
+  icon,
   active,
   onNavigate,
 }: {
   href: string;
   label: string;
+  icon: "live" | "proposals";
   active: boolean;
   onNavigate?: () => void;
 }) {
@@ -365,8 +376,127 @@ function SpecialNavigationLink({
         active ? "bg-content1 text-foreground" : "text-neutral",
       )}
     >
-      <span>{label}</span>
+      <span className="flex items-center gap-1.5">
+        {icon === "live" ? (
+          <LiveNavigationIcon className="h-[18px] w-[18px] text-bearish" />
+        ) : (
+          <ProposalsNavigationIcon className="h-[18px] w-[18px]" />
+        )}
+        {label}
+      </span>
     </Link>
+  );
+}
+
+const liveWaveVariants = {
+  normal: { opacity: 1, transition: { duration: 0.3 } },
+  fadeOut: { opacity: 0.2, transition: { duration: 0.6 } },
+  fadeIn: (wave: number) => ({
+    opacity: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 300,
+      damping: 20,
+      delay: 0.2 * wave,
+    },
+  }),
+};
+
+function LiveNavigationIcon({ className }: { className?: string }) {
+  const controls = useAnimation();
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (reduceMotion) {
+      void controls.start("normal");
+      return;
+    }
+
+    let cancelled = false;
+
+    async function breathe() {
+      while (!cancelled) {
+        await controls.start("fadeOut");
+        if (cancelled) return;
+        await controls.start("fadeIn");
+      }
+    }
+
+    void breathe();
+    return () => {
+      cancelled = true;
+      controls.stop();
+    };
+  }, [controls, reduceMotion]);
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 18 18"
+      aria-hidden="true"
+      data-sports-navigation-icon="live"
+      data-animated="true"
+      className={className}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      >
+        <motion.path
+          d="M5.641,12.359c-1.855-1.855-1.855-4.863,0-6.718"
+          variants={liveWaveVariants}
+          animate={controls}
+          custom={0}
+        />
+        <motion.path
+          d="M3.52,14.48C.493,11.454,.493,6.546,3.52,3.52"
+          variants={liveWaveVariants}
+          animate={controls}
+          custom={1}
+        />
+        <circle cx="9" cy="9" r="1.75" />
+        <motion.path
+          d="M12.359,12.359c1.855-1.855,1.855-4.863,0-6.718"
+          variants={liveWaveVariants}
+          animate={controls}
+          custom={0}
+        />
+        <motion.path
+          d="M14.48,14.48c3.027-3.027,3.027-7.934,0-10.96"
+          variants={liveWaveVariants}
+          animate={controls}
+          custom={1}
+        />
+      </g>
+    </svg>
+  );
+}
+
+function ProposalsNavigationIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 18 18"
+      aria-hidden="true"
+      data-sports-navigation-icon="proposals"
+      className={className}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      >
+        <rect x="2.75" y="2.75" width="12.5" height="12.5" rx="2" />
+        <line x1="5.75" y1="8" x2="5.75" y2="12.25" />
+        <line x1="12.25" y1="10.25" x2="12.25" y2="12.25" />
+        <line x1="9" y1="5.75" x2="9" y2="12.25" />
+      </g>
+    </svg>
   );
 }
 

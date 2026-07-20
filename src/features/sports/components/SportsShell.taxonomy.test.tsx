@@ -92,6 +92,23 @@ describe("SportsShell taxonomy labels", () => {
     })) {
       expect(link.textContent).not.toMatch(/\d/);
     }
+    const liveIcons = container.querySelectorAll(
+      '[data-sports-navigation-icon="live"]',
+    );
+    expect(liveIcons).toHaveLength(2);
+    expect(
+      Array.from(liveIcons).every((icon) =>
+        icon.classList.contains("text-bearish"),
+      ),
+    ).toBe(true);
+    expect(
+      container.querySelectorAll(
+        '[data-sports-navigation-icon="live"][data-animated="true"]',
+      ),
+    ).toHaveLength(2);
+    expect(
+      container.querySelectorAll('[data-sports-navigation-icon="proposals"]'),
+    ).toHaveLength(2);
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
     expect(screen.getAllByText("13")).toHaveLength(2);
