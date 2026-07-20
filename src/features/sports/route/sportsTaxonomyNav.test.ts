@@ -39,4 +39,33 @@ describe("sports taxonomy navigation", () => {
       isTaxonomyNodeActive({ sport_slug: "soccer", league_slug: "lal" }, node),
     ).toBe(false);
   });
+
+  it("only marks the most specific selected taxonomy node as active", () => {
+    const sportNode: SportsTaxonomyNode = {
+      section: "sports",
+      node_type: "sport",
+      slug: "soccer",
+      label: "Soccer",
+    };
+
+    expect(isTaxonomyNodeActive({ sport_slug: "soccer" }, sportNode)).toBe(
+      true,
+    );
+    expect(
+      isTaxonomyNodeActive(
+        { sport_slug: "soccer", league_slug: "epl" },
+        sportNode,
+      ),
+    ).toBe(false);
+    expect(
+      isTaxonomyNodeActive(
+        {
+          sport_slug: "soccer",
+          league_slug: "epl",
+          tournament_slug: "premier-league-2026",
+        },
+        node,
+      ),
+    ).toBe(false);
+  });
 });

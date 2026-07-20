@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
+import { SportsStartTime } from "./SportsStartTime";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 
 interface SportsShellProps {
@@ -31,6 +32,14 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
     [data.taxonomy?.sections, section],
   );
   const taxonomyNodes = taxonomy?.children ?? [];
+  const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
+  const [expandedTopLevelSlug, setExpandedTopLevelSlug] = useState<
+    string | undefined
+  >(activeTopLevelSlug);
+
+  useEffect(() => {
+    if (activeTopLevelSlug) setExpandedTopLevelSlug(activeTopLevelSlug);
+  }, [activeTopLevelSlug]);
   const sectionTitle = t(
     section === "esports"
       ? "extend.sports.nav.esports"
@@ -40,11 +49,13 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
   return (
     <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
       <div className="mx-auto flex h-full w-full max-w-[1440px] min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="custom-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
+        <aside className="no-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
           <TaxonomyRail
             nodes={taxonomyNodes}
             section={section}
             filters={filters}
+            expandedTopLevelSlug={expandedTopLevelSlug}
+            onExpandedTopLevelChange={setExpandedTopLevelSlug}
           />
         </aside>
 
@@ -116,6 +127,8 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
               title={sectionTitle}
               allLabel={t("extend.sports.filters.all")}
               onClose={() => setFilterDrawerOpen(false)}
+              expandedTopLevelSlug={expandedTopLevelSlug}
+              onExpandedTopLevelChange={setExpandedTopLevelSlug}
             />
           )}
 
@@ -153,6 +166,8 @@ function SportsFilterDrawer({
   title,
   allLabel,
   onClose,
+  expandedTopLevelSlug,
+  onExpandedTopLevelChange,
 }: {
   section: SportsSection;
   filters: SportsPageFilters;
@@ -160,6 +175,8 @@ function SportsFilterDrawer({
   title: string;
   allLabel: string;
   onClose: () => void;
+  expandedTopLevelSlug?: string;
+  onExpandedTopLevelChange: (slug: string | undefined) => void;
 }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -190,7 +207,7 @@ function SportsFilterDrawer({
             ×
           </button>
         </div>
-        <div className="custom-scrollbar min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="no-scrollbar min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <Link
             href={`/${section}`}
             onClick={onClose}
@@ -208,6 +225,8 @@ function SportsFilterDrawer({
             section={section}
             filters={filters}
             onNavigate={onClose}
+            expandedTopLevelSlug={expandedTopLevelSlug}
+            onExpandedTopLevelChange={onExpandedTopLevelChange}
           />
         </div>
       </aside>
@@ -221,12 +240,18 @@ function TaxonomyRail({
   filters,
   onNavigate,
   parentIcon,
+  expandedTopLevelSlug,
+  onExpandedTopLevelChange,
+  nested = false,
 }: {
   nodes: SportsTaxonomyNode[];
   section: SportsSection;
   filters: SportsPageFilters;
   onNavigate?: () => void;
   parentIcon?: string;
+  expandedTopLevelSlug?: string;
+  onExpandedTopLevelChange?: (slug: string | undefined) => void;
+  nested?: boolean;
 }) {
   if (nodes.length === 0) return null;
   return (
@@ -234,17 +259,26 @@ function TaxonomyRail({
       {nodes.map((node) => {
         const hasChildren = Boolean(node.children?.length);
         const icon = resolveSportsTaxonomyIcon(node.slug, parentIcon);
+        const isActive = isTaxonomyNodeActive(filters, node);
+        const isExpanded = nested || expandedTopLevelSlug === node.slug;
+        const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+          if (!nested && hasChildren) {
+            if (isActive) event.preventDefault();
+            onExpandedTopLevelChange?.(
+              isExpanded && isActive ? undefined : node.slug,
+            );
+          }
+          if (!event.defaultPrevented) onNavigate?.();
+        };
 
         return (
           <div key={node.slug}>
             <Link
               href={taxonomyHref(section, filters, node)}
-              onClick={onNavigate}
+              onClick={handleClick}
               className={cn(
                 "flex h-8 min-w-0 items-center justify-between gap-2 rounded-md px-2 text-[13px] font-medium leading-[18px] transition-colors hover:bg-content1",
-                isTaxonomyNodeActive(filters, node)
-                  ? "bg-content1 text-foreground"
-                  : "text-neutral",
+                isActive ? "bg-content1 text-foreground" : "text-neutral",
               )}
             >
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -269,12 +303,15 @@ function TaxonomyRail({
                 {hasChildren && (
                   <ChevronDownIcon
                     aria-hidden="true"
-                    className="h-4 w-4 shrink-0"
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform",
+                      isExpanded && "rotate-180",
+                    )}
                   />
                 )}
               </span>
             </Link>
-            {hasChildren && (
+            {hasChildren && isExpanded && (
               <div className="ml-3 pl-2">
                 <TaxonomyRail
                   nodes={node.children ?? []}
@@ -282,6 +319,7 @@ function TaxonomyRail({
                   filters={filters}
                   onNavigate={onNavigate}
                   parentIcon={icon}
+                  nested
                 />
               </div>
             )}
@@ -314,12 +352,10 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           </h2>
         </div>
         {match.start_time && (
-          <time
+          <SportsStartTime
             className="shrink-0 text-xs text-zinc-500"
-            dateTime={match.start_time}
-          >
-            {new Date(match.start_time).toLocaleString()}
-          </time>
+            value={match.start_time}
+          />
         )}
       </div>
 
@@ -402,6 +438,28 @@ function EmptyState({ label }: { label: string }) {
     <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-10 text-center text-sm text-zinc-500">
       {label}
     </div>
+  );
+}
+
+function findActiveTopLevelSlug(
+  nodes: SportsTaxonomyNode[],
+  filters: SportsPageFilters,
+): string | undefined {
+  return nodes.find((node) => taxonomyBranchContainsActiveNode(node, filters))
+    ?.slug;
+}
+
+function taxonomyBranchContainsActiveNode(
+  node: SportsTaxonomyNode,
+  filters: SportsPageFilters,
+): boolean {
+  return (
+    isTaxonomyNodeActive(filters, node) ||
+    Boolean(
+      node.children?.some((child) =>
+        taxonomyBranchContainsActiveNode(child, filters),
+      ),
+    )
   );
 }
 

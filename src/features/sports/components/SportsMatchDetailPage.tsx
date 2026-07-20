@@ -3,6 +3,7 @@
 import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
 import { useSportsMatchMarketGroups } from "../live/useSportsMatchMarketGroups";
 import type { SportsMatchDetail } from "../types";
+import { SportsStartTime } from "./SportsStartTime";
 
 interface SportsMatchDetailPageProps {
   match: SportsMatchDetail;
@@ -43,12 +44,10 @@ export function SportsMatchDetailPage({
               {match.title}
             </h1>
             {match.start_time && (
-              <time
+              <SportsStartTime
                 className="mt-2 block text-sm text-zinc-500"
-                dateTime={match.start_time}
-              >
-                {new Date(match.start_time).toLocaleString()}
-              </time>
+                value={match.start_time}
+              />
             )}
             {(liveState?.status_text ||
               liveState?.period ||
