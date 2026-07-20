@@ -158,7 +158,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                       data-taxonomy-scroll-target={node.slug}
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
-                        isTaxonomyNodeActive(filters, node)
+                        taxonomyBranchContainsActiveNode(node, filters)
                           ? "border-emerald-700 bg-emerald-950 text-emerald-100"
                           : "border-zinc-800 bg-zinc-900 text-zinc-300",
                       )}

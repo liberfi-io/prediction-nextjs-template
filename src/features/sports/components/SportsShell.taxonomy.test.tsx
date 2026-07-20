@@ -274,7 +274,7 @@ describe("SportsShell taxonomy labels", () => {
   });
 
   it("navigates to the parent when a child is selected", () => {
-    render(
+    const { container } = render(
       <SportsShell
         section="sports"
         filters={{ sport_slug: "soccer", league_slug: "epl" }}
@@ -308,6 +308,9 @@ describe("SportsShell taxonomy labels", () => {
       />,
     );
 
+    const mobileParentLink = container.querySelector(
+      '[data-taxonomy-scroll-target="soccer"]',
+    );
     const parentLinks = screen.getAllByRole("link", { name: /soccer/i });
     const desktopParentLink = parentLinks.find(
       (link) =>
@@ -315,6 +318,7 @@ describe("SportsShell taxonomy labels", () => {
         link.classList.contains("h-8"),
     );
 
+    expect(mobileParentLink?.classList.contains("bg-emerald-950")).toBe(true);
     expect(desktopParentLink).toBeDefined();
     expect(desktopParentLink?.classList.contains("bg-content1")).toBe(false);
     expect(
