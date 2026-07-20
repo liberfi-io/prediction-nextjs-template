@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent,
   type ReactNode,
@@ -41,6 +42,12 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
   const taxonomyNodes = taxonomy?.children ?? [];
   const featuredNodes = taxonomy?.featured ?? [];
   const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
+  const mobileTaxonomyScrollTarget = isSpecialViewActive(filters, "live")
+    ? "live"
+    : isSpecialViewActive(filters, "proposals")
+      ? "proposals"
+      : activeTopLevelSlug;
+  const mobileTaxonomyScrollRef = useRef<HTMLDivElement>(null);
   const [expandedTopLevelSlug, setExpandedTopLevelSlug] = useState<
     string | undefined
   >(activeTopLevelSlug);
@@ -48,6 +55,23 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
   useEffect(() => {
     if (activeTopLevelSlug) setExpandedTopLevelSlug(activeTopLevelSlug);
   }, [activeTopLevelSlug]);
+
+  useEffect(() => {
+    const container = mobileTaxonomyScrollRef.current;
+    if (!container || !mobileTaxonomyScrollTarget) return;
+
+    const target = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-taxonomy-scroll-target]"),
+    ).find(
+      (element) =>
+        element.dataset.taxonomyScrollTarget === mobileTaxonomyScrollTarget,
+    );
+    target?.scrollIntoView?.({
+      behavior: "auto",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [mobileTaxonomyScrollTarget]);
   const sectionTitle = t(
     section === "esports"
       ? "extend.sports.nav.esports"
@@ -71,9 +95,13 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="shrink-0 border-b border-zinc-900 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5">
             <div className="flex items-center gap-2 pb-3 lg:hidden">
-              <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+              <div
+                ref={mobileTaxonomyScrollRef}
+                className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
+              >
                 <Link
                   href={`/${section}?view=live`}
+                  data-taxonomy-scroll-target="live"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
                     isSpecialViewActive(filters, "live")
@@ -88,6 +116,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                 </Link>
                 <Link
                   href={`/${section}?view=proposals`}
+                  data-taxonomy-scroll-target="proposals"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
                     isSpecialViewActive(filters, "proposals")
@@ -104,6 +133,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                   <Link
                     key={node.slug}
                     href={taxonomyHref(section, filters, node)}
+                    data-taxonomy-scroll-target={node.slug}
                     className={cn(
                       "shrink-0 rounded-full border px-3 py-1.5 text-sm",
                       isTaxonomyNodeActive(filters, node)
