@@ -674,6 +674,8 @@
       },
       "filters": {
         "live": "即時",
+        "proposals": "竞猜",
+        "featured": "精选",
         "upcoming": "即將開始",
         "all": "全部"
       },

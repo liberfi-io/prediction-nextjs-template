@@ -12,10 +12,19 @@ const FILTER_KEYS = [
   "tournament_slug",
 ] as const;
 
+const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>([
+  "live",
+  "proposals",
+]);
+
 export function resolveSportsPageFilters(
   searchParams: SportsPageSearchParams,
 ): SportsPageFilters {
   const filters: SportsPageFilters = {};
+  const view = firstValue(searchParams.view);
+  if (SPORTS_VIEWS.has(view as SportsPageFilters["view"])) {
+    filters.view = view as SportsPageFilters["view"];
+  }
   for (const key of FILTER_KEYS) {
     const value = firstValue(searchParams[key]);
     if (value) filters[key] = value;

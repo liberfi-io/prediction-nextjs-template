@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -32,6 +38,8 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
     [data.taxonomy?.sections, section],
   );
   const taxonomyNodes = taxonomy?.children ?? [];
+  const featuredNodes = taxonomy?.featured ?? [];
+  const navigationCounts = aggregateNavigationCounts(taxonomyNodes);
   const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
   const [expandedTopLevelSlug, setExpandedTopLevelSlug] = useState<
     string | undefined
@@ -50,10 +58,12 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
     <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
       <div className="mx-auto flex h-full w-full max-w-[1440px] min-h-0 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="no-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
-          <TaxonomyRail
-            nodes={taxonomyNodes}
+          <SportsNavigation
             section={section}
             filters={filters}
+            featuredNodes={featuredNodes}
+            taxonomyNodes={taxonomyNodes}
+            navigationCounts={navigationCounts}
             expandedTopLevelSlug={expandedTopLevelSlug}
             onExpandedTopLevelChange={setExpandedTopLevelSlug}
           />
@@ -64,15 +74,26 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
             <div className="flex items-center gap-2 pb-3 lg:hidden">
               <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
                 <Link
-                  href={`/${section}`}
+                  href={`/${section}?view=live`}
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
-                    !hasTaxonomyFilter(filters)
+                    isSpecialViewActive(filters, "live")
                       ? "border-emerald-700 bg-emerald-950 text-emerald-100"
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
                 >
-                  {t("extend.sports.filters.all")}
+                  {t("extend.sports.filters.live")}
+                </Link>
+                <Link
+                  href={`/${section}?view=proposals`}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
+                    isSpecialViewActive(filters, "proposals")
+                      ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-300",
+                  )}
+                >
+                  {t("extend.sports.filters.proposals")}
                 </Link>
                 {taxonomyNodes.map((node) => (
                   <Link
@@ -85,7 +106,17 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                         : "border-zinc-800 bg-zinc-900 text-zinc-300",
                     )}
                   >
-                    <LocalizedTaxonomyLabel node={node} pageSection={section} />
+                    <span className="flex items-center gap-1.5">
+                      <LocalizedTaxonomyLabel
+                        node={node}
+                        pageSection={section}
+                      />
+                      {typeof taxonomyNodeCount(node) === "number" && (
+                        <span className="tabular-nums text-zinc-500">
+                          {taxonomyNodeCount(node)}
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -113,7 +144,9 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                 <p className="mt-1 text-sm text-zinc-500">
                   {data.matches.length > 0
                     ? t("extend.sports.filters.upcoming")
-                    : t("extend.sports.empty.matches")}
+                    : filters.view === "proposals"
+                      ? t("extend.sports.filters.proposals")
+                      : t("extend.sports.empty.matches")}
                 </p>
               </div>
             </div>
@@ -123,9 +156,10 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
             <SportsFilterDrawer
               section={section}
               filters={filters}
-              nodes={taxonomyNodes}
+              featuredNodes={featuredNodes}
+              taxonomyNodes={taxonomyNodes}
+              navigationCounts={navigationCounts}
               title={sectionTitle}
-              allLabel={t("extend.sports.filters.all")}
               onClose={() => setFilterDrawerOpen(false)}
               expandedTopLevelSlug={expandedTopLevelSlug}
               onExpandedTopLevelChange={setExpandedTopLevelSlug}
@@ -134,21 +168,27 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
 
           <div className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8">
             <div className="min-w-0 space-y-5 pb-4">
-              <section className="space-y-3">
-                {data.matches.length > 0 ? (
+              {filters.view !== "proposals" && (
+                <section className="space-y-3">
+                  {data.matches.length > 0 ? (
                   data.matches.map((match) => (
                     <MatchCard key={match.match_group_slug} match={match} />
                   ))
-                ) : (
-                  <EmptyState label={t("extend.sports.empty.matches")} />
-                )}
-              </section>
+                  ) : (
+                    <EmptyState label={t("extend.sports.empty.matches")} />
+                  )}
+                </section>
+              )}
 
-              {data.props.length > 0 && (
+              {!isSpecialViewActive(filters, "live") && (
                 <section className="space-y-3">
-                  {data.props.map((event) => (
-                    <PropEventCard key={event.event_slug} event={event} />
-                  ))}
+                  {data.props.length > 0 ? (
+                    data.props.map((event) => (
+                      <PropEventCard key={event.event_slug} event={event} />
+                    ))
+                  ) : filters.view === "proposals" ? (
+                    <EmptyState label={t("extend.sports.empty.props")} />
+                  ) : null}
                 </section>
               )}
             </div>
@@ -162,18 +202,20 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
 function SportsFilterDrawer({
   section,
   filters,
-  nodes,
+  featuredNodes,
+  taxonomyNodes,
+  navigationCounts,
   title,
-  allLabel,
   onClose,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
 }: {
   section: SportsSection;
   filters: SportsPageFilters;
-  nodes: SportsTaxonomyNode[];
+  featuredNodes: SportsTaxonomyNode[];
+  taxonomyNodes: SportsTaxonomyNode[];
+  navigationCounts: NavigationCounts;
   title: string;
-  allLabel: string;
   onClose: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
@@ -208,22 +250,12 @@ function SportsFilterDrawer({
           </button>
         </div>
         <div className="no-scrollbar min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <Link
-            href={`/${section}`}
-            onClick={onClose}
-            className={cn(
-              "mb-2 block rounded-md px-2 py-2 text-sm font-medium hover:bg-zinc-900",
-              !hasTaxonomyFilter(filters)
-                ? "bg-zinc-900 text-emerald-100"
-                : "text-zinc-300",
-            )}
-          >
-            {allLabel}
-          </Link>
-          <TaxonomyRail
-            nodes={nodes}
+          <SportsNavigation
             section={section}
             filters={filters}
+            featuredNodes={featuredNodes}
+            taxonomyNodes={taxonomyNodes}
+            navigationCounts={navigationCounts}
             onNavigate={onClose}
             expandedTopLevelSlug={expandedTopLevelSlug}
             onExpandedTopLevelChange={onExpandedTopLevelChange}
@@ -231,6 +263,130 @@ function SportsFilterDrawer({
         </div>
       </aside>
     </div>
+  );
+}
+
+interface NavigationCounts {
+  matches?: number;
+  props?: number;
+}
+
+function SportsNavigation({
+  section,
+  filters,
+  featuredNodes,
+  taxonomyNodes,
+  navigationCounts,
+  onNavigate,
+  expandedTopLevelSlug,
+  onExpandedTopLevelChange,
+}: {
+  section: SportsSection;
+  filters: SportsPageFilters;
+  featuredNodes: SportsTaxonomyNode[];
+  taxonomyNodes: SportsTaxonomyNode[];
+  navigationCounts: NavigationCounts;
+  onNavigate?: () => void;
+  expandedTopLevelSlug?: string;
+  onExpandedTopLevelChange: (slug: string | undefined) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-5">
+      <nav className="space-y-1">
+        <SpecialNavigationLink
+          href={`/${section}?view=live`}
+          label={t("extend.sports.filters.live")}
+          count={navigationCounts.matches}
+          active={isSpecialViewActive(filters, "live")}
+          onNavigate={onNavigate}
+        />
+        <SpecialNavigationLink
+          href={`/${section}?view=proposals`}
+          label={t("extend.sports.filters.proposals")}
+          count={navigationCounts.props}
+          active={isSpecialViewActive(filters, "proposals")}
+          onNavigate={onNavigate}
+        />
+      </nav>
+
+      {section === "sports" && featuredNodes.length > 0 && (
+        <NavigationGroup title={t("extend.sports.filters.featured")}>
+          <TaxonomyRail
+            nodes={featuredNodes}
+            section={section}
+            filters={filters}
+            onNavigate={onNavigate}
+            nested
+          />
+        </NavigationGroup>
+      )}
+
+      <NavigationGroup
+        title={t(
+          section === "sports"
+            ? "extend.sports.nav.sports"
+            : "extend.sports.nav.esports",
+        )}
+      >
+        <TaxonomyRail
+          nodes={taxonomyNodes}
+          section={section}
+          filters={filters}
+          onNavigate={onNavigate}
+          expandedTopLevelSlug={expandedTopLevelSlug}
+          onExpandedTopLevelChange={onExpandedTopLevelChange}
+        />
+      </NavigationGroup>
+    </div>
+  );
+}
+
+function NavigationGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function SpecialNavigationLink({
+  href,
+  label,
+  count,
+  active,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  count?: number;
+  active: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={cn(
+        "flex h-8 items-center justify-between gap-2 rounded-md px-2 text-[13px] font-medium transition-colors hover:bg-content1",
+        active ? "bg-content1 text-foreground" : "text-neutral",
+      )}
+    >
+      <span>{label}</span>
+      {typeof count === "number" && (
+        <span className="tabular-nums">{count}</span>
+      )}
+    </Link>
   );
 }
 
@@ -297,8 +453,8 @@ function TaxonomyRail({
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-inherit">
-                {typeof node.count === "number" && (
-                  <span className="tabular-nums">{node.count}</span>
+                {typeof taxonomyNodeCount(node) === "number" && (
+                  <span className="tabular-nums">{taxonomyNodeCount(node)}</span>
                 )}
                 {hasChildren && (
                   <ChevronDownIcon
@@ -463,11 +619,33 @@ function taxonomyBranchContainsActiveNode(
   );
 }
 
+function isSpecialViewActive(
+  filters: SportsPageFilters,
+  view: NonNullable<SportsPageFilters["view"]>,
+): boolean {
+  if (hasTaxonomyFilter(filters)) return false;
+  return view === "live" ? filters.view !== "proposals" : filters.view === view;
+}
+
+function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {
+  return node.counts?.total_count ?? node.count;
+}
+
+function aggregateNavigationCounts(
+  nodes: SportsTaxonomyNode[],
+): NavigationCounts {
+  if (nodes.some((node) => !node.counts)) return {};
+  return nodes.reduce<NavigationCounts>(
+    (counts, node) => ({
+      matches: (counts.matches ?? 0) + (node.counts?.match_count ?? 0),
+      props: (counts.props ?? 0) + (node.counts?.prop_count ?? 0),
+    }),
+    { matches: 0, props: 0 },
+  );
+}
+
 function hasTaxonomyFilter(filters: SportsPageFilters): boolean {
   return Boolean(
-    filters.sport_slug ||
-    filters.game_slug ||
-    filters.league_slug ||
-    filters.tournament_slug,
+    filters.sport_slug || filters.game_slug || filters.league_slug || filters.tournament_slug,
   );
 }

@@ -708,6 +708,8 @@
       },
       "filters": {
         "live": "Live",
+        "proposals": "予想",
+        "featured": "注目",
         "upcoming": "Upcoming",
         "all": "All"
       },

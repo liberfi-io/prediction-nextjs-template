@@ -5,12 +5,20 @@ export interface SportsTaxonomyNode {
   node_type?: string;
   slug: string;
   label: string;
+  counts?: SportsTaxonomyCounts | null;
   count?: number;
   children?: SportsTaxonomyNode[];
 }
 
+export interface SportsTaxonomyCounts {
+  match_count: number;
+  prop_count: number;
+  total_count: number;
+}
+
 export interface SportsTaxonomySection {
   section: SportsSection;
+  featured?: SportsTaxonomyNode[];
   children: SportsTaxonomyNode[];
 }
 
@@ -116,6 +124,7 @@ export interface SportsPageData {
 }
 
 export interface SportsPageFilters {
+  view?: "live" | "proposals";
   sport_slug?: string;
   game_slug?: string;
   league_slug?: string;

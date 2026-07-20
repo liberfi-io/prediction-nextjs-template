@@ -38,6 +38,60 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
   });
 
+  it("renders special, featured, and full taxonomy groups with counts", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{}}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                featured: [
+                  {
+                    section: "sports",
+                    node_type: "league",
+                    slug: "mlb",
+                    label: "MLB",
+                    counts: {
+                      match_count: 5,
+                      prop_count: 0,
+                      total_count: 5,
+                    },
+                  },
+                ],
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                    counts: {
+                      match_count: 10,
+                      prop_count: 3,
+                      total_count: 13,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("link", { name: /live/i })).toHaveLength(2);
+    expect(
+      screen.getAllByRole("link", { name: /filters\.proposals/i }),
+    ).toHaveLength(2);
+    expect(screen.getByText(/filters\.featured/i)).toBeDefined();
+    expect(screen.getAllByText("5")).toHaveLength(1);
+    expect(screen.getAllByText("13")).toHaveLength(2);
+  });
+
   it("navigates to the parent when a child is selected", () => {
     render(
       <SportsShell

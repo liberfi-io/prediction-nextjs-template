@@ -708,6 +708,8 @@
       },
       "filters": {
         "live": "Live",
+        "proposals": "Pronostics",
+        "featured": "À la une",
         "upcoming": "Upcoming",
         "all": "All"
       },

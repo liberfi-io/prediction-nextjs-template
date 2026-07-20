@@ -725,6 +725,8 @@
       },
       "filters": {
         "live": "Live",
+        "proposals": "Predictions",
+        "featured": "Featured",
         "upcoming": "Upcoming",
         "all": "All"
       },

@@ -30,8 +30,10 @@ export async function prefetchSportsPageData(input: {
   const client = getServerPredictClient({
     headers: input.requestHeaders,
   }) as RuntimeSportsClient;
+  const apiFilters = { ...(input.filters ?? {}) };
+  delete apiFilters.view;
   const params = {
-    ...(input.filters ?? {}),
+    ...apiFilters,
     ...(input.lang ? { lang: input.lang } : {}),
   };
 
@@ -47,6 +49,16 @@ export async function prefetchSportsPageData(input: {
     input.section === "esports"
       ? client.getEsportsProps
       : client.getSportsProps;
+  const hasTaxonomyFilter = Boolean(
+    input.filters?.sport_slug ||
+    input.filters?.game_slug ||
+    input.filters?.league_slug ||
+    input.filters?.tournament_slug,
+  );
+  const showMatches = input.filters?.view !== "proposals";
+  const showProps =
+    input.filters?.view === "proposals" ||
+    (hasTaxonomyFilter && input.filters?.view !== "live");
 
   const [taxonomy, matches, props] = await Promise.all([
     input.deadline
@@ -55,14 +67,17 @@ export async function prefetchSportsPageData(input: {
       )
       .catch(() => null),
     input.deadline
-      .withRemainingTimeout(
-        () =>
-          readMatches?.call(client, params) ?? Promise.resolve({ items: [] }),
+      .withRemainingTimeout(() =>
+        showMatches
+          ? (readMatches?.call(client, params) ?? Promise.resolve({ items: [] }))
+          : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),
     input.deadline
-      .withRemainingTimeout(
-        () => readProps?.call(client, params) ?? Promise.resolve({ items: [] }),
+      .withRemainingTimeout(() =>
+        showProps
+          ? (readProps?.call(client, params) ?? Promise.resolve({ items: [] }))
+          : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),
   ]);

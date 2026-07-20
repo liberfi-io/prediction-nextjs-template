@@ -708,6 +708,8 @@
       },
       "filters": {
         "live": "Live",
+        "proposals": "Dự đoán",
+        "featured": "Nổi bật",
         "upcoming": "Upcoming",
         "all": "All"
       },

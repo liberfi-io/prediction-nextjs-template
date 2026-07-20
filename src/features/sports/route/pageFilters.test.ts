@@ -13,4 +13,11 @@ describe("resolveSportsPageFilters", () => {
       league_slug: "mlb",
     });
   });
+
+  it("accepts supported sports views and ignores unknown views", () => {
+    expect(resolveSportsPageFilters({ view: "proposals" })).toEqual({
+      view: "proposals",
+    });
+    expect(resolveSportsPageFilters({ view: "unknown" })).toEqual({});
+  });
 });

@@ -708,6 +708,8 @@
       },
       "filters": {
         "live": "Live",
+        "proposals": "Прогнозы",
+        "featured": "Избранное",
         "upcoming": "Upcoming",
         "all": "All"
       },
