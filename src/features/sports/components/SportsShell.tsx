@@ -293,8 +293,8 @@ function SportsNavigation({
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-5">
-      <nav className="space-y-1">
+    <div className="divide-y divide-zinc-800">
+      <nav className="space-y-1 py-4 first:pt-0 last:pb-0">
         <SpecialNavigationLink
           href={`/${section}?view=live`}
           label={t("extend.sports.filters.live")}
@@ -351,7 +351,7 @@ function NavigationGroup({
   children: ReactNode;
 }) {
   return (
-    <section>
+    <section className="py-4 first:pt-0 last:pb-0">
       <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
         {title}
       </h2>

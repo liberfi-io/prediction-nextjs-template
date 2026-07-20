@@ -39,7 +39,7 @@ describe("SportsShell taxonomy labels", () => {
   });
 
   it("renders special, featured, and full taxonomy groups with counts", () => {
-    render(
+    const { container } = render(
       <SportsShell
         section="sports"
         filters={{}}
@@ -90,6 +90,9 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
     expect(screen.getAllByText("13")).toHaveLength(2);
+    const navigationGroups = container.querySelector(".divide-y");
+    expect(navigationGroups?.classList.contains("divide-zinc-800")).toBe(true);
+    expect(navigationGroups?.children).toHaveLength(3);
   });
 
   it("does not render zero navigation counts", () => {
