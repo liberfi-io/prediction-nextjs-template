@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { matchesForToday, SportsShell } from "./SportsShell";
+import {
+  matchesForToday,
+  resolvePrimarySportsMarkets,
+  SportsShell,
+} from "./SportsShell";
 
 jest.mock("@liberfi.io/ui", () => {
   const actual = jest.requireActual("@liberfi.io/ui");
@@ -54,6 +58,28 @@ const mobileTaxonomyScrollCases = [
 ] as const;
 
 describe("SportsShell taxonomy labels", () => {
+  it("maps match detail markets into fixed moneyline, spread, and total columns", () => {
+    const market = (market_type: string) => ({
+      market_slug: market_type,
+      market_type,
+      label: market_type,
+      outcomes: [],
+    });
+    const moneyline = market("moneyline");
+    const spread = market("handicap_points");
+    const total = market("total_goals");
+
+    expect(
+      resolvePrimarySportsMarkets(undefined, [
+        {
+          market_category: "main",
+          label: "Main",
+          markets: [total, moneyline, spread],
+        },
+      ]),
+    ).toEqual({ moneyline, spread, total });
+  });
+
   it("limits the today tab to the current local calendar day", () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-07-21T12:00:00+08:00"));
     try {

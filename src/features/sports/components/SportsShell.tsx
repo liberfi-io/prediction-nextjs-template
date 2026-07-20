@@ -33,10 +33,13 @@ import type {
   SportsPropEventCard as SportsPropEventCardData,
   SportsParticipant,
   SportsInlineMarket,
+  SportsMarket,
+  SportsMarketGroup,
+  SportsMarketOutcome,
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
-import { fetchNextSportsPage } from "../api/client";
+import { fetchNextSportsPage, fetchSportsMatchDetail } from "../api/client";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
@@ -47,6 +50,15 @@ import { convertPrice } from "../../worldcup/odds/convert-price";
 import type { OddsFormat } from "../../worldcup/odds/convert-price";
 
 type SportsContentTab = "today" | "games" | "props";
+type SportsPrimaryMarkets = Record<
+  "moneyline" | "spread" | "total",
+  SportsMarket | undefined
+>;
+
+const sportsMatchDetailCache = new Map<
+  string,
+  ReturnType<typeof fetchSportsMatchDetail>
+>();
 
 const SportsPropsList = dynamic(() =>
   import("./SportsPropsList").then((module) => module.SportsPropsList),
@@ -979,13 +991,22 @@ function buildMatchRows(
 }
 
 function MatchCard({ match }: { match: SportsMatchCardData }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [format] = useOddsFormat();
   const href = `/event/${encodeURIComponent(match.match_group_slug)}`;
   const participants = (match.participants ?? []).slice(0, 2);
-  const markets = (match.inline_markets ?? []).slice(0, 3);
+  const detail = useVisibleSportsMatchDetail(match, i18n.language || "en");
+  const primaryMarkets = useMemo(
+    () =>
+      resolvePrimarySportsMarkets(match.inline_markets, detail?.market_groups),
+    [detail?.market_groups, match.inline_markets],
+  );
   const open = () => router.push(href);
+  const openMarket = (market: SportsInlineMarket, outcome: string) => {
+    const params = new URLSearchParams({ market: market.market_slug, outcome });
+    router.push(`${href}?${params.toString()}`);
+  };
   return (
     <div
       role="button"
@@ -1029,12 +1050,13 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           )}
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
-          {markets.map((market) => (
+          {(["moneyline", "spread", "total"] as const).map((category) => (
             <SportsMarketColumn
-              key={market.market_slug}
-              market={market}
+              key={category}
+              category={category}
+              market={primaryMarkets[category]}
               format={format}
-              onSelect={open}
+              onSelect={openMarket}
             />
           ))}
         </div>
@@ -1051,17 +1073,28 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
             align="right"
           />
         </div>
-        {markets[0] ? (
-          <div className="grid grid-cols-2 gap-2">
-            {(markets[0].outcomes ?? []).slice(0, 2).map((outcome) => (
-              <SportsOddsButton
-                key={`${markets[0].market_slug}:${outcome.outcome}`}
-                label={outcome.label}
-                price={outcome.price}
-                format={format}
-                onSelect={open}
-              />
-            ))}
+        {primaryMarkets.moneyline ? (
+          <div
+            className={cn(
+              "grid gap-2",
+              (primaryMarkets.moneyline.outcomes?.length ?? 0) >= 3
+                ? "grid-cols-3"
+                : "grid-cols-2",
+            )}
+          >
+            {(primaryMarkets.moneyline.outcomes ?? [])
+              .slice(0, 3)
+              .map((outcome) => (
+                <SportsOddsButton
+                  key={`${primaryMarkets.moneyline?.market_slug}:${outcome.outcome}`}
+                  label={outcome.label}
+                  price={sportsOutcomePrice(outcome)}
+                  format={format}
+                  onSelect={() =>
+                    openMarket(primaryMarkets.moneyline!, outcome.outcome)
+                  }
+                />
+              ))}
           </div>
         ) : (
           <h2 className="truncate text-center text-sm font-semibold text-zinc-100">
@@ -1086,6 +1119,67 @@ function SportsParticipantRow({
       </span>
     </div>
   );
+}
+
+function useVisibleSportsMatchDetail(match: SportsMatchCardData, lang: string) {
+  const [detail, setDetail] =
+    useState<Awaited<ReturnType<typeof fetchSportsMatchDetail>>>();
+
+  useEffect(() => {
+    if (match.inline_markets?.length) return;
+    const key = `${match.section}:${match.match_group_slug}:${lang}`;
+    let request = sportsMatchDetailCache.get(key);
+    if (!request) {
+      request = fetchSportsMatchDetail({
+        section: match.section,
+        matchGroupSlug: match.match_group_slug,
+        lang,
+      });
+      sportsMatchDetailCache.set(key, request);
+    }
+    let cancelled = false;
+    void request
+      .then((value) => {
+        if (!cancelled) setDetail(value);
+      })
+      .catch(() => {
+        sportsMatchDetailCache.delete(key);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, match.inline_markets, match.match_group_slug, match.section]);
+
+  return detail;
+}
+
+export function resolvePrimarySportsMarkets(
+  inlineMarkets?: SportsInlineMarket[],
+  marketGroups?: SportsMarketGroup[],
+): SportsPrimaryMarkets {
+  const markets: SportsMarket[] = inlineMarkets?.length
+    ? inlineMarkets
+    : (marketGroups ?? []).flatMap((group) => group.markets ?? []);
+  const find = (aliases: string[]) =>
+    markets.find((market) => {
+      const values = [market.market_type, market.market_category]
+        .filter(Boolean)
+        .map((value) => value!.toLowerCase());
+      return values.some((value) =>
+        aliases.some(
+          (alias) => value === alias || value.startsWith(`${alias}_`),
+        ),
+      );
+    });
+  return {
+    moneyline: find(["moneyline", "match_winner"]),
+    spread: find(["spread", "handicap"]),
+    total: find(["total", "totals", "over_under"]),
+  };
+}
+
+function sportsOutcomePrice(outcome: SportsMarketOutcome): number | undefined {
+  return outcome.price ?? outcome.best_ask ?? outcome.last_trade_price;
 }
 
 function SportsMobileParticipant({
@@ -1133,28 +1227,44 @@ function SportsParticipantAvatar({
 }
 
 function SportsMarketColumn({
+  category,
   market,
   format,
   onSelect,
 }: {
-  market: SportsInlineMarket;
+  category: keyof SportsPrimaryMarkets;
+  market?: SportsInlineMarket;
   format: OddsFormat;
-  onSelect: () => void;
+  onSelect: (market: SportsInlineMarket, outcome: string) => void;
 }) {
+  const { t } = useTranslation();
+  const outcomes = (market?.outcomes ?? []).slice(
+    0,
+    category === "moneyline" ? 3 : 2,
+  );
   return (
     <div className="flex w-[128px] flex-col gap-2">
       <span className="truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-        {market.label}
+        {t(`extend.worldcup.marketCol.${category}`)}
       </span>
-      {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
+      {outcomes.map((outcome) => (
         <SportsOddsButton
-          key={`${market.market_slug}:${outcome.outcome}`}
+          key={`${market?.market_slug}:${outcome.outcome}`}
           label={outcome.label}
-          price={outcome.price}
+          price={sportsOutcomePrice(outcome)}
           format={format}
-          onSelect={onSelect}
+          onSelect={() => onSelect(market!, outcome.outcome)}
         />
       ))}
+      {outcomes.length === 0 &&
+        Array.from({ length: 2 }).map((_, index) => (
+          <SportsOddsButton
+            key={`${category}:placeholder:${index}`}
+            label="-"
+            format={format}
+            onSelect={() => undefined}
+          />
+        ))}
     </div>
   );
 }
