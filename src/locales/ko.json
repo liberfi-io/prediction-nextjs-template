@@ -710,6 +710,8 @@
         "live": "Live",
         "proposals": "예측",
         "featured": "추천",
+        "allSportsEvents": "모든 스포츠 이벤트",
+        "close": "닫기",
         "upcoming": "Upcoming",
         "all": "All"
       },

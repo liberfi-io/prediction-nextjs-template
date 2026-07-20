@@ -1,5 +1,22 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { SportsShell } from "./SportsShell";
+
+jest.mock("@liberfi.io/ui", () => {
+  const actual = jest.requireActual("@liberfi.io/ui");
+  const TestContainer = ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  );
+
+  return {
+    ...actual,
+    StyledModal: ({ children, isOpen }: { children: ReactNode; isOpen: boolean }) =>
+      isOpen ? <div role="dialog">{children}</div> : null,
+    ModalContent: TestContainer,
+    ModalHeader: TestContainer,
+    ModalBody: TestContainer,
+  };
+});
 
 jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
   LocalizedTaxonomyLabel: ({ node }: { node: { slug: string } }) => (
@@ -171,6 +188,73 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("keeps the mobile taxonomy modal open while navigating taxonomy", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{}}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                featured: [
+                  {
+                    section: "sports",
+                    node_type: "league",
+                    slug: "mlb",
+                    label: "MLB",
+                  },
+                ],
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                    children: [
+                      {
+                        section: "sports",
+                        node_type: "league",
+                        slug: "epl",
+                        label: "Premier League",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /extend\.sports\.nav\.sports/i }),
+    );
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/extend\.sports\.filters\.allSportsEvents/i),
+    ).toBeDefined();
+    expect(
+      within(dialog).queryByRole("link", { name: /filters\.live/i }),
+    ).toBeNull();
+    expect(
+      within(dialog).queryByRole("link", { name: /filters\.proposals/i }),
+    ).toBeNull();
+    expect(within(dialog).getByText(/filters\.featured/i)).toBeDefined();
+    expect(within(dialog).getByText(/nav\.sports/i)).toBeDefined();
+
+    fireEvent.click(within(dialog).getByRole("link", { name: /soccer/i }));
+
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    fireEvent.click(within(dialog).getByRole("link", { name: /epl/i }));
+    expect(screen.getByRole("dialog")).toBe(dialog);
   });
 
   it("navigates to the parent when a child is selected", () => {

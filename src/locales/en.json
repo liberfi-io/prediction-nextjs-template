@@ -727,6 +727,8 @@
         "live": "Live",
         "proposals": "Predictions",
         "featured": "Featured",
+        "allSportsEvents": "All Sports Events",
+        "close": "Close",
         "upcoming": "Upcoming",
         "all": "All"
       },

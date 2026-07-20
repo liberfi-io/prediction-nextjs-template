@@ -710,6 +710,8 @@
         "live": "Live",
         "proposals": "Прогнозы",
         "featured": "Избранное",
+        "allSportsEvents": "Все спортивные события",
+        "close": "Закрыть",
         "upcoming": "Upcoming",
         "all": "All"
       },

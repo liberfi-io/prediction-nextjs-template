@@ -710,6 +710,8 @@
         "live": "Live",
         "proposals": "การคาดการณ์",
         "featured": "แนะนำ",
+        "allSportsEvents": "การแข่งขันกีฬาทั้งหมด",
+        "close": "ปิด",
         "upcoming": "Upcoming",
         "all": "All"
       },

@@ -10,8 +10,17 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@heroui/react";
 import { useTranslation } from "@liberfi.io/i18n";
-import { ChevronDownIcon, cn } from "@liberfi.io/ui";
+import {
+  ChevronDownIcon,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  StyledModal,
+  XCloseIcon,
+  cn,
+} from "@liberfi.io/ui";
 import { motion, useAnimation, useReducedMotion } from "framer-motion";
 import type {
   SportsMatchCard as SportsMatchCardData,
@@ -217,7 +226,6 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
               filters={filters}
               featuredNodes={featuredNodes}
               taxonomyNodes={taxonomyNodes}
-              title={sectionTitle}
               onClose={() => setFilterDrawerOpen(false)}
               expandedTopLevelSlug={expandedTopLevelSlug}
               onExpandedTopLevelChange={setExpandedTopLevelSlug}
@@ -262,7 +270,6 @@ function SportsFilterDrawer({
   filters,
   featuredNodes,
   taxonomyNodes,
-  title,
   onClose,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
@@ -271,53 +278,54 @@ function SportsFilterDrawer({
   filters: SportsPageFilters;
   featuredNodes: SportsTaxonomyNode[];
   taxonomyNodes: SportsTaxonomyNode[];
-  title: string;
   onClose: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
 }) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  const { t } = useTranslation();
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px] lg:hidden">
-      <button
-        type="button"
-        aria-label="Close"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-      />
-      <aside className="absolute inset-x-0 bottom-0 flex max-h-[91dvh] min-h-0 flex-col rounded-t-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-zinc-700" />
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-900 px-4 py-3">
-          <div className="text-sm font-semibold text-zinc-100">{title}</div>
-          <button
-            type="button"
-            aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-sm text-zinc-300"
-            onClick={onClose}
+    <StyledModal
+      isOpen
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+      size="full"
+      hideCloseButton
+      backdrop="opaque"
+      radius="lg"
+      className="lg:hidden"
+    >
+      <ModalContent className="h-full w-full">
+        <ModalHeader className="flex items-center justify-between pb-2 pt-4">
+          <span className="text-base font-semibold">
+            {t("extend.sports.filters.allSportsEvents")}
+          </span>
+          <Button
+            isIconOnly
+            onPress={onClose}
+            size="sm"
+            aria-label={t("extend.sports.filters.close")}
+            className="h-6 w-6 min-w-6 bg-transparent"
           >
-            ×
-          </button>
-        </div>
-        <div className="no-scrollbar min-h-0 overflow-y-auto overscroll-contain p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <SportsNavigation
-            section={section}
-            filters={filters}
-            featuredNodes={featuredNodes}
-            taxonomyNodes={taxonomyNodes}
-            onNavigate={onClose}
-            expandedTopLevelSlug={expandedTopLevelSlug}
-            onExpandedTopLevelChange={onExpandedTopLevelChange}
-          />
-        </div>
-      </aside>
-    </div>
+            <XCloseIcon width={20} height={20} />
+          </Button>
+        </ModalHeader>
+        <ModalBody className="min-h-0 p-4">
+          <div className="no-scrollbar min-h-0 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+            <SportsNavigation
+              section={section}
+              filters={filters}
+              featuredNodes={featuredNodes}
+              taxonomyNodes={taxonomyNodes}
+              expandedTopLevelSlug={expandedTopLevelSlug}
+              onExpandedTopLevelChange={onExpandedTopLevelChange}
+              showSpecialLinks={false}
+            />
+          </div>
+        </ModalBody>
+      </ModalContent>
+    </StyledModal>
   );
 }
 
@@ -329,6 +337,7 @@ function SportsNavigation({
   onNavigate,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
+  showSpecialLinks = true,
 }: {
   section: SportsSection;
   filters: SportsPageFilters;
@@ -337,27 +346,30 @@ function SportsNavigation({
   onNavigate?: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
+  showSpecialLinks?: boolean;
 }) {
   const { t } = useTranslation();
 
   return (
     <div className="divide-y divide-zinc-800">
-      <nav className="space-y-1 py-4 first:pt-0 last:pb-0">
-        <SpecialNavigationLink
-          href={`/${section}?view=live`}
-          label={t("extend.sports.filters.live")}
-          icon="live"
-          active={isSpecialViewActive(filters, "live")}
-          onNavigate={onNavigate}
-        />
-        <SpecialNavigationLink
-          href={`/${section}?view=proposals`}
-          label={t("extend.sports.filters.proposals")}
-          icon="proposals"
-          active={isSpecialViewActive(filters, "proposals")}
-          onNavigate={onNavigate}
-        />
-      </nav>
+      {showSpecialLinks && (
+        <nav className="space-y-1 py-4 first:pt-0 last:pb-0">
+          <SpecialNavigationLink
+            href={`/${section}?view=live`}
+            label={t("extend.sports.filters.live")}
+            icon="live"
+            active={isSpecialViewActive(filters, "live")}
+            onNavigate={onNavigate}
+          />
+          <SpecialNavigationLink
+            href={`/${section}?view=proposals`}
+            label={t("extend.sports.filters.proposals")}
+            icon="proposals"
+            active={isSpecialViewActive(filters, "proposals")}
+            onNavigate={onNavigate}
+          />
+        </nav>
+      )}
 
       {section === "sports" && featuredNodes.length > 0 && (
         <NavigationGroup title={t("extend.sports.filters.featured")}>
