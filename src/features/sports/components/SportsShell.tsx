@@ -111,7 +111,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                         node={node}
                         pageSection={section}
                       />
-                      {typeof taxonomyNodeCount(node) === "number" && (
+                      {(taxonomyNodeCount(node) ?? 0) > 0 && (
                         <span className="tabular-nums text-zinc-500">
                           {taxonomyNodeCount(node)}
                         </span>
@@ -383,7 +383,7 @@ function SpecialNavigationLink({
       )}
     >
       <span>{label}</span>
-      {typeof count === "number" && (
+      {typeof count === "number" && count > 0 && (
         <span className="tabular-nums">{count}</span>
       )}
     </Link>
@@ -415,6 +415,7 @@ function TaxonomyRail({
       {nodes.map((node) => {
         const hasChildren = Boolean(node.children?.length);
         const icon = resolveSportsTaxonomyIcon(node.slug, parentIcon);
+        const nodeCount = taxonomyNodeCount(node);
         const isActive = isTaxonomyNodeActive(filters, node);
         const isExpanded = nested || expandedTopLevelSlug === node.slug;
         const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -453,8 +454,8 @@ function TaxonomyRail({
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-inherit">
-                {typeof taxonomyNodeCount(node) === "number" && (
-                  <span className="tabular-nums">{taxonomyNodeCount(node)}</span>
+                {typeof nodeCount === "number" && nodeCount > 0 && (
+                  <span className="tabular-nums">{nodeCount}</span>
                 )}
                 {hasChildren && (
                   <ChevronDownIcon

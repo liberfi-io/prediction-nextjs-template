@@ -92,6 +92,41 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getAllByText("13")).toHaveLength(2);
   });
 
+  it("does not render zero navigation counts", () => {
+    render(
+      <SportsShell
+        section="esports"
+        filters={{}}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "esports",
+                children: [
+                  {
+                    section: "esports",
+                    node_type: "sport",
+                    slug: "cs2",
+                    label: "Counter-Strike 2",
+                    counts: {
+                      match_count: 0,
+                      prop_count: 0,
+                      total_count: 0,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
   it("navigates to the parent when a child is selected", () => {
     render(
       <SportsShell
