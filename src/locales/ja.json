@@ -723,6 +723,66 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "esports": {
+          "sport": {
+            "call-of-duty": "コール オブ デューティ",
+            "mobile-legends-bang-bang": "モバイルレジェンド",
+            "overwatch": "オーバーウォッチ",
+            "rainbow-six-siege": "レインボーシックス シージ",
+            "rocket-league": "ロケットリーグ",
+            "starcraft-2": "スタークラフト II",
+            "starcraft-brood-war": "スタークラフト ブルードウォー",
+            "valorant": "ヴァロラント"
+          }
+        },
+        "sports": {
+          "league": {
+            "arg": "アルゼンチン・プリメーラ",
+            "bol1": "ボリビアLFPB",
+            "boxing": "ボクシング",
+            "bra": "ブラジル・セリエA",
+            "bra2": "ブラジル・セリエB",
+            "bundesliga": "ブンデスリーガ",
+            "cfb": "カレッジフットボール",
+            "chi1": "チリ・プリメーラ",
+            "col1": "コロンビア・プリメーラA",
+            "crict20blast": "男子T20ワールドカップ",
+            "crint": "国際クリケット",
+            "csl": "中国スーパーリーグ",
+            "cze1": "チェコ・フォルトゥナリーガ",
+            "den": "デンマーク・スーペルリーガ",
+            "ja2": "J2リーグ",
+            "kor": "Kリーグ",
+            "ligue-1": "リーグ・アン",
+            "mex": "リーガMX",
+            "nor": "エリテセリエン",
+            "per1": "ペルー・リーガ1",
+            "por": "プリメイラ・リーガ",
+            "rou1": "ルーマニア・スーペルリーガ",
+            "spl": "サウジ・プロフェッショナルリーグ",
+            "sud": "コパ・スダメリカーナ",
+            "swe": "スウェーデン・アルスヴェンスカン",
+            "ucol": "UEFAカンファレンスリーグ",
+            "uwcl": "UEFA女子チャンピオンズリーグ",
+            "world-cup": "ワールドカップ"
+          },
+          "sport": {
+            "baseball": "野球",
+            "basketball": "バスケットボール",
+            "chess": "チェス",
+            "combat": "格闘技",
+            "cricket": "クリケット",
+            "football": "アメフト",
+            "golf": "ゴルフ",
+            "hockey": "ホッケー",
+            "lacrosse": "ラクロス",
+            "pickleball": "ピックルボール",
+            "soccer": "サッカー",
+            "tennis": "テニス"
+          }
+        }
       }
     }
   },

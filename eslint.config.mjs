@@ -9,7 +9,11 @@ import prettier from "eslint-plugin-prettier/recommended";
 import reactPlugin from "eslint-plugin-react";
 // eslint-disable-next-line import-x/default
 import reactHooksPlugin from "eslint-plugin-react-hooks";
-import { configs as tsConfigs, plugin as tsPlugin, parser as tsParser } from "typescript-eslint";
+import {
+  configs as tsConfigs,
+  plugin as tsPlugin,
+  parser as tsParser,
+} from "typescript-eslint";
 import unusedImports from "eslint-plugin-unused-imports";
 
 export default [
@@ -51,8 +55,16 @@ export default [
       parser: tsParser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.js", "*.mjs", "*.cjs", "*.ts", "scripts/*.mjs"],
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: Infinity,
+          allowDefaultProject: [
+            "*.js",
+            "*.mjs",
+            "*.cjs",
+            "*.ts",
+            "scripts/*.mjs",
+            "scripts/sports/*.mjs",
+          ],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING:
+            Infinity,
         },
       },
     },

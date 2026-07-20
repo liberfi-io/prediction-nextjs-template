@@ -740,6 +740,76 @@
       "empty": {
         "matches": "暫無比賽",
         "props": "暫無特殊盤"
+      },
+      "taxonomy": {
+        "esports": {
+          "sport": {
+            "call-of-duty": "決勝時刻",
+            "honor-of-kings": "傳說對決",
+            "league-of-legends": "英雄聯盟",
+            "mobile-legends-bang-bang": "無盡對決",
+            "overwatch": "鬥陣特攻",
+            "rainbow-six-siege": "虹彩六號：圍攻行動",
+            "rocket-league": "火箭聯盟",
+            "starcraft-2": "星海爭霸 II",
+            "starcraft-brood-war": "星海爭霸：乙未戰役",
+            "valorant": "特戰英豪"
+          }
+        },
+        "sports": {
+          "league": {
+            "arg": "阿根廷足球甲級聯賽",
+            "bkbsn": "波多黎各籃球聯賽(BSN)",
+            "bol1": "玻利維亞足球甲級聯賽",
+            "boxing": "拳擊",
+            "bra": "巴西足球甲級聯賽",
+            "bra2": "巴西足球乙級聯賽",
+            "bundesliga": "德甲",
+            "cfb": "美國大學美式足球",
+            "chi1": "智利足球甲級聯賽",
+            "col1": "哥倫比亞足球甲級聯賽",
+            "crict20blast": "男子T20世界盃",
+            "crint": "國際板球賽",
+            "csl": "中國超級聯賽（中超）",
+            "cze1": "捷克足球甲級聯賽",
+            "den": "丹麥足球超級聯賽",
+            "epl": "英超",
+            "f1": "F1 賽車",
+            "ja2": "日本職業足球乙級聯賽",
+            "kbo": "韓國職業棒球聯盟",
+            "kor": "韓國職業足球聯賽",
+            "laliga": "西甲",
+            "ligue-1": "法甲",
+            "mex": "墨西哥足球超級聯賽",
+            "mls": "美國職業足球大聯盟",
+            "nor": "挪威足球超級聯賽",
+            "per1": "秘魯足球甲級聯賽",
+            "por": "葡萄牙足球超級聯賽",
+            "rou1": "羅馬尼亞足球超級聯賽",
+            "sea": "意甲",
+            "spl": "沙特阿拉伯職業足球聯賽",
+            "sud": "南美盃",
+            "swe": "瑞典甲級聯賽",
+            "ucol": "歐足聯協會聯賽",
+            "uel": "歐聯",
+            "uwcl": "歐洲女子冠軍聯賽",
+            "world-cup": "世界盃"
+          },
+          "sport": {
+            "baseball": "棒球",
+            "basketball": "籃球",
+            "chess": "國際象棋",
+            "combat": "格鬥",
+            "cricket": "板球",
+            "football": "美式橄欖球",
+            "golf": "高爾夫",
+            "hockey": "冰球",
+            "lacrosse": "長曲棍球",
+            "pickleball": "匹克球",
+            "soccer": "足球",
+            "tennis": "網球"
+          }
+        }
       }
     }
   },

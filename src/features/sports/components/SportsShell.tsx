@@ -13,6 +13,8 @@ import type {
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
+import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
+import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 
 interface SportsShellProps {
@@ -72,7 +74,7 @@ export function SportsShell({ section, data, filters }: SportsShellProps) {
                         : "border-zinc-800 bg-zinc-900 text-zinc-300",
                     )}
                   >
-                    {node.label}
+                    <LocalizedTaxonomyLabel node={node} pageSection={section} />
                   </Link>
                 ))}
               </div>
@@ -256,7 +258,9 @@ function TaxonomyRail({
                     className="h-4 w-4 shrink-0 object-contain"
                   />
                 )}
-                <span className="truncate">{node.label}</span>
+                <span className="truncate">
+                  <LocalizedTaxonomyLabel node={node} pageSection={section} />
+                </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-inherit">
                 {typeof node.count === "number" && (
@@ -399,57 +403,6 @@ function EmptyState({ label }: { label: string }) {
       {label}
     </div>
   );
-}
-
-function taxonomyHref(
-  section: SportsSection,
-  filters: SportsPageFilters,
-  node: SportsTaxonomyNode,
-): string {
-  const params = new URLSearchParams();
-  const nextFilters = taxonomyNodeFilter(filters, node);
-  for (const [key, value] of Object.entries(nextFilters)) {
-    if (value) params.set(key, value);
-  }
-  const qs = params.toString();
-  return `/${section}${qs ? `?${qs}` : ""}`;
-}
-
-function taxonomyNodeFilter(
-  filters: SportsPageFilters,
-  node: SportsTaxonomyNode,
-): SportsPageFilters {
-  if (node.node_type === "sport") return { sport_slug: node.slug };
-  if (node.node_type === "game") return { game_slug: node.slug };
-  if (node.node_type === "league") {
-    return {
-      sport_slug: filters.sport_slug,
-      game_slug: filters.game_slug,
-      league_slug: node.slug,
-    };
-  }
-  if (node.node_type === "tournament") {
-    return {
-      sport_slug: filters.sport_slug,
-      game_slug: filters.game_slug,
-      league_slug: filters.league_slug,
-      tournament_slug: node.slug,
-    };
-  }
-  return filters;
-}
-
-function isTaxonomyNodeActive(
-  filters: SportsPageFilters,
-  node: SportsTaxonomyNode,
-): boolean {
-  if (node.node_type === "sport") return filters.sport_slug === node.slug;
-  if (node.node_type === "game") return filters.game_slug === node.slug;
-  if (node.node_type === "league") return filters.league_slug === node.slug;
-  if (node.node_type === "tournament") {
-    return filters.tournament_slug === node.slug;
-  }
-  return false;
 }
 
 function hasTaxonomyFilter(filters: SportsPageFilters): boolean {

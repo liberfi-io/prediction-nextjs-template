@@ -723,6 +723,22 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "sports": {
+          "sport": {
+            "baseball": "เบสบอล",
+            "basketball": "บาสเกตบอล",
+            "chess": "หมากรุก",
+            "cricket": "คริกเก็ต",
+            "football": "อเมริกันฟุตบอล",
+            "golf": "กอล์ฟ",
+            "lacrosse": "ลาครอส",
+            "pickleball": "พิคเกิลบอล",
+            "soccer": "ฟุตบอล",
+            "tennis": "เทนนิส"
+          }
+        }
       }
     }
   },

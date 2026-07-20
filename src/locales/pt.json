@@ -723,6 +723,20 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "sports": {
+          "sport": {
+            "baseball": "Basebol",
+            "basketball": "Basquetebol",
+            "chess": "Xadrez",
+            "cricket": "Críquete",
+            "football": "Futebol",
+            "golf": "Golfe",
+            "soccer": "Futebol",
+            "tennis": "Ténis"
+          }
+        }
       }
     }
   },

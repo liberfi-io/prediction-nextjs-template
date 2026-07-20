@@ -723,6 +723,66 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "esports": {
+          "sport": {
+            "call-of-duty": "콜 오브 듀티",
+            "mobile-legends-bang-bang": "모바일 레전드: 뱅뱅",
+            "overwatch": "오버워치",
+            "rainbow-six-siege": "레인보우 식스 시즈",
+            "rocket-league": "로켓 리그",
+            "starcraft-2": "스타크래프트 II",
+            "starcraft-brood-war": "스타크래프트: 브루드 워",
+            "valorant": "발로란트"
+          }
+        },
+        "sports": {
+          "league": {
+            "arg": "아르헨티나 프리메라",
+            "bol1": "볼리비아 LFPB",
+            "boxing": "복싱",
+            "bra": "브라질 세리에 A",
+            "bra2": "브라질 세리에 B",
+            "bundesliga": "분데스리가",
+            "cfb": "대학 미식축구",
+            "chi1": "칠레 프리메라",
+            "col1": "콜롬비아 프리메라 A",
+            "crict20blast": "남자 T20 월드컵",
+            "crint": "국제 크리켓",
+            "csl": "중국 슈퍼리그",
+            "cze1": "체코 포르투나 리가",
+            "den": "덴마크 수페르리가",
+            "ja2": "J2리그",
+            "kor": "K리그",
+            "ligue-1": "리그 1",
+            "mex": "리가 MX",
+            "nor": "엘리테세리엔",
+            "per1": "페루 리가 1",
+            "por": "프리메이라 리가",
+            "rou1": "루마니아 수페르리가",
+            "spl": "사우디 프로페셔널 리그",
+            "sud": "코파 수다메리카나",
+            "swe": "스웨덴 알스벤스칸",
+            "ucol": "UEFA 컨퍼런스 리그",
+            "uwcl": "UEFA 여자 챔피언스 리그",
+            "world-cup": "월드컵"
+          },
+          "sport": {
+            "baseball": "야구",
+            "basketball": "농구",
+            "chess": "체스",
+            "combat": "격투기",
+            "cricket": "크리켓",
+            "football": "미식축구",
+            "golf": "골프",
+            "hockey": "하키",
+            "lacrosse": "라크로스",
+            "pickleball": "피클볼",
+            "soccer": "축구",
+            "tennis": "테니스"
+          }
+        }
       }
     }
   },

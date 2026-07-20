@@ -723,6 +723,34 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "sports": {
+          "league": {
+            "boxing": "Boxeo",
+            "bra": "Serie A de Brasil",
+            "bra2": "Serie B de Brasil",
+            "cfb": "Fútbol americano universitario",
+            "crict20blast": "Copa Mundial T20 Masculina",
+            "crint": "Cricket internacional",
+            "csl": "Superliga China",
+            "f1": "Fórmula 1",
+            "swe": "Allsvenskan de Suecia",
+            "ucol": "Liga Conferencia de la UEFA",
+            "uwcl": "Liga de Campeones Femenina de la UEFA",
+            "world-cup": "Copa Mundial"
+          },
+          "sport": {
+            "baseball": "Béisbol",
+            "basketball": "Baloncesto",
+            "chess": "Ajedrez",
+            "combat": "Combate",
+            "cricket": "Críquet",
+            "football": "Fútbol Americano",
+            "soccer": "Fútbol",
+            "tennis": "Tenis"
+          }
+        }
       }
     }
   },

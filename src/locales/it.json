@@ -723,6 +723,15 @@
       "empty": {
         "matches": "No matches available",
         "props": "No props available"
+      },
+      "taxonomy": {
+        "sports": {
+          "sport": {
+            "basketball": "Basket",
+            "chess": "Scacchi",
+            "soccer": "Calcio"
+          }
+        }
       }
     }
   },

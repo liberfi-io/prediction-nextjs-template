@@ -1,0 +1,635 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "call-of-duty",
+      "label": "Call of Duty",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "cs2",
+      "label": "Counter-Strike 2",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "dota2",
+      "label": "Dota 2",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "honor-of-kings",
+      "label": "Honor of Kings",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "league-of-legends",
+      "label": "League of Legends",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "mobile-legends-bang-bang",
+      "label": "Mobile Legends: Bang Bang",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "overwatch",
+      "label": "Overwatch",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "rainbow-six-siege",
+      "label": "Rainbow Six Siege",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "rocket-league",
+      "label": "Rocket League",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "starcraft-2",
+      "label": "StarCraft 2",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "starcraft-brood-war",
+      "label": "StarCraft: Brood War",
+      "parent_slug": null
+    },
+    {
+      "section": "esports",
+      "node_type": "sport",
+      "slug": "valorant",
+      "label": "Valorant",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "arg",
+      "label": "ARG",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "atp",
+      "label": "ATP",
+      "parent_slug": "tennis"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "atp-doubles",
+      "label": "Atp Doubles",
+      "parent_slug": "tennis"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "aus",
+      "label": "AUS",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "aut",
+      "label": "AUT",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "bkbsn",
+      "label": "BKBSN",
+      "parent_slug": "basketball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "bol1",
+      "label": "BOL1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "boxing",
+      "label": "Boxing",
+      "parent_slug": "combat"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "bra",
+      "label": "BRA",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "bra2",
+      "label": "BRA2",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "bundesliga",
+      "label": "Bundesliga",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cfb",
+      "label": "CFB",
+      "parent_slug": "football"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cfl",
+      "label": "CFL",
+      "parent_slug": "football"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "chi1",
+      "label": "CHI1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "col1",
+      "label": "COL1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cpbl",
+      "label": "CPBL",
+      "parent_slug": "baseball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cricmlc",
+      "label": "Cricmlc",
+      "parent_slug": "cricket"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cricshpageeza",
+      "label": "Cricshpageeza",
+      "parent_slug": "cricket"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "crict20blast",
+      "label": "Crict20blast",
+      "parent_slug": "cricket"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "crint",
+      "label": "CRINT",
+      "parent_slug": "cricket"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "csl",
+      "label": "CSL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "cze1",
+      "label": "CZE1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "den",
+      "label": "DEN",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "epl",
+      "label": "EPL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "f1",
+      "label": "Formula 1",
+      "parent_slug": "motorsports"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "gtm",
+      "label": "GTM",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "indycar",
+      "label": "IndyCar",
+      "parent_slug": "motorsports"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "itf",
+      "label": "ITF",
+      "parent_slug": "tennis"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ja2",
+      "label": "JA2",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "kbo",
+      "label": "KBO",
+      "parent_slug": "baseball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "kor",
+      "label": "KOR",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "laliga",
+      "label": "La Liga",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ligue-1",
+      "label": "Ligue 1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "lpl",
+      "label": "LPL",
+      "parent_slug": "cricket"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "mex",
+      "label": "MEX",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "mlb",
+      "label": "MLB",
+      "parent_slug": "baseball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "mls",
+      "label": "MLS",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "nba",
+      "label": "NBA",
+      "parent_slug": "basketball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "nbasl",
+      "label": "NBASL",
+      "parent_slug": "basketball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "nfl",
+      "label": "NFL",
+      "parent_slug": "football"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "nor",
+      "label": "NOR",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "npb",
+      "label": "NPB",
+      "parent_slug": "baseball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "nwsl",
+      "label": "NWSL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "per1",
+      "label": "PER1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "pll",
+      "label": "PLL",
+      "parent_slug": "lacrosse"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "por",
+      "label": "POR",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "powerslap",
+      "label": "Powerslap",
+      "parent_slug": "combat"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "rou1",
+      "label": "ROU1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "sea",
+      "label": "SEA",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "spl",
+      "label": "SPL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "sud",
+      "label": "SUD",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "svk1",
+      "label": "SVK1",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "swe",
+      "label": "SWE",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "trsk",
+      "label": "TRSK",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ucol",
+      "label": "UEFA Europa Conference League",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "uel",
+      "label": "UEL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ufc",
+      "label": "UFC",
+      "parent_slug": "combat"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "uwcl",
+      "label": "UWCL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "wll",
+      "label": "WLL",
+      "parent_slug": "lacrosse"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "wnba",
+      "label": "WNBA",
+      "parent_slug": "basketball"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "world-cup",
+      "label": "World Cup",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "wta",
+      "label": "WTA",
+      "parent_slug": "tennis"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "wta-doubles",
+      "label": "Wta Doubles",
+      "parent_slug": "tennis"
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "baseball",
+      "label": "Baseball",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "basketball",
+      "label": "Basketball",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "chess",
+      "label": "Chess",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "combat",
+      "label": "Combat",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "cricket",
+      "label": "Cricket",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "football",
+      "label": "Football",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "golf",
+      "label": "Golf",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "hockey",
+      "label": "Hockey",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "lacrosse",
+      "label": "Lacrosse",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "motorsports",
+      "label": "Motorsports",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "pickleball",
+      "label": "Pickleball",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "poker",
+      "label": "Poker",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "soccer",
+      "label": "Soccer",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "tennis",
+      "label": "Tennis",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "volleyball",
+      "label": "Volleyball",
+      "parent_slug": null
+    }
+  ]
+}
