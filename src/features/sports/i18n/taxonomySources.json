@@ -20,18 +20,18 @@
   "statistics": {
     "zh-Hant": {
       "inventory_total": 90,
-      "source_visible": 87,
-      "adopted": 58,
+      "source_visible": 88,
+      "adopted": 61,
       "conflict": 0,
-      "english_fallback": 32,
+      "english_fallback": 29,
       "source_unavailable": 0
     },
     "ja": {
       "inventory_total": 90,
-      "source_visible": 87,
-      "adopted": 48,
+      "source_visible": 88,
+      "adopted": 49,
       "conflict": 0,
-      "english_fallback": 42,
+      "english_fallback": 41,
       "source_unavailable": 0
     },
     "ko": {
@@ -44,18 +44,18 @@
     },
     "th": {
       "inventory_total": 90,
-      "source_visible": 71,
-      "adopted": 10,
+      "source_visible": 73,
+      "adopted": 12,
       "conflict": 0,
-      "english_fallback": 80,
+      "english_fallback": 78,
       "source_unavailable": 0
     },
     "vi": {
       "inventory_total": 90,
-      "source_visible": 71,
-      "adopted": 6,
+      "source_visible": 73,
+      "adopted": 8,
       "conflict": 0,
-      "english_fallback": 84,
+      "english_fallback": 82,
       "source_unavailable": 0
     },
     "fr": {
@@ -76,34 +76,34 @@
     },
     "it": {
       "inventory_total": 90,
-      "source_visible": 71,
-      "adopted": 3,
+      "source_visible": 72,
+      "adopted": 4,
       "conflict": 0,
-      "english_fallback": 87,
+      "english_fallback": 86,
       "source_unavailable": 0
     },
     "es": {
       "inventory_total": 90,
-      "source_visible": 87,
-      "adopted": 20,
+      "source_visible": 88,
+      "adopted": 21,
       "conflict": 0,
-      "english_fallback": 70,
+      "english_fallback": 69,
       "source_unavailable": 0
     },
     "pt": {
       "inventory_total": 90,
-      "source_visible": 71,
-      "adopted": 8,
+      "source_visible": 73,
+      "adopted": 10,
       "conflict": 0,
-      "english_fallback": 82,
+      "english_fallback": 80,
       "source_unavailable": 0
     },
     "ru": {
       "inventory_total": 90,
-      "source_visible": 87,
-      "adopted": 41,
+      "source_visible": 88,
+      "adopted": 42,
       "conflict": 0,
-      "english_fallback": 49,
+      "english_fallback": 48,
       "source_unavailable": 0
     }
   },
@@ -7331,7 +7331,7 @@
       "preferred_source": "future",
       "source_slug": "subcategory_hockey",
       "source_path": "/{locale}/sports",
-      "alignment_evidence": "Future message key subcategory_hockey, checked against section, parent, slug semantics, and label.",
+      "alignment_evidence": "Future message key subcategory_hockey, checked against section, parent, slug semantics, and label. Polymarket fallback uses the confirmed path alias nhl for the Hockey top-level node.",
       "languages": {
         "zh-Hant": {
           "localized_label": "冰球",
@@ -7355,18 +7355,18 @@
           "status": "adopted"
         },
         "th": {
-          "localized_label": null,
+          "localized_label": "ฮอกกี้",
           "source": "polymarket",
           "source_url": "https://polymarket.com/th/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "vi": {
-          "localized_label": null,
+          "localized_label": "Khúc côn cầu",
           "source": "polymarket",
           "source_url": "https://polymarket.com/vi/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "fr": {
           "localized_label": "Hockey",
@@ -7397,11 +7397,11 @@
           "status": "english-fallback"
         },
         "pt": {
-          "localized_label": null,
+          "localized_label": "Hóquei",
           "source": "polymarket",
           "source_url": "https://polymarket.com/pt/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ru": {
           "localized_label": "Хоккей",
@@ -7510,11 +7510,12 @@
       "alignment_evidence": "Polymarket sports path slug motorsports, checked against section, parent, and label.",
       "languages": {
         "zh-Hant": {
-          "localized_label": "Motorsports",
-          "source": "polymarket",
-          "source_url": "https://polymarket.com/zh-hant/sports/live",
+          "localized_label": "賽車",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Traditional Chinese product terminology.",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ja": {
           "localized_label": "Motorsports",
@@ -7686,11 +7687,12 @@
       "alignment_evidence": "Polymarket sports path slug poker, checked against section, parent, and label.",
       "languages": {
         "zh-Hant": {
-          "localized_label": "Poker",
-          "source": "polymarket",
-          "source_url": "https://polymarket.com/zh-hant/sports/live",
+          "localized_label": "撲克",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Traditional Chinese product terminology.",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ja": {
           "localized_label": "Poker",
@@ -7945,23 +7947,23 @@
       "node_type": "sport",
       "slug": "volleyball",
       "preferred_source": "polymarket",
-      "source_slug": "volleyball",
-      "source_path": "/{locale}/sports/live",
-      "alignment_evidence": "Polymarket sports path slug volleyball, checked against section, parent, and label.",
+      "source_slug": "vbvnl",
+      "source_path": "/{locale}/sports/vbvnl/games",
+      "alignment_evidence": "Polymarket path alias vbvnl, confirmed by the Volleyball label, sports hierarchy, icon, and backend benchmark mapping.",
       "languages": {
         "zh-Hant": {
-          "localized_label": null,
+          "localized_label": "排球",
           "source": "polymarket",
           "source_url": "https://polymarket.com/zh-hant/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ja": {
-          "localized_label": null,
+          "localized_label": "バレーボール",
           "source": "polymarket",
           "source_url": "https://polymarket.com/ja/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ko": {
           "localized_label": null,
@@ -7971,18 +7973,18 @@
           "status": "english-fallback"
         },
         "th": {
-          "localized_label": null,
+          "localized_label": "วอลเลย์บอล",
           "source": "polymarket",
           "source_url": "https://polymarket.com/th/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "vi": {
-          "localized_label": null,
+          "localized_label": "Bóng chuyền",
           "source": "polymarket",
           "source_url": "https://polymarket.com/vi/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "fr": {
           "localized_label": null,
@@ -7999,32 +8001,32 @@
           "status": "english-fallback"
         },
         "it": {
-          "localized_label": null,
+          "localized_label": "Pallavolo",
           "source": "polymarket",
           "source_url": "https://polymarket.com/it/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "es": {
-          "localized_label": null,
+          "localized_label": "Voleibol",
           "source": "polymarket",
           "source_url": "https://polymarket.com/es/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "pt": {
-          "localized_label": null,
+          "localized_label": "Vôlei",
           "source": "polymarket",
           "source_url": "https://polymarket.com/pt/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         },
         "ru": {
-          "localized_label": null,
+          "localized_label": "Волейбол",
           "source": "polymarket",
           "source_url": "https://polymarket.com/ru/sports/live",
           "observed_at": "2026-07-20",
-          "status": "english-fallback"
+          "status": "adopted"
         }
       }
     }

@@ -734,7 +734,9 @@
             "football": "Futebol",
             "golf": "Golfe",
             "soccer": "Futebol",
-            "tennis": "Ténis"
+            "tennis": "Ténis",
+            "volleyball": "Vôlei",
+            "hockey": "Hóquei"
           }
         }
       }

@@ -732,7 +732,9 @@
             "chess": "Cờ vua",
             "football": "Bóng đá",
             "soccer": "Bóng đá",
-            "tennis": "Quần vợt"
+            "tennis": "Quần vợt",
+            "volleyball": "Bóng chuyền",
+            "hockey": "Khúc côn cầu"
           }
         }
       }

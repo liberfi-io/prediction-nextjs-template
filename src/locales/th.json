@@ -736,7 +736,9 @@
             "lacrosse": "ลาครอส",
             "pickleball": "พิคเกิลบอล",
             "soccer": "ฟุตบอล",
-            "tennis": "เทนนิส"
+            "tennis": "เทนนิส",
+            "volleyball": "วอลเลย์บอล",
+            "hockey": "ฮอกกี้"
           }
         }
       }

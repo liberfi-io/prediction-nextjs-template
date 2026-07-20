@@ -807,7 +807,10 @@
             "lacrosse": "長曲棍球",
             "pickleball": "匹克球",
             "soccer": "足球",
-            "tennis": "網球"
+            "tennis": "網球",
+            "volleyball": "排球",
+            "motorsports": "賽車",
+            "poker": "撲克"
           }
         }
       }

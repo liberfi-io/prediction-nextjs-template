@@ -83,6 +83,41 @@ describe("taxonomy i18n resources", () => {
     expect(taxonomyEntries(en)).toEqual([]);
   });
 
+  it("includes the audited alias translations and approved Chinese terms", () => {
+    const expected = {
+      "zh-Hant": {
+        "sports:sport:volleyball": "排球",
+        "sports:sport:motorsports": "賽車",
+        "sports:sport:poker": "撲克",
+      },
+      ja: { "sports:sport:volleyball": "バレーボール" },
+      th: {
+        "sports:sport:volleyball": "วอลเลย์บอล",
+        "sports:sport:hockey": "ฮอกกี้",
+      },
+      vi: {
+        "sports:sport:volleyball": "Bóng chuyền",
+        "sports:sport:hockey": "Khúc côn cầu",
+      },
+      it: { "sports:sport:volleyball": "Pallavolo" },
+      es: { "sports:sport:volleyball": "Voleibol" },
+      pt: {
+        "sports:sport:volleyball": "Vôlei",
+        "sports:sport:hockey": "Hóquei",
+      },
+      ru: { "sports:sport:volleyball": "Волейбол" },
+    } as const;
+
+    for (const [language, labels] of Object.entries(expected)) {
+      const entries = new Map(
+        taxonomyEntries(bundles[language as keyof typeof bundles]),
+      );
+      for (const [id, label] of Object.entries(labels)) {
+        expect(entries.get(id)).toBe(label);
+      }
+    }
+  });
+
   it("classifies every inventory node in every target language", () => {
     expect(sources.nodes).toHaveLength(inventory.nodes.length);
     expect(
@@ -106,6 +141,25 @@ describe("taxonomy i18n resources", () => {
         ]).toContain(evidence.status);
       }
     }
+  });
+
+  it("limits product-approved terminology to the two explicit Chinese terms", () => {
+    const productEntries = sources.nodes.flatMap((node) =>
+      Object.entries(node.languages)
+        .filter(([, evidence]) => evidence.source === "product")
+        .map(([language, evidence]) => ({
+          identity: `${language}:${identity(node.section, node.node_type, node.slug)}`,
+          status: evidence.status,
+        })),
+    );
+
+    expect(productEntries).toEqual([
+      {
+        identity: "zh-Hant:sports:sport:motorsports",
+        status: "adopted",
+      },
+      { identity: "zh-Hant:sports:sport:poker", status: "adopted" },
+    ]);
   });
 
   it("matches frozen per-language source statistics and resource counts", () => {
@@ -139,13 +193,20 @@ describe("taxonomy i18n resources", () => {
       for (const node of sources.nodes) {
         const id = identity(node.section, node.node_type, node.slug);
         const entry = node.languages[language as keyof typeof node.languages];
-        expect(["future", "polymarket"]).toContain(entry.source);
-        expect(entry.source_url).toMatch(
-          entry.source === "future"
-            ? /^https:\/\/future\.news\/[a-z-]+\/sports$/
-            : /^https:\/\/polymarket\.com\/[a-z-]+\/sports\/live$/,
-        );
-        expect(entry.source_url).not.toContain("undefined");
+        expect(["future", "polymarket", "product"]).toContain(entry.source);
+        if (entry.source === "product") {
+          expect(entry.source_url).toBeNull();
+          expect("source_note" in entry ? entry.source_note : undefined).toBe(
+            "User-approved Traditional Chinese product terminology.",
+          );
+        } else {
+          expect(entry.source_url).toMatch(
+            entry.source === "future"
+              ? /^https:\/\/future\.news\/[a-z-]+\/sports$/
+              : /^https:\/\/polymarket\.com\/[a-z-]+\/sports\/live$/,
+          );
+          expect(entry.source_url).not.toContain("undefined");
+        }
         expect(entry.observed_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
         if (entry.status === "adopted" || entry.status === "conflict") {

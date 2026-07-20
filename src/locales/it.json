@@ -729,7 +729,8 @@
           "sport": {
             "basketball": "Basket",
             "chess": "Scacchi",
-            "soccer": "Calcio"
+            "soccer": "Calcio",
+            "volleyball": "Pallavolo"
           }
         }
       }
