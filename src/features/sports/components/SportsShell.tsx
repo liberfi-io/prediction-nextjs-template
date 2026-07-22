@@ -1184,9 +1184,20 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     () => resolvePrimarySportsMarkets(match.inline_markets),
     [match.inline_markets],
   );
-  const moneylineSelections = sportsMarketSelections(
+  const drawLabel = t("extend.worldcup.draw");
+  const rawMoneylineSelections = sportsMarketSelections(
     "moneyline",
     primaryMarkets.moneyline,
+  );
+  const moneylineSlotCount = sportsMoneylineSlotCount(
+    match.sport_slug,
+    rawMoneylineSelections,
+    participants,
+  );
+  const moneylineSlots = sportsMoneylineSelectionSlots(
+    rawMoneylineSelections,
+    participants,
+    moneylineSlotCount,
   );
   const open = () => router.push(href);
   const openMarket = (market: SportsInlineMarket, outcome: string) => {
@@ -1242,6 +1253,8 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
               category={category}
               markets={primaryMarkets[category]}
               participants={participants}
+              drawLabel={drawLabel}
+              moneylineSlotCount={moneylineSlotCount}
               format={format}
               onSelect={openMarket}
             />
@@ -1264,28 +1277,44 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           <div
             className={cn(
               "grid gap-2",
-              moneylineSelections.length >= 3 ? "grid-cols-3" : "grid-cols-2",
+              moneylineSlotCount === 3 ? "grid-cols-3" : "grid-cols-2",
             )}
           >
-            {moneylineSelections.map((selection, index) => (
-              <SportsOddsButton
-                key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
-                label={selection.outcome.label}
-                price={sportsOutcomePrice(selection.outcome)}
-                format={format}
-                variant="fade"
-                teamColor={sportsMarketSelectionColor(
-                  "moneyline",
-                  selection,
-                  index,
-                  moneylineSelections.length,
-                  participants,
-                )}
-                onSelect={() =>
-                  openMarket(selection.market, selection.outcome.outcome)
-                }
-              />
-            ))}
+            {moneylineSlots.map((selection, index) =>
+              selection ? (
+                <SportsOddsButton
+                  key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
+                  label={sportsMarketSelectionLabel(
+                    "moneyline",
+                    selection,
+                    index,
+                    moneylineSlotCount,
+                    participants,
+                    drawLabel,
+                  )}
+                  price={sportsOutcomePrice(selection.outcome)}
+                  format={format}
+                  variant="fade"
+                  teamColor={sportsMarketSelectionColor(
+                    "moneyline",
+                    selection,
+                    index,
+                    moneylineSlotCount,
+                    participants,
+                  )}
+                  onSelect={() =>
+                    openMarket(selection.market, selection.outcome.outcome)
+                  }
+                />
+              ) : (
+                <SportsOddsButton
+                  key={`moneyline:placeholder:${index}`}
+                  label="-"
+                  format={format}
+                  onSelect={() => undefined}
+                />
+              ),
+            )}
           </div>
         ) : (
           <h2 className="truncate text-center text-sm font-semibold text-zinc-100">
@@ -1358,6 +1387,154 @@ export function sportsMarketSelections(
   return selections.slice(0, category === "moneyline" ? 3 : 2);
 }
 
+/** Semantic side represented by a moneyline selection. */
+export type SportsMoneylineSide = "home" | "draw" | "away";
+
+function sportsParticipant(
+  participants: SportsParticipant[],
+  role: "home" | "away",
+): SportsParticipant | undefined {
+  const fallbackIndex = role === "home" ? 0 : 1;
+  return (
+    participants.find((participant) => participant.role === role) ??
+    participants[fallbackIndex]
+  );
+}
+
+function sportsTextMatchesParticipant(
+  text: string,
+  participant?: SportsParticipant,
+): boolean {
+  const compactText = text.replace(/[^\p{L}\p{N}]/gu, "");
+  const tokens = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return [participant?.name, participant?.slug, participant?.abbreviation]
+    .filter((value): value is string => Boolean(value))
+    .some((value) => {
+      const normalized = value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+      if (value === participant?.abbreviation) {
+        return tokens.includes(normalized);
+      }
+      return normalized.length >= 2 && compactText.includes(normalized);
+    });
+}
+
+/** Resolves whether a moneyline selection represents home, draw, or away. */
+export function sportsMoneylineSelectionSide(
+  selection: SportsMarketSelection,
+  participants: SportsParticipant[],
+): SportsMoneylineSide | undefined {
+  const home = sportsParticipant(participants, "home");
+  const away = sportsParticipant(participants, "away");
+  const outcomeText = selection.outcome.label.toLowerCase();
+  const marketLabel = selection.market.label.toLowerCase();
+  const marketSlug = selection.market.market_slug.toLowerCase();
+  if (/\b(?:draw|tie)\b/i.test(`${outcomeText} ${marketLabel}`)) return "draw";
+  for (const text of [outcomeText, marketLabel, marketSlug]) {
+    const matchesHome = sportsTextMatchesParticipant(text, home);
+    const matchesAway = sportsTextMatchesParticipant(text, away);
+    if (matchesHome !== matchesAway) return matchesHome ? "home" : "away";
+  }
+  return undefined;
+}
+
+function fallbackMoneylineSide(
+  selectionIndex: number,
+  selectionCount: number,
+): SportsMoneylineSide | undefined {
+  if (selectionCount === 3) {
+    return (["home", "draw", "away"] as const)[selectionIndex];
+  }
+  if (selectionCount === 2) {
+    return (["home", "away"] as const)[selectionIndex];
+  }
+  return undefined;
+}
+
+function resolvedMoneylineSelectionSide(
+  selection: SportsMarketSelection,
+  selectionIndex: number,
+  selectionCount: number,
+  participants: SportsParticipant[],
+): SportsMoneylineSide | undefined {
+  return (
+    sportsMoneylineSelectionSide(selection, participants) ??
+    fallbackMoneylineSide(selectionIndex, selectionCount)
+  );
+}
+
+/** Returns the two- or three-way slot count for a moneyline group. */
+export function sportsMoneylineSlotCount(
+  sportSlug: string | undefined,
+  selections: SportsMarketSelection[],
+  participants: SportsParticipant[],
+): 2 | 3 {
+  const hasDraw = selections.some(
+    (selection) =>
+      sportsMoneylineSelectionSide(selection, participants) === "draw",
+  );
+  return sportSlug === "soccer" || hasDraw || selections.length >= 3 ? 3 : 2;
+}
+
+/** Places moneyline selections into fixed home, draw, and away slots. */
+export function sportsMoneylineSelectionSlots(
+  selections: SportsMarketSelection[],
+  participants: SportsParticipant[],
+  slotCount: 2 | 3,
+): Array<SportsMarketSelection | undefined> {
+  const slots: Array<SportsMarketSelection | undefined> =
+    Array(slotCount).fill(undefined);
+  const unresolved: SportsMarketSelection[] = [];
+  const slotBySide: Record<SportsMoneylineSide, number | undefined> = {
+    home: 0,
+    draw: slotCount === 3 ? 1 : undefined,
+    away: slotCount - 1,
+  };
+  for (const selection of selections) {
+    const side = sportsMoneylineSelectionSide(selection, participants);
+    const slot = side ? slotBySide[side] : undefined;
+    if (slot !== undefined && !slots[slot]) {
+      slots[slot] = selection;
+    } else {
+      unresolved.push(selection);
+    }
+  }
+  for (const selection of unresolved) {
+    const slot = slots.findIndex((value) => !value);
+    if (slot < 0) break;
+    slots[slot] = selection;
+  }
+  return slots;
+}
+
+/** Returns the compact display label for a market selection. */
+export function sportsMarketSelectionLabel(
+  category: keyof SportsPrimaryMarkets,
+  selection: SportsMarketSelection,
+  selectionIndex: number,
+  selectionCount: number,
+  participants: SportsParticipant[],
+  drawLabel: string,
+): string {
+  if (category !== "moneyline") return selection.outcome.label;
+  const side = resolvedMoneylineSelectionSide(
+    selection,
+    selectionIndex,
+    selectionCount,
+    participants,
+  );
+  if (side === "home") {
+    return (
+      sportsParticipant(participants, "home")?.name ?? selection.outcome.label
+    );
+  }
+  if (side === "away") {
+    return (
+      sportsParticipant(participants, "away")?.name ?? selection.outcome.label
+    );
+  }
+  return side === "draw" ? drawLabel : selection.outcome.label;
+}
+
 /** Resolves the team color for a home/away moneyline selection. */
 export function sportsMarketSelectionColor(
   category: keyof SportsPrimaryMarkets,
@@ -1367,44 +1544,16 @@ export function sportsMarketSelectionColor(
   participants: SportsParticipant[],
 ): string | undefined {
   if (category !== "moneyline") return undefined;
-  const home =
-    participants.find((participant) => participant.role === "home") ??
-    participants[0];
-  const away =
-    participants.find((participant) => participant.role === "away") ??
-    participants[1];
-  const outcomeText = selection.outcome.label.toLowerCase();
-  const marketLabel = selection.market.label.toLowerCase();
-  const marketSlug = selection.market.market_slug.toLowerCase();
-  if (/\b(?:draw|tie)\b/i.test(`${outcomeText} ${marketLabel} ${marketSlug}`))
-    return undefined;
-  const matchesParticipant = (
-    text: string,
-    participant?: SportsParticipant,
-  ) => {
-    const compactText = text.replace(/[^\p{L}\p{N}]/gu, "");
-    const tokens = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-    return [participant?.name, participant?.slug, participant?.abbreviation]
-      .filter((value): value is string => Boolean(value))
-      .some((value) => {
-        const normalized = value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-        if (value === participant?.abbreviation) {
-          return tokens.includes(normalized);
-        }
-        return normalized.length >= 2 && compactText.includes(normalized);
-      });
-  };
-  for (const text of [outcomeText, marketLabel, marketSlug]) {
-    const matchesHome = matchesParticipant(text, home);
-    const matchesAway = matchesParticipant(text, away);
-    if (matchesHome !== matchesAway) {
-      return matchesHome ? home?.color : away?.color;
-    }
-  }
-  if (selectionCount === 1) return undefined;
-  if (selectionIndex === 0) return home?.color;
-  const awayIndex = selectionCount === 2 ? 1 : 2;
-  return selectionIndex === awayIndex ? away?.color : undefined;
+  const side = resolvedMoneylineSelectionSide(
+    selection,
+    selectionIndex,
+    selectionCount,
+    participants,
+  );
+  if (side === "home") return sportsParticipant(participants, "home")?.color;
+  return side === "away"
+    ? sportsParticipant(participants, "away")?.color
+    : undefined;
 }
 
 function sportsOutcomePrice(outcome: SportsMarketOutcome): number | undefined {
@@ -1467,53 +1616,72 @@ function SportsMarketColumn({
   category,
   markets,
   participants,
+  drawLabel,
+  moneylineSlotCount,
   format,
   onSelect,
 }: {
   category: keyof SportsPrimaryMarkets;
   markets: SportsMarket[];
   participants: SportsParticipant[];
+  drawLabel: string;
+  moneylineSlotCount: 2 | 3;
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
 }) {
-  const selections = sportsMarketSelections(category, markets);
-  const slotCount = category === "moneyline" ? 3 : 2;
+  const rawSelections = sportsMarketSelections(category, markets);
+  const slotCount = category === "moneyline" ? moneylineSlotCount : 2;
+  const slots: Array<SportsMarketSelection | undefined> =
+    category === "moneyline"
+      ? sportsMoneylineSelectionSlots(
+          rawSelections,
+          participants,
+          moneylineSlotCount,
+        )
+      : Array.from({ length: slotCount }, (_, index) => rawSelections[index]);
   const growButtons = category !== "moneyline";
   return (
     <div
       data-sports-market-column={category}
       className="flex h-[118px] w-[128px] flex-col gap-2"
     >
-      {selections.map(({ market, outcome }, index) => (
-        <SportsOddsButton
-          key={`${market.market_slug}:${outcome.outcome}`}
-          label={outcome.label}
-          price={sportsOutcomePrice(outcome)}
-          format={format}
-          variant={sportsOddsAnimationVariant(category)}
-          grow={growButtons}
-          teamColor={sportsMarketSelectionColor(
-            category,
-            { market, outcome },
-            index,
-            selections.length,
-            participants,
-          )}
-          onSelect={() => onSelect(market, outcome.outcome)}
-        />
-      ))}
-      {selections.length < slotCount &&
-        Array.from({ length: slotCount - selections.length }).map(
-          (_, index) => (
-            <SportsOddsButton
-              key={`${category}:placeholder:${index}`}
-              label="-"
-              format={format}
-              grow={growButtons}
-              onSelect={() => undefined}
-            />
-          ),
-        )}
+      {slots.map((selection, index) =>
+        selection ? (
+          <SportsOddsButton
+            key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
+            label={sportsMarketSelectionLabel(
+              category,
+              selection,
+              index,
+              slotCount,
+              participants,
+              drawLabel,
+            )}
+            price={sportsOutcomePrice(selection.outcome)}
+            format={format}
+            variant={sportsOddsAnimationVariant(category)}
+            grow={growButtons}
+            teamColor={sportsMarketSelectionColor(
+              category,
+              selection,
+              index,
+              slotCount,
+              participants,
+            )}
+            onSelect={() =>
+              onSelect(selection.market, selection.outcome.outcome)
+            }
+          />
+        ) : (
+          <SportsOddsButton
+            key={`${category}:placeholder:${index}`}
+            label="-"
+            format={format}
+            grow={growButtons}
+            onSelect={() => undefined}
+          />
+        ),
+      )}
     </div>
   );
 }

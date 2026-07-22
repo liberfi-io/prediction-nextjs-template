@@ -12,6 +12,10 @@ import {
   resolvePrimarySportsMarkets,
   sportsMarketSelections,
   sportsMarketSelectionColor,
+  sportsMarketSelectionLabel,
+  sportsMoneylineSelectionSide,
+  sportsMoneylineSelectionSlots,
+  sportsMoneylineSlotCount,
   sportsOddsAnimationVariant,
   SportsMatchGroupHeading,
   SportsShell,
@@ -134,6 +138,118 @@ describe("SportsShell taxonomy labels", () => {
     expect(sportsMarketSelections("moneyline", [market])).toHaveLength(3);
     expect(sportsMarketSelections("spread", [market])).toHaveLength(2);
     expect(sportsMarketSelections("total", [market])).toHaveLength(2);
+  });
+
+  it("orders and labels moneyline selections as home, draw, and away", () => {
+    const participants = [
+      {
+        name: "Qingdao Hainiu FC",
+        role: "home",
+        abbreviation: "HAI",
+      },
+      {
+        name: "Tianjin Jinmen Hu FC",
+        role: "away",
+        abbreviation: "JIN",
+      },
+    ];
+    const selection = (market_slug: string, label: string) => ({
+      market: {
+        market_slug,
+        market_type: "moneyline",
+        label,
+        outcomes: [],
+      },
+      outcome: { outcome: "yes" as const, label: "Yes", price: 0.5 },
+    });
+    const draw = selection(
+      "chi-hai-jin-2026-07-25-draw",
+      "Will Qingdao Hainiu FC vs. Tianjin Jinmen Hu FC end in a draw?",
+    );
+    const home = selection(
+      "chi-hai-jin-2026-07-25-hai",
+      "Will Qingdao Hainiu FC win on 2026-07-25?",
+    );
+    const away = selection(
+      "chi-hai-jin-2026-07-25-jin",
+      "Will Tianjin Jinmen Hu FC win on 2026-07-25?",
+    );
+
+    expect(sportsMoneylineSelectionSide(draw, participants)).toBe("draw");
+    expect(sportsMoneylineSelectionSide(home, participants)).toBe("home");
+    expect(sportsMoneylineSelectionSide(away, participants)).toBe("away");
+    const ordered = sportsMoneylineSelectionSlots(
+      [draw, home, away],
+      participants,
+      3,
+    );
+    expect(ordered.map((item) => item?.market.market_slug)).toEqual([
+      home.market.market_slug,
+      draw.market.market_slug,
+      away.market.market_slug,
+    ]);
+    expect(
+      ordered.map((item, index) =>
+        sportsMarketSelectionLabel(
+          "moneyline",
+          item!,
+          index,
+          ordered.length,
+          participants,
+          "Draw",
+        ),
+      ),
+    ).toEqual(["Qingdao Hainiu FC", "Draw", "Tianjin Jinmen Hu FC"]);
+    expect(
+      sportsMoneylineSelectionSide(
+        selection(
+          "chi-tie-qin-2026-07-25-tie",
+          "Will Liaoning Tieren FC win on 2026-07-25?",
+        ),
+        [
+          { name: "Liaoning Tieren FC", role: "home", abbreviation: "TIE" },
+          { name: "Qingdao Xihaian FC", role: "away", abbreviation: "QIN" },
+        ],
+      ),
+    ).toBe("home");
+  });
+
+  it("preserves fixed moneyline slots when selections are missing", () => {
+    const participants = [
+      { name: "Home FC", role: "home" },
+      { name: "Away FC", role: "away" },
+    ];
+    const selection = (market_slug: string, label: string) => ({
+      market: {
+        market_slug,
+        market_type: "moneyline",
+        label,
+        outcomes: [],
+      },
+      outcome: { outcome: "yes" as const, label: "Yes", price: 0.5 },
+    });
+    const home = selection("home-win", "Will Home FC win?");
+    const draw = selection("draw", "Will the match end in a draw?");
+    const away = selection("away-win", "Will Away FC win?");
+
+    expect(sportsMoneylineSlotCount("soccer", [home, away], participants)).toBe(
+      3,
+    );
+    expect(
+      sportsMoneylineSelectionSlots([home, away], participants, 3).map(
+        (item) => item?.market.market_slug,
+      ),
+    ).toEqual(["home-win", undefined, "away-win"]);
+    expect(
+      sportsMoneylineSelectionSlots([draw], participants, 3).map(
+        (item) => item?.market.market_slug,
+      ),
+    ).toEqual([undefined, "draw", undefined]);
+    expect(
+      sportsMoneylineSelectionSlots([away], participants, 2).map(
+        (item) => item?.market.market_slug,
+      ),
+    ).toEqual([undefined, "away-win"]);
   });
 
   it("colors only home and away moneyline selections", () => {
