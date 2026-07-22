@@ -10,6 +10,7 @@ import {
   findActiveMatchGroupIndex,
   matchesForToday,
   resolvePrimarySportsMarkets,
+  sportsMarketSelections,
   sportsOddsAnimationVariant,
   SportsMatchGroupHeading,
   SportsShell,
@@ -113,6 +114,25 @@ describe("SportsShell taxonomy labels", () => {
       spread: [spread],
       total: [total],
     });
+  });
+
+  it("limits desktop market columns to their fixed slot counts", () => {
+    const outcomes = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        outcome: (index % 2 === 0 ? "yes" : "no") as "yes" | "no",
+        label: `Outcome ${index}`,
+        price: 0.5,
+      }));
+    const market = {
+      market_slug: "market",
+      market_type: "market",
+      label: "Market",
+      outcomes: outcomes(4),
+    };
+
+    expect(sportsMarketSelections("moneyline", [market])).toHaveLength(3);
+    expect(sportsMarketSelections("spread", [market])).toHaveLength(2);
+    expect(sportsMarketSelections("total", [market])).toHaveLength(2);
   });
 
   it("limits the today tab to the current local calendar day", () => {

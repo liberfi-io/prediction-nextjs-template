@@ -1335,20 +1335,21 @@ export function resolvePrimarySportsMarkets(
   };
 }
 
-function sportsMarketSelections(
+/** Returns the selections that fit the fixed desktop market-column slots. */
+export function sportsMarketSelections(
   category: keyof SportsPrimaryMarkets,
   markets: SportsMarket[],
 ): Array<{ market: SportsMarket; outcome: SportsMarketOutcome }> {
-  if (markets.length === 1) {
-    return (markets[0].outcomes ?? []).map((outcome) => ({
-      market: markets[0],
-      outcome,
-    }));
-  }
-  const selections = markets.flatMap((market) => {
-    const outcome = market.outcomes?.[0];
-    return outcome ? [{ market, outcome }] : [];
-  });
+  const selections =
+    markets.length === 1
+      ? (markets[0].outcomes ?? []).map((outcome) => ({
+          market: markets[0],
+          outcome,
+        }))
+      : markets.flatMap((market) => {
+          const outcome = market.outcomes?.[0];
+          return outcome ? [{ market, outcome }] : [];
+        });
   return selections.slice(0, category === "moneyline" ? 3 : 2);
 }
 
@@ -1420,8 +1421,13 @@ function SportsMarketColumn({
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
 }) {
   const selections = sportsMarketSelections(category, markets);
+  const slotCount = category === "moneyline" ? 3 : 2;
+  const growButtons = category !== "moneyline";
   return (
-    <div className="flex w-[128px] flex-col gap-2">
+    <div
+      data-sports-market-column={category}
+      className="flex h-[118px] w-[128px] flex-col gap-2"
+    >
       {selections.map(({ market, outcome }) => (
         <SportsOddsButton
           key={`${market.market_slug}:${outcome.outcome}`}
@@ -1429,18 +1435,22 @@ function SportsMarketColumn({
           price={sportsOutcomePrice(outcome)}
           format={format}
           variant={sportsOddsAnimationVariant(category)}
+          grow={growButtons}
           onSelect={() => onSelect(market, outcome.outcome)}
         />
       ))}
-      {selections.length === 0 &&
-        Array.from({ length: 2 }).map((_, index) => (
-          <SportsOddsButton
-            key={`${category}:placeholder:${index}`}
-            label="-"
-            format={format}
-            onSelect={() => undefined}
-          />
-        ))}
+      {selections.length < slotCount &&
+        Array.from({ length: slotCount - selections.length }).map(
+          (_, index) => (
+            <SportsOddsButton
+              key={`${category}:placeholder:${index}`}
+              label="-"
+              format={format}
+              grow={growButtons}
+              onSelect={() => undefined}
+            />
+          ),
+        )}
     </div>
   );
 }
@@ -1450,12 +1460,14 @@ function SportsOddsButton({
   price,
   format,
   variant = "fade",
+  grow = false,
   onSelect,
 }: {
   label: string;
   price?: number;
   format: OddsFormat;
   variant?: OddsNumberVariant;
+  grow?: boolean;
   onSelect: () => void;
 }) {
   return (
@@ -1466,7 +1478,11 @@ function SportsOddsButton({
         event.stopPropagation();
         onSelect();
       }}
-      className="flex h-[34px] w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_#1f1f23] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_#1f1f23] disabled:cursor-not-allowed disabled:opacity-55"
+      data-grow={grow || undefined}
+      className={cn(
+        "flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_#1f1f23] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_#1f1f23] disabled:cursor-not-allowed disabled:opacity-55",
+        grow ? "min-h-[34px] flex-1" : "h-[34px]",
+      )}
     >
       <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide opacity-75">
         {label}
