@@ -11,6 +11,7 @@ import {
   matchesForToday,
   resolvePrimarySportsMarkets,
   sportsMarketSelections,
+  sportsMarketSelectionColor,
   sportsOddsAnimationVariant,
   SportsMatchGroupHeading,
   SportsShell,
@@ -135,6 +136,86 @@ describe("SportsShell taxonomy labels", () => {
     expect(sportsMarketSelections("total", [market])).toHaveLength(2);
   });
 
+  it("colors only home and away moneyline selections", () => {
+    const participants = [
+      { name: "Home", role: "home", color: "#123456" },
+      { name: "Away", role: "away", abbreviation: "AW", color: "#abcdef" },
+    ];
+    const selection = (label: string) => ({
+      market: {
+        market_slug: label.toLowerCase().replaceAll(" ", "-"),
+        market_type: "moneyline",
+        label,
+        outcomes: [],
+      },
+      outcome: { outcome: "yes" as const, label: "Yes", price: 0.5 },
+    });
+
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
+        selection("Home to win"),
+        2,
+        3,
+        participants,
+      ),
+    ).toBe("#123456");
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
+        selection("Draw"),
+        0,
+        3,
+        participants,
+      ),
+    ).toBeUndefined();
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
+        selection("Away to win"),
+        1,
+        3,
+        participants,
+      ),
+    ).toBe("#abcdef");
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
+        selection("Yes"),
+        1,
+        2,
+        participants,
+      ),
+    ).toBe("#abcdef");
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
+        selection("Yes"),
+        0,
+        1,
+        participants,
+      ),
+    ).toBeUndefined();
+    expect(
+      sportsMarketSelectionColor(
+        "spread",
+        selection("Home"),
+        0,
+        2,
+        participants,
+      ),
+    ).toBeUndefined();
+    expect(
+      sportsMarketSelectionColor(
+        "total",
+        selection("Away"),
+        1,
+        2,
+        participants,
+      ),
+    ).toBeUndefined();
+  });
+
   it("limits the today tab to the current local calendar day", () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-07-21T12:00:00+08:00"));
     try {
@@ -253,9 +334,9 @@ describe("SportsShell taxonomy labels", () => {
     expect(
       screen.getAllByText("extend.worldcup.marketCol.moneyline"),
     ).toHaveLength(1);
-    expect(screen.getAllByText("extend.worldcup.marketCol.spread")).toHaveLength(
-      1,
-    );
+    expect(
+      screen.getAllByText("extend.worldcup.marketCol.spread"),
+    ).toHaveLength(1);
     expect(screen.getAllByText("extend.worldcup.marketCol.total")).toHaveLength(
       1,
     );

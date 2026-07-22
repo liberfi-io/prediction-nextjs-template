@@ -27,42 +27,22 @@ import { SportsWidget } from "./SportsWidget";
 import { hasLiveVideos, LiveStreamPanel } from "./LiveStreamPanel";
 import { MarketNewsWidget } from "../detail/feeds/MarketNewsWidget";
 import { displayableBuyPrice } from "../../odds/displayable-price";
+import {
+  TEAM_BUTTON_NEUTRAL,
+  teamButtonColors,
+  type TeamButtonColors,
+} from "../../odds/team-button-colors";
 
-type PillColors = { bg: string; text: string; shadow: string };
+type PillColors = TeamButtonColors;
 type CardPanelTab = "live" | "center" | "overview" | "stats" | "lineup" | "news" | "comments";
 type WorldCupTranslate = (key: `extend.${string}`, options?: Record<string, unknown>) => string;
 
 // Neutral fill for non-moneyline buttons. Solid enough to read as an enabled
 // control (the old translucent zinc looked disabled).
-const PILL_NEUTRAL: PillColors = {
-  bg: "#3f3f46",
-  text: "#e4e4e7",
-  shadow: darken("#3f3f46", 0.48),
-};
+const PILL_NEUTRAL = TEAM_BUTTON_NEUTRAL;
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
-  const n = parseInt(full, 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-/** Pick black/white text for legibility on a solid colour fill. */
-function textOn(hex: string): string {
-  const [r, g, b] = hexToRgb(hex);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.62 ? "#0a0a0b" : "#ffffff";
-}
-
-/** Darker shade of a colour, used as the button's drop-shadow "base". */
-function darken(hex: string, factor = 0.5): string {
-  const [r, g, b] = hexToRgb(hex);
-  return `rgb(${Math.round(r * factor)},${Math.round(g * factor)},${Math.round(b * factor)})`;
-}
-
-/** Solid button palette derived from a team's theme colour. */
 function teamColors(hex: string): PillColors {
-  return { bg: hex, text: textOn(hex), shadow: darken(hex, 0.48) };
+  return teamButtonColors(hex) ?? PILL_NEUTRAL;
 }
 
 function teamName(t: WorldCupTranslate, team: WcTeam): string {

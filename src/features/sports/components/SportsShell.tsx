@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -54,6 +55,7 @@ import {
   OddsNumber,
   type OddsNumberVariant,
 } from "../../worldcup/odds/OddsNumber";
+import { teamButtonColors } from "../../worldcup/odds/team-button-colors";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
 import { convertPrice } from "../../worldcup/odds/convert-price";
 import type { OddsFormat } from "../../worldcup/odds/convert-price";
@@ -200,19 +202,14 @@ export function SportsShell({
     setPendingTaxonomyNode(node);
     return true;
   };
-  const handleSpecialViewNavigate = (
-    event: MouseEvent<HTMLAnchorElement>,
-  ) => {
+  const handleSpecialViewNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
     if (isPlainSameWindowNavigation(event)) setPendingTaxonomyNode(null);
   };
   const activeTopLevelSlug = findActiveTopLevelSlug(
     taxonomyNodes,
     effectiveFilters,
   );
-  const activeTaxonomyNode = findTaxonomyNode(
-    taxonomyNodes,
-    effectiveFilters,
-  );
+  const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, effectiveFilters);
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
   const mobileTaxonomyScrollTarget = isSpecialViewActive(
     effectiveFilters,
@@ -347,9 +344,7 @@ export function SportsShell({
                     <Link
                       key={node.slug}
                       href={taxonomyHref(section, node)}
-                      onClick={(event) =>
-                        handleTaxonomyNavigate(event, node)
-                      }
+                      onClick={(event) => handleTaxonomyNavigate(event, node)}
                       data-taxonomy-scroll-target={node.slug}
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
@@ -463,9 +458,7 @@ export function SportsShell({
                     <SportsMatchList
                       matches={matches.items}
                       todayOnly={false}
-                      hasMore={
-                        matches.has_more && Boolean(matches.next_cursor)
-                      }
+                      hasMore={matches.has_more && Boolean(matches.next_cursor)}
                       loading={loadingResource === "matches"}
                       onLoadMore={() => void loadMore("matches")}
                       autoLoadMore={false}
@@ -1036,8 +1029,7 @@ function SportsMatchList({
     [i18n.language, visibleMatches],
   );
   const groupIndexes = useMemo(
-    () =>
-      rows.flatMap((row, index) => (row.kind === "heading" ? [index] : [])),
+    () => rows.flatMap((row, index) => (row.kind === "heading" ? [index] : [])),
     [rows],
   );
   const activeGroupIndexRef = useRef<number | undefined>(groupIndexes[0]);
@@ -1192,6 +1184,10 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     () => resolvePrimarySportsMarkets(match.inline_markets),
     [match.inline_markets],
   );
+  const moneylineSelections = sportsMarketSelections(
+    "moneyline",
+    primaryMarkets.moneyline,
+  );
   const open = () => router.push(href);
   const openMarket = (market: SportsInlineMarket, outcome: string) => {
     const params = new URLSearchParams({ market: market.market_slug, outcome });
@@ -1241,13 +1237,14 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
           {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
-          <SportsMarketColumn
-            key={category}
-            category={category}
+            <SportsMarketColumn
+              key={category}
+              category={category}
               markets={primaryMarkets[category]}
-            format={format}
-            onSelect={openMarket}
-          />
+              participants={participants}
+              format={format}
+              onSelect={openMarket}
+            />
           ))}
         </div>
       </div>
@@ -1267,26 +1264,28 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           <div
             className={cn(
               "grid gap-2",
-              sportsMarketSelections("moneyline", primaryMarkets.moneyline)
-                .length >= 3
-                ? "grid-cols-3"
-                : "grid-cols-2",
+              moneylineSelections.length >= 3 ? "grid-cols-3" : "grid-cols-2",
             )}
           >
-            {sportsMarketSelections("moneyline", primaryMarkets.moneyline)
-              .slice(0, 3)
-              .map((selection) => (
-                <SportsOddsButton
-                  key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
-                  label={selection.outcome.label}
-                  price={sportsOutcomePrice(selection.outcome)}
-                  format={format}
-                  variant="fade"
-                  onSelect={() =>
-                    openMarket(selection.market, selection.outcome.outcome)
-                  }
-                />
-              ))}
+            {moneylineSelections.map((selection, index) => (
+              <SportsOddsButton
+                key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
+                label={selection.outcome.label}
+                price={sportsOutcomePrice(selection.outcome)}
+                format={format}
+                variant="fade"
+                teamColor={sportsMarketSelectionColor(
+                  "moneyline",
+                  selection,
+                  index,
+                  moneylineSelections.length,
+                  participants,
+                )}
+                onSelect={() =>
+                  openMarket(selection.market, selection.outcome.outcome)
+                }
+              />
+            ))}
           </div>
         ) : (
           <h2 className="truncate text-center text-sm font-semibold text-zinc-100">
@@ -1335,11 +1334,17 @@ export function resolvePrimarySportsMarkets(
   };
 }
 
+/** A market and outcome rendered as one compact odds-button selection. */
+export type SportsMarketSelection = {
+  market: SportsMarket;
+  outcome: SportsMarketOutcome;
+};
+
 /** Returns the selections that fit the fixed desktop market-column slots. */
 export function sportsMarketSelections(
   category: keyof SportsPrimaryMarkets,
   markets: SportsMarket[],
-): Array<{ market: SportsMarket; outcome: SportsMarketOutcome }> {
+): SportsMarketSelection[] {
   const selections =
     markets.length === 1
       ? (markets[0].outcomes ?? []).map((outcome) => ({
@@ -1351,6 +1356,56 @@ export function sportsMarketSelections(
           return outcome ? [{ market, outcome }] : [];
         });
   return selections.slice(0, category === "moneyline" ? 3 : 2);
+}
+
+/** Resolves the team color for a home/away moneyline selection. */
+export function sportsMarketSelectionColor(
+  category: keyof SportsPrimaryMarkets,
+  selection: SportsMarketSelection,
+  selectionIndex: number,
+  selectionCount: number,
+  participants: SportsParticipant[],
+): string | undefined {
+  if (category !== "moneyline") return undefined;
+  const home =
+    participants.find((participant) => participant.role === "home") ??
+    participants[0];
+  const away =
+    participants.find((participant) => participant.role === "away") ??
+    participants[1];
+  const outcomeText = selection.outcome.label.toLowerCase();
+  const marketText = [selection.market.market_slug, selection.market.label]
+    .join(" ")
+    .toLowerCase();
+  if (/\b(?:draw|tie)\b/i.test(`${outcomeText} ${marketText}`))
+    return undefined;
+  const matchesParticipant = (
+    text: string,
+    participant?: SportsParticipant,
+  ) => {
+    const compactText = text.replace(/[^\p{L}\p{N}]/gu, "");
+    const tokens = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    return [participant?.name, participant?.slug, participant?.abbreviation]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => {
+        const normalized = value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+        if (value === participant?.abbreviation) {
+          return tokens.includes(normalized);
+        }
+        return normalized.length >= 2 && compactText.includes(normalized);
+      });
+  };
+  for (const text of [outcomeText, marketText]) {
+    const matchesHome = matchesParticipant(text, home);
+    const matchesAway = matchesParticipant(text, away);
+    if (matchesHome !== matchesAway) {
+      return matchesHome ? home?.color : away?.color;
+    }
+  }
+  if (selectionCount === 1) return undefined;
+  if (selectionIndex === 0) return home?.color;
+  const awayIndex = selectionCount === 2 ? 1 : 2;
+  return selectionIndex === awayIndex ? away?.color : undefined;
 }
 
 function sportsOutcomePrice(outcome: SportsMarketOutcome): number | undefined {
@@ -1412,11 +1467,13 @@ function SportsParticipantAvatar({
 function SportsMarketColumn({
   category,
   markets,
+  participants,
   format,
   onSelect,
 }: {
   category: keyof SportsPrimaryMarkets;
   markets: SportsMarket[];
+  participants: SportsParticipant[];
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
 }) {
@@ -1428,7 +1485,7 @@ function SportsMarketColumn({
       data-sports-market-column={category}
       className="flex h-[118px] w-[128px] flex-col gap-2"
     >
-      {selections.map(({ market, outcome }) => (
+      {selections.map(({ market, outcome }, index) => (
         <SportsOddsButton
           key={`${market.market_slug}:${outcome.outcome}`}
           label={outcome.label}
@@ -1436,6 +1493,13 @@ function SportsMarketColumn({
           format={format}
           variant={sportsOddsAnimationVariant(category)}
           grow={growButtons}
+          teamColor={sportsMarketSelectionColor(
+            category,
+            { market, outcome },
+            index,
+            selections.length,
+            participants,
+          )}
           onSelect={() => onSelect(market, outcome.outcome)}
         />
       ))}
@@ -1461,6 +1525,7 @@ function SportsOddsButton({
   format,
   variant = "fade",
   grow = false,
+  teamColor,
   onSelect,
 }: {
   label: string;
@@ -1468,8 +1533,10 @@ function SportsOddsButton({
   format: OddsFormat;
   variant?: OddsNumberVariant;
   grow?: boolean;
+  teamColor?: string;
   onSelect: () => void;
 }) {
+  const colors = teamButtonColors(teamColor);
   return (
     <button
       type="button"
@@ -1479,10 +1546,19 @@ function SportsOddsButton({
         onSelect();
       }}
       data-grow={grow || undefined}
+      data-team-color={colors?.bg}
       className={cn(
-        "flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_#1f1f23] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_#1f1f23] disabled:cursor-not-allowed disabled:opacity-55",
+        "flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_var(--sports-shadow-color)] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_var(--sports-shadow-color)] disabled:cursor-not-allowed disabled:opacity-55",
         grow ? "min-h-[34px] flex-1" : "h-[34px]",
       )}
+      style={
+        {
+          "--sports-shadow-color": colors?.shadow ?? "#1f1f23",
+          ...(colors
+            ? { backgroundColor: colors.bg, color: colors.text }
+            : undefined),
+        } as CSSProperties
+      }
     >
       <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide opacity-75">
         {label}

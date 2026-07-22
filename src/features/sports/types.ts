@@ -33,6 +33,7 @@ export interface SportsParticipant {
   slug?: string;
   logo_url?: string;
   abbreviation?: string;
+  color?: string;
 }
 
 export interface SportsLiveState {
