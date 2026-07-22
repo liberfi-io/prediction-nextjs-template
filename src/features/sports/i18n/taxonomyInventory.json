@@ -630,6 +630,34 @@
       "slug": "volleyball",
       "label": "Volleyball",
       "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "serie-a",
+      "label": "Serie A",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ucl",
+      "label": "UCL",
+      "parent_slug": "soccer"
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "rugby",
+      "label": "Rugby",
+      "parent_slug": null
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "table-tennis",
+      "label": "Table Tennis",
+      "parent_slug": null
     }
   ]
 }

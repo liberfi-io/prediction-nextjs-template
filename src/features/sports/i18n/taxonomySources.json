@@ -19,92 +19,92 @@
   },
   "statistics": {
     "zh-Hant": {
-      "inventory_total": 90,
-      "source_visible": 88,
-      "adopted": 61,
+      "inventory_total": 94,
+      "source_visible": 92,
+      "adopted": 65,
       "conflict": 0,
       "english_fallback": 29,
       "source_unavailable": 0
     },
     "ja": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 88,
       "adopted": 49,
       "conflict": 0,
       "english_fallback": 41,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "ko": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 72,
       "adopted": 48,
       "conflict": 0,
       "english_fallback": 42,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "th": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 73,
       "adopted": 12,
       "conflict": 0,
       "english_fallback": 78,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "vi": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 73,
       "adopted": 8,
       "conflict": 0,
       "english_fallback": 82,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "fr": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 87,
       "adopted": 17,
       "conflict": 0,
       "english_fallback": 73,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "de": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 87,
       "adopted": 17,
       "conflict": 0,
       "english_fallback": 73,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "it": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 72,
       "adopted": 4,
       "conflict": 0,
       "english_fallback": 86,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "es": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 88,
       "adopted": 21,
       "conflict": 0,
       "english_fallback": 69,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "pt": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 73,
       "adopted": 10,
       "conflict": 0,
       "english_fallback": 80,
-      "source_unavailable": 0
+      "source_unavailable": 4
     },
     "ru": {
-      "inventory_total": 90,
+      "inventory_total": 94,
       "source_visible": 88,
       "adopted": 42,
       "conflict": 0,
       "english_fallback": 48,
-      "source_unavailable": 0
+      "source_unavailable": 4
     }
   },
   "nodes": [
@@ -7513,7 +7513,7 @@
           "localized_label": "賽車",
           "source": "product",
           "source_url": null,
-          "source_note": "User-approved Traditional Chinese product terminology.",
+          "source_note": "User-approved Chinese product terminology.",
           "observed_at": "2026-07-20",
           "status": "adopted"
         },
@@ -7690,7 +7690,7 @@
           "localized_label": "撲克",
           "source": "product",
           "source_url": null,
-          "source_note": "User-approved Traditional Chinese product terminology.",
+          "source_note": "User-approved Chinese product terminology.",
           "observed_at": "2026-07-20",
           "status": "adopted"
         },
@@ -8027,6 +8027,362 @@
           "source_url": "https://polymarket.com/ru/sports/live",
           "observed_at": "2026-07-20",
           "status": "adopted"
+        }
+      }
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "serie-a",
+      "preferred_source": "product",
+      "source_slug": "serie-a",
+      "source_path": null,
+      "alignment_evidence": "Live taxonomy slug matched to user-approved Chinese product terminology.",
+      "languages": {
+        "zh-Hant": {
+          "localized_label": "意甲",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Chinese product terminology.",
+          "observed_at": "2026-07-23",
+          "status": "adopted"
+        },
+        "ja": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ja/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ko": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ko/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "th": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/th/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "vi": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/vi/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "fr": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/fr/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "de": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/de/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "it": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/it/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "es": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/es/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "pt": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/pt/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ru": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ru/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        }
+      }
+    },
+    {
+      "section": "sports",
+      "node_type": "league",
+      "slug": "ucl",
+      "preferred_source": "product",
+      "source_slug": "ucl",
+      "source_path": null,
+      "alignment_evidence": "Live taxonomy slug matched to user-approved Chinese product terminology.",
+      "languages": {
+        "zh-Hant": {
+          "localized_label": "欧冠",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Chinese product terminology.",
+          "observed_at": "2026-07-23",
+          "status": "adopted"
+        },
+        "ja": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ja/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ko": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ko/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "th": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/th/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "vi": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/vi/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "fr": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/fr/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "de": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/de/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "it": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/it/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "es": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/es/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "pt": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/pt/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ru": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ru/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        }
+      }
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "rugby",
+      "preferred_source": "product",
+      "source_slug": "rugby",
+      "source_path": null,
+      "alignment_evidence": "Live taxonomy slug matched to user-approved Chinese product terminology.",
+      "languages": {
+        "zh-Hant": {
+          "localized_label": "橄榄球",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Chinese product terminology.",
+          "observed_at": "2026-07-23",
+          "status": "adopted"
+        },
+        "ja": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ja/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ko": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ko/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "th": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/th/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "vi": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/vi/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "fr": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/fr/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "de": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/de/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "it": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/it/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "es": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/es/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "pt": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/pt/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ru": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ru/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        }
+      }
+    },
+    {
+      "section": "sports",
+      "node_type": "sport",
+      "slug": "table-tennis",
+      "preferred_source": "product",
+      "source_slug": "table-tennis",
+      "source_path": null,
+      "alignment_evidence": "Live taxonomy slug matched to user-approved Chinese product terminology.",
+      "languages": {
+        "zh-Hant": {
+          "localized_label": "乒乓球",
+          "source": "product",
+          "source_url": null,
+          "source_note": "User-approved Chinese product terminology.",
+          "observed_at": "2026-07-23",
+          "status": "adopted"
+        },
+        "ja": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ja/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ko": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ko/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "th": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/th/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "vi": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/vi/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "fr": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/fr/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "de": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/de/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "it": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/it/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "es": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/es/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "pt": {
+          "localized_label": null,
+          "source": "polymarket",
+          "source_url": "https://polymarket.com/pt/sports/live",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
+        },
+        "ru": {
+          "localized_label": null,
+          "source": "future",
+          "source_url": "https://future.news/ru/sports",
+          "observed_at": "2026-07-23",
+          "status": "source-unavailable"
         }
       }
     }

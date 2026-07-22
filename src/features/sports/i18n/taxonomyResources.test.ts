@@ -86,9 +86,13 @@ describe("taxonomy i18n resources", () => {
   it("includes the audited alias translations and approved Chinese terms", () => {
     const expected = {
       "zh-Hant": {
+        "sports:league:serie-a": "意甲",
+        "sports:league:ucl": "欧冠",
         "sports:sport:volleyball": "排球",
         "sports:sport:motorsports": "賽車",
         "sports:sport:poker": "撲克",
+        "sports:sport:rugby": "橄榄球",
+        "sports:sport:table-tennis": "乒乓球",
       },
       ja: { "sports:sport:volleyball": "バレーボール" },
       th: {
@@ -143,7 +147,7 @@ describe("taxonomy i18n resources", () => {
     }
   });
 
-  it("limits product-approved terminology to the two explicit Chinese terms", () => {
+  it("limits product-approved terminology to the explicit Chinese terms", () => {
     const productEntries = sources.nodes.flatMap((node) =>
       Object.entries(node.languages)
         .filter(([, evidence]) => evidence.source === "product")
@@ -159,6 +163,13 @@ describe("taxonomy i18n resources", () => {
         status: "adopted",
       },
       { identity: "zh-Hant:sports:sport:poker", status: "adopted" },
+      { identity: "zh-Hant:sports:league:serie-a", status: "adopted" },
+      { identity: "zh-Hant:sports:league:ucl", status: "adopted" },
+      { identity: "zh-Hant:sports:sport:rugby", status: "adopted" },
+      {
+        identity: "zh-Hant:sports:sport:table-tennis",
+        status: "adopted",
+      },
     ]);
   });
 
@@ -197,7 +208,7 @@ describe("taxonomy i18n resources", () => {
         if (entry.source === "product") {
           expect(entry.source_url).toBeNull();
           expect("source_note" in entry ? entry.source_note : undefined).toBe(
-            "User-approved Traditional Chinese product terminology.",
+            "User-approved Chinese product terminology.",
           );
         } else {
           expect(entry.source_url).toMatch(
