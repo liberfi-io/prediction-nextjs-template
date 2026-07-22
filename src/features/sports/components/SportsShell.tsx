@@ -1741,7 +1741,7 @@ function SportsMarketColumn({
           moneylineSlotCount,
         )
       : Array.from({ length: slotCount }, (_, index) => rawSelections[index]);
-  const growButtons = category !== "moneyline";
+  const growButtons = category !== "moneyline" || slotCount === 2;
   return (
     <div
       data-sports-market-column={category}
