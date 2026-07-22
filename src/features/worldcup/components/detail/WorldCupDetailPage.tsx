@@ -254,8 +254,8 @@ export function WorldCupDetailPage({
   const liveState = useWorldcupMatchLive(
     matchOverride ? undefined : found?.matchId,
   );
-  // Force every event avatar on this page — the header and the buy/sell trade
-  // panel (which derives its icon from event.image_url) — to the FIFA logo.
+  // Native World Cup events use the FIFA avatar across the header and trade
+  // panel. External sports adapters retain their team imagery.
   const event = useMemo(
     () =>
       eventOverride ??
@@ -738,25 +738,26 @@ export function WorldCupDetailPage({
             </MarketSwitcherFrame>
           )}
 
-          {showMatchCenter && (mobileTab === "center" ||
-            mobileTab === "live" ||
-            mobileTab === "overview" ||
-            mobileTab === "stats" ||
-            mobileTab === "lineup" ||
-            mobileTab === "news" ||
-            mobileTab === "comments") && (
-            <MatchCenterTabs
-              match={match ?? null}
-              liveVideos={liveVideos}
-              kickoffMs={match?.kickoffMs}
-              activeTab={mobileTab}
-              hideTabs
-              className="w-full"
-              contentClassName="h-140 min-h-0 p-2"
-              liveContentClassName="p-2"
-              centerWidgetClassName="h-140 min-h-0"
-            />
-          )}
+          {showMatchCenter &&
+            (mobileTab === "center" ||
+              mobileTab === "live" ||
+              mobileTab === "overview" ||
+              mobileTab === "stats" ||
+              mobileTab === "lineup" ||
+              mobileTab === "news" ||
+              mobileTab === "comments") && (
+              <MatchCenterTabs
+                match={match ?? null}
+                liveVideos={liveVideos}
+                kickoffMs={match?.kickoffMs}
+                activeTab={mobileTab}
+                hideTabs
+                className="w-full"
+                contentClassName="h-140 min-h-0 p-2"
+                liveContentClassName="p-2"
+                centerWidgetClassName="h-140 min-h-0"
+              />
+            )}
 
           {(mobileTab === "positions" ||
             mobileTab === "orders" ||

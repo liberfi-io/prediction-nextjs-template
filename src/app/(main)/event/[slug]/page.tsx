@@ -242,6 +242,9 @@ export default async function Page({ params, searchParams }: PageProps) {
     return (
       <SportsMatchDetailSkeleton
         matchGroupSlug={sportsRoute.match_group_slug}
+        section={sportsRoute.section}
+        initialMarketSlug={market}
+        initialOutcome={normalizeSportsOutcome(outcome)}
       />
     );
   }

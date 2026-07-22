@@ -176,6 +176,8 @@ function matchDetailEnabled(
   flags: SportsFeatureFlags,
   section: SportsSection,
 ): boolean {
-  if (!flags.sports_match_detail_enabled) return false;
-  return section === "esports" ? flags.esports_enabled : flags.sports_enabled;
+  if (section === "esports") {
+    return flags.esports_enabled && flags.esports_match_detail_cs2_enabled;
+  }
+  return flags.sports_enabled && flags.sports_match_detail_enabled;
 }

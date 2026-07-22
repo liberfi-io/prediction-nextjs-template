@@ -931,7 +931,28 @@ export function categorizeMarkets(
     hint,
   );
 
-  const other: MarketGroup[] = [];
+  const categorizedGroups = [
+    ...gameLines,
+    ...exactScore,
+    ...halftime,
+    ...secondHalf,
+    ...corners,
+    ...goals,
+    ...assists,
+    ...shots,
+    ...saves,
+  ];
+  const categorizedSlugs = new Set(
+    categorizedGroups.flatMap((group) =>
+      group.options.map((option) => option.market.slug),
+    ),
+  );
+  const uncategorizedMarkets = markets.filter(
+    (market) => !categorizedSlugs.has(market.slug),
+  );
+  const other = uncategorizedMarkets.length
+    ? [buildList("other", "other", uncategorizedMarkets, "other", hint)]
+    : [];
 
   return {
     gameLines,

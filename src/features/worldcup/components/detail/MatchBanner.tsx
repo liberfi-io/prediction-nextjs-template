@@ -69,7 +69,8 @@ export function MatchBanner({ match }: { match: WcMatch }) {
   const awayProb = Math.round(match.moneyline.away.price * 100);
   const homeScore = match.liveScore?.home ?? 0;
   const awayScore = match.liveScore?.away ?? 0;
-  const showScore = match.status === "live" || match.status === "final";
+  const showLiveState = match.status === "live" || match.status === "final";
+  const showScore = showLiveState && Boolean(match.liveScore);
   const livePeriod = formatLivePeriodLabel(match, t);
   const teamName = (team: WcMatch["home"]) =>
     t("extend.worldcup.teamName." + team.code.toLowerCase(), {
@@ -89,7 +90,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
           {teamName(match.home)}
         </div>
-        {!showScore && (
+        {!showLiveState && (
           <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
             {homeProb}%
           </div>
@@ -106,9 +107,15 @@ export function MatchBanner({ match }: { match: WcMatch }) {
             <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
               {match.status === "final"
                 ? t("extend.worldcup.fullTime")
-                : livePeriod ?? t("extend.worldcup.live")}
+                : (livePeriod ?? t("extend.worldcup.live"))}
             </span>
           </>
+        ) : showLiveState ? (
+          <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
+            {match.status === "final"
+              ? t("extend.worldcup.fullTime")
+              : (livePeriod ?? t("extend.worldcup.live"))}
+          </span>
         ) : view.started ? (
           <span className="text-xs font-semibold uppercase tracking-wide text-[#f76816]">
             {t("extend.worldcup.detail.banner.started")}
@@ -119,14 +126,28 @@ export function MatchBanner({ match }: { match: WcMatch }) {
               {t("extend.worldcup.detail.banner.beginsIn")}
             </span>
             <div className="flex items-start gap-1.5">
-              <CountdownCell value={pad(view.days)} label={t("extend.worldcup.detail.banner.days")} />
-              <CountdownCell value={pad(view.hours)} label={t("extend.worldcup.detail.banner.hours")} />
-              <CountdownCell value={pad(view.mins)} label={t("extend.worldcup.detail.banner.mins")} />
-              <CountdownCell value={pad(view.secs)} label={t("extend.worldcup.detail.banner.secs")} />
+              <CountdownCell
+                value={pad(view.days)}
+                label={t("extend.worldcup.detail.banner.days")}
+              />
+              <CountdownCell
+                value={pad(view.hours)}
+                label={t("extend.worldcup.detail.banner.hours")}
+              />
+              <CountdownCell
+                value={pad(view.mins)}
+                label={t("extend.worldcup.detail.banner.mins")}
+              />
+              <CountdownCell
+                value={pad(view.secs)}
+                label={t("extend.worldcup.detail.banner.secs")}
+              />
             </div>
           </>
         )}
-        <span className="text-[10px] tabular-nums text-zinc-500">{kickoff}</span>
+        <span className="text-[10px] tabular-nums text-zinc-500">
+          {kickoff}
+        </span>
       </div>
 
       {/* Away — flag / name / win rate stacked vertically */}
@@ -135,7 +156,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
           {teamName(match.away)}
         </div>
-        {!showScore && (
+        {!showLiveState && (
           <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
             {awayProb}%
           </div>

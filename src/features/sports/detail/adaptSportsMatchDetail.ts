@@ -1,7 +1,4 @@
-import type {
-  PredictEvent,
-  PredictMarket,
-} from "@liberfi.io/react-predict";
+import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
 import type { WcMatch, WcOutcome, WcTeam } from "src/features/worldcup/types";
 import type {
   SportsLiveState,
@@ -33,7 +30,11 @@ export function adaptSportsMatchDetail(
   const eventStatus = status === "final" ? "closed" : "open";
   const volume = sumFinite(markets.map((market) => market.volume));
   const liquidity = sumFinite(markets.map((market) => market.liquidity));
-  const moneyline = resolveMoneyline(markets, participants.home, participants.away);
+  const moneyline = resolveMoneyline(
+    markets,
+    participants.home,
+    participants.away,
+  );
 
   const event: PredictEvent = {
     slug: detail.match_group_slug,
@@ -41,7 +42,6 @@ export function adaptSportsMatchDetail(
     image_url: participants.home.flag || participants.away.flag || undefined,
     status: eventStatus,
     start_at: detail.start_time,
-    end_at: detail.start_time,
     volume,
     liquidity,
     markets,
@@ -56,7 +56,8 @@ export function adaptSportsMatchDetail(
 
   const match: WcMatch = {
     matchId: detail.match_group_slug,
-    stage: detail.league_slug ?? detail.sport_slug ?? detail.game_slug ?? "sports",
+    stage:
+      detail.league_slug ?? detail.sport_slug ?? detail.game_slug ?? "sports",
     kickoffMs: Number.isFinite(kickoffMs) ? kickoffMs : 0,
     status,
     home: participants.home,
@@ -64,6 +65,8 @@ export function adaptSportsMatchDetail(
     slug: detail.match_group_slug,
     volume,
     marketCount: detail.market_count ?? markets.length,
+    liveScore: resolveLiveScore(liveState),
+    livePeriod: resolveLivePeriod(liveState),
     moneyline,
     spread: {
       line: 0,
@@ -95,7 +98,6 @@ function adaptMarket(
     question: market.label,
     status: isOpen ? "open" : market.closed ? "closed" : "pending",
     start_at: detail.start_time,
-    end_at: detail.start_time,
     outcomes: (market.outcomes ?? []).map((outcome) => ({
       label: outcome.label,
       price: outcome.price ?? outcome.last_trade_price,
@@ -116,13 +118,60 @@ function adaptMarket(
   };
 }
 
+function resolveLiveScore(
+  liveState: SportsLiveState | undefined,
+): { home: number; away: number } | undefined {
+  const value = liveState?.score ?? liveState?.score_state;
+  if (Array.isArray(value) && value.length >= 2) {
+    const home = finiteScore(value[0]);
+    const away = finiteScore(value[1]);
+    return home === undefined || away === undefined
+      ? undefined
+      : { home, away };
+  }
+  if (!value || typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const home = finiteScore(
+    record.home ?? record.home_score ?? nestedScore(record.home_team),
+  );
+  const away = finiteScore(
+    record.away ?? record.away_score ?? nestedScore(record.away_team),
+  );
+  return home === undefined || away === undefined ? undefined : { home, away };
+}
+
+function nestedScore(value: unknown): unknown {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  return record.score ?? record.value;
+}
+
+function finiteScore(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function resolveLivePeriod(
+  liveState: SportsLiveState | undefined,
+): string | undefined {
+  const parts = [liveState?.status_text, liveState?.period, liveState?.clock]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .filter((value, index, values) => values.indexOf(value) === index);
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
 function resolveParticipants(participants: SportsParticipant[] | undefined): {
   home: WcTeam;
   away: WcTeam;
 } {
   const values = participants ?? [];
-  const home = values.find((participant) => participant.role === "home") ?? values[0];
-  const away = values.find((participant) => participant.role === "away") ?? values[1];
+  const home =
+    values.find((participant) => participant.role === "home") ?? values[0];
+  const away =
+    values.find((participant) => participant.role === "away") ?? values[1];
   return {
     home: adaptTeam(home, "HOME"),
     away: adaptTeam(away, "AWAY"),
@@ -154,7 +203,9 @@ function resolveMoneyline(
       market.provider_meta?.["polymarket.sportsMarketType"] ===
         "soccer_match_winner",
   );
-  const draw = candidates.find((market) => /\b(draw|tie)\b/i.test(market.question));
+  const draw = candidates.find((market) =>
+    /\b(draw|tie)\b/i.test(market.question),
+  );
   const homeMarket = candidates.find(
     (market) => market !== draw && containsTeam(market.question, home),
   );

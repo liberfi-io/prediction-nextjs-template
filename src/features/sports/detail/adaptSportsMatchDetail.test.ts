@@ -28,9 +28,21 @@ const detail: SportsMatchDetail = {
       market_category: "main",
       label: "Main",
       markets: [
-        sportsMarket("chi-hai-jin-2026-07-25-hai", "Will Qingdao Hainiu FC win?", 0.35),
-        sportsMarket("chi-hai-jin-2026-07-25-draw", "Will the match end in a draw?", 0.295),
-        sportsMarket("chi-hai-jin-2026-07-25-jin", "Will Tianjin Jinmen Hu FC win?", 0.345),
+        sportsMarket(
+          "chi-hai-jin-2026-07-25-hai",
+          "Will Qingdao Hainiu FC win?",
+          0.35,
+        ),
+        sportsMarket(
+          "chi-hai-jin-2026-07-25-draw",
+          "Will the match end in a draw?",
+          0.295,
+        ),
+        sportsMarket(
+          "chi-hai-jin-2026-07-25-jin",
+          "Will Tianjin Jinmen Hu FC win?",
+          0.345,
+        ),
       ],
     },
   ],
@@ -80,10 +92,20 @@ describe("adaptSportsMatchDetail", () => {
       })),
     }));
 
-    const result = adaptSportsMatchDetail(detail, groups, { status: "live" });
+    const result = adaptSportsMatchDetail(detail, groups, {
+      status: "live",
+      status_text: "Second half",
+      period: "2H",
+      clock: "67:12",
+      score_state: { home: "2", away: 1 },
+    });
 
     expect(result.match.status).toBe("live");
+    expect(result.match.liveScore).toEqual({ home: 2, away: 1 });
+    expect(result.match.livePeriod).toBe("Second half · 2H · 67:12");
     expect(result.event.markets?.[0].outcomes[0].price).toBe(0.5);
+    expect(result.event.end_at).toBeUndefined();
+    expect(result.event.markets?.[0].end_at).toBeUndefined();
   });
 });
 

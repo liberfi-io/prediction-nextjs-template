@@ -78,6 +78,22 @@ describe("resolveSportsEventRoute", () => {
     });
   });
 
+  it("does not enable esports match detail through the sports flag", async () => {
+    const input = {
+      ...baseInput(),
+      fetchSportsRouting: jest.fn().mockResolvedValue({
+        route_type: "match",
+        slug: "navi-vitality",
+        section: "esports" as const,
+        match_group_slug: "navi-vitality",
+      }),
+    };
+
+    await expect(resolveSportsEventRoute(input)).resolves.toEqual({
+      kind: "not_found",
+    });
+  });
+
   it("merges canonical child redirects without legacy deep-link params", async () => {
     const input = {
       ...baseInput(),
