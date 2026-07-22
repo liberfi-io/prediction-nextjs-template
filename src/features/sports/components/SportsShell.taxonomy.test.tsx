@@ -95,7 +95,13 @@ describe("SportsShell taxonomy labels", () => {
   });
 
   it("selects the supported primary market columns for each sport", () => {
-    for (const sportSlug of ["tennis", "cricket", "pickleball", "lacrosse"]) {
+    for (const sportSlug of [
+      "tennis",
+      "cricket",
+      "pickleball",
+      "lacrosse",
+      "volleyball",
+    ]) {
       expect(sportsPrimaryMarketCategories(sportSlug)).toEqual(["moneyline"]);
     }
     expect(sportsPrimaryMarketCategories("combat")).toEqual([

@@ -82,6 +82,7 @@ const MONEYLINE_ONLY_SPORTS = new Set([
   "cricket",
   "pickleball",
   "lacrosse",
+  "volleyball",
 ]);
 const COMBAT_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
