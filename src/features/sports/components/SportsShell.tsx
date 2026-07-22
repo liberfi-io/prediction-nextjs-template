@@ -1210,7 +1210,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
       tabIndex={0}
       onClick={open}
       onKeyDown={(event) => event.key === "Enter" && open()}
-      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.6)] bg-[rgba(24,24,27,0.4)] transition-colors [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.8)]"
+      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.65)] bg-[rgba(24,24,27,0.4)] transition-[border-color,background-color,box-shadow] duration-300 ease-out [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.55)] hover:bg-[rgba(24,24,27,0.46)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] motion-reduce:transition-none"
     >
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
