@@ -46,10 +46,17 @@ import type {
   SportsTaxonomyNode,
 } from "../types";
 import { fetchNextSportsPage } from "../api/client";
+import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
+import {
+  formatSportsLiveDateRange,
+  matchesForDate,
+  sportsLiveDates,
+  SportsLiveFilters,
+} from "./SportsLiveFilters";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
 import { formatVolume } from "../../worldcup/components/util";
@@ -150,6 +157,14 @@ export function SportsShell({
     "matches" | "props" | null
   >(null);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
+  const [liveDateRangeStart] = useState(() => new Date());
+  const [selectedLiveDate, setSelectedLiveDate] = useState(
+    () => sportsLiveDates(new Date())[0] ?? new Date(),
+  );
+  const liveDates = useMemo(
+    () => sportsLiveDates(liveDateRangeStart),
+    [liveDateRangeStart],
+  );
 
   useEffect(
     () =>
@@ -197,18 +212,20 @@ export function SportsShell({
       if (resource === "matches") {
         setMatches((current) => ({
           ...nextPage,
-          items: [
-            ...current.items,
-            ...(nextPage.items as SportsMatchCardData[]),
-          ],
+          items: mergeUniqueSportsItems(
+            current.items,
+            nextPage.items as SportsMatchCardData[],
+            (match) => match.match_group_slug,
+          ),
         }));
       } else {
         setPropPage((current) => ({
           ...nextPage,
-          items: [
-            ...current.items,
-            ...(nextPage.items as SportsPropEventCardData[]),
-          ],
+          items: mergeUniqueSportsItems(
+            current.items,
+            nextPage.items as SportsPropEventCardData[],
+            (event) => event.event_slug,
+          ),
         }));
       }
     } finally {
@@ -223,6 +240,7 @@ export function SportsShell({
   const featuredNodes = taxonomy?.featured ?? [];
   const effectiveFilters: SportsPageFilters = pendingTaxonomyNode
     ? {
+        ...(filters.view ? { view: filters.view } : {}),
         taxonomy_type: pendingTaxonomyNode.node_type,
         taxonomy_slug: pendingTaxonomyNode.slug,
       }
@@ -249,6 +267,12 @@ export function SportsShell({
   );
   const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, effectiveFilters);
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
+  const isLiveView = isSpecialViewActive(effectiveFilters, "live");
+  const liveTaxonomyItems = taxonomyNodes.map((node) => ({
+    node,
+    active: taxonomyBranchContainsActiveNode(node, effectiveFilters),
+    count: taxonomyNodeCount(node, effectiveFilters),
+  }));
   const mobileTaxonomyScrollTarget = isSpecialViewActive(
     effectiveFilters,
     "live",
@@ -318,6 +342,7 @@ export function SportsShell({
       ? "extend.sports.nav.esports"
       : "extend.sports.nav.sports",
   );
+  const liveDateRangeLabel = formatSportsLiveDateRange(liveDates, lang || "en");
 
   return (
     <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
@@ -336,7 +361,13 @@ export function SportsShell({
         </aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="shrink-0 border-b border-zinc-900 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5">
+          <div
+            data-testid="sports-page-header"
+            className={cn(
+              "shrink-0 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5",
+              !isLiveView && "border-b border-zinc-900",
+            )}
+          >
             <div className="flex items-center gap-2 pb-3 lg:hidden">
               <div
                 ref={mobileTaxonomyScrollRef}
@@ -435,7 +466,14 @@ export function SportsShell({
             <div className="flex items-end justify-between gap-3 pb-4">
               <div>
                 <h1 className="text-xl font-semibold text-zinc-50">
-                  {activeTaxonomyNode ? (
+                  {isLiveView ? (
+                    <>
+                      {t("extend.sports.filters.live")}{" "}
+                      <span className="text-sm font-normal text-zinc-500">
+                        ({liveDateRangeLabel})
+                      </span>
+                    </>
+                  ) : activeTaxonomyNode ? (
                     <LocalizedTaxonomyLabel
                       node={activeTaxonomyNode}
                       pageSection={section}
@@ -446,7 +484,19 @@ export function SportsShell({
                 </h1>
               </div>
             </div>
-            {hasTaxonomySelection && (
+            {isLiveView && (
+              <SportsLiveFilters
+                section={section}
+                taxonomyItems={liveTaxonomyItems}
+                dates={liveDates}
+                selectedDate={selectedLiveDate}
+                lang={lang || "en"}
+                onDateChange={setSelectedLiveDate}
+                onTaxonomyNavigate={handleTaxonomyNavigate}
+                onAllNavigate={handleSpecialViewNavigate}
+              />
+            )}
+            {hasTaxonomySelection && !isLiveView && (
               <SportsContentTabs active={activeTab} onChange={setActiveTab} />
             )}
           </div>
@@ -472,6 +522,14 @@ export function SportsShell({
             {pendingTaxonomyNode ? (
               <SportsListSkeleton
                 loadingLabel={t("extend.leaderboard.loading")}
+              />
+            ) : isLiveView ? (
+              <SportsMatchList
+                matches={matchesForDate(matches.items, selectedLiveDate)}
+                todayOnly={false}
+                hasMore={matches.has_more && Boolean(matches.next_cursor)}
+                loading={loadingResource === "matches"}
+                onLoadMore={() => void loadMore("matches")}
               />
             ) : hasTaxonomySelection ? (
               activeTab === "props" ? (
@@ -1180,15 +1238,7 @@ function SportsMatchList({
 export function matchesForToday(
   matches: SportsMatchCardData[],
 ): SportsMatchCardData[] {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return matches.filter((match) => {
-    const timestamp = Date.parse(match.start_time ?? "");
-    return timestamp >= start.getTime() && timestamp < end.getTime();
-  });
+  return matchesForDate(matches, new Date());
 }
 
 function buildMatchRows(
@@ -2102,6 +2152,7 @@ function isSpecialViewActive(
   filters: SportsPageFilters,
   view: NonNullable<SportsPageFilters["view"]>,
 ): boolean {
+  if (filters.view === view) return true;
   if (hasTaxonomyFilter(filters)) return false;
   return view === "live" ? filters.view !== "proposals" : filters.view === view;
 }

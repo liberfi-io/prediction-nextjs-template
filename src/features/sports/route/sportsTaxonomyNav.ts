@@ -5,11 +5,14 @@ import type {
 } from "../types";
 import { taxonomyParams } from "../types";
 
+/** Builds a canonical taxonomy URL, optionally preserving a special view. */
 export function taxonomyHref(
   section: SportsSection,
   node: SportsTaxonomyNode,
+  view?: SportsPageFilters["view"],
 ): string {
   const params = new URLSearchParams();
+  if (view) params.set("view", view);
   const nextFilters = taxonomyNodeFilter(node);
   for (const [key, value] of Object.entries(nextFilters)) {
     if (value) params.set(key, value);

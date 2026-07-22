@@ -29,6 +29,12 @@ describe("sports taxonomy navigation", () => {
     ).toBe("/esports?taxonomy_type=game&taxonomy_slug=league-of-legends");
   });
 
+  it("keeps taxonomy switches inside the live view", () => {
+    expect(taxonomyHref("sports", node, "live")).toBe(
+      "/sports?view=live&taxonomy_type=league&taxonomy_slug=epl",
+    );
+  });
+
   it("determines active state from both canonical taxonomy fields", () => {
     expect(
       isTaxonomyNodeActive(

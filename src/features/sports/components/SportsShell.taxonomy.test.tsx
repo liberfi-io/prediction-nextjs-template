@@ -542,6 +542,9 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       "soccer",
     );
+    expect(screen.getByTestId("sports-page-header").className).toContain(
+      "border-b",
+    );
     expect(screen.queryByText(/filters\.upcoming/i)).toBeNull();
     const todayTab = screen.getByRole("button", {
       name: /worldcup\.tab\.today/i,
@@ -692,7 +695,7 @@ describe("SportsShell taxonomy labels", () => {
     });
   });
 
-  it("uses the shared localized label at mobile and rail entry points", () => {
+  it("uses the shared localized label at mobile, rail, and live entry points", () => {
     render(
       <SportsShell
         section="sports"
@@ -719,7 +722,7 @@ describe("SportsShell taxonomy labels", () => {
       />,
     );
 
-    expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
+    expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(3);
   });
 
   it("shows the target taxonomy and a list skeleton immediately after navigation", async () => {
@@ -921,7 +924,7 @@ describe("SportsShell taxonomy labels", () => {
     ).toHaveLength(2);
     expect(screen.getByText(/filters\.featured/i)).toBeDefined();
     expect(screen.getAllByText("5")).toHaveLength(1);
-    expect(screen.getAllByText("10")).toHaveLength(2);
+    expect(screen.getAllByText("10")).toHaveLength(3);
     const mobileTaxonomyLink = container.querySelector(
       '[data-taxonomy-scroll-target="soccer"]',
     );
