@@ -1005,18 +1005,6 @@ export function findActiveMatchGroupIndex(
   return groupIndexes[0];
 }
 
-/** Calculates how far the active date heading moves when the next group arrives. */
-export function sportsStickyGroupOffset(
-  nextGroupStart: number,
-  scrollOffset: number,
-  headingSize: number,
-): number {
-  return Math.max(
-    -headingSize,
-    Math.min(0, nextGroupStart - scrollOffset - headingSize),
-  );
-}
-
 function SportsMatchList({
   matches,
   todayOnly,
@@ -1073,14 +1061,6 @@ function SportsMatchList({
     rangeExtractor,
   });
   const virtualItems = virtualizer.getVirtualItems();
-  const activeGroupIndex = activeGroupIndexRef.current;
-  const nextGroupIndex = groupIndexes.find(
-    (groupIndex) =>
-      activeGroupIndex !== undefined && groupIndex > activeGroupIndex,
-  );
-  const nextGroupItem = virtualItems.find(
-    (item) => item.index === nextGroupIndex,
-  );
 
   useEffect(() => {
     if (!autoLoadMore) return;
@@ -1106,24 +1086,14 @@ function SportsMatchList({
           {virtualItems.map((item) => {
             const row = rows[item.index];
             const isActiveGroupHeading =
-              row.kind === "heading" && item.index === activeGroupIndex;
-            const stickyOffset =
-              isActiveGroupHeading && nextGroupItem
-                ? sportsStickyGroupOffset(
-                    nextGroupItem.start,
-                    virtualizer.scrollOffset ?? 0,
-                    item.size,
-                  )
-                : 0;
+              row.kind === "heading" &&
+              item.index === activeGroupIndexRef.current;
             return (
               <div
                 key={row.id}
                 ref={virtualizer.measureElement}
                 data-index={item.index}
                 data-sticky-active={isActiveGroupHeading || undefined}
-                data-sticky-offset={
-                  isActiveGroupHeading ? stickyOffset : undefined
-                }
                 className={cn(
                   "left-0 w-full pb-2",
                   isActiveGroupHeading
@@ -1132,9 +1102,7 @@ function SportsMatchList({
                 )}
                 style={
                   isActiveGroupHeading
-                    ? stickyOffset < 0
-                      ? { transform: `translateY(${stickyOffset}px)` }
-                      : undefined
+                    ? undefined
                     : { transform: `translateY(${item.start}px)` }
                 }
               >

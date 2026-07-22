@@ -17,7 +17,6 @@ import {
   sportsMoneylineSelectionSlots,
   sportsMoneylineSlotCount,
   sportsOddsAnimationVariant,
-  sportsStickyGroupOffset,
   SportsMatchGroupHeading,
   SportsShell,
 } from "./SportsShell";
@@ -102,13 +101,6 @@ describe("SportsShell taxonomy labels", () => {
     expect(findActiveMatchGroupIndex(groupIndexes, 3)).toBe(3);
     expect(findActiveMatchGroupIndex(groupIndexes, 10)).toBe(7);
     expect(findActiveMatchGroupIndex([], 0)).toBeUndefined();
-  });
-
-  it("pushes the active sticky group out as the next group approaches", () => {
-    expect(sportsStickyGroupOffset(240, 180, 40)).toBe(0);
-    expect(sportsStickyGroupOffset(210, 180, 40)).toBe(-10);
-    expect(sportsStickyGroupOffset(180, 180, 40)).toBe(-40);
-    expect(sportsStickyGroupOffset(150, 180, 40)).toBe(-40);
   });
 
   it("maps match detail markets into fixed moneyline, spread, and total columns", () => {
