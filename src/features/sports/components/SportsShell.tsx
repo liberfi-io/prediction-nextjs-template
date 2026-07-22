@@ -77,6 +77,30 @@ const SPORTS_PRIMARY_MARKET_CATEGORIES = [
   "spread",
   "total",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
+const MONEYLINE_ONLY_SPORTS = new Set([
+  "tennis",
+  "cricket",
+  "pickleball",
+  "lacrosse",
+]);
+const COMBAT_PRIMARY_MARKET_CATEGORIES = [
+  "moneyline",
+  "total",
+] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
+const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
+  "moneyline",
+] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
+
+/** Returns the primary market columns supported by a sport taxonomy. */
+export function sportsPrimaryMarketCategories(
+  sportSlug?: string,
+): readonly (keyof SportsPrimaryMarkets)[] {
+  if (sportSlug && MONEYLINE_ONLY_SPORTS.has(sportSlug)) {
+    return MONEYLINE_PRIMARY_MARKET_CATEGORIES;
+  }
+  if (sportSlug === "combat") return COMBAT_PRIMARY_MARKET_CATEGORIES;
+  return SPORTS_PRIMARY_MARKET_CATEGORIES;
+}
 
 const SportsPropsList = dynamic(() =>
   import("./SportsPropsList").then((module) => module.SportsPropsList),
@@ -971,11 +995,22 @@ function SportsContentTabs({
 }
 
 type MatchListRow =
-  | { kind: "heading"; id: string; title: string }
+  | {
+      kind: "heading";
+      id: string;
+      title: string;
+      categories: readonly (keyof SportsPrimaryMarkets)[];
+    }
   | { kind: "match"; id: string; match: SportsMatchCardData };
 
 /** Renders a date-group label aligned with the desktop odds columns. */
-export function SportsMatchGroupHeading({ title }: { title: string }) {
+export function SportsMatchGroupHeading({
+  title,
+  categories = SPORTS_PRIMARY_MARKET_CATEGORIES,
+}: {
+  title: string;
+  categories?: readonly (keyof SportsPrimaryMarkets)[];
+}) {
   const { t } = useTranslation();
   return (
     <div
@@ -986,11 +1021,14 @@ export function SportsMatchGroupHeading({ title }: { title: string }) {
         {title}
       </h3>
       <div className="hidden shrink-0 gap-2 md:flex">
-        {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <span
             key={category}
             data-testid="sports-market-group-header"
-            className="w-[128px] truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500"
+            className={cn(
+              "truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500",
+              categories.length === 1 ? "w-[400px]" : "w-[128px]",
+            )}
           >
             {t(`extend.worldcup.marketCol.${category}`)}
           </span>
@@ -1120,7 +1158,10 @@ function SportsMatchList({
                   />
                 )}
                 {row.kind === "heading" ? (
-                  <SportsMatchGroupHeading title={row.title} />
+                  <SportsMatchGroupHeading
+                    title={row.title}
+                    categories={row.categories}
+                  />
                 ) : (
                   <MatchCard match={row.match} />
                 )}
@@ -1172,13 +1213,34 @@ function buildMatchRows(
     groups.get(title)?.push(match);
   }
   return Array.from(groups.entries()).flatMap(([title, items]) => [
-    { kind: "heading" as const, id: `heading:${title}`, title },
+    {
+      kind: "heading" as const,
+      id: `heading:${title}`,
+      title,
+      categories: sportsMatchGroupMarketCategories(items),
+    },
     ...items.map((match) => ({
       kind: "match" as const,
       id: match.match_group_slug,
       match,
     })),
   ]);
+}
+
+function sportsMatchGroupMarketCategories(
+  matches: SportsMatchCardData[],
+): readonly (keyof SportsPrimaryMarkets)[] {
+  const layouts = matches.map((match) =>
+    sportsPrimaryMarketCategories(match.sport_slug),
+  );
+  const firstLayout = layouts[0] ?? SPORTS_PRIMARY_MARKET_CATEGORIES;
+  return layouts.every(
+    (layout) =>
+      layout.length === firstLayout.length &&
+      layout.every((item, index) => item === firstLayout[index]),
+  )
+    ? firstLayout
+    : SPORTS_PRIMARY_MARKET_CATEGORIES;
 }
 
 function MatchCard({ match }: { match: SportsMatchCardData }) {
@@ -1223,6 +1285,13 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     primaryMarkets.moneyline.length > 0 &&
     primaryMarkets.spread.length === 0 &&
     primaryMarkets.total.length === 0;
+  const supportedCategories = sportsPrimaryMarketCategories(match.sport_slug);
+  const displayedCategories =
+    supportedCategories.length < SPORTS_PRIMARY_MARKET_CATEGORIES.length
+      ? supportedCategories
+      : hasOnlyMoneyline
+        ? MONEYLINE_PRIMARY_MARKET_CATEGORIES
+        : SPORTS_PRIMARY_MARKET_CATEGORIES;
   const open = () => router.push(href);
   const openMarket = (market: SportsInlineMarket, outcome: string) => {
     const params = new URLSearchParams({ market: market.market_slug, outcome });
@@ -1277,7 +1346,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           )}
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
-          {hasOnlyMoneyline ? (
+          {displayedCategories.length === 1 ? (
             <SportsMarketColumn
               category="moneyline"
               markets={primaryMarkets.moneyline}
@@ -1289,7 +1358,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
               horizontal
             />
           ) : (
-            SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
+            displayedCategories.map((category) => (
               <SportsMarketColumn
                 key={category}
                 category={category}
@@ -1771,7 +1840,10 @@ function SportsMarketColumn({
         horizontal
           ? "grid w-[400px] self-center gap-2"
           : "flex w-[128px] flex-col gap-2",
-        horizontal && (slotCount === 3 ? "grid-cols-3" : "grid-cols-2"),
+        horizontal &&
+          (slotCount === 3
+            ? "grid-cols-[repeat(3,128px)]"
+            : "grid-cols-[repeat(2,128px)]"),
         !horizontal && hasThreeWayMoneyline && "h-[118px]",
       )}
     >

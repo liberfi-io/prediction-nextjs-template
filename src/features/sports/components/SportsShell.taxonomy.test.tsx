@@ -17,6 +17,7 @@ import {
   sportsMoneylineSelectionSlots,
   sportsMoneylineSlotCount,
   sportsOddsAnimationVariant,
+  sportsPrimaryMarketCategories,
   SportsMatchGroupHeading,
   SportsShell,
 } from "./SportsShell";
@@ -91,6 +92,21 @@ describe("SportsShell taxonomy labels", () => {
     expect(sportsOddsAnimationVariant("moneyline")).toBe("fade");
     expect(sportsOddsAnimationVariant("spread")).toBe("roll");
     expect(sportsOddsAnimationVariant("total")).toBe("roll");
+  });
+
+  it("selects the supported primary market columns for each sport", () => {
+    for (const sportSlug of ["tennis", "cricket", "pickleball", "lacrosse"]) {
+      expect(sportsPrimaryMarketCategories(sportSlug)).toEqual(["moneyline"]);
+    }
+    expect(sportsPrimaryMarketCategories("combat")).toEqual([
+      "moneyline",
+      "total",
+    ]);
+    expect(sportsPrimaryMarketCategories("soccer")).toEqual([
+      "moneyline",
+      "spread",
+      "total",
+    ]);
   });
 
   it("selects the latest date group at or before the virtual range", () => {
@@ -586,6 +602,35 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getAllByText("extend.worldcup.marketCol.total")).toHaveLength(
       1,
     );
+    marketHeaders.forEach((header) => {
+      expect(header.className).toContain("w-[128px]");
+    });
+  });
+
+  it("adjusts date group headers to the sport's supported markets", () => {
+    const { rerender } = render(
+      <SportsMatchGroupHeading
+        title="Wed, Jul 22"
+        categories={sportsPrimaryMarketCategories("tennis")}
+      />,
+    );
+
+    let marketHeaders = screen.getAllByTestId("sports-market-group-header");
+    expect(marketHeaders).toHaveLength(1);
+    expect(marketHeaders[0].className).toContain("w-[400px]");
+    expect(screen.queryByText("extend.worldcup.marketCol.spread")).toBeNull();
+    expect(screen.queryByText("extend.worldcup.marketCol.total")).toBeNull();
+
+    rerender(
+      <SportsMatchGroupHeading
+        title="Wed, Jul 22"
+        categories={sportsPrimaryMarketCategories("combat")}
+      />,
+    );
+    marketHeaders = screen.getAllByTestId("sports-market-group-header");
+    expect(marketHeaders).toHaveLength(2);
+    expect(screen.queryByText("extend.worldcup.marketCol.spread")).toBeNull();
+    expect(screen.getByText("extend.worldcup.marketCol.total")).toBeDefined();
     marketHeaders.forEach((header) => {
       expect(header.className).toContain("w-[128px]");
     });
