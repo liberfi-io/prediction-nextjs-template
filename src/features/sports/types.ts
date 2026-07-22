@@ -96,6 +96,7 @@ export interface SportsMatchCard {
   start_time?: string;
   participants?: SportsParticipant[];
   market_count?: number;
+  volume?: number;
   live_state?: SportsLiveState;
   inline_markets?: SportsInlineMarket[];
 }

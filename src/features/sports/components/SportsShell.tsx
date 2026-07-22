@@ -52,6 +52,7 @@ import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
+import { formatVolume } from "../../worldcup/components/util";
 import {
   OddsNumber,
   type OddsNumberVariant,
@@ -1212,11 +1213,13 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           {match.start_time && (
             <SportsStartTime
               className="shrink-0 text-xs font-semibold tabular-nums text-zinc-200"
+              timeOnly
               value={match.start_time}
             />
           )}
-          <span className="truncate text-xs text-zinc-500">
-            {[match.league_slug, match.status].filter(Boolean).join(" · ")}
+          <span className="truncate text-xs tabular-nums text-zinc-500">
+            {match.start_time ? "· " : ""}
+            {formatVolume(match.volume ?? 0)} {t("extend.worldcup.volume")}
           </span>
         </div>
         {match.market_count ? (
