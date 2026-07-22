@@ -1715,7 +1715,7 @@ function SportsOddsButton({
       data-grow={grow || undefined}
       data-team-color={colors?.bg}
       className={cn(
-        "flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_var(--sports-shadow-color)] transition-[transform,box-shadow] hover:translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_var(--sports-shadow-color)] disabled:cursor-not-allowed disabled:opacity-55",
+        "flex w-full min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[9px] bg-[#3f3f46] px-2.5 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_3px_0_var(--sports-shadow-color)] transition-[transform,box-shadow] duration-150 ease-out will-change-transform [-webkit-tap-highlight-color:transparent] hover:translate-y-px hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_0_var(--sports-shadow-color)] active:translate-y-0.5 active:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_0_var(--sports-shadow-color)] disabled:cursor-not-allowed disabled:opacity-55",
         grow ? "min-h-[34px] flex-1" : "h-[34px]",
       )}
       style={
