@@ -54,6 +54,11 @@ type SportsPrimaryMarkets = Record<
   "moneyline" | "spread" | "total",
   SportsMarket[]
 >;
+const SPORTS_PRIMARY_MARKET_CATEGORIES = [
+  "moneyline",
+  "spread",
+  "total",
+] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
 
 const SportsPropsList = dynamic(() =>
   import("./SportsPropsList").then((module) => module.SportsPropsList),
@@ -446,15 +451,16 @@ export function SportsShell({
               <div className="min-w-0 space-y-5 pb-4">
                 {filters.view !== "proposals" && (
                   <section className="space-y-3">
-                    {matches.items.length > 0 ? (
-                      matches.items.map((match) => (
-                        <MatchCard key={match.match_group_slug} match={match} />
-                      ))
-                    ) : (
-                      <SportsEmptyState
-                        label={t("extend.sports.empty.matches")}
-                      />
-                    )}
+                    <SportsMatchList
+                      matches={matches.items}
+                      todayOnly={false}
+                      hasMore={
+                        matches.has_more && Boolean(matches.next_cursor)
+                      }
+                      loading={loadingResource === "matches"}
+                      onLoadMore={() => void loadMore("matches")}
+                      autoLoadMore={false}
+                    />
                     {matches.has_more && matches.next_cursor && (
                       <LoadMoreButton
                         label={t("extend.portfolio.loadMore")}
@@ -959,18 +965,46 @@ type MatchListRow =
   | { kind: "heading"; id: string; title: string }
   | { kind: "match"; id: string; match: SportsMatchCardData };
 
+/** Renders a date-group label aligned with the desktop odds columns. */
+export function SportsMatchGroupHeading({ title }: { title: string }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-testid="sports-match-group-heading"
+      className="flex items-center gap-3 py-2 pl-4 pr-[17px]"
+    >
+      <h3 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+        {title}
+      </h3>
+      <div className="hidden shrink-0 gap-2 md:flex">
+        {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
+          <span
+            key={category}
+            data-testid="sports-market-group-header"
+            className="w-[128px] truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500"
+          >
+            {t(`extend.worldcup.marketCol.${category}`)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SportsMatchList({
   matches,
   todayOnly,
   hasMore,
   loading,
   onLoadMore,
+  autoLoadMore = true,
 }: {
   matches: SportsMatchCardData[];
   todayOnly: boolean;
   hasMore: boolean;
   loading: boolean;
   onLoadMore: () => void;
+  autoLoadMore?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const visibleMatches = useMemo(
@@ -993,6 +1027,7 @@ function SportsMatchList({
   const virtualItems = virtualizer.getVirtualItems();
 
   useEffect(() => {
+    if (!autoLoadMore) return;
     const last = virtualItems[virtualItems.length - 1];
     if (
       hasMore &&
@@ -1001,7 +1036,7 @@ function SportsMatchList({
     ) {
       onLoadMore();
     }
-  }, [hasMore, loading, onLoadMore, rows.length, virtualItems]);
+  }, [autoLoadMore, hasMore, loading, onLoadMore, rows.length, virtualItems]);
 
   return (
     <div className="min-w-0 pb-4">
@@ -1023,9 +1058,7 @@ function SportsMatchList({
                 style={{ transform: `translateY(${item.start}px)` }}
               >
                 {row.kind === "heading" ? (
-                  <h3 className="py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    {row.title}
-                  </h3>
+                  <SportsMatchGroupHeading title={row.title} />
                 ) : (
                   <MatchCard match={row.match} />
                 )}
@@ -1034,7 +1067,7 @@ function SportsMatchList({
           })}
         </div>
       )}
-      {loading && (
+      {autoLoadMore && loading && (
         <div className="py-3 text-center text-xs text-zinc-500">
           {t("extend.portfolio.loadMore")}
         </div>
@@ -1144,7 +1177,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           )}
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
-          {(["moneyline", "spread", "total"] as const).map((category) => (
+          {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
             <SportsMarketColumn
               key={category}
               category={category}
@@ -1315,13 +1348,9 @@ function SportsMarketColumn({
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
 }) {
-  const { t } = useTranslation();
   const selections = sportsMarketSelections(category, markets);
   return (
     <div className="flex w-[128px] flex-col gap-2">
-      <span className="truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-        {t(`extend.worldcup.marketCol.${category}`)}
-      </span>
       {selections.map(({ market, outcome }) => (
         <SportsOddsButton
           key={`${market.market_slug}:${outcome.outcome}`}

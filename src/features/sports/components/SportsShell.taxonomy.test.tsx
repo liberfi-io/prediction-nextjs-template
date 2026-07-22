@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import {
   matchesForToday,
   resolvePrimarySportsMarkets,
+  SportsMatchGroupHeading,
   SportsShell,
 } from "./SportsShell";
 
@@ -186,6 +187,29 @@ describe("SportsShell taxonomy labels", () => {
     expect(tabs.className).not.toContain("border-t");
     expect(toolbar.firstElementChild).toBe(tabs);
     expect(toolbar.lastElementChild?.contains(oddsFormatButton)).toBe(true);
+  });
+
+  it("aligns one set of market headers with each date group", () => {
+    render(<SportsMatchGroupHeading title="Wed, Jul 22" />);
+
+    const groupHeading = screen.getByTestId("sports-match-group-heading");
+    const marketHeaders = screen.getAllByTestId("sports-market-group-header");
+
+    expect(groupHeading.className).toContain("pl-4");
+    expect(groupHeading.className).toContain("pr-[17px]");
+    expect(marketHeaders).toHaveLength(3);
+    expect(
+      screen.getAllByText("extend.worldcup.marketCol.moneyline"),
+    ).toHaveLength(1);
+    expect(screen.getAllByText("extend.worldcup.marketCol.spread")).toHaveLength(
+      1,
+    );
+    expect(screen.getAllByText("extend.worldcup.marketCol.total")).toHaveLength(
+      1,
+    );
+    marketHeaders.forEach((header) => {
+      expect(header.className).toContain("w-[128px]");
+    });
   });
 
   it("uses the shared localized label at mobile and rail entry points", () => {
