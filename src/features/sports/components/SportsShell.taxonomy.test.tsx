@@ -181,6 +181,36 @@ describe("SportsShell taxonomy labels", () => {
     expect(
       sportsMarketSelectionColor(
         "moneyline",
+        {
+          market: {
+            market_slug: "chi-hai-jin-2026-07-25-hai",
+            market_type: "moneyline",
+            label: "Will Qingdao Hainiu FC win on 2026-07-25?",
+            outcomes: [],
+          },
+          outcome: { outcome: "yes", label: "Yes", price: 0.35 },
+        },
+        1,
+        3,
+        [
+          {
+            name: "Qingdao Hainiu FC",
+            role: "home",
+            abbreviation: "HAI",
+            color: "#e47444",
+          },
+          {
+            name: "Tianjin Jinmen Hu FC",
+            role: "away",
+            abbreviation: "JIN",
+            color: "#155293",
+          },
+        ],
+      ),
+    ).toBe("#e47444");
+    expect(
+      sportsMarketSelectionColor(
+        "moneyline",
         selection("Yes"),
         1,
         2,

@@ -1374,10 +1374,9 @@ export function sportsMarketSelectionColor(
     participants.find((participant) => participant.role === "away") ??
     participants[1];
   const outcomeText = selection.outcome.label.toLowerCase();
-  const marketText = [selection.market.market_slug, selection.market.label]
-    .join(" ")
-    .toLowerCase();
-  if (/\b(?:draw|tie)\b/i.test(`${outcomeText} ${marketText}`))
+  const marketLabel = selection.market.label.toLowerCase();
+  const marketSlug = selection.market.market_slug.toLowerCase();
+  if (/\b(?:draw|tie)\b/i.test(`${outcomeText} ${marketLabel} ${marketSlug}`))
     return undefined;
   const matchesParticipant = (
     text: string,
@@ -1395,7 +1394,7 @@ export function sportsMarketSelectionColor(
         return normalized.length >= 2 && compactText.includes(normalized);
       });
   };
-  for (const text of [outcomeText, marketText]) {
+  for (const text of [outcomeText, marketLabel, marketSlug]) {
     const matchesHome = matchesParticipant(text, home);
     const matchesAway = matchesParticipant(text, away);
     if (matchesHome !== matchesAway) {
