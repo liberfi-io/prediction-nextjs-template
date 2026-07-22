@@ -1838,7 +1838,7 @@ function SportsMarketColumn({
       data-sports-market-layout={horizontal ? "row" : "column"}
       className={cn(
         horizontal
-          ? "grid w-[400px] self-center gap-2"
+          ? "grid w-[400px] justify-end self-center gap-2"
           : "flex w-[128px] flex-col gap-2",
         horizontal &&
           (slotCount === 3
