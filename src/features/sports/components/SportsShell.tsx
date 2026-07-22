@@ -50,6 +50,10 @@ import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
+import {
+  OddsNumber,
+  type OddsNumberVariant,
+} from "../../worldcup/odds/OddsNumber";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
 import { convertPrice } from "../../worldcup/odds/convert-price";
 import type { OddsFormat } from "../../worldcup/odds/convert-price";
@@ -1098,8 +1102,10 @@ function SportsMatchList({
                 data-index={item.index}
                 data-sticky-active={isActiveGroupHeading || undefined}
                 className={cn(
-                  "left-0 top-0 w-full pb-2",
-                  isActiveGroupHeading ? "sticky z-20" : "absolute",
+                  "left-0 w-full pb-2",
+                  isActiveGroupHeading
+                    ? "sticky -top-4 z-20 bg-[#09090b]"
+                    : "absolute top-0",
                 )}
                 style={
                   isActiveGroupHeading
@@ -1228,13 +1234,13 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
           {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
-            <SportsMarketColumn
-              key={category}
-              category={category}
+          <SportsMarketColumn
+            key={category}
+            category={category}
               markets={primaryMarkets[category]}
-              format={format}
-              onSelect={openMarket}
-            />
+            format={format}
+            onSelect={openMarket}
+          />
           ))}
         </div>
       </div>
@@ -1268,6 +1274,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
                   label={selection.outcome.label}
                   price={sportsOutcomePrice(selection.outcome)}
                   format={format}
+                  variant="fade"
                   onSelect={() =>
                     openMarket(selection.market, selection.outcome.outcome)
                   }
@@ -1342,6 +1349,13 @@ function sportsOutcomePrice(outcome: SportsMarketOutcome): number | undefined {
   return outcome.price ?? outcome.best_ask ?? outcome.last_trade_price;
 }
 
+/** Matches the price-animation style used by the World Cup market columns. */
+export function sportsOddsAnimationVariant(
+  category: keyof SportsPrimaryMarkets,
+): OddsNumberVariant {
+  return category === "moneyline" ? "fade" : "roll";
+}
+
 function SportsMobileParticipant({
   participant,
   align = "left",
@@ -1407,6 +1421,7 @@ function SportsMarketColumn({
           label={outcome.label}
           price={sportsOutcomePrice(outcome)}
           format={format}
+          variant={sportsOddsAnimationVariant(category)}
           onSelect={() => onSelect(market, outcome.outcome)}
         />
       ))}
@@ -1427,11 +1442,13 @@ function SportsOddsButton({
   label,
   price,
   format,
+  variant = "fade",
   onSelect,
 }: {
   label: string;
   price?: number;
   format: OddsFormat;
+  variant?: OddsNumberVariant;
   onSelect: () => void;
 }) {
   return (
@@ -1448,7 +1465,11 @@ function SportsOddsButton({
         {label}
       </span>
       <span className="shrink-0 text-sm font-bold tabular-nums">
-        {typeof price === "number" ? convertPrice(price, format) : "-"}
+        {typeof price === "number" ? (
+          <OddsNumber value={convertPrice(price, format)} variant={variant} />
+        ) : (
+          "-"
+        )}
       </span>
     </button>
   );

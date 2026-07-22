@@ -10,6 +10,7 @@ import {
   findActiveMatchGroupIndex,
   matchesForToday,
   resolvePrimarySportsMarkets,
+  sportsOddsAnimationVariant,
   SportsMatchGroupHeading,
   SportsShell,
 } from "./SportsShell";
@@ -50,6 +51,20 @@ jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
   ),
 }));
 
+jest.mock("../../worldcup/odds/OddsNumber", () => ({
+  OddsNumber: ({
+    value,
+    variant,
+  }: {
+    value: string | number;
+    variant: string;
+  }) => (
+    <span data-testid="animated-odds-number" data-variant={variant}>
+      {value}
+    </span>
+  ),
+}));
+
 const mobileTaxonomyScrollCases = [
   ["default live view", {}, "live"],
   ["proposals view", { view: "proposals" as const }, "proposals"],
@@ -66,6 +81,12 @@ const mobileTaxonomyScrollCases = [
 ] as const;
 
 describe("SportsShell taxonomy labels", () => {
+  it("uses the World Cup price animation variants for sports market columns", () => {
+    expect(sportsOddsAnimationVariant("moneyline")).toBe("fade");
+    expect(sportsOddsAnimationVariant("spread")).toBe("roll");
+    expect(sportsOddsAnimationVariant("total")).toBe("roll");
+  });
+
   it("selects the latest date group at or before the virtual range", () => {
     const groupIndexes = [0, 3, 7];
 
