@@ -668,6 +668,8 @@
       "periodMarketLabel": "{{period}}{{market}}"
     },
     "sports": {
+      "marketCount_one": "{{count}} 盘口",
+      "marketCount_other": "{{count}} 盘口",
       "nav": {
         "sports": "體育",
         "esports": "電競"

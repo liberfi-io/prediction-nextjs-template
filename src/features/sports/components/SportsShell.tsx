@@ -23,6 +23,7 @@ import {
 } from "@tanstack/react-virtual";
 import {
   ChevronDownIcon,
+  ChevronRightIcon,
   ModalBody,
   ModalContent,
   ModalHeader,
@@ -1237,13 +1238,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     router.push(`${href}?${params.toString()}`);
   };
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={open}
-      onKeyDown={(event) => event.key === "Enter" && open()}
-      className="group cursor-pointer overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.65)] bg-[rgba(24,24,27,0.4)] transition-[border-color,background-color,box-shadow] duration-300 ease-out [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.55)] hover:bg-[rgba(24,24,27,0.46)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] motion-reduce:transition-none"
-    >
+    <div className="group overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.65)] bg-[rgba(24,24,27,0.4)] transition-[border-color,background-color,box-shadow] duration-300 ease-out [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.55)] hover:bg-[rgba(24,24,27,0.46)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] motion-reduce:transition-none">
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           {match.start_time && (
@@ -1257,9 +1252,19 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           </span>
         </div>
         {match.market_count ? (
-          <span className="shrink-0 rounded-full border border-zinc-700/60 bg-zinc-800/50 px-2.5 py-1 text-[11px] font-medium text-zinc-300">
-            +{match.market_count}
-          </span>
+          <button
+            type="button"
+            onClick={open}
+            className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-zinc-700/60 bg-zinc-800/50 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-600/70 hover:bg-zinc-800 hover:text-zinc-100"
+          >
+            <span className="tabular-nums">
+              {t("extend.sports.marketCount", { count: match.market_count })}
+            </span>
+            <ChevronRightIcon
+              aria-hidden="true"
+              className="h-3 w-3 text-zinc-500"
+            />
+          </button>
         ) : null}
       </div>
 

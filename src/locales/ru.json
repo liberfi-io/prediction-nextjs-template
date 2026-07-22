@@ -702,6 +702,10 @@
       "periodMarketLabel": "{{period}} {{market}}"
     },
     "sports": {
+      "marketCount_one": "{{count}} рынок",
+      "marketCount_few": "{{count}} рынка",
+      "marketCount_many": "{{count}} рынков",
+      "marketCount_other": "{{count}} рынка",
       "nav": {
         "sports": "Sports",
         "esports": "Esports"

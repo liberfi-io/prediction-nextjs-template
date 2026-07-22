@@ -702,6 +702,8 @@
       "periodMarketLabel": "{{period}}{{market}}"
     },
     "sports": {
+      "marketCount_one": "{{count}} マーケット",
+      "marketCount_other": "{{count}} マーケット",
       "nav": {
         "sports": "Sports",
         "esports": "Esports"
