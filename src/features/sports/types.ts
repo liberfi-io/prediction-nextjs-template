@@ -64,6 +64,7 @@ export interface SportsInlineMarket {
   market_slug: string;
   market_type?: string;
   label: string;
+  line?: number;
   outcomes?: SportsMarketOutcome[];
 }
 
@@ -71,7 +72,6 @@ export interface SportsMarket extends SportsInlineMarket {
   condition_id?: string;
   market_category?: string;
   period?: string;
-  line?: number;
   active?: boolean;
   closed?: boolean;
   accepting_orders?: boolean;

@@ -140,6 +140,92 @@ describe("SportsShell taxonomy labels", () => {
     expect(sportsMarketSelections("total", [market])).toHaveLength(2);
   });
 
+  it("labels total selections with their localized side and line", () => {
+    const market = {
+      market_slug: "chi-hai-jin-2026-07-25-total-2pt5",
+      market_type: "totals",
+      label: "Qingdao Hainiu FC vs. Tianjin Jinmen Hu FC: O/U 2.5",
+      line: 2.5,
+      outcomes: [
+        { outcome: "yes" as const, label: "Over", price: 0.48 },
+        { outcome: "no" as const, label: "Under", price: 0.52 },
+      ],
+    };
+    const selections = sportsMarketSelections("total", [market]);
+
+    expect(
+      selections.map((item, index) =>
+        sportsMarketSelectionLabel(
+          "total",
+          item,
+          index,
+          selections.length,
+          [],
+          { draw: "Draw", total: { over: "O", under: "U" } },
+        ),
+      ),
+    ).toEqual(["O 2.5", "U 2.5"]);
+    expect(
+      selections.map((item, index) =>
+        sportsMarketSelectionLabel(
+          "total",
+          item,
+          index,
+          selections.length,
+          [],
+          { draw: "平", total: { over: "大", under: "小" } },
+        ),
+      ),
+    ).toEqual(["大 2.5", "小 2.5"]);
+  });
+
+  it("labels both outcomes of one spread market with opposite lines", () => {
+    const participants = [
+      {
+        name: "Qingdao Hainiu FC",
+        role: "home",
+        abbreviation: "HAI",
+      },
+      {
+        name: "Tianjin Jinmen Hu FC",
+        role: "away",
+        abbreviation: "JIN",
+      },
+    ];
+    const market = {
+      market_slug: "chi-hai-jin-2026-07-25-spread-away-1pt5",
+      market_type: "spreads",
+      label: "Spread: Tianjin Jinmen Hu FC (-1.5)",
+      line: -1.5,
+      outcomes: [
+        {
+          outcome: "yes" as const,
+          label: "Tianjin Jinmen Hu FC",
+          price: 0.14,
+        },
+        {
+          outcome: "no" as const,
+          label: "Qingdao Hainiu FC",
+          price: 0.86,
+        },
+      ],
+    };
+    const selections = sportsMarketSelections("spread", [market]);
+
+    expect(
+      selections.map((item, index) =>
+        sportsMarketSelectionLabel(
+          "spread",
+          item,
+          index,
+          selections.length,
+          participants,
+          { draw: "Draw", total: { over: "O", under: "U" } },
+        ),
+      ),
+    ).toEqual(["JIN -1.5", "HAI +1.5"]);
+  });
+
   it("orders and labels moneyline selections as home, draw, and away", () => {
     const participants = [
       {
@@ -196,7 +282,7 @@ describe("SportsShell taxonomy labels", () => {
           index,
           ordered.length,
           participants,
-          "Draw",
+          { draw: "Draw", total: { over: "O", under: "U" } },
         ),
       ),
     ).toEqual(["HAI", "Draw", "JIN"]);
@@ -211,7 +297,7 @@ describe("SportsShell taxonomy labels", () => {
           abbreviation:
             participant.role === "home" ? "   " : participant.abbreviation,
         })),
-        "Draw",
+        { draw: "Draw", total: { over: "O", under: "U" } },
       ),
     ).toBe("Qingdao Hainiu FC");
     expect(

@@ -67,6 +67,10 @@ type SportsPrimaryMarkets = Record<
   "moneyline" | "spread" | "total",
   SportsMarket[]
 >;
+type SportsMarketLabels = {
+  draw: string;
+  total: { over: string; under: string };
+};
 const SPORTS_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
   "spread",
@@ -344,7 +348,7 @@ export function SportsShell({
 
                   return (
                     <Link
-                      key={node.slug}
+                      key={`${node.node_type}:${node.slug}`}
                       href={taxonomyHref(section, node)}
                       onClick={(event) => handleTaxonomyNavigate(event, node)}
                       data-taxonomy-scroll-target={node.slug}
@@ -868,7 +872,7 @@ function TaxonomyRail({
         };
 
         return (
-          <div key={node.slug}>
+          <div key={`${node.node_type}:${node.slug}`}>
             <Link
               href={taxonomyHref(section, node)}
               onClick={handleClick}
@@ -1177,7 +1181,7 @@ function buildMatchRows(
 }
 
 function MatchCard({ match }: { match: SportsMatchCardData }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [format] = useOddsFormat();
   const href = `/event/${encodeURIComponent(match.match_group_slug)}`;
@@ -1186,7 +1190,20 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     () => resolvePrimarySportsMarkets(match.inline_markets),
     [match.inline_markets],
   );
-  const drawLabel = t("extend.worldcup.draw");
+  const useEnglishTotalAbbreviations = (i18n.resolvedLanguage ?? i18n.language)
+    .toLowerCase()
+    .startsWith("en");
+  const marketLabels: SportsMarketLabels = {
+    draw: t("extend.worldcup.draw"),
+    total: {
+      over: useEnglishTotalAbbreviations
+        ? "O"
+        : t("extend.worldcup.totalSide.over"),
+      under: useEnglishTotalAbbreviations
+        ? "U"
+        : t("extend.worldcup.totalSide.under"),
+    },
+  };
   const rawMoneylineSelections = sportsMarketSelections(
     "moneyline",
     primaryMarkets.moneyline,
@@ -1261,7 +1278,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
               category={category}
               markets={primaryMarkets[category]}
               participants={participants}
-              drawLabel={drawLabel}
+              labels={marketLabels}
               moneylineSlotCount={moneylineSlotCount}
               format={format}
               onSelect={openMarket}
@@ -1298,7 +1315,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
                     index,
                     moneylineSlotCount,
                     participants,
-                    drawLabel,
+                    marketLabels,
                   )}
                   price={sportsOutcomePrice(selection.outcome)}
                   format={format}
@@ -1519,8 +1536,29 @@ export function sportsMarketSelectionLabel(
   selectionIndex: number,
   selectionCount: number,
   participants: SportsParticipant[],
-  drawLabel: string,
+  labels: SportsMarketLabels,
 ): string {
+  if (category === "spread" && selection.market.line !== undefined) {
+    const participant = participants.find((candidate) =>
+      sportsTextMatchesParticipant(
+        selection.outcome.label.toLowerCase(),
+        candidate,
+      ),
+    );
+    const participantLabel =
+      sportsParticipantAbbreviation(participant) ??
+      participant?.name ??
+      selection.outcome.label;
+    const line =
+      selection.outcome.outcome === "yes"
+        ? selection.market.line
+        : -selection.market.line;
+    return `${participantLabel} ${formatSignedSportsLine(line)}`;
+  }
+  if (category === "total" && selection.market.line !== undefined) {
+    const side = selection.outcome.outcome === "yes" ? "over" : "under";
+    return `${labels.total[side]} ${selection.market.line}`;
+  }
   if (category !== "moneyline") return selection.outcome.label;
   const side = resolvedMoneylineSelectionSide(
     selection,
@@ -1536,7 +1574,12 @@ export function sportsMarketSelectionLabel(
       selection.outcome.label
     );
   }
-  return side === "draw" ? drawLabel : selection.outcome.label;
+  return side === "draw" ? labels.draw : selection.outcome.label;
+}
+
+function formatSignedSportsLine(line: number): string {
+  if (line === 0) return "0";
+  return `${line > 0 ? "+" : ""}${line}`;
 }
 
 /** Resolves the team color for a home/away moneyline selection. */
@@ -1652,7 +1695,7 @@ function SportsMarketColumn({
   category,
   markets,
   participants,
-  drawLabel,
+  labels,
   moneylineSlotCount,
   format,
   onSelect,
@@ -1660,7 +1703,7 @@ function SportsMarketColumn({
   category: keyof SportsPrimaryMarkets;
   markets: SportsMarket[];
   participants: SportsParticipant[];
-  drawLabel: string;
+  labels: SportsMarketLabels;
   moneylineSlotCount: 2 | 3;
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
@@ -1691,7 +1734,7 @@ function SportsMarketColumn({
               index,
               slotCount,
               participants,
-              drawLabel,
+              labels,
             )}
             price={sportsOutcomePrice(selection.outcome)}
             format={format}
