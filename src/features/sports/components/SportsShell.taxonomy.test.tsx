@@ -102,13 +102,19 @@ describe("SportsShell taxonomy labels", () => {
       "lacrosse",
       "volleyball",
     ]) {
-      expect(sportsPrimaryMarketCategories(sportSlug)).toEqual(["moneyline"]);
+      expect(sportsPrimaryMarketCategories("sports", sportSlug)).toEqual([
+        "moneyline",
+      ]);
     }
-    expect(sportsPrimaryMarketCategories("combat")).toEqual([
+    expect(sportsPrimaryMarketCategories("sports", "combat")).toEqual([
       "moneyline",
       "total",
     ]);
-    expect(sportsPrimaryMarketCategories("soccer")).toEqual([
+    expect(sportsPrimaryMarketCategories("esports")).toEqual([
+      "moneyline",
+      "total",
+    ]);
+    expect(sportsPrimaryMarketCategories("sports", "soccer")).toEqual([
       "moneyline",
       "spread",
       "total",
@@ -660,7 +666,7 @@ describe("SportsShell taxonomy labels", () => {
     const { rerender } = render(
       <SportsMatchGroupHeading
         title="Wed, Jul 22"
-        categories={sportsPrimaryMarketCategories("tennis")}
+        categories={sportsPrimaryMarketCategories("sports", "tennis")}
       />,
     );
 
@@ -674,7 +680,7 @@ describe("SportsShell taxonomy labels", () => {
     rerender(
       <SportsMatchGroupHeading
         title="Wed, Jul 22"
-        categories={sportsPrimaryMarketCategories("combat")}
+        categories={sportsPrimaryMarketCategories("sports", "combat")}
       />,
     );
     marketHeaders = screen.getAllByTestId("sports-market-group-header");

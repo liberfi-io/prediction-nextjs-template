@@ -84,7 +84,7 @@ const MONEYLINE_ONLY_SPORTS = new Set([
   "lacrosse",
   "volleyball",
 ]);
-const COMBAT_PRIMARY_MARKET_CATEGORIES = [
+const MONEYLINE_TOTAL_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
   "total",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
@@ -94,12 +94,18 @@ const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
 
 /** Returns the primary market columns supported by a sport taxonomy. */
 export function sportsPrimaryMarketCategories(
+  section: SportsSection,
   sportSlug?: string,
 ): readonly (keyof SportsPrimaryMarkets)[] {
+  if (section === "esports") {
+    return MONEYLINE_TOTAL_PRIMARY_MARKET_CATEGORIES;
+  }
   if (sportSlug && MONEYLINE_ONLY_SPORTS.has(sportSlug)) {
     return MONEYLINE_PRIMARY_MARKET_CATEGORIES;
   }
-  if (sportSlug === "combat") return COMBAT_PRIMARY_MARKET_CATEGORIES;
+  if (sportSlug === "combat") {
+    return MONEYLINE_TOTAL_PRIMARY_MARKET_CATEGORIES;
+  }
   return SPORTS_PRIMARY_MARKET_CATEGORIES;
 }
 
@@ -1223,7 +1229,7 @@ function sportsMatchGroupMarketCategories(
   matches: SportsMatchCardData[],
 ): readonly (keyof SportsPrimaryMarkets)[] {
   const layouts = matches.map((match) =>
-    sportsPrimaryMarketCategories(match.sport_slug),
+    sportsPrimaryMarketCategories(match.section, match.sport_slug),
   );
   const firstLayout = layouts[0] ?? SPORTS_PRIMARY_MARKET_CATEGORIES;
   return layouts.every(
@@ -1277,7 +1283,10 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     primaryMarkets.moneyline.length > 0 &&
     primaryMarkets.spread.length === 0 &&
     primaryMarkets.total.length === 0;
-  const supportedCategories = sportsPrimaryMarketCategories(match.sport_slug);
+  const supportedCategories = sportsPrimaryMarketCategories(
+    match.section,
+    match.sport_slug,
+  );
   const displayedCategories =
     supportedCategories.length < SPORTS_PRIMARY_MARKET_CATEGORIES.length
       ? supportedCategories
