@@ -17,8 +17,12 @@ export function buildWorldcupTeamHint(
   if (!match) return undefined;
   const keys = (...vals: string[]) =>
     new Set(vals.filter(Boolean).map((s) => s.trim().toLowerCase()));
-  const homeLabel = t(`extend.worldcup.teamName.${match.home.code.toLowerCase()}`);
-  const awayLabel = t(`extend.worldcup.teamName.${match.away.code.toLowerCase()}`);
+  const homeLabel = t(`extend.worldcup.teamName.${match.home.code.toLowerCase()}`, {
+    defaultValue: match.home.nameZh || match.home.name,
+  });
+  const awayLabel = t(`extend.worldcup.teamName.${match.away.code.toLowerCase()}`, {
+    defaultValue: match.away.nameZh || match.away.name,
+  });
   return {
     homeKeys: keys(match.home.name, match.home.code, match.home.nameZh, homeLabel ?? ""),
     awayKeys: keys(match.away.name, match.away.code, match.away.nameZh, awayLabel ?? ""),

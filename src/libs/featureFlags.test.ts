@@ -5,18 +5,18 @@ import {
 } from "./featureFlags";
 
 describe("resolveSportsFeatureFlags", () => {
-  it("enables sports list pages by default and keeps detail flags explicit", () => {
+  it("enables sports list and match detail pages by default", () => {
     expect(resolveSportsFeatureFlags({})).toEqual({
       sports_enabled: true,
       esports_enabled: true,
-      sports_match_detail_enabled: false,
+      sports_match_detail_enabled: true,
       sports_match_detail_soccer_enabled: false,
       sports_match_detail_baseball_enabled: false,
       esports_match_detail_cs2_enabled: false,
     });
   });
 
-  it("only treats literal true as enabled for detail flags", () => {
+  it("keeps sport-specific detail flags explicit", () => {
     expect(
       resolveSportsFeatureFlags({
         NEXT_PUBLIC_ENABLE_SPORTS: "true",
@@ -29,7 +29,7 @@ describe("resolveSportsFeatureFlags", () => {
     ).toEqual({
       sports_enabled: true,
       esports_enabled: true,
-      sports_match_detail_enabled: false,
+      sports_match_detail_enabled: true,
       sports_match_detail_soccer_enabled: false,
       sports_match_detail_baseball_enabled: false,
       esports_match_detail_cs2_enabled: true,

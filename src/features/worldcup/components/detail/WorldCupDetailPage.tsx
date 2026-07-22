@@ -31,7 +31,11 @@ import {
 } from "src/components/FundWalletModal";
 import { SETUP_WALLET_MODAL_ID } from "src/components/SetupWalletModal";
 import { PortfolioActivitySection } from "src/components/page/PortfolioActivitySection";
-import { adaptLiveVideos, applyLiveStateToMatch } from "../../data/client";
+import {
+  adaptLiveVideos,
+  applyLiveStateToMatch,
+  type PredictEventWithWorldcupLive,
+} from "../../data/client";
 import { useWorldcupMatchLive } from "../../data/live";
 import { useWorldcupMatchEvent, useWorldcupMatches } from "../../data/queries";
 import { hasLiveVideos } from "../games/LiveStreamPanel";
@@ -74,6 +78,7 @@ import {
   worldcupMatchTitle,
   type WorldCupTranslate,
 } from "../../display";
+import type { WcMatch } from "../../types";
 
 type TranslatedEvent = PredictEvent & { title_trans?: unknown };
 type TranslatedOutcome = PredictMarket["outcomes"][number] & {
@@ -205,6 +210,10 @@ export function WorldCupDetailPage({
   initialMarket = null,
   initialMarketSlug = null,
   initialOutcome = null,
+  eventOverride,
+  matchOverride,
+  showMatchCenter = true,
+  analyticsSurface = "world_cup_detail",
 }: {
   id: string;
   /** Deep-link market short code from the entry URL (`?market=`). */
@@ -213,6 +222,14 @@ export function WorldCupDetailPage({
   initialMarketSlug?: string | null;
   /** Deep-link outcome short code from the entry URL (`?outcome=`). */
   initialOutcome?: string | null;
+  /** Pre-adapted event supplied by another sports surface. */
+  eventOverride?: PredictEventWithWorldcupLive;
+  /** Pre-adapted match supplied by another sports surface. */
+  matchOverride?: WcMatch;
+  /** Whether World Cup-only live information panels should be rendered. */
+  showMatchCenter?: boolean;
+  /** Analytics surface used by shared match-detail interactions. */
+  analyticsSurface?: "prediction_detail" | "world_cup_detail";
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -224,18 +241,26 @@ export function WorldCupDetailPage({
   const { onOpen: openSetupWallet } = useAsyncModal(SETUP_WALLET_MODAL_ID);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
 
-  const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id);
-  const { data: matches = [] } = useWorldcupMatches();
+  const { data: rawEvent, isLoading } = useWorldcupMatchEvent(id, {
+    enabled: !eventOverride,
+  });
+  const { data: matches = [] } = useWorldcupMatches({
+    enabled: !matchOverride,
+  });
   const found = useMemo(
-    () => matches.find((m) => m.slug === id),
-    [matches, id],
+    () => matchOverride ?? matches.find((m) => m.slug === id),
+    [id, matchOverride, matches],
   );
-  const liveState = useWorldcupMatchLive(found?.matchId);
+  const liveState = useWorldcupMatchLive(
+    matchOverride ? undefined : found?.matchId,
+  );
   // Force every event avatar on this page — the header and the buy/sell trade
   // panel (which derives its icon from event.image_url) — to the FIFA logo.
   const event = useMemo(
-    () => (rawEvent ? { ...rawEvent, image_url: FIFA_AVATAR } : rawEvent),
-    [rawEvent],
+    () =>
+      eventOverride ??
+      (rawEvent ? { ...rawEvent, image_url: FIFA_AVATAR } : rawEvent),
+    [eventOverride, rawEvent],
   );
   const match = useMemo(() => {
     if (!found) return undefined;
@@ -245,10 +270,15 @@ export function WorldCupDetailPage({
     const eventVideos = adaptLiveVideos(event?.live_videos);
     return eventVideos.length > 0 ? eventVideos : match?.liveVideos;
   }, [event?.live_videos, match?.liveVideos]);
-  const showLiveTab = hasLiveVideos(liveVideos, match);
+  const showLiveTab = showMatchCenter && hasLiveVideos(liveVideos, match);
   const mobileTabs = useMemo(
-    () => MOBILE_TABS.filter((tab) => tab.key !== "live" || showLiveTab),
-    [showLiveTab],
+    () =>
+      MOBILE_TABS.filter(
+        (tab) =>
+          (showMatchCenter || !MATCH_CENTER_MOBILE_TABS.has(tab.key)) &&
+          (tab.key !== "live" || showLiveTab),
+      ),
+    [showLiveTab, showMatchCenter],
   );
 
   const hint = useMemo(
@@ -375,10 +405,10 @@ export function WorldCupDetailPage({
     trackMatchDetailView({
       eventSlug: event.slug,
       source: event.source,
-      surface: "world_cup_detail",
+      surface: analyticsSurface,
       marketSlug: initialMarketSlug ?? undefined,
     });
-  }, [event, initialMarketSlug]);
+  }, [analyticsSurface, event, initialMarketSlug]);
 
   const handleSelect = useCallback(
     (slug: string, selectedOutcome: TradeOutcome = "yes") => {
@@ -587,7 +617,7 @@ export function WorldCupDetailPage({
       ...(tradeMarket ? predictMarketAnalyticsParams(tradeMarket) : {}),
       outcome: params.outcome,
       side: params.side,
-      surface: "world_cup_detail",
+      surface: analyticsSurface,
     });
   };
 
@@ -708,7 +738,7 @@ export function WorldCupDetailPage({
             </MarketSwitcherFrame>
           )}
 
-          {(mobileTab === "center" ||
+          {showMatchCenter && (mobileTab === "center" ||
             mobileTab === "live" ||
             mobileTab === "overview" ||
             mobileTab === "stats" ||
@@ -807,15 +837,17 @@ export function WorldCupDetailPage({
             />
           </div>
 
-          <MatchCenterTabs
-            match={match ?? null}
-            liveVideos={liveVideos}
-            kickoffMs={match?.kickoffMs}
-            className="hidden h-full w-[420px] shrink-0 min-[1800px]:flex"
-            contentClassName="min-h-0 flex-1 p-2"
-            liveContentClassName="min-h-0 flex-1 p-2"
-            centerWidgetClassName="h-full min-h-0"
-          />
+          {showMatchCenter && (
+            <MatchCenterTabs
+              match={match ?? null}
+              liveVideos={liveVideos}
+              kickoffMs={match?.kickoffMs}
+              className="hidden h-full w-[420px] shrink-0 min-[1800px]:flex"
+              contentClassName="min-h-0 flex-1 p-2"
+              liveContentClassName="min-h-0 flex-1 p-2"
+              centerWidgetClassName="h-full min-h-0"
+            />
+          )}
 
           {selectedMarket && (
             <div className="h-[520px] w-full shrink-0 xl:h-full xl:w-[400px] 2xl:w-[420px]">
@@ -838,12 +870,14 @@ export function WorldCupDetailPage({
           )}
         </div>
 
-        <MatchCenterTabs
-          match={match ?? null}
-          liveVideos={liveVideos}
-          kickoffMs={match?.kickoffMs}
-          className="w-full min-[1800px]:hidden"
-        />
+        {showMatchCenter && (
+          <MatchCenterTabs
+            match={match ?? null}
+            liveVideos={liveVideos}
+            kickoffMs={match?.kickoffMs}
+            className="w-full min-[1800px]:hidden"
+          />
+        )}
 
         {/* Activity spans the chart and markets columns. */}
         <PortfolioActivitySection />
@@ -995,3 +1029,13 @@ const MOBILE_TABS = [
   { key: "rules", labelKey: "extend.worldcup.detail.info.rules" },
   { key: "ref", labelKey: "extend.worldcup.detail.info.ref" },
 ] as const satisfies readonly { key: MobileTabKey; labelKey: string }[];
+
+const MATCH_CENTER_MOBILE_TABS = new Set<MobileTabKey>([
+  "live",
+  "center",
+  "overview",
+  "stats",
+  "lineup",
+  "news",
+  "comments",
+]);

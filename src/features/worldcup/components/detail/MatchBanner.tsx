@@ -71,8 +71,10 @@ export function MatchBanner({ match }: { match: WcMatch }) {
   const awayScore = match.liveScore?.away ?? 0;
   const showScore = match.status === "live" || match.status === "final";
   const livePeriod = formatLivePeriodLabel(match, t);
-  const teamName = (code: string) =>
-    t("extend.worldcup.teamName." + code.toLowerCase());
+  const teamName = (team: WcMatch["home"]) =>
+    t("extend.worldcup.teamName." + team.code.toLowerCase(), {
+      defaultValue: team.nameZh || team.name,
+    });
 
   const kickoff = new Date(match.kickoffMs).toLocaleString(
     lang.startsWith("zh") ? "zh-CN" : "en-US",
@@ -85,7 +87,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
         <TeamFlag team={match.home} size={40} />
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
-          {teamName(match.home.code)}
+          {teamName(match.home)}
         </div>
         {!showScore && (
           <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">
@@ -131,7 +133,7 @@ export function MatchBanner({ match }: { match: WcMatch }) {
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
         <TeamFlag team={match.away} size={40} />
         <div className="w-full truncate text-sm font-semibold text-zinc-100">
-          {teamName(match.away.code)}
+          {teamName(match.away)}
         </div>
         {!showScore && (
           <div className="text-xs font-bold tabular-nums text-[#c7ff2e]">

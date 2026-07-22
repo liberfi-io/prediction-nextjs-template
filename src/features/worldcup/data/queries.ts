@@ -102,13 +102,17 @@ export function usePrefetchWorldcupMatchEvent() {
  * match detail page; every market type is present so the Markets panel can
  * group and switch between them.
  */
-export function useWorldcupMatchEvent(slug: string) {
+export function useWorldcupMatchEvent(
+  slug: string,
+  options: WorldcupMatchesOptions = {},
+) {
   const lang = useApiLang();
+  const enabled = (options.enabled ?? true) && Boolean(slug);
   return useQuery({
     queryKey: [...worldcupMatchEventQueryKey(slug), lang],
     queryFn: () => fetchWorldcupMatchEvent(CLIENT_BASE, slug, lang),
-    enabled: Boolean(slug),
-    refetchInterval: POLL_INTERVAL_MS,
+    enabled,
+    refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS,
   });
 }

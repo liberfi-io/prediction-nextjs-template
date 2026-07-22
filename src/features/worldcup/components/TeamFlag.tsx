@@ -30,9 +30,8 @@ export function TeamFlag({
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={encodeURI(team.flag)}
+      src={encodeFlagUrl(team.flag)}
       alt={team.name}
       width={size}
       height={size}
@@ -44,4 +43,12 @@ export function TeamFlag({
       style={{ width: size, height: size }}
     />
   );
+}
+
+function encodeFlagUrl(url: string): string {
+  try {
+    return encodeURI(decodeURI(url));
+  } catch {
+    return encodeURI(url);
+  }
 }

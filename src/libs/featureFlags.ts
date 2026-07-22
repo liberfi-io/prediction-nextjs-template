@@ -42,7 +42,7 @@ export function resolveSportsFeatureFlags(
   return {
     sports_enabled: enabledUnlessFalse(env.NEXT_PUBLIC_ENABLE_SPORTS),
     esports_enabled: enabledUnlessFalse(env.NEXT_PUBLIC_ENABLE_ESPORTS),
-    sports_match_detail_enabled: enabled(
+    sports_match_detail_enabled: enabledUnlessFalse(
       env.NEXT_PUBLIC_ENABLE_SPORTS_MATCH_DETAIL,
     ),
     sports_match_detail_soccer_enabled: enabled(
