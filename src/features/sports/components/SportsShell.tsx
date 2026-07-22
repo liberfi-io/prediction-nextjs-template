@@ -493,15 +493,7 @@ export function SportsShell({
                       hasMore={matches.has_more && Boolean(matches.next_cursor)}
                       loading={loadingResource === "matches"}
                       onLoadMore={() => void loadMore("matches")}
-                      autoLoadMore={false}
                     />
-                    {matches.has_more && matches.next_cursor && (
-                      <LoadMoreButton
-                        label={t("extend.portfolio.loadMore")}
-                        loading={loadingResource === "matches"}
-                        onLoad={() => void loadMore("matches")}
-                      />
-                    )}
                   </section>
                 )}
 
@@ -1058,14 +1050,12 @@ function SportsMatchList({
   hasMore,
   loading,
   onLoadMore,
-  autoLoadMore = true,
 }: {
   matches: SportsMatchCardData[];
   todayOnly: boolean;
   hasMore: boolean;
   loading: boolean;
   onLoadMore: () => void;
-  autoLoadMore?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const visibleMatches = useMemo(
@@ -1110,7 +1100,6 @@ function SportsMatchList({
   const virtualItems = virtualizer.getVirtualItems();
 
   useEffect(() => {
-    if (!autoLoadMore) return;
     const last = virtualItems[virtualItems.length - 1];
     if (
       hasMore &&
@@ -1119,7 +1108,7 @@ function SportsMatchList({
     ) {
       onLoadMore();
     }
-  }, [autoLoadMore, hasMore, loading, onLoadMore, rows.length, virtualItems]);
+  }, [hasMore, loading, onLoadMore, rows.length, virtualItems]);
 
   return (
     <div className="min-w-0 pb-4">
@@ -1173,7 +1162,7 @@ function SportsMatchList({
           })}
         </div>
       )}
-      {autoLoadMore && loading && (
+      {loading && (
         <div className="py-3 text-center text-xs text-zinc-500">
           {t("extend.portfolio.loadMore")}
         </div>

@@ -550,6 +550,49 @@ describe("SportsShell taxonomy labels", () => {
     ).toBeDefined();
   });
 
+  it("automatically loads the next live match page", async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [],
+        has_more: false,
+        next_cursor: null,
+        limit: 20,
+      }),
+    });
+    global.fetch = fetchMock as typeof fetch;
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ view: "live" }}
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: null,
+            match_pagination: {
+              has_more: true,
+              next_cursor: "live-next",
+              limit: 20,
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+        "cursor=live-next",
+      );
+      expect(
+        screen.queryByRole("button", { name: "extend.portfolio.loadMore" }),
+      ).toBeNull();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("places the list tabs and odds format on opposite sides without a title divider", () => {
     render(
       <SportsShell
