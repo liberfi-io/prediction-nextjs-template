@@ -975,6 +975,43 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.queryByText("0")).toBeNull();
   });
 
+  it("always renders match counts for taxonomy nodes", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{ view: "proposals" }}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                    counts: {
+                      match_count: 10,
+                      prop_count: 3,
+                      total_count: 13,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("10")).toHaveLength(2);
+    expect(screen.queryByText("3")).toBeNull();
+    expect(screen.queryByText("13")).toBeNull();
+  });
+
   it("keeps the mobile taxonomy modal open while navigating taxonomy", () => {
     render(
       <SportsShell

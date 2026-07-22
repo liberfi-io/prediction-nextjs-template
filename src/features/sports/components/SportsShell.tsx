@@ -271,7 +271,7 @@ export function SportsShell({
   const liveTaxonomyItems = taxonomyNodes.map((node) => ({
     node,
     active: taxonomyBranchContainsActiveNode(node, effectiveFilters),
-    count: taxonomyNodeCount(node, effectiveFilters),
+    count: taxonomyNodeCount(node),
   }));
   const mobileTaxonomyScrollTarget = isSpecialViewActive(
     effectiveFilters,
@@ -407,7 +407,7 @@ export function SportsShell({
                 </Link>
                 {taxonomyNodes.map((node) => {
                   const icon = resolveSportsTaxonomyIcon(node.slug);
-                  const nodeCount = taxonomyNodeCount(node, effectiveFilters);
+                  const nodeCount = taxonomyNodeCount(node);
 
                   return (
                     <Link
@@ -937,7 +937,7 @@ function TaxonomyRail({
       {nodes.map((node) => {
         const hasChildren = Boolean(node.children?.length);
         const icon = resolveSportsTaxonomyIcon(node.slug, parentIcon);
-        const nodeCount = taxonomyNodeCount(node, filters);
+        const nodeCount = taxonomyNodeCount(node);
         const isActive = isTaxonomyNodeActive(filters, node);
         const isExpanded = nested || expandedTopLevelSlug === node.slug;
         const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -2172,16 +2172,8 @@ function isPlainSameWindowNavigation(
   );
 }
 
-function taxonomyNodeCount(
-  node: SportsTaxonomyNode,
-  filters: SportsPageFilters,
-): number | undefined {
-  if (!node.counts) return undefined;
-  if (filters.view === "proposals") return node.counts.prop_count;
-  if (filters.view === "live" || !hasTaxonomyFilter(filters)) {
-    return node.counts.match_count;
-  }
-  return node.counts.total_count;
+function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {
+  return node.counts?.match_count;
 }
 
 function hasTaxonomyFilter(filters: SportsPageFilters): boolean {
