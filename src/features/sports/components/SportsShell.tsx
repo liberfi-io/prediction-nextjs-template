@@ -1334,9 +1334,7 @@ function SportsParticipantRow({
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <SportsParticipantAvatar participant={participant} />
-      <span className="truncate text-sm font-semibold text-zinc-100">
-        {participant.name}
-      </span>
+      <SportsParticipantName participant={participant} />
     </div>
   );
 }
@@ -1522,14 +1520,12 @@ export function sportsMarketSelectionLabel(
     selectionCount,
     participants,
   );
-  if (side === "home") {
+  if (side === "home" || side === "away") {
+    const participant = sportsParticipant(participants, side);
     return (
-      sportsParticipant(participants, "home")?.name ?? selection.outcome.label
-    );
-  }
-  if (side === "away") {
-    return (
-      sportsParticipant(participants, "away")?.name ?? selection.outcome.label
+      sportsParticipantAbbreviation(participant) ??
+      participant?.name ??
+      selection.outcome.label
     );
   }
   return side === "draw" ? drawLabel : selection.outcome.label;
@@ -1583,11 +1579,43 @@ function SportsMobileParticipant({
       )}
     >
       <SportsParticipantAvatar participant={participant} />
+      <SportsParticipantName participant={participant} align={align} />
+    </div>
+  );
+}
+
+function SportsParticipantName({
+  participant,
+  align = "left",
+}: {
+  participant: SportsParticipant;
+  align?: "left" | "right";
+}) {
+  const abbreviation = sportsParticipantAbbreviation(participant);
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-baseline gap-1.5",
+        align === "right" && "justify-end",
+      )}
+    >
       <span className="truncate text-sm font-semibold text-zinc-100">
         {participant.name}
       </span>
+      {abbreviation ? (
+        <span className="shrink-0 text-xs font-medium text-zinc-500">
+          {abbreviation}
+        </span>
+      ) : null}
     </div>
   );
+}
+
+function sportsParticipantAbbreviation(
+  participant?: SportsParticipant,
+): string | undefined {
+  return participant?.abbreviation?.trim() || undefined;
 }
 
 function SportsParticipantAvatar({

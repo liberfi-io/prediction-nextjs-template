@@ -199,7 +199,21 @@ describe("SportsShell taxonomy labels", () => {
           "Draw",
         ),
       ),
-    ).toEqual(["Qingdao Hainiu FC", "Draw", "Tianjin Jinmen Hu FC"]);
+    ).toEqual(["HAI", "Draw", "JIN"]);
+    expect(
+      sportsMarketSelectionLabel(
+        "moneyline",
+        home,
+        0,
+        ordered.length,
+        participants.map((participant) => ({
+          ...participant,
+          abbreviation:
+            participant.role === "home" ? "   " : participant.abbreviation,
+        })),
+        "Draw",
+      ),
+    ).toBe("Qingdao Hainiu FC");
     expect(
       sportsMoneylineSelectionSide(
         selection(
