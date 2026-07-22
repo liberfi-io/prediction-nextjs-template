@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -14,7 +15,11 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { useTranslation } from "@liberfi.io/i18n";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  defaultRangeExtractor,
+  useVirtualizer,
+  type Range,
+} from "@tanstack/react-virtual";
 import {
   ChevronDownIcon,
   ModalBody,
@@ -971,7 +976,7 @@ export function SportsMatchGroupHeading({ title }: { title: string }) {
   return (
     <div
       data-testid="sports-match-group-heading"
-      className="flex items-center gap-3 py-2 pl-4 pr-[17px]"
+      className="flex items-center gap-3 bg-[#09090b] py-2 pl-4 pr-[17px]"
     >
       <h3 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">
         {title}
@@ -989,6 +994,17 @@ export function SportsMatchGroupHeading({ title }: { title: string }) {
       </div>
     </div>
   );
+}
+
+/** Finds the date-group row that should remain sticky for a virtual range. */
+export function findActiveMatchGroupIndex(
+  groupIndexes: readonly number[],
+  startIndex: number,
+): number | undefined {
+  for (let index = groupIndexes.length - 1; index >= 0; index -= 1) {
+    if (groupIndexes[index] <= startIndex) return groupIndexes[index];
+  }
+  return groupIndexes[0];
 }
 
 function SportsMatchList({
@@ -1015,6 +1031,28 @@ function SportsMatchList({
     () => buildMatchRows(visibleMatches, i18n.language || "en"),
     [i18n.language, visibleMatches],
   );
+  const groupIndexes = useMemo(
+    () =>
+      rows.flatMap((row, index) => (row.kind === "heading" ? [index] : [])),
+    [rows],
+  );
+  const activeGroupIndexRef = useRef<number | undefined>(groupIndexes[0]);
+  const rangeExtractor = useCallback(
+    (range: Range) => {
+      const activeGroupIndex = findActiveMatchGroupIndex(
+        groupIndexes,
+        range.startIndex,
+      );
+      activeGroupIndexRef.current = activeGroupIndex;
+      const indexes = defaultRangeExtractor(range);
+      return activeGroupIndex === undefined
+        ? indexes
+        : Array.from(new Set([activeGroupIndex, ...indexes])).sort(
+            (a, b) => a - b,
+          );
+    },
+    [groupIndexes],
+  );
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () =>
@@ -1023,6 +1061,7 @@ function SportsMatchList({
         : document.getElementById("sports-list-scroll"),
     estimateSize: (index) => (rows[index]?.kind === "heading" ? 38 : 168),
     overscan: 4,
+    rangeExtractor,
   });
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -1049,13 +1088,24 @@ function SportsMatchList({
         >
           {virtualItems.map((item) => {
             const row = rows[item.index];
+            const isActiveGroupHeading =
+              row.kind === "heading" &&
+              item.index === activeGroupIndexRef.current;
             return (
               <div
                 key={row.id}
                 ref={virtualizer.measureElement}
                 data-index={item.index}
-                className="absolute left-0 top-0 w-full pb-2"
-                style={{ transform: `translateY(${item.start}px)` }}
+                data-sticky-active={isActiveGroupHeading || undefined}
+                className={cn(
+                  "left-0 top-0 w-full pb-2",
+                  isActiveGroupHeading ? "sticky z-20" : "absolute",
+                )}
+                style={
+                  isActiveGroupHeading
+                    ? undefined
+                    : { transform: `translateY(${item.start}px)` }
+                }
               >
                 {row.kind === "heading" ? (
                   <SportsMatchGroupHeading title={row.title} />

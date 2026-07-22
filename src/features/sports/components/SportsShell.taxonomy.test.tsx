@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import {
+  findActiveMatchGroupIndex,
   matchesForToday,
   resolvePrimarySportsMarkets,
   SportsMatchGroupHeading,
@@ -65,6 +66,16 @@ const mobileTaxonomyScrollCases = [
 ] as const;
 
 describe("SportsShell taxonomy labels", () => {
+  it("selects the latest date group at or before the virtual range", () => {
+    const groupIndexes = [0, 3, 7];
+
+    expect(findActiveMatchGroupIndex(groupIndexes, 0)).toBe(0);
+    expect(findActiveMatchGroupIndex(groupIndexes, 2)).toBe(0);
+    expect(findActiveMatchGroupIndex(groupIndexes, 3)).toBe(3);
+    expect(findActiveMatchGroupIndex(groupIndexes, 10)).toBe(7);
+    expect(findActiveMatchGroupIndex([], 0)).toBeUndefined();
+  });
+
   it("maps match detail markets into fixed moneyline, spread, and total columns", () => {
     const market = (market_type: string) => ({
       market_slug: market_type,
