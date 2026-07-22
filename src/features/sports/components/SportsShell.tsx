@@ -1026,8 +1026,10 @@ export function SportsMatchGroupHeading({
             key={category}
             data-testid="sports-market-group-header"
             className={cn(
-              "truncate text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500",
-              categories.length === 1 ? "w-[400px]" : "w-[128px]",
+              "truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500",
+              categories.length === 1
+                ? "w-[400px] text-right"
+                : "w-[128px] text-center",
             )}
           >
             {t(`extend.worldcup.marketCol.${category}`)}

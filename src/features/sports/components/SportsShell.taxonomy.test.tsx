@@ -618,6 +618,7 @@ describe("SportsShell taxonomy labels", () => {
     let marketHeaders = screen.getAllByTestId("sports-market-group-header");
     expect(marketHeaders).toHaveLength(1);
     expect(marketHeaders[0].className).toContain("w-[400px]");
+    expect(marketHeaders[0].className).toContain("text-right");
     expect(screen.queryByText("extend.worldcup.marketCol.spread")).toBeNull();
     expect(screen.queryByText("extend.worldcup.marketCol.total")).toBeNull();
 
