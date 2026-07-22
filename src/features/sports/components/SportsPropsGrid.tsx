@@ -10,12 +10,12 @@ export function SportsPropsGrid({
   return (
     <div className={cn("sports-props-grid -mx-2", className)} {...props}>
       <style>{`
-        .sports-props-grid .evt-card-grid,
+        .sports-props-grid .sports-props-card-grid,
         .sports-props-grid .sports-props-skeleton-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
         @media (max-width: 767px) {
-          .sports-props-grid .evt-card-grid,
+          .sports-props-grid .sports-props-card-grid,
           .sports-props-grid .sports-props-skeleton-grid {
             grid-template-columns: minmax(0, 1fr) !important;
           }

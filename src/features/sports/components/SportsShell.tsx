@@ -59,6 +59,7 @@ import {
   SportsLiveFilters,
 } from "./SportsLiveFilters";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
+import { sportsOutcomePrice } from "./sportsOutcomePrice";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
 import { formatVolume } from "../../worldcup/components/util";
 import {
@@ -591,22 +592,14 @@ export function SportsShell({
 
                 {!isSpecialViewActive(filters, "live") && (
                   <section className="space-y-3">
-                    {propPage.items.length > 0 ? (
-                      propPage.items.map((event) => (
-                        <PropEventCard key={event.event_slug} event={event} />
-                      ))
-                    ) : filters.view === "proposals" ? (
-                      <SportsEmptyState
-                        label={t("extend.sports.empty.props")}
+                    {propPage.items.length > 0 ||
+                    filters.view === "proposals" ? (
+                      <SportsPropsList
+                        page={propPage}
+                        loading={loadingResource === "props"}
+                        onLoadMore={() => void loadMore("props")}
                       />
                     ) : null}
-                    {propPage.has_more && propPage.next_cursor && (
-                      <LoadMoreButton
-                        label={t("extend.portfolio.loadMore")}
-                        loading={loadingResource === "props"}
-                        onLoad={() => void loadMore("props")}
-                      />
-                    )}
                   </section>
                 )}
               </div>
@@ -1791,10 +1784,6 @@ export function sportsMarketSelectionColor(
     : undefined;
 }
 
-function sportsOutcomePrice(outcome: SportsMarketOutcome): number | undefined {
-  return outcome.price ?? outcome.best_ask ?? outcome.last_trade_price;
-}
-
 /** Matches the price-animation style used by the World Cup market columns. */
 export function sportsOddsAnimationVariant(
   category: keyof SportsPrimaryMarkets,
@@ -2032,57 +2021,6 @@ function SportsOddsButton({
   );
 }
 
-function PropEventCard({ event }: { event: SportsPropEventCardData }) {
-  return (
-    <Link
-      href={`/event/${encodeURIComponent(event.event_slug)}`}
-      className="block rounded-lg border border-zinc-900 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs text-zinc-500">
-            {[
-              event.prop_type,
-              event.sport_slug ?? event.game_slug,
-              event.status,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </div>
-          <h2 className="mt-1 truncate text-sm font-semibold text-zinc-100">
-            {event.title}
-          </h2>
-        </div>
-      </div>
-
-      {event.markets && event.markets.length > 0 && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {event.markets.map((market) => (
-            <div
-              key={market.market_slug}
-              className="rounded-md bg-zinc-900 px-3 py-2"
-            >
-              <div className="truncate text-xs text-zinc-500">
-                {market.label}
-              </div>
-              <div className="mt-1 flex gap-2 overflow-hidden">
-                {(market.outcomes ?? []).slice(0, 2).map((outcome) => (
-                  <span
-                    key={`${market.market_slug}:${outcome.outcome}`}
-                    className="min-w-0 truncate text-sm font-medium text-zinc-200"
-                  >
-                    {outcome.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Link>
-  );
-}
-
 function SportsPropsListFallback() {
   const { t } = useTranslation();
   return (
@@ -2124,28 +2062,6 @@ function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {
         ))}
       </div>
     </div>
-  );
-}
-
-function LoadMoreButton({
-  label,
-  loading,
-  onLoad,
-}: {
-  label: string;
-  loading: boolean;
-  onLoad: () => void;
-}) {
-  return (
-    <Button
-      className="mx-auto flex"
-      isLoading={loading}
-      isDisabled={loading}
-      onPress={onLoad}
-      variant="flat"
-    >
-      {label}
-    </Button>
   );
 }
 

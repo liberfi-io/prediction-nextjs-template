@@ -115,6 +115,8 @@ export interface SportsPropEventCard {
   league_slug?: string;
   tournament_slug?: string;
   title: string;
+  image_url?: string;
+  volume?: number;
   status?: string;
   parent_match_group_slug?: string;
   markets?: SportsInlineMarket[];
