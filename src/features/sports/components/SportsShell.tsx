@@ -71,6 +71,7 @@ type SportsMarketLabels = {
   draw: string;
   total: { over: string; under: string };
 };
+type SportsOddsLabelParts = { text: string; suffix?: string };
 const SPORTS_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
   "spread",
@@ -1190,7 +1191,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     () => resolvePrimarySportsMarkets(match.inline_markets),
     [match.inline_markets],
   );
-  const useEnglishTotalAbbreviations = (i18n.resolvedLanguage ?? i18n.language)
+  const useEnglishTotalAbbreviations = i18n.language
     .toLowerCase()
     .startsWith("en");
   const marketLabels: SportsMarketLabels = {
@@ -1538,6 +1539,25 @@ export function sportsMarketSelectionLabel(
   participants: SportsParticipant[],
   labels: SportsMarketLabels,
 ): string {
+  const parts = sportsMarketSelectionLabelParts(
+    category,
+    selection,
+    selectionIndex,
+    selectionCount,
+    participants,
+    labels,
+  );
+  return parts.suffix ? `${parts.text} ${parts.suffix}` : parts.text;
+}
+
+function sportsMarketSelectionLabelParts(
+  category: keyof SportsPrimaryMarkets,
+  selection: SportsMarketSelection,
+  selectionIndex: number,
+  selectionCount: number,
+  participants: SportsParticipant[],
+  labels: SportsMarketLabels,
+): SportsOddsLabelParts {
   if (category === "spread" && selection.market.line !== undefined) {
     const participant = participants.find((candidate) =>
       sportsTextMatchesParticipant(
@@ -1553,13 +1573,13 @@ export function sportsMarketSelectionLabel(
       selection.outcome.outcome === "yes"
         ? selection.market.line
         : -selection.market.line;
-    return `${participantLabel} ${formatSignedSportsLine(line)}`;
+    return { text: participantLabel, suffix: formatSignedSportsLine(line) };
   }
   if (category === "total" && selection.market.line !== undefined) {
     const side = selection.outcome.outcome === "yes" ? "over" : "under";
-    return `${labels.total[side]} ${selection.market.line}`;
+    return { text: `${labels.total[side]} ${selection.market.line}` };
   }
-  if (category !== "moneyline") return selection.outcome.label;
+  if (category !== "moneyline") return { text: selection.outcome.label };
   const side = resolvedMoneylineSelectionSide(
     selection,
     selectionIndex,
@@ -1568,13 +1588,16 @@ export function sportsMarketSelectionLabel(
   );
   if (side === "home" || side === "away") {
     const participant = sportsParticipant(participants, side);
-    return (
-      sportsParticipantAbbreviation(participant) ??
-      participant?.name ??
-      selection.outcome.label
-    );
+    return {
+      text:
+        sportsParticipantAbbreviation(participant) ??
+        participant?.name ??
+        selection.outcome.label,
+    };
   }
-  return side === "draw" ? labels.draw : selection.outcome.label;
+  return {
+    text: side === "draw" ? labels.draw : selection.outcome.label,
+  };
 }
 
 function formatSignedSportsLine(line: number): string {
@@ -1724,18 +1747,31 @@ function SportsMarketColumn({
       data-sports-market-column={category}
       className="flex h-[118px] w-[128px] flex-col gap-2"
     >
-      {slots.map((selection, index) =>
-        selection ? (
+      {slots.map((selection, index) => {
+        if (!selection) {
+          return (
+            <SportsOddsButton
+              key={`${category}:placeholder:${index}`}
+              label="-"
+              format={format}
+              grow={growButtons}
+              onSelect={() => undefined}
+            />
+          );
+        }
+        const labelParts = sportsMarketSelectionLabelParts(
+          category,
+          selection,
+          index,
+          slotCount,
+          participants,
+          labels,
+        );
+        return (
           <SportsOddsButton
             key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
-            label={sportsMarketSelectionLabel(
-              category,
-              selection,
-              index,
-              slotCount,
-              participants,
-              labels,
-            )}
+            label={labelParts.text}
+            labelSuffix={labelParts.suffix}
             price={sportsOutcomePrice(selection.outcome)}
             format={format}
             variant={sportsOddsAnimationVariant(category)}
@@ -1751,22 +1787,15 @@ function SportsMarketColumn({
               onSelect(selection.market, selection.outcome.outcome)
             }
           />
-        ) : (
-          <SportsOddsButton
-            key={`${category}:placeholder:${index}`}
-            label="-"
-            format={format}
-            grow={growButtons}
-            onSelect={() => undefined}
-          />
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }
 
 function SportsOddsButton({
   label,
+  labelSuffix,
   price,
   format,
   variant = "fade",
@@ -1775,6 +1804,7 @@ function SportsOddsButton({
   onSelect,
 }: {
   label: string;
+  labelSuffix?: string;
   price?: number;
   format: OddsFormat;
   variant?: OddsNumberVariant;
@@ -1806,8 +1836,11 @@ function SportsOddsButton({
         } as CSSProperties
       }
     >
-      <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide opacity-75">
-        {label}
+      <span className="flex min-w-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide opacity-75">
+        <span className="min-w-0 truncate">{label}</span>
+        {labelSuffix && (
+          <span className="shrink-0 tabular-nums">{labelSuffix}</span>
+        )}
       </span>
       <span className="shrink-0 text-sm font-bold tabular-nums">
         {typeof price === "number" ? (
