@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import {
   matchesForToday,
@@ -129,12 +135,14 @@ describe("SportsShell taxonomy labels", () => {
       "soccer",
     );
     expect(screen.queryByText(/filters\.upcoming/i)).toBeNull();
-    expect(
-      screen.getByRole("button", { name: /worldcup\.tab\.today/i }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("button", { name: /worldcup\.tab\.games/i }),
-    ).toBeDefined();
+    const todayTab = screen.getByRole("button", {
+      name: /worldcup\.tab\.today/i,
+    });
+    const gamesTab = screen.getByRole("button", {
+      name: /worldcup\.tab\.games/i,
+    });
+    expect(todayTab.getAttribute("aria-current")).toBeNull();
+    expect(gamesTab.getAttribute("aria-current")).toBe("page");
     expect(
       screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
     ).toBeDefined();
@@ -208,6 +216,132 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
+  });
+
+  it("shows the target taxonomy and a list skeleton immediately after navigation", async () => {
+    const taxonomy = {
+      sections: [
+        {
+          section: "sports" as const,
+          children: [
+            {
+              section: "sports" as const,
+              node_type: "sport" as const,
+              slug: "soccer",
+              label: "Soccer",
+            },
+            {
+              section: "sports" as const,
+              node_type: "sport" as const,
+              slug: "tennis",
+              label: "Tennis",
+            },
+          ],
+        },
+      ],
+    };
+    const { container, rerender } = render(
+      <SportsShell
+        section="sports"
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+        data={{
+          matches: [
+            {
+              match_group_slug: "soccer-match",
+              section: "sports",
+              title: "Soccer match",
+            },
+          ],
+          props: [],
+          taxonomy,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("link", { name: "tennis" })[1]);
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "tennis",
+    );
+    const list = container.querySelector("#sports-list-scroll");
+    expect(list?.getAttribute("aria-busy")).toBe("true");
+    expect(
+      list?.querySelector('[data-sports-list-loading="true"]'),
+    ).not.toBeNull();
+    expect(screen.queryByText("Soccer match")).toBeNull();
+
+    rerender(
+      <SportsShell
+        section="sports"
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "tennis" }}
+        data={{
+          matches: [
+            {
+              match_group_slug: "tennis-match",
+              section: "sports",
+              title: "Tennis match",
+            },
+          ],
+          props: [],
+          taxonomy,
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(list?.getAttribute("aria-busy")).toBeNull());
+    expect(screen.queryByText("Tennis match")).toBeDefined();
+  });
+
+  it("keeps modified taxonomy clicks in the browser's native flow", () => {
+    const { container } = render(
+      <SportsShell
+        section="sports"
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                  },
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "tennis",
+                    label: "Tennis",
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("link", { name: "tennis" })[1], {
+      metaKey: true,
+    });
+
+    expect(
+      container.querySelector("#sports-list-scroll")?.getAttribute("aria-busy"),
+    ).toBeNull();
+
+    fireEvent.click(screen.getAllByRole("link", { name: "tennis" })[1]);
+    expect(
+      container.querySelector("#sports-list-scroll")?.getAttribute("aria-busy"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getAllByRole("link", { name: /live/i })[0]);
+    expect(
+      container.querySelector("#sports-list-scroll")?.getAttribute("aria-busy"),
+    ).toBeNull();
   });
 
   it("renders navigation groups and keeps counts off special links", () => {

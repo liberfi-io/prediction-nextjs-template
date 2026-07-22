@@ -73,6 +73,8 @@ export function SportsShell({
 }: SportsShellProps) {
   const { t } = useTranslation();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [pendingTaxonomyNode, setPendingTaxonomyNode] =
+    useState<SportsTaxonomyNode | null>(null);
   const [matches, setMatches] = useState<SportsPage<SportsMatchCardData>>(
     () => ({
       items: data.matches,
@@ -92,7 +94,7 @@ export function SportsShell({
   const [loadingResource, setLoadingResource] = useState<
     "matches" | "props" | null
   >(null);
-  const [activeTab, setActiveTab] = useState<SportsContentTab>("today");
+  const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
 
   useEffect(
     () =>
@@ -164,12 +166,45 @@ export function SportsShell({
   );
   const taxonomyNodes = taxonomy?.children ?? [];
   const featuredNodes = taxonomy?.featured ?? [];
-  const activeTopLevelSlug = findActiveTopLevelSlug(taxonomyNodes, filters);
-  const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, filters);
+  const effectiveFilters: SportsPageFilters = pendingTaxonomyNode
+    ? {
+        taxonomy_type: pendingTaxonomyNode.node_type,
+        taxonomy_slug: pendingTaxonomyNode.slug,
+      }
+    : filters;
+  const handleTaxonomyNavigate = (
+    event: MouseEvent<HTMLAnchorElement>,
+    node: SportsTaxonomyNode,
+  ): boolean => {
+    if (!isPlainSameWindowNavigation(event)) return false;
+    if (isTaxonomyNodeActive(effectiveFilters, node)) {
+      event.preventDefault();
+      return false;
+    }
+
+    setPendingTaxonomyNode(node);
+    return true;
+  };
+  const handleSpecialViewNavigate = (
+    event: MouseEvent<HTMLAnchorElement>,
+  ) => {
+    if (isPlainSameWindowNavigation(event)) setPendingTaxonomyNode(null);
+  };
+  const activeTopLevelSlug = findActiveTopLevelSlug(
+    taxonomyNodes,
+    effectiveFilters,
+  );
+  const activeTaxonomyNode = findTaxonomyNode(
+    taxonomyNodes,
+    effectiveFilters,
+  );
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
-  const mobileTaxonomyScrollTarget = isSpecialViewActive(filters, "live")
+  const mobileTaxonomyScrollTarget = isSpecialViewActive(
+    effectiveFilters,
+    "live",
+  )
     ? "live"
-    : isSpecialViewActive(filters, "proposals")
+    : isSpecialViewActive(effectiveFilters, "proposals")
       ? "proposals"
       : activeTopLevelSlug;
   const mobileTaxonomyScrollRef = useRef<HTMLDivElement>(null);
@@ -181,7 +216,27 @@ export function SportsShell({
     if (activeTopLevelSlug) setExpandedTopLevelSlug(activeTopLevelSlug);
   }, [activeTopLevelSlug]);
 
-  useEffect(() => setActiveTab("today"), [filters.taxonomy_slug]);
+  useEffect(() => setActiveTab("games"), [filters.taxonomy_slug]);
+  useEffect(() => {
+    if (
+      pendingTaxonomyNode &&
+      filters.taxonomy_type === pendingTaxonomyNode.node_type &&
+      filters.taxonomy_slug === pendingTaxonomyNode.slug
+    ) {
+      setPendingTaxonomyNode(null);
+    }
+  }, [filters.taxonomy_type, filters.taxonomy_slug, pendingTaxonomyNode]);
+
+  useEffect(() => {
+    if (!pendingTaxonomyNode) return;
+    const clearPendingNavigation = () => setPendingTaxonomyNode(null);
+    const timeout = window.setTimeout(clearPendingNavigation, 10_000);
+    window.addEventListener("popstate", clearPendingNavigation);
+    return () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener("popstate", clearPendingNavigation);
+    };
+  }, [pendingTaxonomyNode]);
 
   useEffect(() => {
     const container = mobileTaxonomyScrollRef.current;
@@ -220,11 +275,13 @@ export function SportsShell({
         <aside className="no-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
           <SportsNavigation
             section={section}
-            filters={filters}
+            filters={effectiveFilters}
             featuredNodes={featuredNodes}
             taxonomyNodes={taxonomyNodes}
             expandedTopLevelSlug={expandedTopLevelSlug}
             onExpandedTopLevelChange={setExpandedTopLevelSlug}
+            onTaxonomyNavigate={handleTaxonomyNavigate}
+            onSpecialViewNavigate={handleSpecialViewNavigate}
           />
         </aside>
 
@@ -237,6 +294,7 @@ export function SportsShell({
               >
                 <Link
                   href={`/${section}?view=live`}
+                  onClick={handleSpecialViewNavigate}
                   data-taxonomy-scroll-target="live"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
@@ -252,6 +310,7 @@ export function SportsShell({
                 </Link>
                 <Link
                   href={`/${section}?view=proposals`}
+                  onClick={handleSpecialViewNavigate}
                   data-taxonomy-scroll-target="proposals"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
@@ -267,16 +326,19 @@ export function SportsShell({
                 </Link>
                 {taxonomyNodes.map((node) => {
                   const icon = resolveSportsTaxonomyIcon(node.slug);
-                  const nodeCount = taxonomyNodeCount(node, filters);
+                  const nodeCount = taxonomyNodeCount(node, effectiveFilters);
 
                   return (
                     <Link
                       key={node.slug}
                       href={taxonomyHref(section, node)}
+                      onClick={(event) =>
+                        handleTaxonomyNavigate(event, node)
+                      }
                       data-taxonomy-scroll-target={node.slug}
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
-                        taxonomyBranchContainsActiveNode(node, filters)
+                        taxonomyBranchContainsActiveNode(node, effectiveFilters)
                           ? "border-emerald-700 bg-emerald-950 text-emerald-100"
                           : "border-zinc-800 bg-zinc-900 text-zinc-300",
                       )}
@@ -344,20 +406,26 @@ export function SportsShell({
           {filterDrawerOpen && (
             <SportsFilterDrawer
               section={section}
-              filters={filters}
+              filters={effectiveFilters}
               featuredNodes={featuredNodes}
               taxonomyNodes={taxonomyNodes}
               onClose={() => setFilterDrawerOpen(false)}
               expandedTopLevelSlug={expandedTopLevelSlug}
               onExpandedTopLevelChange={setExpandedTopLevelSlug}
+              onTaxonomyNavigate={handleTaxonomyNavigate}
             />
           )}
 
           <div
             id="sports-list-scroll"
+            aria-busy={pendingTaxonomyNode ? "true" : undefined}
             className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
           >
-            {hasTaxonomySelection ? (
+            {pendingTaxonomyNode ? (
+              <SportsListSkeleton
+                loadingLabel={t("extend.leaderboard.loading")}
+              />
+            ) : hasTaxonomySelection ? (
               activeTab === "props" ? (
                 <SportsPropsList
                   page={propPage}
@@ -429,6 +497,7 @@ function SportsFilterDrawer({
   onClose,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
+  onTaxonomyNavigate,
 }: {
   section: SportsSection;
   filters: SportsPageFilters;
@@ -437,6 +506,10 @@ function SportsFilterDrawer({
   onClose: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
+  onTaxonomyNavigate: (
+    event: MouseEvent<HTMLAnchorElement>,
+    node: SportsTaxonomyNode,
+  ) => boolean;
 }) {
   const { t } = useTranslation();
 
@@ -477,6 +550,7 @@ function SportsFilterDrawer({
               taxonomyNodes={taxonomyNodes}
               expandedTopLevelSlug={expandedTopLevelSlug}
               onExpandedTopLevelChange={onExpandedTopLevelChange}
+              onTaxonomyNavigate={onTaxonomyNavigate}
               showSpecialLinks={false}
             />
           </div>
@@ -494,6 +568,8 @@ function SportsNavigation({
   onNavigate,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
+  onTaxonomyNavigate,
+  onSpecialViewNavigate,
   showSpecialLinks = true,
 }: {
   section: SportsSection;
@@ -503,6 +579,11 @@ function SportsNavigation({
   onNavigate?: () => void;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange: (slug: string | undefined) => void;
+  onTaxonomyNavigate?: (
+    event: MouseEvent<HTMLAnchorElement>,
+    node: SportsTaxonomyNode,
+  ) => boolean;
+  onSpecialViewNavigate?: (event: MouseEvent<HTMLAnchorElement>) => void;
   showSpecialLinks?: boolean;
 }) {
   const { t } = useTranslation();
@@ -516,14 +597,14 @@ function SportsNavigation({
             label={t("extend.sports.filters.live")}
             icon="live"
             active={isSpecialViewActive(filters, "live")}
-            onNavigate={onNavigate}
+            onNavigate={onSpecialViewNavigate}
           />
           <SpecialNavigationLink
             href={`/${section}?view=proposals`}
             label={t("extend.sports.filters.proposals")}
             icon="proposals"
             active={isSpecialViewActive(filters, "proposals")}
-            onNavigate={onNavigate}
+            onNavigate={onSpecialViewNavigate}
           />
         </nav>
       )}
@@ -535,6 +616,7 @@ function SportsNavigation({
             section={section}
             filters={filters}
             onNavigate={onNavigate}
+            onTaxonomyNavigate={onTaxonomyNavigate}
             nested
           />
         </NavigationGroup>
@@ -552,6 +634,7 @@ function SportsNavigation({
           section={section}
           filters={filters}
           onNavigate={onNavigate}
+          onTaxonomyNavigate={onTaxonomyNavigate}
           expandedTopLevelSlug={expandedTopLevelSlug}
           onExpandedTopLevelChange={onExpandedTopLevelChange}
         />
@@ -588,7 +671,7 @@ function SpecialNavigationLink({
   label: string;
   icon: "live" | "proposals";
   active: boolean;
-  onNavigate?: () => void;
+  onNavigate?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
     <Link
@@ -728,6 +811,7 @@ function TaxonomyRail({
   section,
   filters,
   onNavigate,
+  onTaxonomyNavigate,
   parentIcon,
   expandedTopLevelSlug,
   onExpandedTopLevelChange,
@@ -737,6 +821,10 @@ function TaxonomyRail({
   section: SportsSection;
   filters: SportsPageFilters;
   onNavigate?: () => void;
+  onTaxonomyNavigate?: (
+    event: MouseEvent<HTMLAnchorElement>,
+    node: SportsTaxonomyNode,
+  ) => boolean;
   parentIcon?: string;
   expandedTopLevelSlug?: string;
   onExpandedTopLevelChange?: (slug: string | undefined) => void;
@@ -758,7 +846,10 @@ function TaxonomyRail({
               isExpanded && isActive ? undefined : node.slug,
             );
           }
-          if (!event.defaultPrevented) onNavigate?.();
+          if (!event.defaultPrevented) {
+            const navigationStarted = onTaxonomyNavigate?.(event, node);
+            if (navigationStarted !== false) onNavigate?.();
+          }
         };
 
         return (
@@ -808,6 +899,7 @@ function TaxonomyRail({
                   section={section}
                   filters={filters}
                   onNavigate={onNavigate}
+                  onTaxonomyNavigate={onTaxonomyNavigate}
                   parentIcon={icon}
                   nested
                 />
@@ -1337,6 +1429,43 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
+function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {
+  return (
+    <div data-sports-list-loading="true">
+      <span className="sr-only" role="status">
+        {loadingLabel}
+      </span>
+      <div className="space-y-3" aria-hidden="true">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="overflow-hidden rounded-[14px] border border-zinc-800/60 bg-zinc-900/40 p-4"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="h-3.5 w-32 animate-pulse rounded bg-zinc-800/60" />
+              <div className="h-6 w-16 animate-pulse rounded-full bg-zinc-800/60" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="h-4 w-3/5 animate-pulse rounded bg-zinc-800/60" />
+                <div className="h-4 w-2/5 animate-pulse rounded bg-zinc-800/60" />
+              </div>
+              <div className="hidden shrink-0 gap-2 md:flex">
+                {Array.from({ length: 3 }).map((_, column) => (
+                  <div
+                    key={column}
+                    className="h-[76px] w-32 animate-pulse rounded-[9px] bg-zinc-800/50"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LoadMoreButton({
   label,
   loading,
@@ -1399,6 +1528,21 @@ function isSpecialViewActive(
 ): boolean {
   if (hasTaxonomyFilter(filters)) return false;
   return view === "live" ? filters.view !== "proposals" : filters.view === view;
+}
+
+function isPlainSameWindowNavigation(
+  event: MouseEvent<HTMLAnchorElement>,
+): boolean {
+  const target = event.currentTarget.getAttribute("target");
+  return (
+    (!target || target === "_self") &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    !event.defaultPrevented
+  );
 }
 
 function taxonomyNodeCount(
