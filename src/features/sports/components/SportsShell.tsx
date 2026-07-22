@@ -508,7 +508,7 @@ function SportsNavigation({
   const { t } = useTranslation();
 
   return (
-    <div className="divide-y divide-zinc-800">
+    <div className="divide-y divide-zinc-900">
       {showSpecialLinks && (
         <nav className="space-y-1 py-4 first:pt-0 last:pb-0">
           <SpecialNavigationLink

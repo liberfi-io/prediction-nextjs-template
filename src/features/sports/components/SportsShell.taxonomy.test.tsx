@@ -255,7 +255,7 @@ describe("SportsShell taxonomy labels", () => {
       mobileTaxonomyLink?.querySelector(".text-\\[11px\\]")?.textContent,
     ).toBe("10");
     const navigationGroups = container.querySelector(".divide-y");
-    expect(navigationGroups?.classList.contains("divide-zinc-800")).toBe(true);
+    expect(navigationGroups?.classList.contains("divide-zinc-900")).toBe(true);
     expect(navigationGroups?.children).toHaveLength(3);
   });
 
