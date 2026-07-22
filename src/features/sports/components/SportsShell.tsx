@@ -42,6 +42,7 @@ import { fetchNextSportsPage } from "../api/client";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
+import { SportsEmptyState } from "./SportsEmptyState";
 import { resolveSportsTaxonomyIcon } from "./sportsTaxonomyIcons";
 import { OddsFormatSelect } from "../../worldcup/components/OddsFormatSelect";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
@@ -450,7 +451,9 @@ export function SportsShell({
                         <MatchCard key={match.match_group_slug} match={match} />
                       ))
                     ) : (
-                      <EmptyState label={t("extend.sports.empty.matches")} />
+                      <SportsEmptyState
+                        label={t("extend.sports.empty.matches")}
+                      />
                     )}
                     {matches.has_more && matches.next_cursor && (
                       <LoadMoreButton
@@ -469,7 +472,9 @@ export function SportsShell({
                         <PropEventCard key={event.event_slug} event={event} />
                       ))
                     ) : filters.view === "proposals" ? (
-                      <EmptyState label={t("extend.sports.empty.props")} />
+                      <SportsEmptyState
+                        label={t("extend.sports.empty.props")}
+                      />
                     ) : null}
                     {propPage.has_more && propPage.next_cursor && (
                       <LoadMoreButton
@@ -1001,7 +1006,7 @@ function SportsMatchList({
   return (
     <div className="min-w-0 pb-4">
       {rows.length === 0 ? (
-        <EmptyState label={t("extend.sports.empty.matches")} />
+        <SportsEmptyState label={t("extend.sports.empty.matches")} />
       ) : (
         <div
           className="relative w-full"
@@ -1418,14 +1423,6 @@ function PropEventCard({ event }: { event: SportsPropEventCardData }) {
         </div>
       )}
     </Link>
-  );
-}
-
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-10 text-center text-sm text-zinc-500">
-      {label}
-    </div>
   );
 }
 

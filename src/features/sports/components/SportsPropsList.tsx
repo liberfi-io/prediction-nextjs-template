@@ -7,6 +7,7 @@ import type { LinkComponentType } from "@liberfi.io/ui";
 import { EventsUI } from "@liberfi.io/ui-predict";
 import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
 import type { SportsPage, SportsPropEventCard } from "../types";
+import { SportsEmptyState } from "./SportsEmptyState";
 
 const SportsEventLink: LinkComponentType = (props) => (
   <Link prefetch={false} {...props} />
@@ -27,11 +28,7 @@ export function SportsPropsList({
     [page.items],
   );
   if (events.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-10 text-center text-sm text-zinc-500">
-        {t("extend.sports.empty.props")}
-      </div>
-    );
+    return <SportsEmptyState label={t("extend.sports.empty.props")} />;
   }
   return (
     <div className="sports-props-grid -mx-2 pb-4">
