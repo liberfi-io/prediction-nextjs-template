@@ -1794,10 +1794,10 @@ function SportsParticipantAvatar({
       width={28}
       height={28}
       unoptimized
-      className="h-7 w-7 shrink-0 rounded-full object-contain"
+      className="h-7 w-7 shrink-0 rounded-md object-contain"
     />
   ) : (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[11px] font-semibold text-zinc-300">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-[11px] font-semibold text-zinc-300">
       {(participant.abbreviation ?? participant.name).slice(0, 2).toUpperCase()}
     </span>
   );
