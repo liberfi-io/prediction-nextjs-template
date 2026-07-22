@@ -1104,7 +1104,7 @@ function SportsMatchList({
                 className={cn(
                   "left-0 w-full pb-2",
                   isActiveGroupHeading
-                    ? "sticky -top-4 z-20 bg-[#09090b]"
+                    ? "sticky top-0 z-20 bg-[#09090b]"
                     : "absolute top-0",
                 )}
                 style={
@@ -1113,6 +1113,13 @@ function SportsMatchList({
                     : { transform: `translateY(${item.start}px)` }
                 }
               >
+                {isActiveGroupHeading && (
+                  <div
+                    data-testid="sports-sticky-gap-cover"
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 -top-4 h-4 bg-[#09090b]"
+                  />
+                )}
                 {row.kind === "heading" ? (
                   <SportsMatchGroupHeading title={row.title} />
                 ) : (
