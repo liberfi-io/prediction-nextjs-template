@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -557,6 +558,68 @@ describe("SportsShell taxonomy labels", () => {
     expect(
       screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
     ).toBeDefined();
+  });
+
+  it("updates the selected content tab before rendering its list", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    let renderNextTab: FrameRequestCallback | undefined;
+    window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      renderNextTab = callback;
+      return 1;
+    });
+    window.cancelAnimationFrame = jest.fn();
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: {
+              sections: [
+                {
+                  section: "sports",
+                  children: [
+                    {
+                      section: "sports",
+                      node_type: "sport",
+                      slug: "soccer",
+                      label: "Soccer",
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+        />,
+      );
+
+      const todayTab = screen.getByRole("button", {
+        name: /worldcup\.tab\.today/i,
+      });
+      fireEvent.click(todayTab);
+
+      expect(todayTab.getAttribute("aria-current")).toBe("page");
+      expect(
+        screen
+          .getByRole("button", { name: /worldcup\.tab\.games/i })
+          .getAttribute("aria-current"),
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).not.toBeNull();
+
+      act(() => renderNextTab?.(0));
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).toBeNull();
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+    }
   });
 
   it("automatically loads the next live match page", async () => {

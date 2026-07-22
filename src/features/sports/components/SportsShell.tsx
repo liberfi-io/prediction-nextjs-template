@@ -99,6 +99,11 @@ const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
 
+const SportsPropsList = dynamic(
+  () => import("./SportsPropsList").then((module) => module.SportsPropsList),
+  { loading: SportsPropsListFallback },
+);
+
 /** Returns the primary market columns supported by a sport taxonomy. */
 export function sportsPrimaryMarketCategories(
   section: SportsSection,
@@ -115,10 +120,6 @@ export function sportsPrimaryMarketCategories(
   }
   return SPORTS_PRIMARY_MARKET_CATEGORIES;
 }
-
-const SportsPropsList = dynamic(() =>
-  import("./SportsPropsList").then((module) => module.SportsPropsList),
-);
 
 interface SportsShellProps {
   section: SportsSection;
@@ -157,6 +158,7 @@ export function SportsShell({
     "matches" | "props" | null
   >(null);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
+  const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
   const [liveDateRangeStart] = useState(() => new Date());
   const [selectedLiveDate, setSelectedLiveDate] = useState(
     () => sportsLiveDates(new Date())[0] ?? new Date(),
@@ -290,7 +292,17 @@ export function SportsShell({
     if (activeTopLevelSlug) setExpandedTopLevelSlug(activeTopLevelSlug);
   }, [activeTopLevelSlug]);
 
-  useEffect(() => setActiveTab("games"), [filters.taxonomy_slug]);
+  useEffect(() => {
+    setActiveTab("games");
+    setDisplayedTab("games");
+  }, [filters.taxonomy_slug]);
+  useEffect(() => {
+    if (activeTab === displayedTab) return;
+    const frame = window.requestAnimationFrame(() => {
+      setDisplayedTab(activeTab);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, displayedTab]);
   useEffect(() => {
     if (
       pendingTaxonomyNode &&
@@ -343,6 +355,7 @@ export function SportsShell({
       : "extend.sports.nav.sports",
   );
   const liveDateRangeLabel = formatSportsLiveDateRange(liveDates, lang || "en");
+  const isContentTabSwitching = activeTab !== displayedTab;
 
   return (
     <main className="h-full min-h-0 overflow-hidden bg-[#09090b] text-zinc-100">
@@ -516,7 +529,9 @@ export function SportsShell({
 
           <div
             id="sports-list-scroll"
-            aria-busy={pendingTaxonomyNode ? "true" : undefined}
+            aria-busy={
+              pendingTaxonomyNode || isContentTabSwitching ? "true" : undefined
+            }
             className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
           >
             {pendingTaxonomyNode ? (
@@ -532,7 +547,11 @@ export function SportsShell({
                 onLoadMore={() => void loadMore("matches")}
               />
             ) : hasTaxonomySelection ? (
-              activeTab === "props" ? (
+              isContentTabSwitching ? (
+                <SportsListSkeleton
+                  loadingLabel={t("extend.leaderboard.loading")}
+                />
+              ) : displayedTab === "props" ? (
                 <SportsPropsList
                   page={propPage}
                   loading={loadingResource === "props"}
@@ -541,7 +560,7 @@ export function SportsShell({
               ) : (
                 <SportsMatchList
                   matches={matches.items}
-                  todayOnly={activeTab === "today"}
+                  todayOnly={displayedTab === "today"}
                   hasMore={matches.has_more && Boolean(matches.next_cursor)}
                   loading={loadingResource === "matches"}
                   onLoadMore={() => void loadMore("matches")}
@@ -2053,6 +2072,11 @@ function PropEventCard({ event }: { event: SportsPropEventCardData }) {
       )}
     </Link>
   );
+}
+
+function SportsPropsListFallback() {
+  const { t } = useTranslation();
+  return <SportsListSkeleton loadingLabel={t("extend.leaderboard.loading")} />;
 }
 
 function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {
