@@ -1219,6 +1219,10 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     participants,
     moneylineSlotCount,
   );
+  const hasOnlyMoneyline =
+    primaryMarkets.moneyline.length > 0 &&
+    primaryMarkets.spread.length === 0 &&
+    primaryMarkets.total.length === 0;
   const open = () => router.push(href);
   const openMarket = (market: SportsInlineMarket, outcome: string) => {
     const params = new URLSearchParams({ market: market.market_slug, outcome });
@@ -1273,18 +1277,31 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
           )}
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
-          {SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
+          {hasOnlyMoneyline ? (
             <SportsMarketColumn
-              key={category}
-              category={category}
-              markets={primaryMarkets[category]}
+              category="moneyline"
+              markets={primaryMarkets.moneyline}
               participants={participants}
               labels={marketLabels}
               moneylineSlotCount={moneylineSlotCount}
               format={format}
               onSelect={openMarket}
+              horizontal
             />
-          ))}
+          ) : (
+            SPORTS_PRIMARY_MARKET_CATEGORIES.map((category) => (
+              <SportsMarketColumn
+                key={category}
+                category={category}
+                markets={primaryMarkets[category]}
+                participants={participants}
+                labels={marketLabels}
+                moneylineSlotCount={moneylineSlotCount}
+                format={format}
+                onSelect={openMarket}
+              />
+            ))
+          )}
         </div>
       </div>
 
@@ -1722,6 +1739,7 @@ function SportsMarketColumn({
   moneylineSlotCount,
   format,
   onSelect,
+  horizontal = false,
 }: {
   category: keyof SportsPrimaryMarkets;
   markets: SportsMarket[];
@@ -1730,6 +1748,7 @@ function SportsMarketColumn({
   moneylineSlotCount: 2 | 3;
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
+  horizontal?: boolean;
 }) {
   const rawSelections = sportsMarketSelections(category, markets);
   const slotCount = category === "moneyline" ? moneylineSlotCount : 2;
@@ -1741,11 +1760,20 @@ function SportsMarketColumn({
           moneylineSlotCount,
         )
       : Array.from({ length: slotCount }, (_, index) => rawSelections[index]);
-  const growButtons = category !== "moneyline" || slotCount === 2;
+  const hasThreeWayMoneyline = moneylineSlotCount === 3;
+  const growButtons =
+    !horizontal && hasThreeWayMoneyline && category !== "moneyline";
   return (
     <div
       data-sports-market-column={category}
-      className="flex h-[118px] w-[128px] flex-col gap-2"
+      data-sports-market-layout={horizontal ? "row" : "column"}
+      className={cn(
+        horizontal
+          ? "grid w-[400px] self-center gap-2"
+          : "flex w-[128px] flex-col gap-2",
+        horizontal && (slotCount === 3 ? "grid-cols-3" : "grid-cols-2"),
+        !horizontal && hasThreeWayMoneyline && "h-[118px]",
+      )}
     >
       {slots.map((selection, index) => {
         if (!selection) {
