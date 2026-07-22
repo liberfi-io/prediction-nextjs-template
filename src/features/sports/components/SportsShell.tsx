@@ -257,6 +257,8 @@ export function SportsShell({
       return false;
     }
 
+    setActiveTab("games");
+    setDisplayedTab("games");
     setPendingTaxonomyNode(node);
     return true;
   };

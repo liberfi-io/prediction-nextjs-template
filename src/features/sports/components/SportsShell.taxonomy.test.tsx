@@ -789,6 +789,14 @@ describe("SportsShell taxonomy labels", () => {
   });
 
   it("shows the target taxonomy and a list skeleton immediately after navigation", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    let renderNextTab: FrameRequestCallback | undefined;
+    window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      renderNextTab = callback;
+      return 1;
+    });
+    window.cancelAnimationFrame = jest.fn();
     const taxonomy = {
       sections: [
         {
@@ -810,56 +818,74 @@ describe("SportsShell taxonomy labels", () => {
         },
       ],
     };
-    const { container, rerender } = render(
-      <SportsShell
-        section="sports"
-        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
-        data={{
-          matches: [
-            {
-              match_group_slug: "soccer-match",
-              section: "sports",
-              title: "Soccer match",
-            },
-          ],
-          props: [],
-          taxonomy,
-        }}
-      />,
-    );
+    try {
+      const { container, rerender } = render(
+        <SportsShell
+          section="sports"
+          filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+          data={{
+            matches: [
+              {
+                match_group_slug: "soccer-match",
+                section: "sports",
+                title: "Soccer match",
+              },
+            ],
+            props: [],
+            taxonomy,
+          }}
+        />,
+      );
 
-    fireEvent.click(screen.getAllByRole("link", { name: "tennis" })[1]);
+      const propsTab = screen.getByRole("button", {
+        name: /worldcup\.tab\.props/i,
+      });
+      fireEvent.click(propsTab);
+      act(() => renderNextTab?.(0));
+      expect(propsTab.getAttribute("aria-current")).toBe("page");
 
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
-      "tennis",
-    );
-    const list = container.querySelector("#sports-list-scroll");
-    expect(list?.getAttribute("aria-busy")).toBe("true");
-    expect(
-      list?.querySelector('[data-sports-list-loading="true"]'),
-    ).not.toBeNull();
-    expect(screen.queryByText("Soccer match")).toBeNull();
+      fireEvent.click(screen.getAllByRole("link", { name: "tennis" })[1]);
 
-    rerender(
-      <SportsShell
-        section="sports"
-        filters={{ taxonomy_type: "sport", taxonomy_slug: "tennis" }}
-        data={{
-          matches: [
-            {
-              match_group_slug: "tennis-match",
-              section: "sports",
-              title: "Tennis match",
-            },
-          ],
-          props: [],
-          taxonomy,
-        }}
-      />,
-    );
+      expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+        "tennis",
+      );
+      expect(
+        screen
+          .getByRole("button", { name: /worldcup\.tab\.games/i })
+          .getAttribute("aria-current"),
+      ).toBe("page");
+      expect(propsTab.getAttribute("aria-current")).toBeNull();
+      const list = container.querySelector("#sports-list-scroll");
+      expect(list?.getAttribute("aria-busy")).toBe("true");
+      expect(
+        list?.querySelector('[data-sports-list-loading="true"]'),
+      ).not.toBeNull();
+      expect(screen.queryByText("Soccer match")).toBeNull();
 
-    await waitFor(() => expect(list?.getAttribute("aria-busy")).toBeNull());
-    expect(screen.queryByText("Tennis match")).toBeDefined();
+      rerender(
+        <SportsShell
+          section="sports"
+          filters={{ taxonomy_type: "sport", taxonomy_slug: "tennis" }}
+          data={{
+            matches: [
+              {
+                match_group_slug: "tennis-match",
+                section: "sports",
+                title: "Tennis match",
+              },
+            ],
+            props: [],
+            taxonomy,
+          }}
+        />,
+      );
+
+      await waitFor(() => expect(list?.getAttribute("aria-busy")).toBeNull());
+      expect(screen.queryByText("Tennis match")).toBeDefined();
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+    }
   });
 
   it("keeps modified taxonomy clicks in the browser's native flow", () => {
