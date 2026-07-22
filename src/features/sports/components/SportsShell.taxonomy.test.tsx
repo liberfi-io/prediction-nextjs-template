@@ -140,6 +140,46 @@ describe("SportsShell taxonomy labels", () => {
     ).toBeDefined();
   });
 
+  it("places the list tabs and odds format on opposite sides without a title divider", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const toolbar = screen.getByTestId("sports-content-toolbar");
+    const tabs = within(toolbar).getByRole("navigation");
+    const oddsFormatButton = within(toolbar)
+      .getByText("extend.worldcup.odds")
+      .closest("button");
+
+    expect(toolbar.className).toContain("justify-between");
+    expect(toolbar.className).not.toContain("border-t");
+    expect(tabs.className).not.toContain("border-t");
+    expect(toolbar.firstElementChild).toBe(tabs);
+    expect(toolbar.lastElementChild?.contains(oddsFormatButton)).toBe(true);
+  });
+
   it("uses the shared localized label at mobile and rail entry points", () => {
     render(
       <SportsShell

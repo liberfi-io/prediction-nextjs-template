@@ -829,24 +829,32 @@ function SportsContentTabs({
 }) {
   const { t } = useTranslation();
   return (
-    <nav className="-mx-1 flex gap-1 overflow-x-auto border-t border-zinc-900 py-2 no-scrollbar">
-      {(["today", "games", "props"] as const).map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          aria-current={active === tab ? "page" : undefined}
-          onClick={() => onChange(tab)}
-          className={cn(
-            "shrink-0 cursor-pointer rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors",
-            active === tab
-              ? "bg-zinc-800/70 text-[#c7ff2e]"
-              : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200",
-          )}
-        >
-          {t(`extend.worldcup.tab.${tab}`)}
-        </button>
-      ))}
-    </nav>
+    <div
+      data-testid="sports-content-toolbar"
+      className="flex items-center justify-between gap-3 py-2"
+    >
+      <nav className="-mx-1 flex min-w-0 gap-1 overflow-x-auto no-scrollbar">
+        {(["today", "games", "props"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            aria-current={active === tab ? "page" : undefined}
+            onClick={() => onChange(tab)}
+            className={cn(
+              "shrink-0 cursor-pointer rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors",
+              active === tab
+                ? "bg-zinc-800/70 text-[#c7ff2e]"
+                : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200",
+            )}
+          >
+            {t(`extend.worldcup.tab.${tab}`)}
+          </button>
+        ))}
+      </nav>
+      <div className="shrink-0">
+        <OddsFormatSelect />
+      </div>
+    </div>
   );
 }
 
@@ -900,9 +908,6 @@ function SportsMatchList({
 
   return (
     <div className="min-w-0 pb-4">
-      <div className="mb-3 flex justify-end">
-        <OddsFormatSelect />
-      </div>
       {rows.length === 0 ? (
         <EmptyState label={t("extend.sports.empty.matches")} />
       ) : (
