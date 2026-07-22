@@ -51,6 +51,7 @@ import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
+import { SportsPropsListSkeleton } from "./SportsPropsListSkeleton";
 import {
   formatSportsLiveDateRange,
   matchesForDate,
@@ -550,9 +551,15 @@ export function SportsShell({
               />
             ) : hasTaxonomySelection ? (
               isContentTabSwitching ? (
-                <SportsListSkeleton
-                  loadingLabel={t("extend.leaderboard.loading")}
-                />
+                activeTab === "props" ? (
+                  <SportsPropsListSkeleton
+                    loadingLabel={t("extend.leaderboard.loading")}
+                  />
+                ) : (
+                  <SportsListSkeleton
+                    loadingLabel={t("extend.leaderboard.loading")}
+                  />
+                )
               ) : displayedTab === "props" ? (
                 <SportsPropsList
                   page={propPage}
@@ -2078,7 +2085,9 @@ function PropEventCard({ event }: { event: SportsPropEventCardData }) {
 
 function SportsPropsListFallback() {
   const { t } = useTranslation();
-  return <SportsListSkeleton loadingLabel={t("extend.leaderboard.loading")} />;
+  return (
+    <SportsPropsListSkeleton loadingLabel={t("extend.leaderboard.loading")} />
+  );
 }
 
 function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {

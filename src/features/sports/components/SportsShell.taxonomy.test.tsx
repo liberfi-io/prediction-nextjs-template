@@ -622,6 +622,61 @@ describe("SportsShell taxonomy labels", () => {
     }
   });
 
+  it("uses the props card skeleton while switching to more props", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    let renderNextTab: FrameRequestCallback | undefined;
+    window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      renderNextTab = callback;
+      return 1;
+    });
+    window.cancelAnimationFrame = jest.fn();
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ taxonomy_type: "sport", taxonomy_slug: "soccer" }}
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: {
+              sections: [
+                {
+                  section: "sports",
+                  children: [
+                    {
+                      section: "sports",
+                      node_type: "sport",
+                      slug: "soccer",
+                      label: "Soccer",
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
+      );
+
+      expect(
+        document.querySelector('[data-sports-props-list-loading="true"]'),
+      ).not.toBeNull();
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).toBeNull();
+
+      act(() => renderNextTab?.(0));
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+    }
+  });
+
   it("automatically loads the next live match page", async () => {
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
