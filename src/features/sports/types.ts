@@ -63,8 +63,11 @@ export interface SportsMarketOutcome {
 export interface SportsInlineMarket {
   market_slug: string;
   market_type?: string;
+  condition_id?: string;
   label: string;
   line?: number;
+  status?: "pending" | "open" | "closed" | "voided";
+  provider_meta?: Record<string, unknown>;
   outcomes?: SportsMarketOutcome[];
 }
 
@@ -118,6 +121,7 @@ export interface SportsPropEventCard {
   image_url?: string;
   volume?: number;
   status?: string;
+  start_time?: string;
   parent_match_group_slug?: string;
   markets?: SportsInlineMarket[];
 }

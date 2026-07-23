@@ -1,5 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { SportsPropsList } from "./SportsPropsList";
+
+const mockOpenTradeModal = jest.fn();
+
+jest.mock("@liberfi.io/ui-predict", () => ({
+  PREDICT_TRADE_MODAL_ID: "predict-trade",
+  PredictTradeModal: () => <div data-testid="predict-trade-modal" />,
+}));
+
+jest.mock("@liberfi.io/ui-scaffold", () => ({
+  useAsyncModal: jest.fn(),
+}));
 
 jest.mock("../../worldcup/odds/OddsFormatProvider", () => ({
   useOddsFormat: () => ["american", jest.fn()],
@@ -11,6 +23,11 @@ jest.mock("../../worldcup/odds/OddsNumber", () => ({
 
 describe("SportsPropsList", () => {
   beforeEach(() => {
+    mockOpenTradeModal.mockReset();
+    (useAsyncModal as jest.Mock).mockReturnValue({
+      onOpen: mockOpenTradeModal,
+    });
+
     class TestIntersectionObserver {
       constructor(private readonly callback: IntersectionObserverCallback) {}
 
@@ -55,7 +72,13 @@ describe("SportsPropsList", () => {
               markets: [
                 {
                   market_slug: "mbappe",
+                  condition_id: "0xmbappe",
                   label: "Will Kylian Mbappé win?",
+                  status: "open",
+                  provider_meta: {
+                    "polymarket.clobTokenIds": ["yes-token", "no-token"],
+                    "polymarket.negRisk": true,
+                  },
                   outcomes: [
                     { outcome: "yes", label: "Yes", price: 0.1 },
                     { outcome: "no", label: "No", price: 0.9 },
@@ -89,10 +112,33 @@ describe("SportsPropsList", () => {
     expect(card.textContent).toContain("$1.2K");
     expect(screen.getByText("Will Kylian Mbappé win?")).toBeDefined();
     expect(screen.getByText("Will Erling Haaland win?")).toBeDefined();
-    expect(screen.queryByText("Yes")).toBeNull();
+    expect(screen.getAllByText("Yes")).toHaveLength(2);
     expect(screen.getByText("+900")).toBeDefined();
     expect(screen.getByText("+300")).toBeDefined();
     expect(container.querySelector('[data-source="polymarket"]')).toBeNull();
+    expect(screen.getByTestId("predict-trade-modal")).toBeDefined();
+
+    fireEvent.click(
+      screen.getByText("Will Kylian Mbappé win?").closest("button")!,
+    );
+    const yesButton = screen.getByRole("button", { name: "Yes +900" });
+    fireEvent.mouseEnter(yesButton);
+    expect(yesButton.style.transform).toBe("translateY(2px)");
+    fireEvent.click(yesButton);
+    expect(mockOpenTradeModal).toHaveBeenCalledWith({
+      params: expect.objectContaining({
+        initialOutcome: "yes",
+        event: expect.objectContaining({ slug: "ballon-dor-winner-2026" }),
+        market: expect.objectContaining({
+          slug: "mbappe",
+          question: "Will Kylian Mbappé win?",
+          provider_meta: {
+            "polymarket.clobTokenIds": ["yes-token", "no-token"],
+            "polymarket.negRisk": true,
+          },
+        }),
+      }),
+    });
 
     const gridStyles = container.querySelector("style")?.textContent;
     expect(gridStyles).toContain("repeat(2, minmax(0, 1fr))");
@@ -138,8 +184,11 @@ describe("SportsPropsList", () => {
       />,
     );
 
-    expect(screen.getByText("Yes")).toBeDefined();
-    expect(screen.getByText("No")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Yes +400" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "No -400" })).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: "WI Will Ronaldo retire?" }),
+    ).toBeDefined();
     expect(screen.getByText("+400")).toBeDefined();
     expect(screen.getByText("-400")).toBeDefined();
   });
