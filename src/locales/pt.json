@@ -710,6 +710,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "Semana anterior",
+        "nextWeek": "Próxima semana",
         "proposals": "Palpites",
         "featured": "Destaques",
         "allSportsEvents": "Todos os eventos esportivos",

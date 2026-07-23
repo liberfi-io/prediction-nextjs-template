@@ -105,6 +105,12 @@ const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
 
+function shiftLocalDate(value: Date, dayOffset: number): Date {
+  const date = new Date(value);
+  date.setDate(date.getDate() + dayOffset);
+  return date;
+}
+
 const SportsPropsList = dynamic(
   () => import("./SportsPropsList").then((module) => module.SportsPropsList),
   { loading: SportsPropsListFallback },
@@ -170,7 +176,7 @@ export function SportsShell({
   >(null);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
-  const [liveDateRangeStart] = useState(() => new Date());
+  const [liveDateRangeStart, setLiveDateRangeStart] = useState(() => new Date());
   const [selectedLiveDate, setSelectedLiveDate] = useState(
     () => sportsLiveDates(new Date())[0] ?? new Date(),
   );
@@ -178,6 +184,22 @@ export function SportsShell({
     () => sportsLiveDates(liveDateRangeStart),
     [liveDateRangeStart],
   );
+  const changeLiveWeek = useCallback(
+    (direction: "previous" | "next") => {
+      const nextWeekStart = shiftLocalDate(
+        liveDateRangeStart,
+        direction === "previous" ? -7 : 7,
+      );
+      setLiveDateRangeStart(nextWeekStart);
+      setSelectedLiveDate(nextWeekStart);
+    },
+    [liveDateRangeStart],
+  );
+  const selectLiveToday = useCallback(() => {
+    const today = new Date();
+    setLiveDateRangeStart(today);
+    setSelectedLiveDate(today);
+  }, []);
 
   useEffect(
     () =>
@@ -523,6 +545,9 @@ export function SportsShell({
                 selectedDate={selectedLiveDate}
                 lang={lang || "en"}
                 onDateChange={setSelectedLiveDate}
+                onToday={selectLiveToday}
+                onPreviousWeek={() => changeLiveWeek("previous")}
+                onNextWeek={() => changeLiveWeek("next")}
                 onTaxonomyNavigate={handleTaxonomyNavigate}
                 onAllNavigate={handleSpecialViewNavigate}
               />

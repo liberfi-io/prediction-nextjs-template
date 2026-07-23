@@ -710,6 +710,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "이전 주",
+        "nextWeek": "다음 주",
         "proposals": "예측",
         "featured": "추천",
         "allSportsEvents": "모든 스포츠 이벤트",

@@ -727,6 +727,8 @@
       },
       "filters": {
         "live": "實時",
+        "previousWeek": "上一週",
+        "nextWeek": "下一週",
         "proposals": "競猜",
         "featured": "精選",
         "allSportsEvents": "所有體育賽事",

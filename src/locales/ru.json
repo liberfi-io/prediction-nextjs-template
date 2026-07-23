@@ -712,6 +712,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "Предыдущая неделя",
+        "nextWeek": "Следующая неделя",
         "proposals": "Прогнозы",
         "featured": "Избранное",
         "allSportsEvents": "Все спортивные события",

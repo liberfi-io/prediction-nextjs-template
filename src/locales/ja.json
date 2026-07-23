@@ -710,6 +710,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "前の週",
+        "nextWeek": "次の週",
         "proposals": "予想",
         "featured": "注目",
         "allSportsEvents": "すべてのスポーツイベント",

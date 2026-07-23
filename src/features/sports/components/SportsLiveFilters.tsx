@@ -3,7 +3,7 @@
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
-import { cn } from "@liberfi.io/ui";
+import { ChevronLeftIcon, ChevronRightIcon, cn } from "@liberfi.io/ui";
 import type {
   SportsMatchCard,
   SportsSection,
@@ -79,6 +79,9 @@ export function SportsLiveFilters({
   selectedDate,
   lang,
   onDateChange,
+  onToday,
+  onPreviousWeek,
+  onNextWeek,
   onTaxonomyNavigate,
   onAllNavigate,
 }: {
@@ -88,6 +91,9 @@ export function SportsLiveFilters({
   selectedDate: Date;
   lang: string;
   onDateChange: (date: Date) => void;
+  onToday: () => void;
+  onPreviousWeek: () => void;
+  onNextWeek: () => void;
   onTaxonomyNavigate: (
     event: MouseEvent<HTMLAnchorElement>,
     node: SportsTaxonomyNode,
@@ -111,36 +117,61 @@ export function SportsLiveFilters({
     <div className="space-y-3 pb-4">
       <div
         data-testid="sports-live-date-picker"
-        className="no-scrollbar flex items-stretch gap-1 overflow-x-auto"
+        className="flex w-full max-w-[480px] items-stretch gap-0.5 overflow-hidden sm:gap-1"
       >
-        <span className="flex shrink-0 items-center px-2 text-sm text-zinc-400">
+        <button
+          type="button"
+          className="flex h-10 shrink-0 items-center rounded-md px-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:px-2 sm:text-sm"
+          onClick={onToday}
+        >
           {t("extend.worldcup.tab.today")}
-        </span>
-        {dates.map((date) => {
-          const dateKey = localDateKey(date);
-          const selected = dateKey === selectedDateKey;
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              data-testid={`sports-live-date-${dateKey}`}
-              aria-label={fullDateFormatter.format(date)}
-              aria-current={selected ? "date" : undefined}
-              className={cn(
-                "flex min-w-14 shrink-0 flex-col items-center rounded-lg border px-3 py-1.5 text-xs transition-colors",
-                selected
-                  ? "border-zinc-600 bg-zinc-900 text-zinc-100"
-                  : "border-transparent text-zinc-500 hover:bg-zinc-900/60 hover:text-zinc-300",
-              )}
-              onClick={() => onDateChange(date)}
-            >
-              <span>{weekdayFormatter.format(date)}</span>
-              <span className="mt-0.5 text-sm font-medium tabular-nums">
-                {date.getDate()}
-              </span>
-            </button>
-          );
-        })}
+        </button>
+        <button
+          type="button"
+          aria-label={t("extend.sports.filters.previousWeek")}
+          className="flex h-10 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:w-8"
+          onClick={onPreviousWeek}
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        <div
+          data-testid="sports-live-date-grid"
+          className="grid min-w-0 flex-1 grid-cols-7 gap-px sm:gap-1"
+        >
+          {dates.map((date) => {
+            const dateKey = localDateKey(date);
+            const selected = dateKey === selectedDateKey;
+            return (
+              <button
+                key={dateKey}
+                type="button"
+                data-testid={`sports-live-date-${dateKey}`}
+                aria-label={fullDateFormatter.format(date)}
+                aria-current={selected ? "date" : undefined}
+                className={cn(
+                  "flex h-10 min-w-0 flex-col items-center justify-center rounded-md border px-0.5 py-1 text-[10px] leading-none transition-colors sm:text-xs",
+                  selected
+                    ? "border-zinc-600 bg-zinc-900 text-zinc-100"
+                    : "border-transparent text-zinc-500 hover:bg-zinc-900/60 hover:text-zinc-300",
+                )}
+                onClick={() => onDateChange(date)}
+              >
+                <span className="truncate">{weekdayFormatter.format(date)}</span>
+                <span className="mt-1 text-xs font-medium tabular-nums sm:text-sm">
+                  {date.getDate()}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          aria-label={t("extend.sports.filters.nextWeek")}
+          className="flex h-10 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:w-8"
+          onClick={onNextWeek}
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
       </div>
 
       <nav

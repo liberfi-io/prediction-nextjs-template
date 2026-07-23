@@ -727,6 +727,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "Previous week",
+        "nextWeek": "Next week",
         "proposals": "Predictions",
         "featured": "Featured",
         "allSportsEvents": "All Sports Events",

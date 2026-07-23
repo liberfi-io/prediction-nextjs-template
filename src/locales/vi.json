@@ -710,6 +710,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "Tuần trước",
+        "nextWeek": "Tuần sau",
         "proposals": "Dự đoán",
         "featured": "Nổi bật",
         "allSportsEvents": "Tất cả sự kiện thể thao",

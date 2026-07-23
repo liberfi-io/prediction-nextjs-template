@@ -103,7 +103,54 @@ describe("SportsShell live filters", () => {
       expect(heading.textContent).not.toContain("2026");
 
       const datePicker = screen.getByTestId("sports-live-date-picker");
-      expect(within(datePicker).getAllByRole("button")).toHaveLength(7);
+      expect(within(datePicker).getAllByRole("button")).toHaveLength(10);
+      expect(datePicker.className).toContain("overflow-hidden");
+      expect(
+        screen.getByTestId("sports-live-date-grid").className,
+      ).toContain("grid-cols-7");
+      expect(
+        within(datePicker)
+          .getByTestId("sports-live-date-2026-07-23")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+
+      fireEvent.click(
+        within(datePicker).getByTestId("sports-live-date-2026-07-25"),
+      );
+      fireEvent.click(
+        within(datePicker).getByRole("button", {
+          name: "extend.sports.filters.nextWeek",
+        }),
+      );
+      expect(heading.textContent).toContain("Jul 30");
+      expect(heading.textContent).toContain("Aug 5");
+      expect(
+        within(datePicker)
+          .getByTestId("sports-live-date-2026-07-30")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+
+      fireEvent.click(
+        within(datePicker).getByRole("button", {
+          name: "extend.sports.filters.previousWeek",
+        }),
+      );
+      expect(heading.textContent).toContain("Jul 23");
+      expect(heading.textContent).toContain("Jul 29");
+      expect(
+        within(datePicker)
+          .getByTestId("sports-live-date-2026-07-23")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+
+      fireEvent.click(
+        within(datePicker).getByTestId("sports-live-date-2026-07-25"),
+      );
+      fireEvent.click(
+        within(datePicker).getByRole("button", {
+          name: "extend.worldcup.tab.today",
+        }),
+      );
       expect(
         within(datePicker)
           .getByTestId("sports-live-date-2026-07-23")

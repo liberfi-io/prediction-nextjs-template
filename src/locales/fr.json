@@ -710,6 +710,8 @@
       },
       "filters": {
         "live": "Live",
+        "previousWeek": "Semaine précédente",
+        "nextWeek": "Semaine suivante",
         "proposals": "Pronostics",
         "featured": "À la une",
         "allSportsEvents": "Tous les événements sportifs",

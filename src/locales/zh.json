@@ -676,6 +676,8 @@
       },
       "filters": {
         "live": "实时",
+        "previousWeek": "上一周",
+        "nextWeek": "下一周",
         "proposals": "竞猜",
         "featured": "精选",
         "allSportsEvents": "所有体育赛事",
