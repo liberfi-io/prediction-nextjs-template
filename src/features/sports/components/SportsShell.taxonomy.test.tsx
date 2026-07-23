@@ -20,6 +20,7 @@ import {
   sportsOddsAnimationVariant,
   sportsDisplayedMarketCategories,
   sportsPrimaryMarketCategories,
+  shouldShowMatchLeague,
   SportsMatchCard,
   SportsMatchGroupHeading,
   SportsShell,
@@ -906,6 +907,71 @@ describe("SportsShell taxonomy labels", () => {
     marketHeaders.forEach((header) => {
       expect(header.className).toContain("w-[128px]");
     });
+  });
+
+  it("shows each match league outside league taxonomy lists", () => {
+    expect(
+      shouldShowMatchLeague({
+        taxonomy_type: "sport",
+        taxonomy_slug: "baseball",
+      }),
+    ).toBe(true);
+    expect(shouldShowMatchLeague({ view: "live" })).toBe(true);
+    expect(
+      shouldShowMatchLeague({
+        taxonomy_type: "league",
+        taxonomy_slug: "mlb",
+      }),
+    ).toBe(false);
+
+    const { container, rerender } = render(
+      <SportsMatchCard
+        match={{
+          match_group_slug: "guardians-twins",
+          section: "sports",
+          sport_slug: "baseball",
+          league_slug: "mlb",
+          title: "Guardians vs Twins",
+          start_time: "2026-07-23T06:40:00Z",
+        }}
+        showLeague
+        leagueNode={{
+          section: "sports",
+          node_type: "league",
+          slug: "mlb",
+          label: "MLB",
+        }}
+      />,
+    );
+
+    const league = screen.getByTestId("sports-match-league");
+    const volume = screen.getByTestId("sports-match-volume");
+    const time = container.querySelector("time");
+    expect(time).not.toBeNull();
+    expect(league.textContent).toContain("mlb");
+    expect(league.className).toContain("truncate");
+    expect(time?.className).toContain("shrink-0");
+    expect(volume.className).toContain("shrink-0");
+    expect(volume.className).not.toContain("truncate");
+    expect(
+      league.compareDocumentPosition(time!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    rerender(
+      <SportsMatchCard
+        match={{
+          match_group_slug: "guardians-twins",
+          section: "sports",
+          sport_slug: "baseball",
+          league_slug: "mlb",
+          title: "Guardians vs Twins",
+          start_time: "2026-07-23T06:40:00Z",
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("sports-match-league")).toBeNull();
+    expect(container.querySelector("time")).not.toBeNull();
   });
 
   it("stacks mobile participants and renders each supported market on its own row", () => {

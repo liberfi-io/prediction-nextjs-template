@@ -589,6 +589,7 @@ export function SportsShell({
   );
   const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, effectiveFilters);
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
+  const showMatchLeague = shouldShowMatchLeague(effectiveFilters);
   const isLiveView = isSpecialViewActive(effectiveFilters, "live");
   const isStandaloneProposalsView =
     !hasTaxonomySelection &&
@@ -947,6 +948,8 @@ export function SportsShell({
               <SportsMatchList
                 matches={matchesForUtcDate(matches.items, selectedLiveDate)}
                 todayOnly={false}
+                showLeague={showMatchLeague}
+                taxonomyNodes={taxonomyNodes}
                 hasMore={matches.has_more && Boolean(matches.next_cursor)}
                 loading={loadingResource === "matches"}
                 onLoadMore={() => void loadMore("matches")}
@@ -973,6 +976,8 @@ export function SportsShell({
                 <SportsMatchList
                   matches={matches.items}
                   todayOnly={displayedTab === "today"}
+                  showLeague={showMatchLeague}
+                  taxonomyNodes={taxonomyNodes}
                   hasMore={matches.has_more && Boolean(matches.next_cursor)}
                   loading={loadingResource === "matches"}
                   onLoadMore={() => void loadMore("matches")}
@@ -985,6 +990,8 @@ export function SportsShell({
                     <SportsMatchList
                       matches={matches.items}
                       todayOnly={false}
+                      showLeague={showMatchLeague}
+                      taxonomyNodes={taxonomyNodes}
                       hasMore={matches.has_more && Boolean(matches.next_cursor)}
                       loading={loadingResource === "matches"}
                       onLoadMore={() => void loadMore("matches")}
@@ -1571,12 +1578,16 @@ export function findActiveMatchGroupIndex(
 function SportsMatchList({
   matches,
   todayOnly,
+  showLeague,
+  taxonomyNodes,
   hasMore,
   loading,
   onLoadMore,
 }: {
   matches: SportsMatchCardData[];
   todayOnly: boolean;
+  showLeague: boolean;
+  taxonomyNodes: SportsTaxonomyNode[];
   hasMore: boolean;
   loading: boolean;
   onLoadMore: () => void;
@@ -1682,7 +1693,18 @@ function SportsMatchList({
                     categories={row.categories}
                   />
                 ) : (
-                  <SportsMatchCard match={row.match} />
+                  <SportsMatchCard
+                    match={row.match}
+                    showLeague={showLeague}
+                    leagueNode={
+                      showLeague && row.match.league_slug
+                        ? findTaxonomyNode(taxonomyNodes, {
+                            taxonomy_type: "league",
+                            taxonomy_slug: row.match.league_slug,
+                          })
+                        : undefined
+                    }
+                  />
                 )}
               </div>
             );
@@ -1696,6 +1718,11 @@ function SportsMatchList({
       )}
     </div>
   );
+}
+
+/** Returns whether match cards should include their league metadata. */
+export function shouldShowMatchLeague(filters: SportsPageFilters): boolean {
+  return filters.taxonomy_type !== "league";
 }
 
 export function matchesForToday(
@@ -1757,8 +1784,12 @@ function sportsMatchGroupMarketCategories(
 /** Renders one responsive match card for desktop and mobile lists. */
 export function SportsMatchCard({
   match,
+  showLeague = false,
+  leagueNode,
 }: {
   match: SportsMatchCardData;
+  showLeague?: boolean;
+  leagueNode?: SportsTaxonomyNode;
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -1807,7 +1838,30 @@ export function SportsMatchCard({
       className={`group [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
     >
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {showLeague && match.league_slug ? (
+            <>
+              <span
+                data-testid="sports-match-league"
+                className="min-w-0 max-w-32 flex-1 truncate text-xs font-medium text-zinc-500 sm:max-w-48"
+              >
+                {leagueNode ? (
+                  <LocalizedTaxonomyLabel
+                    node={leagueNode}
+                    pageSection={match.section}
+                  />
+                ) : (
+                  match.league_slug
+                )}
+              </span>
+              <span
+                aria-hidden="true"
+                className="shrink-0 text-xs text-zinc-600"
+              >
+                ·
+              </span>
+            </>
+          ) : null}
           {match.start_time && (
             <SportsStartTime
               className="shrink-0 text-xs font-semibold tabular-nums text-zinc-200"
@@ -1815,7 +1869,10 @@ export function SportsMatchCard({
               value={match.start_time}
             />
           )}
-          <span className="truncate text-xs tabular-nums text-zinc-500">
+          <span
+            data-testid="sports-match-volume"
+            className="shrink-0 whitespace-nowrap text-xs tabular-nums text-zinc-500"
+          >
             {match.start_time ? "· " : ""}
             {formatVolume(match.volume ?? 0)} {t("extend.worldcup.volume")}
           </span>
