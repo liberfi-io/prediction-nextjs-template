@@ -937,6 +937,9 @@ describe("SportsShell taxonomy labels", () => {
       expect(
         list?.querySelector('[data-sports-list-loading="true"]'),
       ).not.toBeNull();
+      expect(
+        list?.querySelector('[data-testid="sports-list-skeleton-group-heading"]'),
+      ).not.toBeNull();
       expect(screen.queryByText("Soccer match")).toBeNull();
 
       rerender(

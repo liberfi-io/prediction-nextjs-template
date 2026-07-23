@@ -1106,6 +1106,10 @@ type MatchListRow =
     }
   | { kind: "match"; id: string; match: SportsMatchCardData };
 
+const SPORTS_MATCH_GROUP_HEADING_CLASS =
+  "flex items-center gap-3 bg-[#09090b] py-2 pl-4 pr-[17px]";
+const SPORTS_MATCH_GROUP_ROW_HEIGHT = 40;
+
 /** Renders a date-group label aligned with the desktop odds columns. */
 export function SportsMatchGroupHeading({
   title,
@@ -1118,7 +1122,7 @@ export function SportsMatchGroupHeading({
   return (
     <div
       data-testid="sports-match-group-heading"
-      className="flex items-center gap-3 bg-[#09090b] py-2 pl-4 pr-[17px]"
+      className={SPORTS_MATCH_GROUP_HEADING_CLASS}
     >
       <h3 className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">
         {title}
@@ -1203,7 +1207,10 @@ function SportsMatchList({
       typeof document === "undefined"
         ? null
         : document.getElementById("sports-list-scroll"),
-    estimateSize: (index) => (rows[index]?.kind === "heading" ? 38 : 168),
+    estimateSize: (index) =>
+      rows[index]?.kind === "heading"
+        ? SPORTS_MATCH_GROUP_ROW_HEIGHT
+        : 168,
     overscan: 4,
     rangeExtractor,
   });
@@ -2061,32 +2068,52 @@ function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {
       <span className="sr-only" role="status">
         {loadingLabel}
       </span>
-      <div className="space-y-3" aria-hidden="true">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="overflow-hidden rounded-[14px] border border-zinc-800/60 bg-zinc-900/40 p-4"
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="h-3.5 w-32 animate-pulse rounded bg-zinc-800/60" />
-              <div className="h-6 w-16 animate-pulse rounded-full bg-zinc-800/60" />
+      <div aria-hidden="true">
+        <div
+          data-testid="sports-list-skeleton-group-heading"
+          className="pb-2"
+        >
+          <div className={SPORTS_MATCH_GROUP_HEADING_CLASS}>
+            <div className="h-4 min-w-0 flex-1">
+              <div className="h-3 w-28 animate-pulse rounded bg-zinc-800/60" />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="min-w-0 flex-1 space-y-2.5">
-                <div className="h-4 w-3/5 animate-pulse rounded bg-zinc-800/60" />
-                <div className="h-4 w-2/5 animate-pulse rounded bg-zinc-800/60" />
-              </div>
-              <div className="hidden shrink-0 gap-2 md:flex">
-                {Array.from({ length: 3 }).map((_, column) => (
-                  <div
-                    key={column}
-                    className="h-[76px] w-32 animate-pulse rounded-[9px] bg-zinc-800/50"
-                  />
-                ))}
-              </div>
+            <div className="hidden shrink-0 gap-2 md:flex">
+              {Array.from({ length: 3 }).map((_, column) => (
+                <div
+                  key={column}
+                  className="h-3 w-32 animate-pulse rounded bg-zinc-800/50"
+                />
+              ))}
             </div>
           </div>
-        ))}
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="overflow-hidden rounded-[14px] border border-zinc-800/60 bg-zinc-900/40 p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="h-3.5 w-32 animate-pulse rounded bg-zinc-800/60" />
+                <div className="h-6 w-16 animate-pulse rounded-full bg-zinc-800/60" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="min-w-0 flex-1 space-y-2.5">
+                  <div className="h-4 w-3/5 animate-pulse rounded bg-zinc-800/60" />
+                  <div className="h-4 w-2/5 animate-pulse rounded bg-zinc-800/60" />
+                </div>
+                <div className="hidden shrink-0 gap-2 md:flex">
+                  {Array.from({ length: 3 }).map((_, column) => (
+                    <div
+                      key={column}
+                      className="h-[76px] w-32 animate-pulse rounded-[9px] bg-zinc-800/50"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
