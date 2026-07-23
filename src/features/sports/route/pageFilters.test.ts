@@ -20,6 +20,17 @@ describe("resolveSportsPageFilters", () => {
     expect(resolveSportsPageFilters({ view: "proposals" })).toEqual({
       view: "proposals",
     });
+    expect(
+      resolveSportsPageFilters({
+        view: "results",
+        start_time_gte: "2026-07-01T00:00:00Z",
+        start_time_lt: "2026-07-23T00:00:00Z",
+      }),
+    ).toEqual({
+      view: "results",
+      start_time_gte: "2026-07-01T00:00:00Z",
+      start_time_lt: "2026-07-23T00:00:00Z",
+    });
     expect(resolveSportsPageFilters({ view: "unknown" })).toEqual({});
   });
 

@@ -58,28 +58,34 @@ export async function prefetchSportsPageData(input: {
   const hasTaxonomyFilter = Boolean(
     input.filters?.taxonomy_type && input.filters.taxonomy_slug,
   );
-  const isLiveView =
+  const requestedMatchView =
     input.filters?.view === "live" ||
-    (!input.filters?.view && !hasTaxonomyFilter);
-  const requestedLiveTimeRange =
+    input.filters?.view === "upcoming" ||
+    input.filters?.view === "results"
+      ? input.filters.view
+      : undefined;
+  const matchView =
+    requestedMatchView ??
+    (!input.filters?.view && !hasTaxonomyFilter ? "live" : undefined);
+  const requestedTimeRange =
     input.filters?.start_time_gte && input.filters.start_time_lt
       ? {
           start_time_gte: input.filters.start_time_gte,
           start_time_lt: input.filters.start_time_lt,
         }
       : undefined;
-  const liveTimeRange = isLiveView
-    ? (requestedLiveTimeRange ?? sportsLiveTimeRange(new Date()))
-    : undefined;
+  const matchTimeRange =
+    requestedTimeRange ??
+    (matchView === "live" ? sportsLiveTimeRange(new Date()) : undefined);
   const matchParams = {
     ...params,
-    ...(isLiveView ? { view: "live" } : {}),
-    ...liveTimeRange,
+    ...(matchView ? { view: matchView } : {}),
+    ...matchTimeRange,
   };
   const showMatches = input.filters?.view !== "proposals";
   const showProps =
     input.filters?.view === "proposals" ||
-    (hasTaxonomyFilter && input.filters?.view !== "live");
+    (hasTaxonomyFilter && !matchView);
 
   const [taxonomy, matches, props, matchTaxonomyCounts] = await Promise.all([
     input.deadline
@@ -101,10 +107,10 @@ export async function prefetchSportsPageData(input: {
           : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),
-    input.section === "sports" && liveTimeRange
+    input.section === "sports" && matchView
       ? input.deadline
           .withRemainingTimeout(() =>
-            readSportsTaxonomyCounts(liveTimeRange, "live"),
+            readSportsTaxonomyCounts(matchTimeRange, matchView),
           )
           .catch(() => ({ items: [] }))
       : Promise.resolve(undefined),
@@ -123,11 +129,11 @@ export async function prefetchSportsPageData(input: {
 }
 
 async function readSportsTaxonomyCounts(
-  params: SportsLiveTimeRange,
-  view: "live",
+  params: SportsLiveTimeRange | undefined,
+  view: "live" | "upcoming" | "results",
 ): Promise<unknown> {
   const url = resolvePredictUrl(SPORTS_TAXONOMY_COUNTS_PATH);
-  appendSportsLiveTimeRange(url, params);
+  if (params) appendSportsLiveTimeRange(url, params);
   url.searchParams.set("view", view);
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);

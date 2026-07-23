@@ -152,7 +152,7 @@ export interface SportsPage<T> extends SportsPagination {
 }
 
 interface SportsViewFilter {
-  view?: "live" | "proposals";
+  view?: "live" | "upcoming" | "results" | "proposals";
 }
 
 interface SportsLiveRangeFilter {

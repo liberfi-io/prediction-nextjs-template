@@ -15,7 +15,7 @@ import {
 export async function fetchSportsPage<T>(input: {
   section: SportsSection;
   resource: "matches" | "props";
-  view?: "live";
+  view?: "live" | "upcoming" | "results";
   taxonomy?: TaxonomySelection;
   timeRange?: SportsLiveTimeRange;
   limit: number;
@@ -54,15 +54,15 @@ export async function fetchSportsPage<T>(input: {
 
 /** Loads sports taxonomy match counts for a live UTC range. */
 export async function fetchSportsTaxonomyCounts(
-  timeRange: SportsLiveTimeRange,
-  view: "live" = "live",
+  timeRange?: SportsLiveTimeRange,
+  view: "live" | "upcoming" | "results" = "live",
 ): Promise<SportsTaxonomyMatchCount[]> {
   const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
   const url = new URL(
     `${baseUrl}${SPORTS_TAXONOMY_COUNTS_PATH}`,
     window.location.origin,
   );
-  appendSportsLiveTimeRange(url, timeRange);
+  if (timeRange) appendSportsLiveTimeRange(url, timeRange);
   url.searchParams.set("view", view);
 
   const response = await fetch(url);

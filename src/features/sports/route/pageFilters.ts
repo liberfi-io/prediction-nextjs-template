@@ -12,7 +12,12 @@ const TAXONOMY_TYPES = new Set<SportsPageFilters["taxonomy_type"]>([
   "tournament",
 ]);
 
-const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>(["live", "proposals"]);
+const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>([
+  "live",
+  "upcoming",
+  "results",
+  "proposals",
+]);
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const ONE_WEEK_MS = 7 * ONE_DAY_MS;
 const RFC3339_PATTERN =
@@ -52,7 +57,7 @@ function resolveLiveCalendarFilter(
   SportsPageFilters,
   "start_time_gte" | "start_time_lt" | "live_range_start"
 > {
-  if (view !== "live") return {};
+  if (view !== "live" && view !== "upcoming" && view !== "results") return {};
   const startTimeGte = firstValue(searchParams.start_time_gte);
   const startTimeLt = firstValue(searchParams.start_time_lt);
   if (!startTimeGte || !startTimeLt) return {};
@@ -69,8 +74,9 @@ function resolveLiveCalendarFilter(
     !isValidRfc3339(startTimeLt) ||
     !Number.isFinite(lowerBound) ||
     !Number.isFinite(upperBound) ||
-    upperBound - lowerBound !== ONE_DAY_MS ||
-    lowerBound < today
+    upperBound <= lowerBound ||
+    (view === "live" &&
+      (upperBound - lowerBound !== ONE_DAY_MS || lowerBound < today))
   ) {
     return {};
   }
@@ -78,6 +84,7 @@ function resolveLiveCalendarFilter(
     start_time_gte: startTimeGte,
     start_time_lt: startTimeLt,
   };
+  if (view !== "live") return result;
   const value = firstValue(searchParams.live_range_start);
   if (!value || !isValidRfc3339(value)) return result;
   const rangeStart = Date.parse(value);
