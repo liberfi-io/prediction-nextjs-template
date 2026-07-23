@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -19,7 +19,11 @@ import {
   sportsLiveHref,
   taxonomyHref,
 } from "../route/sportsTaxonomyNav";
-import type { SportsLiveTimeRange } from "../live/sportsLiveTimeRange";
+import {
+  sportsLiveTimeRange,
+  type SportsLiveTimeRange,
+} from "../live/sportsLiveTimeRange";
+import { isPlainSameWindowNavigation } from "../route/isPlainSameWindowNavigation";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 
 const SPORTS_LIVE_DATE_COUNT = 7;
@@ -29,6 +33,18 @@ export interface SportsLiveTaxonomyItem {
   node: SportsTaxonomyNode;
   active: boolean;
   count?: number;
+}
+
+interface OptimisticLiveDateState {
+  sourceSelectedDateKey: string;
+  sourceRangeStart: string;
+  selectedDateKey: string;
+  rangeStart: string;
+}
+
+interface OptimisticTaxonomyState {
+  sourceKey: string;
+  selectedKey: string;
 }
 
 function startOfLocalDay(value: Date): Date {
@@ -75,6 +91,32 @@ function keepSelectedTaxonomyVisible(navigation: HTMLElement): void {
     left: leftDelta,
     behavior: "auto",
   });
+}
+
+function usePostPaintAction(): (action: () => void) => void {
+  const pendingFramesRef = useRef(new Set<number>());
+
+  useEffect(
+    () => () => {
+      for (const frame of pendingFramesRef.current) {
+        window.cancelAnimationFrame(frame);
+      }
+      pendingFramesRef.current.clear();
+    },
+    [],
+  );
+
+  return useCallback((action: () => void) => {
+    const firstFrame = window.requestAnimationFrame(() => {
+      pendingFramesRef.current.delete(firstFrame);
+      const secondFrame = window.requestAnimationFrame(() => {
+        pendingFramesRef.current.delete(secondFrame);
+        action();
+      });
+      pendingFramesRef.current.add(secondFrame);
+    });
+    pendingFramesRef.current.add(firstFrame);
+  }, []);
 }
 
 /** Returns the seven UTC calendar dates shown by the live list. */
@@ -164,28 +206,59 @@ export function SportsLiveFilters({
   onDateChange: (date: Date) => void;
   onToday: () => void;
   previousWeekDisabled: boolean;
-  onPreviousWeek: () => void;
-  onNextWeek: () => void;
+  onPreviousWeek: (date: Date) => void;
+  onNextWeek: (date: Date) => void;
   onTaxonomyNavigate: (
-    event: MouseEvent<HTMLAnchorElement>,
     node: SportsTaxonomyNode,
-  ) => boolean;
-  onAllNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
+    date: Date,
+    rangeStart: Date,
+  ) => void;
+  onAllNavigate: (date: Date, rangeStart: Date) => void;
 }) {
   const { t } = useTranslation();
-  const selectedDateKey = utcDateKey(selectedDate);
-  const hasActiveTaxonomy = taxonomyItems.some((item) => item.active);
+  const routeSelectedDateKey = utcDateKey(selectedDate);
+  const [optimisticDateState, setOptimisticDateState] =
+    useState<OptimisticLiveDateState>();
+  const optimisticDateApplies =
+    optimisticDateState?.sourceSelectedDateKey === routeSelectedDateKey &&
+    optimisticDateState.sourceRangeStart === liveRangeStart;
+  const selectedDateKey = optimisticDateApplies
+    ? optimisticDateState.selectedDateKey
+    : routeSelectedDateKey;
+  const selectedLiveRangeStart = optimisticDateApplies
+    ? optimisticDateState.rangeStart
+    : liveRangeStart;
+  const selectedTimeRange = optimisticDateApplies
+    ? sportsLiveTimeRange(new Date(`${selectedDateKey}T00:00:00Z`))
+    : timeRange;
+  const visibleDates =
+    selectedLiveRangeStart === liveRangeStart
+      ? dates
+      : sportsLiveDates(new Date(selectedLiveRangeStart));
   const visibleTaxonomyItems = taxonomyItems.filter(
     (item) => typeof item.count === "number" && item.count > 0,
   );
   const taxonomyNavRef = useRef<HTMLElement>(null);
-  const activeTaxonomyNode = visibleTaxonomyItems.find((item) => item.active)
-    ?.node;
-  const activeTaxonomyKey = activeTaxonomyNode
-    ? `${activeTaxonomyNode.node_type}:${activeTaxonomyNode.slug}`
-    : !hasActiveTaxonomy
+  const routeHasActiveTaxonomy = taxonomyItems.some((item) => item.active);
+  const routeActiveTaxonomyNode = visibleTaxonomyItems.find(
+    (item) => item.active,
+  )?.node;
+  const routeActiveTaxonomyKey = routeActiveTaxonomyNode
+    ? `${routeActiveTaxonomyNode.node_type}:${routeActiveTaxonomyNode.slug}`
+    : !routeHasActiveTaxonomy
       ? "all"
       : undefined;
+  const routeTaxonomyStateKey = routeActiveTaxonomyKey ?? "hidden";
+  const [optimisticTaxonomyState, setOptimisticTaxonomyState] =
+    useState<OptimisticTaxonomyState>();
+  const activeTaxonomyKey =
+    optimisticTaxonomyState?.sourceKey === routeTaxonomyStateKey
+      ? optimisticTaxonomyState.selectedKey
+      : routeActiveTaxonomyKey;
+  const hasActiveTaxonomy =
+    activeTaxonomyKey !== "all" &&
+    (Boolean(activeTaxonomyKey) || routeHasActiveTaxonomy);
+  const schedulePostPaintAction = usePostPaintAction();
   const visibleTaxonomyKey = visibleTaxonomyItems
     .map(({ node, count }) => `${node.node_type}:${node.slug}:${count}`)
     .join("|");
@@ -207,6 +280,81 @@ export function SportsLiveFilters({
     }
   }, [activeTaxonomyKey, visibleTaxonomyKey]);
 
+  const updateOptimisticDate = (date: Date, rangeStart: string) => {
+    setOptimisticDateState({
+      sourceSelectedDateKey: routeSelectedDateKey,
+      sourceRangeStart: liveRangeStart,
+      selectedDateKey: utcDateKey(date),
+      rangeStart,
+    });
+    setOptimisticTaxonomyState({
+      sourceKey: routeTaxonomyStateKey,
+      selectedKey: "all",
+    });
+  };
+  const selectDate = (date: Date) => {
+    updateOptimisticDate(date, selectedLiveRangeStart);
+    schedulePostPaintAction(() => onDateChange(date));
+  };
+  const selectToday = () => {
+    const today = new Date();
+    updateOptimisticDate(
+      today,
+      sportsLiveTimeRange(today).start_time_gte,
+    );
+    schedulePostPaintAction(onToday);
+  };
+  const selectWeek = (direction: "previous" | "next") => {
+    const nextDate = new Date(visibleDates[0] ?? selectedDate);
+    nextDate.setUTCDate(
+      nextDate.getUTCDate() + (direction === "previous" ? -7 : 7),
+    );
+    updateOptimisticDate(
+      nextDate,
+      sportsLiveTimeRange(nextDate).start_time_gte,
+    );
+    schedulePostPaintAction(() =>
+      direction === "previous"
+        ? onPreviousWeek(nextDate)
+        : onNextWeek(nextDate),
+    );
+  };
+  const selectTaxonomy = (
+    event: MouseEvent<HTMLAnchorElement>,
+    node: SportsTaxonomyNode,
+  ) => {
+    if (!isPlainSameWindowNavigation(event)) return;
+    event.preventDefault();
+    const nextKey = `${node.node_type}:${node.slug}`;
+    if (nextKey === activeTaxonomyKey) return;
+    setOptimisticTaxonomyState({
+      sourceKey: routeTaxonomyStateKey,
+      selectedKey: nextKey,
+    });
+    schedulePostPaintAction(() =>
+      onTaxonomyNavigate(
+        node,
+        new Date(`${selectedDateKey}T00:00:00Z`),
+        new Date(selectedLiveRangeStart),
+      ),
+    );
+  };
+  const selectAllTaxonomies = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!isPlainSameWindowNavigation(event)) return;
+    event.preventDefault();
+    if (activeTaxonomyKey === "all") return;
+    setOptimisticTaxonomyState({
+      sourceKey: routeTaxonomyStateKey,
+      selectedKey: "all",
+    });
+    schedulePostPaintAction(() =>
+      onAllNavigate(
+        new Date(`${selectedDateKey}T00:00:00Z`),
+        new Date(selectedLiveRangeStart),
+      ),
+    );
+  };
+
   return (
     <div className="space-y-3 pb-4">
       <div
@@ -216,7 +364,7 @@ export function SportsLiveFilters({
         <button
           type="button"
           className="flex h-10 shrink-0 cursor-pointer items-center rounded-md px-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:h-12 sm:px-2 sm:text-sm"
-          onClick={onToday}
+          onClick={selectToday}
         >
           {t("extend.worldcup.tab.today")}
         </button>
@@ -225,7 +373,7 @@ export function SportsLiveFilters({
           aria-label={t("extend.sports.filters.previousWeek")}
           className="flex h-10 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-700 disabled:hover:bg-transparent disabled:hover:text-zinc-700 sm:h-12 sm:w-8"
           disabled={previousWeekDisabled}
-          onClick={onPreviousWeek}
+          onClick={() => selectWeek("previous")}
         >
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
@@ -233,7 +381,7 @@ export function SportsLiveFilters({
           data-testid="sports-live-date-grid"
           className="grid min-w-0 flex-1 grid-cols-7 gap-px sm:gap-1"
         >
-          {dates.map((date) => {
+          {visibleDates.map((date) => {
             const dateKey = utcDateKey(date);
             const selected = dateKey === selectedDateKey;
             return (
@@ -249,7 +397,7 @@ export function SportsLiveFilters({
                     ? "border-zinc-600 bg-zinc-900 text-zinc-100"
                     : "border-transparent text-zinc-500 hover:bg-zinc-900/60 hover:text-zinc-300",
                 )}
-                onClick={() => onDateChange(date)}
+                onClick={() => selectDate(date)}
               >
                 <span className="whitespace-nowrap">
                   {weekdayFormatter.format(date)}
@@ -265,7 +413,7 @@ export function SportsLiveFilters({
           type="button"
           aria-label={t("extend.sports.filters.nextWeek")}
           className="flex h-10 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:h-12 sm:w-8"
-          onClick={onNextWeek}
+          onClick={() => selectWeek("next")}
         >
           <ChevronRightIcon className="h-4 w-4" />
         </button>
@@ -287,8 +435,12 @@ export function SportsLiveFilters({
           }}
         >
           <Link
-            href={sportsLiveHref(section, timeRange, liveRangeStart)}
-            onClick={onAllNavigate}
+            href={sportsLiveHref(
+              section,
+              selectedTimeRange,
+              selectedLiveRangeStart,
+            )}
+            onClick={selectAllTaxonomies}
             aria-current={!hasActiveTaxonomy ? "page" : undefined}
             className={cn(
               "shrink-0 rounded-lg border px-3 py-1.5 text-xs transition-colors",
@@ -299,31 +451,35 @@ export function SportsLiveFilters({
           >
             {t("extend.sports.filters.all")}
           </Link>
-          {visibleTaxonomyItems.map(({ node, active, count }) => (
-            <Link
-              key={`${node.node_type}:${node.slug}`}
-              href={taxonomyHref(
-                section,
-                node,
-                "live",
-                timeRange,
-                liveRangeStart,
-              )}
-              onClick={(event) => onTaxonomyNavigate(event, node)}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors",
-                active
-                  ? "border-zinc-600 bg-zinc-900 text-zinc-100"
-                  : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-300",
-              )}
-            >
-              <LocalizedTaxonomyLabel node={node} pageSection={section} />
-              {typeof count === "number" && count > 0 && (
-                <span className="tabular-nums text-zinc-500">{count}</span>
-              )}
-            </Link>
-          ))}
+          {visibleTaxonomyItems.map(({ node, count }) => {
+            const taxonomyKey = `${node.node_type}:${node.slug}`;
+            const active = taxonomyKey === activeTaxonomyKey;
+            return (
+              <Link
+                key={taxonomyKey}
+                href={taxonomyHref(
+                  section,
+                  node,
+                  "live",
+                  selectedTimeRange,
+                  selectedLiveRangeStart,
+                )}
+                onClick={(event) => selectTaxonomy(event, node)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors",
+                  active
+                    ? "border-zinc-600 bg-zinc-900 text-zinc-100"
+                    : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-300",
+                )}
+              >
+                <LocalizedTaxonomyLabel node={node} pageSection={section} />
+                {typeof count === "number" && count > 0 && (
+                  <span className="tabular-nums text-zinc-500">{count}</span>
+                )}
+              </Link>
+            );
+          })}
         </HorizontalScrollContainer>
         {trailingControl && <div className="shrink-0">{trailingControl}</div>}
       </nav>

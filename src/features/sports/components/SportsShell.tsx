@@ -59,6 +59,7 @@ import {
   sportsLiveHref,
   taxonomyHref,
 } from "../route/sportsTaxonomyNav";
+import { isPlainSameWindowNavigation } from "../route/isPlainSameWindowNavigation";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
 import {
@@ -93,7 +94,12 @@ type SportsLiveTaxonomyOverride =
   | { kind: "node"; node: SportsTaxonomyNode };
 type SportsLiveMatchRequest =
   | { kind: "date"; date: Date; nextRangeStart?: Date }
-  | { kind: "taxonomy"; date: Date; node: SportsTaxonomyNode | null };
+  | {
+      kind: "taxonomy";
+      date: Date;
+      nextRangeStart?: Date;
+      node: SportsTaxonomyNode | null;
+    };
 export type SportsPrimaryMarkets = Record<
   "moneyline" | "spread" | "total",
   SportsMarket[]
@@ -122,12 +128,6 @@ const MONEYLINE_TOTAL_PRIMARY_MARKET_CATEGORIES = [
 const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
-
-function shiftUtcDate(value: Date, dayOffset: number): Date {
-  const date = new Date(value);
-  date.setUTCDate(date.getUTCDate() + dayOffset);
-  return date;
-}
 
 function isPreviousLiveWeekDisabled(rangeStart: Date, now: Date): boolean {
   const currentWeekStart = sportsLiveDates(rangeStart)[0] ?? rangeStart;
@@ -264,8 +264,7 @@ export function SportsShell({
   const requestLiveMatches = useCallback(
     async (request: SportsLiveMatchRequest) => {
       const { date } = request;
-      const nextRangeStart =
-        request.kind === "date" ? request.nextRangeStart : undefined;
+      const nextRangeStart = request.nextRangeStart;
       const taxonomyNode =
         request.kind === "taxonomy" ? request.node ?? undefined : undefined;
       const normalizedDate = sportsLiveDates(date)[0] ?? date;
@@ -361,27 +360,15 @@ export function SportsShell({
     },
     [lang, liveDateRangeStart, matches.limit, section],
   );
-  const changeLiveWeek = useCallback(
-    (direction: "previous" | "next") => {
-      const currentWeekStart =
-        sportsLiveDates(liveDateRangeStart)[0] ?? liveDateRangeStart;
-      if (
-        direction === "previous" &&
-        isPreviousLiveWeekDisabled(currentWeekStart, new Date())
-      ) {
-        return;
-      }
-      const nextWeekStart = shiftUtcDate(
-        currentWeekStart,
-        direction === "previous" ? -7 : 7,
-      );
+  const selectLiveWeek = useCallback(
+    (date: Date) => {
       void requestLiveMatches({
         kind: "date",
-        date: nextWeekStart,
-        nextRangeStart: nextWeekStart,
+        date,
+        nextRangeStart: date,
       });
     },
-    [liveDateRangeStart, requestLiveMatches],
+    [requestLiveMatches],
   );
   const selectLiveToday = useCallback(() => {
     const today = new Date();
@@ -607,26 +594,24 @@ export function SportsShell({
     [liveTaxonomyCounts],
   );
   const handleLiveTaxonomyNavigate = (
-    event: MouseEvent<HTMLAnchorElement>,
     node: SportsTaxonomyNode,
-  ): boolean => {
-    if (!isPlainSameWindowNavigation(event)) return false;
-    event.preventDefault();
-    if (isTaxonomyNodeActive(effectiveFilters, node)) return false;
+    date: Date,
+    rangeStart: Date,
+  ) => {
+    if (isTaxonomyNodeActive(effectiveFilters, node)) return;
     void requestLiveMatches({
       kind: "taxonomy",
-      date: selectedLiveDate,
+      date,
+      nextRangeStart: rangeStart,
       node,
     });
-    return true;
   };
-  const handleLiveAllNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!isPlainSameWindowNavigation(event)) return;
-    event.preventDefault();
+  const handleLiveAllNavigate = (date: Date, rangeStart: Date) => {
     if (!hasTaxonomyFilter(effectiveFilters)) return;
     void requestLiveMatches({
       kind: "taxonomy",
-      date: selectedLiveDate,
+      date,
+      nextRangeStart: rangeStart,
       node: null,
     });
   };
@@ -898,8 +883,8 @@ export function SportsShell({
                 onDateChange={selectLiveDate}
                 onToday={selectLiveToday}
                 previousWeekDisabled={previousLiveWeekDisabled}
-                onPreviousWeek={() => changeLiveWeek("previous")}
-                onNextWeek={() => changeLiveWeek("next")}
+                onPreviousWeek={selectLiveWeek}
+                onNextWeek={selectLiveWeek}
                 onTaxonomyNavigate={handleLiveTaxonomyNavigate}
                 onAllNavigate={handleLiveAllNavigate}
                 trailingControl={<OddsFormatSelect />}
@@ -2516,21 +2501,6 @@ function isSpecialViewActive(
   if (filters.view === view) return true;
   if (hasTaxonomyFilter(filters)) return false;
   return view === "live" ? filters.view !== "proposals" : filters.view === view;
-}
-
-function isPlainSameWindowNavigation(
-  event: MouseEvent<HTMLAnchorElement>,
-): boolean {
-  const target = event.currentTarget.getAttribute("target");
-  return (
-    (!target || target === "_self") &&
-    event.button === 0 &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.altKey &&
-    !event.defaultPrevented
-  );
 }
 
 function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {

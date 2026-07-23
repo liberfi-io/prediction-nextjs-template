@@ -216,6 +216,146 @@ describe("SportsShell live filters", () => {
     }
   });
 
+  it("highlights live filters before starting their parent updates", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    const frames: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    window.cancelAnimationFrame = jest.fn();
+    const onDateChange = jest.fn();
+    const onNextWeek = jest.fn();
+    const onTaxonomyNavigate = jest.fn();
+
+    try {
+      render(
+        <SportsLiveFilters
+          section="sports"
+          taxonomyItems={[
+            {
+              node: {
+                section: "sports",
+                node_type: "sport",
+                slug: "soccer",
+                label: "Soccer",
+              },
+              active: false,
+              count: 7,
+            },
+          ]}
+          dates={[
+            new Date("2026-07-23T00:00:00Z"),
+            new Date("2026-07-24T00:00:00Z"),
+          ]}
+          selectedDate={new Date("2026-07-23T00:00:00Z")}
+          timeRange={{
+            start_time_gte: "2026-07-23T00:00:00Z",
+            start_time_lt: "2026-07-24T00:00:00Z",
+          }}
+          liveRangeStart="2026-07-23T00:00:00Z"
+          lang="en"
+          onDateChange={onDateChange}
+          onToday={jest.fn()}
+          previousWeekDisabled
+          onPreviousWeek={jest.fn()}
+          onNextWeek={onNextWeek}
+          onTaxonomyNavigate={onTaxonomyNavigate}
+          onAllNavigate={jest.fn()}
+        />,
+      );
+
+      const nextDate = screen.getByTestId("sports-live-date-2026-07-24");
+      fireEvent.click(nextDate);
+
+      expect(nextDate.getAttribute("aria-current")).toBe("date");
+      expect(onDateChange).not.toHaveBeenCalled();
+      expect(
+        within(
+          screen.getByTestId("sports-live-taxonomy-switch"),
+        )
+          .getByRole("link", { name: /soccer/i })
+          .getAttribute("href"),
+      ).toContain(
+          "start_time_gte=2026-07-24T00%3A00%3A00Z",
+      );
+
+      act(() => frames.shift()?.(0));
+      expect(onDateChange).not.toHaveBeenCalled();
+      act(() => frames.shift()?.(16));
+      expect(onDateChange).toHaveBeenCalledWith(
+        new Date("2026-07-24T00:00:00Z"),
+      );
+
+      const taxonomySwitch = screen.getByTestId(
+        "sports-live-taxonomy-switch",
+      );
+      const soccerLink = within(taxonomySwitch).getByRole("link", {
+        name: /soccer/i,
+      });
+      fireEvent.click(soccerLink);
+
+      expect(soccerLink.getAttribute("aria-current")).toBe("page");
+      expect(onTaxonomyNavigate).not.toHaveBeenCalled();
+
+      act(() => frames.shift()?.(32));
+      expect(onTaxonomyNavigate).not.toHaveBeenCalled();
+      act(() => frames.shift()?.(48));
+      expect(onTaxonomyNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: "soccer" }),
+        new Date("2026-07-24T00:00:00Z"),
+        new Date("2026-07-23T00:00:00Z"),
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "extend.sports.filters.nextWeek",
+        }),
+      );
+      const nextWeekSoccerHref = within(
+        screen.getByTestId("sports-live-taxonomy-switch"),
+      )
+        .getByRole("link", { name: /soccer/i })
+        .getAttribute("href");
+      expect(nextWeekSoccerHref).toContain(
+        "start_time_gte=2026-07-30T00%3A00%3A00Z",
+      );
+      expect(nextWeekSoccerHref).toContain(
+        "live_range_start=2026-07-30T00%3A00%3A00Z",
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "extend.sports.filters.nextWeek",
+        }),
+      );
+      const secondWeekSoccerHref = within(
+        screen.getByTestId("sports-live-taxonomy-switch"),
+      )
+        .getByRole("link", { name: /soccer/i })
+        .getAttribute("href");
+      expect(secondWeekSoccerHref).toContain(
+        "start_time_gte=2026-08-06T00%3A00%3A00Z",
+      );
+      expect(secondWeekSoccerHref).toContain(
+        "live_range_start=2026-08-06T00%3A00%3A00Z",
+      );
+
+      act(() => frames.shift()?.(64));
+      act(() => frames.shift()?.(80));
+      act(() => frames.shift()?.(96));
+      act(() => frames.shift()?.(112));
+      expect(onNextWeek.mock.calls).toEqual([
+        [new Date("2026-07-30T00:00:00Z")],
+        [new Date("2026-08-06T00:00:00Z")],
+      ]);
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+    }
+  });
+
   it("only includes years when the live range crosses a calendar year", () => {
     expect(
       formatSportsLiveDateRange(
@@ -370,6 +510,7 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-24")
           .getAttribute("aria-current"),
       ).toBe("date");
+      act(() => jest.advanceTimersByTime(100));
       expect(
         document.querySelector('[data-sports-list-loading="true"]'),
       ).not.toBeNull();
@@ -384,6 +525,7 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
+      act(() => jest.advanceTimersByTime(100));
 
       const taxonomySwitch = screen.getByTestId(
         "sports-live-taxonomy-switch",
@@ -399,6 +541,7 @@ describe("SportsShell live filters", () => {
           .getByRole("link", { name: "extend.sports.filters.all" })
           .getAttribute("aria-current"),
       ).toBeNull();
+      act(() => jest.advanceTimersByTime(100));
       expect(
         document.querySelector('[data-sports-list-loading="true"]'),
       ).not.toBeNull();
@@ -423,6 +566,7 @@ describe("SportsShell live filters", () => {
       fireEvent.click(allLink);
       expect(allLink.getAttribute("aria-current")).toBe("page");
       expect(soccerLink.getAttribute("aria-current")).toBeNull();
+      act(() => jest.advanceTimersByTime(100));
       expect(fetchMock).toHaveBeenCalledTimes(6);
       const allRequest = new URL(
         String(fetchMock.mock.calls[5]?.[0]),
@@ -811,6 +955,7 @@ describe("SportsShell live filters", () => {
       fireEvent.click(
         within(taxonomySwitch).getByRole("link", { name: /soccer/i }),
       );
+      act(() => jest.advanceTimersByTime(100));
 
       await act(async () => {
         resolveTaxonomyCounts({
@@ -1011,6 +1156,7 @@ describe("SportsShell live filters", () => {
           name: "extend.sports.filters.nextWeek",
         }),
       );
+      act(() => jest.advanceTimersByTime(100));
       expect(heading.textContent).toContain("Jul 30");
       expect(heading.textContent).toContain("Aug 5");
       expect(
@@ -1048,6 +1194,7 @@ describe("SportsShell live filters", () => {
           name: "extend.sports.filters.previousWeek",
         }),
       );
+      act(() => jest.advanceTimersByTime(100));
       expect(heading.textContent).toContain("Jul 23");
       expect(heading.textContent).toContain("Jul 29");
       expect(
@@ -1073,6 +1220,7 @@ describe("SportsShell live filters", () => {
           name: "extend.worldcup.tab.today",
         }),
       );
+      act(() => jest.advanceTimersByTime(100));
       expect(
         within(datePicker)
           .getByTestId("sports-live-date-2026-07-23")
