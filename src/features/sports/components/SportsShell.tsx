@@ -792,6 +792,7 @@ export function SportsShell({
             {hasTaxonomySelection && !isLiveView && (
               <SportsContentTabs active={activeTab} onChange={setActiveTab} />
             )}
+            {isStandaloneProposalsView && <SportsProposalsOddsToolbar />}
           </div>
 
           {filterDrawerOpen && (
@@ -878,14 +879,6 @@ export function SportsShell({
 
                 {!isSpecialViewActive(filters, "live") && (
                   <section className="space-y-3">
-                    {isStandaloneProposalsView && (
-                      <div
-                        data-testid="sports-proposals-odds-toolbar"
-                        className="flex justify-end"
-                      >
-                        <OddsFormatSelect />
-                      </div>
-                    )}
                     {propPage.items.length > 0 ||
                     filters.view === "proposals" ? (
                       <SportsPropsList
@@ -1329,6 +1322,28 @@ function TaxonomyRail({
   );
 }
 
+function SportsListToolbar({
+  children,
+  testId,
+  align = "between",
+}: {
+  children: ReactNode;
+  testId: string;
+  align?: "between" | "end";
+}) {
+  return (
+    <div
+      data-testid={testId}
+      className={cn(
+        "flex items-center gap-3 py-2",
+        align === "end" ? "justify-end" : "justify-between",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function SportsContentTabs({
   active,
   onChange,
@@ -1338,10 +1353,7 @@ function SportsContentTabs({
 }) {
   const { t } = useTranslation();
   return (
-    <div
-      data-testid="sports-content-toolbar"
-      className="flex items-center justify-between gap-3 py-2"
-    >
+    <SportsListToolbar testId="sports-content-toolbar">
       <nav className="-mx-1 flex min-w-0 gap-1 overflow-x-auto no-scrollbar">
         {(["today", "games", "props"] as const).map((tab) => (
           <button
@@ -1363,7 +1375,20 @@ function SportsContentTabs({
       <div className="shrink-0">
         <OddsFormatSelect />
       </div>
-    </div>
+    </SportsListToolbar>
+  );
+}
+
+function SportsProposalsOddsToolbar() {
+  return (
+    <SportsListToolbar
+      testId="sports-proposals-odds-toolbar"
+      align="end"
+    >
+      <div className="shrink-0">
+        <OddsFormatSelect />
+      </div>
+    </SportsListToolbar>
   );
 }
 

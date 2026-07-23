@@ -768,7 +768,7 @@ describe("SportsShell taxonomy labels", () => {
     expect(toolbar.lastElementChild?.contains(oddsFormatButton)).toBe(true);
   });
 
-  it("labels the standalone proposals list and right-aligns its odds format selector", () => {
+  it("places the standalone proposals odds selector in the header toolbar row", () => {
     const { container } = render(
       <SportsShell
         section="sports"
@@ -787,12 +787,16 @@ describe("SportsShell taxonomy labels", () => {
     expect(list?.classList.contains("no-scrollbar")).toBe(true);
     expect(list?.classList.contains("custom-scrollbar")).toBe(false);
 
+    const header = screen.getByTestId("sports-page-header");
     const toolbar = screen.getByTestId("sports-proposals-odds-toolbar");
     const oddsFormatButton = within(toolbar)
       .getByText("extend.worldcup.odds")
       .closest("button");
 
+    expect(header.contains(toolbar)).toBe(true);
+    expect(list?.contains(toolbar)).toBe(false);
     expect(toolbar.className).toContain("justify-end");
+    expect(toolbar.className).toContain("py-2");
     expect(oddsFormatButton).not.toBeNull();
   });
 
