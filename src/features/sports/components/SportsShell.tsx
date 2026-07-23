@@ -60,6 +60,7 @@ import {
   taxonomyHref,
 } from "../route/sportsTaxonomyNav";
 import { isPlainSameWindowNavigation } from "../route/isPlainSameWindowNavigation";
+import { resolveSportsMatchRequestView } from "../route/matchRequestView";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
 import {
@@ -261,14 +262,7 @@ export function SportsShell({
   const usesLiveMatchRange =
     filters.view === "live" ||
     (!filters.view && !filters.taxonomy_type && !filters.taxonomy_slug);
-  const matchRequestView =
-    filters.view === "live" ||
-    filters.view === "upcoming" ||
-    filters.view === "results"
-      ? filters.view
-      : usesLiveMatchRange
-        ? "live"
-        : undefined;
+  const matchRequestView = resolveSportsMatchRequestView(filters);
   const requestLiveMatches = useCallback(
     async (request: SportsLiveMatchRequest) => {
       const { date } = request;
@@ -2517,7 +2511,7 @@ function isSpecialViewActive(
 ): boolean {
   if (filters.view === view) return true;
   if (hasTaxonomyFilter(filters)) return false;
-  return view === "live" ? filters.view !== "proposals" : filters.view === view;
+  return view === "live" && filters.view === undefined;
 }
 
 function taxonomyNodeCount(node: SportsTaxonomyNode): number | undefined {

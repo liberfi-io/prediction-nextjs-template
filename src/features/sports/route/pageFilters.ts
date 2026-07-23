@@ -30,7 +30,7 @@ export function resolveSportsPageFilters(
   const viewFilter = SPORTS_VIEWS.has(view as SportsPageFilters["view"])
     ? { view: view as SportsPageFilters["view"] }
     : {};
-  const liveCalendarFilter = resolveMatchCalendarFilter(
+  const matchCalendarFilter = resolveMatchCalendarFilter(
     searchParams,
     viewFilter.view,
   );
@@ -42,12 +42,12 @@ export function resolveSportsPageFilters(
   ) {
     return {
       ...viewFilter,
-      ...liveCalendarFilter,
+      ...matchCalendarFilter,
       taxonomy_type: taxonomyType as TaxonomyType,
       taxonomy_slug: taxonomySlug,
     };
   }
-  return { ...viewFilter, ...liveCalendarFilter };
+  return { ...viewFilter, ...matchCalendarFilter };
 }
 
 function resolveMatchCalendarFilter(

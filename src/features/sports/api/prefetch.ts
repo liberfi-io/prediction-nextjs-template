@@ -7,6 +7,7 @@ import type {
   SportsTaxonomyResponse,
 } from "../types";
 import type { SportsSsrDeadline } from "../route/sportsSsrDeadline";
+import { resolveSportsMatchRequestView } from "../route/matchRequestView";
 import {
   sportsLiveTimeRange,
   type SportsLiveTimeRange,
@@ -58,15 +59,7 @@ export async function prefetchSportsPageData(input: {
   const hasTaxonomyFilter = Boolean(
     input.filters?.taxonomy_type && input.filters.taxonomy_slug,
   );
-  const requestedMatchView =
-    input.filters?.view === "live" ||
-    input.filters?.view === "upcoming" ||
-    input.filters?.view === "results"
-      ? input.filters.view
-      : undefined;
-  const matchView =
-    requestedMatchView ??
-    (!input.filters?.view && !hasTaxonomyFilter ? "live" : undefined);
+  const matchView = resolveSportsMatchRequestView(input.filters);
   const requestedTimeRange =
     input.filters?.start_time_gte && input.filters.start_time_lt
       ? {
