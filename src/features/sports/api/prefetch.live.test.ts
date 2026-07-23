@@ -22,7 +22,7 @@ describe("live sports prefetch", () => {
     process.env.PREDICT_URL = originalPredictUrl;
   });
 
-  it("requests only matches in the current UTC day", async () => {
+  it("normalizes the default daily homepage to live ordering", async () => {
     jest
       .useFakeTimers()
       .setSystemTime(new Date("2026-07-23T00:30:00Z"));
@@ -40,7 +40,7 @@ describe("live sports prefetch", () => {
       section: "sports",
       lang: "zh-Hant",
       deadline,
-      filters: { view: "live" },
+      filters: {},
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
