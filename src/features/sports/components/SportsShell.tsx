@@ -1567,7 +1567,7 @@ function SportsMatchList({
                     categories={row.categories}
                   />
                 ) : (
-                  <MatchCard match={row.match} />
+                  <SportsMatchCard match={row.match} />
                 )}
               </div>
             );
@@ -1639,7 +1639,12 @@ function sportsMatchGroupMarketCategories(
     : SPORTS_PRIMARY_MARKET_CATEGORIES;
 }
 
-function MatchCard({ match }: { match: SportsMatchCardData }) {
+/** Renders one responsive match card for desktop and mobile lists. */
+export function SportsMatchCard({
+  match,
+}: {
+  match: SportsMatchCardData;
+}) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const [format] = useOddsFormat();
@@ -1671,11 +1676,6 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     match.sport_slug,
     rawMoneylineSelections,
     participants,
-  );
-  const moneylineSlots = sportsMoneylineSelectionSlots(
-    rawMoneylineSelections,
-    participants,
-    moneylineSlotCount,
   );
   const hasOnlyMoneyline =
     primaryMarkets.moneyline.length > 0 &&
@@ -1733,18 +1733,10 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
 
       <div className="hidden items-stretch gap-3 px-4 pb-3 pt-2.5 md:flex">
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
-          {participants.length > 0 ? (
-            participants.map((participant) => (
-              <SportsParticipantRow
-                key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
-                participant={participant}
-              />
-            ))
-          ) : (
-            <h2 className="truncate text-sm font-semibold text-zinc-100">
-              {match.title}
-            </h2>
-          )}
+          <SportsMatchParticipants
+            participants={participants}
+            title={match.title}
+          />
         </div>
         <div className="flex shrink-0 items-stretch gap-2">
           {displayedCategories.length === 1 ? (
@@ -1756,7 +1748,7 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
               moneylineSlotCount={moneylineSlotCount}
               format={format}
               onSelect={openMarket}
-              horizontal
+              layout="fixed-row"
             />
           ) : (
             displayedCategories.map((category) => (
@@ -1775,67 +1767,50 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 px-3 pb-3 pt-2.5 md:hidden">
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <SportsMobileParticipant participant={participants[0]} />
-          <span className="text-sm font-black text-zinc-500">
-            {t("extend.worldcup.versus")}
-          </span>
-          <SportsMobileParticipant
-            participant={participants[1]}
-            align="right"
+      <div
+        data-testid="sports-match-card-mobile"
+        className="flex flex-col gap-3 px-3 pb-3 pt-2.5 md:hidden"
+      >
+        <div className="flex min-w-0 flex-col gap-2">
+          <SportsMatchParticipants
+            participants={participants}
+            title={match.title}
           />
         </div>
-        {primaryMarkets.moneyline.length > 0 ? (
-          <div
-            className={cn(
-              "grid gap-2",
-              moneylineSlotCount === 3 ? "grid-cols-3" : "grid-cols-2",
-            )}
-          >
-            {moneylineSlots.map((selection, index) =>
-              selection ? (
-                <SportsOddsButton
-                  key={`${selection.market.market_slug}:${selection.outcome.outcome}`}
-                  label={sportsMarketSelectionLabel(
-                    "moneyline",
-                    selection,
-                    index,
-                    moneylineSlotCount,
-                    participants,
-                    marketLabels,
-                  )}
-                  price={sportsOutcomePrice(selection.outcome)}
-                  format={format}
-                  variant="fade"
-                  teamColor={sportsMarketSelectionColor(
-                    "moneyline",
-                    selection,
-                    index,
-                    moneylineSlotCount,
-                    participants,
-                  )}
-                  onSelect={() =>
-                    openMarket(selection.market, selection.outcome.outcome)
-                  }
-                />
-              ) : (
-                <SportsOddsButton
-                  key={`moneyline:placeholder:${index}`}
-                  label="-"
-                  format={format}
-                  onSelect={() => undefined}
-                />
-              ),
-            )}
-          </div>
-        ) : (
-          <h2 className="truncate text-center text-sm font-semibold text-zinc-100">
-            {match.title}
-          </h2>
-        )}
+        {displayedCategories.map((category) => (
+          <SportsMarketColumn
+            key={category}
+            category={category}
+            markets={primaryMarkets[category]}
+            participants={participants}
+            labels={marketLabels}
+            moneylineSlotCount={moneylineSlotCount}
+            format={format}
+            onSelect={openMarket}
+            layout="fluid-row"
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+function SportsMatchParticipants({
+  participants,
+  title,
+}: {
+  participants: SportsParticipant[];
+  title: string;
+}) {
+  return participants.length > 0 ? (
+    participants.map((participant) => (
+      <SportsParticipantRow
+        key={`${participant.role ?? "participant"}:${participant.slug ?? participant.name}`}
+        participant={participant}
+      />
+    ))
+  ) : (
+    <h2 className="truncate text-sm font-semibold text-zinc-100">{title}</h2>
   );
 }
 
@@ -1845,7 +1820,10 @@ function SportsParticipantRow({
   participant: SportsParticipant;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
+    <div
+      data-testid="sports-participant-row"
+      className="flex min-w-0 items-center gap-2.5"
+    >
       <SportsParticipantAvatar participant={participant} />
       <SportsParticipantName participant={participant} />
     </div>
@@ -2120,43 +2098,15 @@ export function sportsOddsAnimationVariant(
   return category === "moneyline" ? "fade" : "roll";
 }
 
-function SportsMobileParticipant({
-  participant,
-  align = "left",
-}: {
-  participant?: SportsParticipant;
-  align?: "left" | "right";
-}) {
-  if (!participant) return <span />;
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 items-center gap-2",
-        align === "right" && "flex-row-reverse text-right",
-      )}
-    >
-      <SportsParticipantAvatar participant={participant} />
-      <SportsParticipantName participant={participant} align={align} />
-    </div>
-  );
-}
-
 function SportsParticipantName({
   participant,
-  align = "left",
 }: {
   participant: SportsParticipant;
-  align?: "left" | "right";
 }) {
   const abbreviation = sportsParticipantAbbreviation(participant);
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 items-baseline gap-1.5",
-        align === "right" && "justify-end",
-      )}
-    >
+    <div className="flex min-w-0 items-baseline gap-1.5">
       <span className="truncate text-sm font-semibold text-zinc-100">
         {participant.name}
       </span>
@@ -2205,7 +2155,7 @@ function SportsMarketColumn({
   moneylineSlotCount,
   format,
   onSelect,
-  horizontal = false,
+  layout = "column",
 }: {
   category: keyof SportsPrimaryMarkets;
   markets: SportsMarket[];
@@ -2214,7 +2164,7 @@ function SportsMarketColumn({
   moneylineSlotCount: 2 | 3;
   format: OddsFormat;
   onSelect: (market: SportsInlineMarket, outcome: string) => void;
-  horizontal?: boolean;
+  layout?: "column" | "fixed-row" | "fluid-row";
 }) {
   const rawSelections = sportsMarketSelections(category, markets);
   const slotCount = category === "moneyline" ? moneylineSlotCount : 2;
@@ -2228,20 +2178,25 @@ function SportsMarketColumn({
       : Array.from({ length: slotCount }, (_, index) => rawSelections[index]);
   const hasThreeWayMoneyline = moneylineSlotCount === 3;
   const growButtons =
-    !horizontal && hasThreeWayMoneyline && category !== "moneyline";
+    layout === "column" &&
+    hasThreeWayMoneyline &&
+    category !== "moneyline";
   return (
     <div
       data-sports-market-column={category}
-      data-sports-market-layout={horizontal ? "row" : "column"}
+      data-sports-market-layout={layout}
       className={cn(
-        horizontal
-          ? "grid w-[400px] justify-end self-center gap-2"
-          : "flex w-[128px] flex-col gap-2",
-        horizontal &&
+        layout === "column"
+          ? "flex w-[128px] flex-col gap-2"
+          : "grid self-center gap-2",
+        layout === "fixed-row" && "w-[400px] justify-end",
+        layout === "fixed-row" &&
           (slotCount === 3
             ? "grid-cols-[repeat(3,128px)]"
             : "grid-cols-[repeat(2,128px)]"),
-        !horizontal && hasThreeWayMoneyline && "h-[118px]",
+        layout === "fluid-row" &&
+          (slotCount === 3 ? "w-full grid-cols-3" : "w-full grid-cols-2"),
+        layout === "column" && hasThreeWayMoneyline && "h-[118px]",
       )}
     >
       {slots.map((selection, index) => {

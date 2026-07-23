@@ -19,9 +19,14 @@ import {
   sportsMoneylineSlotCount,
   sportsOddsAnimationVariant,
   sportsPrimaryMarketCategories,
+  SportsMatchCard,
   SportsMatchGroupHeading,
   SportsShell,
 } from "./SportsShell";
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
 
 jest.mock("@liberfi.io/ui", () => {
   const actual = jest.requireActual("@liberfi.io/ui");
@@ -851,6 +856,82 @@ describe("SportsShell taxonomy labels", () => {
     marketHeaders.forEach((header) => {
       expect(header.className).toContain("w-[128px]");
     });
+  });
+
+  it("stacks mobile participants and renders each supported market on its own row", () => {
+    render(
+      <SportsMatchCard
+        match={{
+          match_group_slug: "home-away-match",
+          section: "sports",
+          sport_slug: "soccer",
+          title: "Home FC vs Away FC",
+          start_time: "2026-07-23T12:00:00Z",
+          participants: [
+            {
+              name: "Home Football Club",
+              abbreviation: "HOM",
+              role: "home",
+            },
+            {
+              name: "Away Football Club",
+              abbreviation: "AWY",
+              role: "away",
+            },
+          ],
+          inline_markets: [
+            {
+              market_slug: "match-winner",
+              market_type: "moneyline",
+              label: "Match winner",
+              outcomes: [
+                { outcome: "yes", label: "Home Football Club", price: 0.4 },
+                { outcome: "yes", label: "Draw", price: 0.3 },
+                { outcome: "yes", label: "Away Football Club", price: 0.3 },
+              ],
+            },
+            {
+              market_slug: "match-spread",
+              market_type: "spreads",
+              label: "Away Football Club -1.5",
+              line: -1.5,
+              outcomes: [
+                { outcome: "yes", label: "Away Football Club", price: 0.45 },
+                { outcome: "no", label: "Home Football Club", price: 0.55 },
+              ],
+            },
+            {
+              market_slug: "match-total",
+              market_type: "totals",
+              label: "Total 2.5",
+              line: 2.5,
+              outcomes: [
+                { outcome: "yes", label: "Over", price: 0.48 },
+                { outcome: "no", label: "Under", price: 0.52 },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    const mobileCard = screen.getByTestId("sports-match-card-mobile");
+    expect(
+      within(mobileCard).getAllByTestId("sports-participant-row"),
+    ).toHaveLength(2);
+    expect(
+      Array.from(
+        mobileCard.querySelectorAll("[data-sports-market-column]"),
+        (column) => ({
+          category: column.getAttribute("data-sports-market-column"),
+          layout: column.getAttribute("data-sports-market-layout"),
+        }),
+      ),
+    ).toEqual([
+      { category: "moneyline", layout: "fluid-row" },
+      { category: "spread", layout: "fluid-row" },
+      { category: "total", layout: "fluid-row" },
+    ]);
   });
 
   it("uses the shared localized label at mobile and rail entry points", () => {
