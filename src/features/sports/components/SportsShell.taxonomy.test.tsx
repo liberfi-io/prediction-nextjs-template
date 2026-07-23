@@ -1089,7 +1089,7 @@ describe("SportsShell taxonomy labels", () => {
     expect(liveIcons).toHaveLength(3);
     expect(
       Array.from(liveIcons).every((icon) =>
-        icon.classList.contains("text-bullish"),
+        icon.classList.contains("text-bearish"),
       ),
     ).toBe(true);
     expect(

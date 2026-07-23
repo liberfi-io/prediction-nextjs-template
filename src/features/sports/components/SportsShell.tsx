@@ -588,7 +588,7 @@ export function SportsShell({
                   )}
                 >
                   <span className="flex items-center gap-1.5">
-                    <LiveNavigationIcon className="h-4 w-4 text-bullish" />
+                    <LiveNavigationIcon className="h-4 w-4 text-bearish" />
                     {t("extend.sports.filters.live")}
                   </span>
                 </Link>
@@ -671,7 +671,7 @@ export function SportsShell({
                 <h1 className="text-xl font-semibold text-zinc-50">
                   {isLiveView ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <LiveNavigationIcon className="h-[18px] w-[18px] text-bullish" />
+                      <LiveNavigationIcon className="h-[18px] w-[18px] text-bearish" />
                       {t("extend.sports.filters.live")}{" "}
                       <span className="text-sm font-normal text-zinc-500">
                         ({liveDateRangeLabel})
@@ -1019,7 +1019,7 @@ function SpecialNavigationLink({
     >
       <span className="flex items-center gap-1.5">
         {icon === "live" ? (
-          <LiveNavigationIcon className="h-[18px] w-[18px] text-bullish" />
+          <LiveNavigationIcon className="h-[18px] w-[18px] text-bearish" />
         ) : (
           <ProposalsNavigationIcon className="h-[18px] w-[18px]" />
         )}
