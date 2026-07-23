@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -22,6 +23,7 @@ import type { SportsLiveTimeRange } from "../live/sportsLiveTimeRange";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 
 const SPORTS_LIVE_DATE_COUNT = 7;
+const TAXONOMY_SCROLL_EDGE_INSET = 32;
 
 export interface SportsLiveTaxonomyItem {
   node: SportsTaxonomyNode;
@@ -46,6 +48,33 @@ function utcDateKey(value: Date): string {
   const month = String(value.getUTCMonth() + 1).padStart(2, "0");
   const day = String(value.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function keepSelectedTaxonomyVisible(navigation: HTMLElement): void {
+  const selectedLink =
+    navigation.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
+  const scrollContainer = selectedLink?.parentElement;
+  if (!selectedLink || !scrollContainer) return;
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const selectedRect = selectedLink.getBoundingClientRect();
+  const leftDelta =
+    selectedRect.left < containerRect.left + TAXONOMY_SCROLL_EDGE_INSET
+      ? selectedRect.left -
+        containerRect.left -
+        TAXONOMY_SCROLL_EDGE_INSET
+      : selectedRect.right >
+          containerRect.right - TAXONOMY_SCROLL_EDGE_INSET
+        ? selectedRect.right -
+          containerRect.right +
+          TAXONOMY_SCROLL_EDGE_INSET
+        : 0;
+  if (leftDelta === 0) return;
+
+  scrollContainer.scrollBy?.({
+    left: leftDelta,
+    behavior: "auto",
+  });
 }
 
 /** Returns the seven UTC calendar dates shown by the live list. */
@@ -149,6 +178,17 @@ export function SportsLiveFilters({
   const visibleTaxonomyItems = taxonomyItems.filter(
     (item) => typeof item.count === "number" && item.count > 0,
   );
+  const taxonomyNavRef = useRef<HTMLElement>(null);
+  const activeTaxonomyNode = visibleTaxonomyItems.find((item) => item.active)
+    ?.node;
+  const activeTaxonomyKey = activeTaxonomyNode
+    ? `${activeTaxonomyNode.node_type}:${activeTaxonomyNode.slug}`
+    : !hasActiveTaxonomy
+      ? "all"
+      : undefined;
+  const visibleTaxonomyKey = visibleTaxonomyItems
+    .map(({ node, count }) => `${node.node_type}:${node.slug}:${count}`)
+    .join("|");
   const fullDateFormatter = new Intl.DateTimeFormat(lang, {
     weekday: "long",
     year: "numeric",
@@ -160,6 +200,12 @@ export function SportsLiveFilters({
     weekday: "short",
     timeZone: "UTC",
   });
+
+  useEffect(() => {
+    if (taxonomyNavRef.current) {
+      keepSelectedTaxonomyVisible(taxonomyNavRef.current);
+    }
+  }, [activeTaxonomyKey, visibleTaxonomyKey]);
 
   return (
     <div className="space-y-3 pb-4">
@@ -226,6 +272,7 @@ export function SportsLiveFilters({
       </div>
 
       <nav
+        ref={taxonomyNavRef}
         data-testid="sports-live-taxonomy-switch"
         aria-label={t("extend.sports.filters.all")}
         className="flex min-w-0 items-center gap-2"

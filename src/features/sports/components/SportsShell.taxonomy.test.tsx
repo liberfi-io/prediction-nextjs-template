@@ -770,7 +770,7 @@ describe("SportsShell taxonomy labels", () => {
   });
 
   it("labels the standalone proposals list and right-aligns its odds format selector", () => {
-    render(
+    const { container } = render(
       <SportsShell
         section="sports"
         filters={{ view: "proposals" }}
@@ -781,6 +781,12 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       "extend.sports.filters.proposals",
     );
+    expect(screen.getByTestId("sports-page-header").className).not.toContain(
+      "border-b",
+    );
+    const list = container.querySelector("#sports-list-scroll");
+    expect(list?.classList.contains("no-scrollbar")).toBe(true);
+    expect(list?.classList.contains("custom-scrollbar")).toBe(false);
 
     const toolbar = screen.getByTestId("sports-proposals-odds-toolbar");
     const oddsFormatButton = within(toolbar)
@@ -874,7 +880,7 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
   });
 
-  it("shows the target taxonomy and a list skeleton immediately after navigation", async () => {
+  it("shows the target taxonomy and a generic loading state immediately after navigation", async () => {
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
     let renderNextTab: FrameRequestCallback | undefined;
@@ -942,13 +948,21 @@ describe("SportsShell taxonomy labels", () => {
       ).toBe("page");
       expect(propsTab.getAttribute("aria-current")).toBeNull();
       const list = container.querySelector("#sports-list-scroll");
+      expect(list?.classList.contains("no-scrollbar")).toBe(true);
+      expect(list?.classList.contains("custom-scrollbar")).toBe(false);
       expect(list?.getAttribute("aria-busy")).toBe("true");
       expect(
         list?.querySelector('[data-sports-list-loading="true"]'),
       ).not.toBeNull();
       expect(
         list?.querySelector('[data-testid="sports-list-skeleton-group-heading"]'),
-      ).not.toBeNull();
+      ).toBeNull();
+      expect(within(list as HTMLElement).getByRole("status")).toBeDefined();
+      expect(
+        within(list as HTMLElement).getAllByTestId(
+          "sports-list-loading-row",
+        ),
+      ).toHaveLength(5);
       expect(screen.queryByText("Soccer match")).toBeNull();
 
       rerender(
@@ -1381,9 +1395,18 @@ describe("SportsShell taxonomy labels", () => {
           block: "nearest",
           inline: "nearest",
         });
+        const mobileScrollCallIndex = scrollIntoView.mock.calls.findIndex(
+          ([options]) =>
+            (options as ScrollIntoViewOptions | undefined)?.behavior ===
+            "smooth",
+        );
+        expect(mobileScrollCallIndex).toBeGreaterThanOrEqual(0);
         expect(
-          (scrollIntoView.mock.instances[0] as HTMLElement).dataset
-            .taxonomyScrollTarget,
+          (
+            scrollIntoView.mock.instances[
+              mobileScrollCallIndex
+            ] as HTMLElement
+          ).dataset.taxonomyScrollTarget,
         ).toBe(expectedTarget);
       } finally {
         getBoundingClientRect.mockRestore();

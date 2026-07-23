@@ -53,7 +53,11 @@ import {
 import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
-import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
+import {
+  isTaxonomyNodeActive,
+  sportsLiveHref,
+  taxonomyHref,
+} from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
 import {
@@ -176,6 +180,8 @@ export function SportsShell({
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [pendingTaxonomyNode, setPendingTaxonomyNode] =
     useState<SportsTaxonomyNode | null>(null);
+  const [pendingTaxonomyView, setPendingTaxonomyView] =
+    useState<SportsPageFilters["view"]>();
   const [matches, setMatches] = useState<SportsPage<SportsMatchCardData>>(
     () => ({
       items: data.matches,
@@ -196,6 +202,7 @@ export function SportsShell({
     "matches" | "props" | null
   >(null);
   const [liveRangeLoading, setLiveRangeLoading] = useState(false);
+  const [isLiveTaxonomyCleared, setIsLiveTaxonomyCleared] = useState(false);
   const [liveTaxonomyCounts, setLiveTaxonomyCounts] = useState<
     SportsTaxonomyMatchCount[] | undefined
   >(() => data.match_taxonomy_counts);
@@ -226,6 +233,11 @@ export function SportsShell({
   const requestLiveDate = useCallback(
     async (date: Date, nextRangeStart?: Date) => {
       const normalizedDate = sportsLiveDates(date)[0] ?? date;
+      const normalizedRangeStart =
+        sportsLiveDates(nextRangeStart ?? liveDateRangeStart)[0] ??
+        nextRangeStart ??
+        liveDateRangeStart;
+      const timeRange = sportsLiveTimeRange(normalizedDate);
       const requestId = liveRangeRequestIdRef.current + 1;
       liveRangeRequestIdRef.current = requestId;
       if (nextRangeStart) {
@@ -233,20 +245,25 @@ export function SportsShell({
           sportsLiveDates(nextRangeStart)[0] ?? nextRangeStart,
         );
       }
+      setPendingTaxonomyNode(null);
+      setPendingTaxonomyView(undefined);
+      setIsLiveTaxonomyCleared(true);
       setSelectedLiveDate(normalizedDate);
       setLiveRangeLoading(true);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        sportsLiveHref(
+          section,
+          timeRange,
+          sportsLiveTimeRange(normalizedRangeStart).start_time_gte,
+        ),
+      );
       try {
-        const timeRange = sportsLiveTimeRange(normalizedDate);
         const [page, taxonomyCounts] = await Promise.all([
           fetchSportsPage<SportsMatchCardData>({
             section,
             resource: "matches",
-            taxonomy: filters.taxonomy_type
-              ? {
-                  taxonomy_type: filters.taxonomy_type,
-                  taxonomy_slug: filters.taxonomy_slug,
-                }
-              : undefined,
             timeRange,
             limit: matches.limit,
             lang,
@@ -272,7 +289,7 @@ export function SportsShell({
         }
       }
     },
-    [filters.taxonomy_slug, filters.taxonomy_type, lang, matches.limit, section],
+    [lang, liveDateRangeStart, matches.limit, section],
   );
   const changeLiveWeek = useCallback(
     (direction: "previous" | "next") => {
@@ -361,7 +378,7 @@ export function SportsShell({
       >({
         section,
         resource,
-        taxonomy: filters.taxonomy_type
+        taxonomy: !isLiveTaxonomyCleared && filters.taxonomy_type
           ? {
               taxonomy_type: filters.taxonomy_type,
               taxonomy_slug: filters.taxonomy_slug,
@@ -413,11 +430,23 @@ export function SportsShell({
   const featuredNodes = taxonomy?.featured ?? [];
   const effectiveFilters: SportsPageFilters = pendingTaxonomyNode
     ? {
-        ...(filters.view ? { view: filters.view } : {}),
+        ...(pendingTaxonomyView ? { view: pendingTaxonomyView } : {}),
         taxonomy_type: pendingTaxonomyNode.node_type,
         taxonomy_slug: pendingTaxonomyNode.slug,
       }
-    : filters;
+    : isLiveTaxonomyCleared
+      ? {
+          ...filters,
+          taxonomy_type: undefined,
+          taxonomy_slug: undefined,
+        }
+      : filters;
+  const primaryNavigationFilters: SportsPageFilters = isSpecialViewActive(
+    effectiveFilters,
+    "live",
+  )
+    ? { view: "live" }
+    : effectiveFilters;
   const handleTaxonomyNavigate = (
     event: MouseEvent<HTMLAnchorElement>,
     node: SportsTaxonomyNode,
@@ -430,15 +459,28 @@ export function SportsShell({
 
     setActiveTab("games");
     setDisplayedTab("games");
+    setIsLiveTaxonomyCleared(false);
+    const targetView = new URL(
+      event.currentTarget.href,
+      window.location.origin,
+    ).searchParams.get("view");
+    setPendingTaxonomyView(
+      targetView === "live" || targetView === "proposals"
+        ? targetView
+        : undefined,
+    );
     setPendingTaxonomyNode(node);
     return true;
   };
   const handleSpecialViewNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (isPlainSameWindowNavigation(event)) setPendingTaxonomyNode(null);
+    if (isPlainSameWindowNavigation(event)) {
+      setPendingTaxonomyNode(null);
+      setPendingTaxonomyView(undefined);
+    }
   };
   const activeTopLevelSlug = findActiveTopLevelSlug(
     taxonomyNodes,
-    effectiveFilters,
+    primaryNavigationFilters,
   );
   const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, effectiveFilters);
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
@@ -485,7 +527,8 @@ export function SportsShell({
   useEffect(() => {
     setActiveTab("games");
     setDisplayedTab("games");
-  }, [filters.taxonomy_slug]);
+    setIsLiveTaxonomyCleared(false);
+  }, [filters.taxonomy_slug, filters.taxonomy_type]);
   useEffect(() => {
     if (activeTab === displayedTab) return;
     const frame = window.requestAnimationFrame(() => {
@@ -500,12 +543,16 @@ export function SportsShell({
       filters.taxonomy_slug === pendingTaxonomyNode.slug
     ) {
       setPendingTaxonomyNode(null);
+      setPendingTaxonomyView(undefined);
     }
   }, [filters.taxonomy_type, filters.taxonomy_slug, pendingTaxonomyNode]);
 
   useEffect(() => {
     if (!pendingTaxonomyNode) return;
-    const clearPendingNavigation = () => setPendingTaxonomyNode(null);
+    const clearPendingNavigation = () => {
+      setPendingTaxonomyNode(null);
+      setPendingTaxonomyView(undefined);
+    };
     const timeout = window.setTimeout(clearPendingNavigation, 10_000);
     window.addEventListener("popstate", clearPendingNavigation);
     return () => {
@@ -553,7 +600,7 @@ export function SportsShell({
         <aside className="no-scrollbar hidden min-h-0 overflow-y-auto border-r border-zinc-900 px-4 py-5 lg:block">
           <SportsNavigation
             section={section}
-            filters={effectiveFilters}
+            filters={primaryNavigationFilters}
             featuredNodes={featuredNodes}
             taxonomyNodes={taxonomyNodes}
             expandedTopLevelSlug={expandedTopLevelSlug}
@@ -568,7 +615,9 @@ export function SportsShell({
             data-testid="sports-page-header"
             className={cn(
               "shrink-0 bg-[#09090b] px-3 pt-3 sm:px-6 lg:px-8 lg:pt-5",
-              !isLiveView && "border-b border-zinc-900",
+              !isLiveView &&
+                !isStandaloneProposalsView &&
+                "border-b border-zinc-900",
             )}
           >
             <div className="flex items-center gap-2 pb-3 lg:hidden">
@@ -620,7 +669,10 @@ export function SportsShell({
                       data-taxonomy-scroll-target={node.slug}
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
-                        taxonomyBranchContainsActiveNode(node, effectiveFilters)
+                        taxonomyBranchContainsActiveNode(
+                          node,
+                          primaryNavigationFilters,
+                        )
                           ? "border-bullish/30 bg-bullish/10 text-bullish"
                           : "border-zinc-800 bg-zinc-900 text-zinc-300",
                       )}
@@ -719,7 +771,7 @@ export function SportsShell({
           {filterDrawerOpen && (
             <SportsFilterDrawer
               section={section}
-              filters={effectiveFilters}
+              filters={primaryNavigationFilters}
               featuredNodes={featuredNodes}
               taxonomyNodes={taxonomyNodes}
               onClose={() => setFilterDrawerOpen(false)}
@@ -735,14 +787,14 @@ export function SportsShell({
             aria-busy={
               pendingTaxonomyNode || isContentTabSwitching ? "true" : undefined
             }
-            className="custom-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
+            className="no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
           >
             {pendingTaxonomyNode ? (
-              <SportsListSkeleton
+              <SportsListLoadingState
                 loadingLabel={t("extend.leaderboard.loading")}
               />
             ) : isLiveView && liveRangeLoading ? (
-              <SportsListSkeleton
+              <SportsListLoadingState
                 loadingLabel={t("extend.leaderboard.loading")}
               />
             ) : isLiveView ? (
@@ -760,7 +812,7 @@ export function SportsShell({
                     loadingLabel={t("extend.leaderboard.loading")}
                   />
                 ) : (
-                  <SportsListSkeleton
+                  <SportsListLoadingState
                     loadingLabel={t("extend.leaderboard.loading")}
                   />
                 )
@@ -2250,58 +2302,41 @@ function SportsPropsListFallback() {
   );
 }
 
-function SportsListSkeleton({ loadingLabel }: { loadingLabel: string }) {
+function SportsListLoadingState({ loadingLabel }: { loadingLabel: string }) {
+  const lineWidths = ["68%", "54%", "74%", "48%", "62%"];
+
   return (
-    <div data-sports-list-loading="true">
+    <div
+      data-sports-list-loading="true"
+      className="w-full py-3"
+    >
       <span className="sr-only" role="status">
         {loadingLabel}
       </span>
-      <div aria-hidden="true">
-        <div
-          data-testid="sports-list-skeleton-group-heading"
-          className="pb-2"
-        >
-          <div className={SPORTS_MATCH_GROUP_HEADING_CLASS}>
-            <div className="h-4 min-w-0 flex-1">
-              <div className="h-3 w-28 animate-pulse rounded bg-zinc-800/60" />
-            </div>
-            <div className="hidden shrink-0 gap-2 md:flex">
-              {Array.from({ length: 3 }).map((_, column) => (
-                <div
-                  key={column}
-                  className="h-3 w-32 animate-pulse rounded bg-zinc-800/50"
-                />
-              ))}
-            </div>
+      <div aria-hidden="true" className="space-y-2 px-1">
+        {lineWidths.map((width, index) => (
+          <div
+            key={width}
+            data-testid="sports-list-loading-row"
+            className="flex h-7 items-center gap-3"
+          >
+            <span
+              className="h-3 w-16 shrink-0 animate-pulse rounded bg-zinc-800/55"
+              style={{ animationDelay: `${index * 80}ms` }}
+            />
+            <span
+              className="h-4 max-w-2xl animate-pulse rounded bg-zinc-800/70"
+              style={{
+                width,
+                animationDelay: `${index * 80 + 40}ms`,
+              }}
+            />
+            <span
+              className="ml-auto hidden h-3 w-20 shrink-0 animate-pulse rounded bg-zinc-800/50 sm:block"
+              style={{ animationDelay: `${index * 80 + 80}ms` }}
+            />
           </div>
-        </div>
-        <div className="space-y-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="overflow-hidden rounded-[14px] border border-zinc-800/60 bg-zinc-900/40 p-4"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="h-3.5 w-32 animate-pulse rounded bg-zinc-800/60" />
-                <div className="h-6 w-16 animate-pulse rounded-full bg-zinc-800/60" />
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="min-w-0 flex-1 space-y-2.5">
-                  <div className="h-4 w-3/5 animate-pulse rounded bg-zinc-800/60" />
-                  <div className="h-4 w-2/5 animate-pulse rounded bg-zinc-800/60" />
-                </div>
-                <div className="hidden shrink-0 gap-2 md:flex">
-                  {Array.from({ length: 3 }).map((_, column) => (
-                    <div
-                      key={column}
-                      className="h-[76px] w-32 animate-pulse rounded-[9px] bg-zinc-800/50"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );

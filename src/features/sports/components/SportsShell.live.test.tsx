@@ -10,6 +10,7 @@ import { SportsShell } from "./SportsShell";
 import {
   formatSportsLiveDateRange,
   matchesForUtcDate,
+  SportsLiveFilters,
 } from "./SportsLiveFilters";
 
 jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
@@ -23,6 +24,198 @@ jest.mock("../../worldcup/odds/OddsNumber", () => ({
 }));
 
 describe("SportsShell live filters", () => {
+  it("keeps date-level taxonomy selection out of the primary navigation", () => {
+    const { container } = render(
+      <SportsShell
+        section="sports"
+        filters={{}}
+        lang="en"
+        data={{
+          matches: [],
+          props: [],
+          taxonomy: {
+            sections: [
+              {
+                section: "sports",
+                children: [
+                  {
+                    section: "sports",
+                    node_type: "sport",
+                    slug: "soccer",
+                    label: "Soccer",
+                    counts: {
+                      match_count: 3,
+                      prop_count: 0,
+                      total_count: 3,
+                    },
+                    children: [
+                      {
+                        section: "sports",
+                        node_type: "league",
+                        slug: "epl",
+                        label: "Premier League",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      within(screen.getByTestId("sports-live-taxonomy-switch")).getByRole(
+        "link",
+        { name: /soccer/i },
+      ),
+    );
+
+    const primarySoccerLinks = container.querySelectorAll(
+      'a[href="/sports?taxonomy_type=sport&taxonomy_slug=soccer"]',
+    );
+    expect(primarySoccerLinks.length).toBeGreaterThan(0);
+    expect(
+      Array.from(primarySoccerLinks).every(
+        (link) =>
+          !link.classList.contains("bg-content1") &&
+          !link.classList.contains("bg-bullish/10"),
+      ),
+    ).toBe(true);
+    expect(screen.queryByText("epl")).toBeNull();
+  });
+
+  it("keeps the selected taxonomy option visible", () => {
+    const scrollBy = jest.fn();
+    const originalScrollBy = HTMLElement.prototype.scrollBy;
+    const getBoundingClientRect = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.classList.contains("overflow-x-auto")) {
+          return { left: 0, right: 300 } as DOMRect;
+        }
+        if (this.getAttribute("aria-current") === "page") {
+          return { left: 320, right: 400 } as DOMRect;
+        }
+        return { left: 0, right: 0 } as DOMRect;
+      });
+    Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+      configurable: true,
+      value: scrollBy,
+    });
+    const soccer = {
+      section: "sports" as const,
+      node_type: "sport" as const,
+      slug: "soccer",
+      label: "Soccer",
+    };
+    const tennis = {
+      section: "sports" as const,
+      node_type: "sport" as const,
+      slug: "tennis",
+      label: "Tennis",
+    };
+    const sharedProps = {
+      section: "sports" as const,
+      dates: [new Date("2026-07-23T00:00:00Z")],
+      selectedDate: new Date("2026-07-23T00:00:00Z"),
+      timeRange: {
+        start_time_gte: "2026-07-23T00:00:00Z",
+        start_time_lt: "2026-07-24T00:00:00Z",
+      },
+      liveRangeStart: "2026-07-23T00:00:00Z",
+      lang: "en",
+      onDateChange: jest.fn(),
+      onToday: jest.fn(),
+      previousWeekDisabled: true,
+      onPreviousWeek: jest.fn(),
+      onNextWeek: jest.fn(),
+      onTaxonomyNavigate: jest.fn(() => true),
+      onAllNavigate: jest.fn(),
+    };
+
+    try {
+      const { rerender } = render(
+        <SportsLiveFilters
+          {...sharedProps}
+          taxonomyItems={[
+            { node: soccer, active: true, count: 12 },
+            { node: tennis, active: false, count: 8 },
+          ]}
+        />,
+      );
+
+      expect(scrollBy).toHaveBeenLastCalledWith({
+        behavior: "auto",
+        left: 132,
+      });
+      expect(
+        scrollBy.mock.instances
+          .at(-1)
+          ?.querySelector('a[aria-current="page"]')
+          ?.getAttribute("href"),
+      ).toContain("taxonomy_slug=soccer");
+
+      rerender(
+        <SportsLiveFilters
+          {...sharedProps}
+          taxonomyItems={[
+            { node: soccer, active: false, count: 12 },
+            { node: tennis, active: true, count: 8 },
+          ]}
+        />,
+      );
+
+      expect(
+        scrollBy.mock.instances
+          .at(-1)
+          ?.querySelector('a[aria-current="page"]')
+          ?.getAttribute("href"),
+      ).toContain("taxonomy_slug=tennis");
+
+      const callsBeforeCountUpdate = scrollBy.mock.calls.length;
+      rerender(
+        <SportsLiveFilters
+          {...sharedProps}
+          taxonomyItems={[
+            { node: soccer, active: false, count: 12000 },
+            { node: tennis, active: true, count: 8 },
+          ]}
+        />,
+      );
+      expect(scrollBy.mock.calls.length).toBeGreaterThan(
+        callsBeforeCountUpdate,
+      );
+
+      rerender(
+        <SportsLiveFilters
+          {...sharedProps}
+          taxonomyItems={[
+            { node: soccer, active: false, count: 12000 },
+            { node: tennis, active: false, count: 8 },
+          ]}
+        />,
+      );
+      expect(
+        scrollBy.mock.instances
+          .at(-1)
+          ?.querySelector('a[aria-current="page"]')
+          ?.getAttribute("href"),
+      ).not.toContain("taxonomy_slug");
+    } finally {
+      getBoundingClientRect.mockRestore();
+      if (originalScrollBy) {
+        Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+          configurable: true,
+          value: originalScrollBy,
+        });
+      } else {
+        delete (HTMLElement.prototype as Partial<HTMLElement>).scrollBy;
+      }
+    }
+  });
+
   it("only includes years when the live range crosses a calendar year", () => {
     expect(
       formatSportsLiveDateRange(
@@ -460,7 +653,7 @@ describe("SportsShell live filters", () => {
       .useFakeTimers()
       .setSystemTime(new Date("2026-07-23T00:30:00Z"));
     try {
-      render(
+      const { container } = render(
         <SportsShell
           section="sports"
           filters={{
@@ -537,6 +730,17 @@ describe("SportsShell live filters", () => {
       );
       expect(heading.querySelector('[data-sports-navigation-icon="live"]')).not
         .toBeNull();
+      const primarySoccerLinks = container.querySelectorAll(
+        'a[href="/sports?taxonomy_type=sport&taxonomy_slug=soccer"]',
+      );
+      expect(primarySoccerLinks.length).toBeGreaterThan(0);
+      expect(
+        Array.from(primarySoccerLinks).every(
+          (link) =>
+            !link.classList.contains("bg-content1") &&
+            !link.classList.contains("bg-bullish/10"),
+        ),
+      ).toBe(true);
 
       fireEvent.click(
         within(datePicker).getByTestId("sports-live-date-2026-07-25"),
@@ -552,6 +756,26 @@ describe("SportsShell live filters", () => {
               "2026-07-25T00:00:00Z" &&
             url.searchParams.get("start_time_lt") ===
               "2026-07-26T00:00:00Z",
+        ),
+      ).toBe(true);
+      const resetTaxonomySwitch = screen.getByTestId(
+        "sports-live-taxonomy-switch",
+      );
+      expect(
+        within(resetTaxonomySwitch)
+          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getAttribute("aria-current"),
+      ).toBe("page");
+      expect(
+        within(resetTaxonomySwitch)
+          .getByRole("link", { name: /soccer/i })
+          .getAttribute("aria-current"),
+      ).toBeNull();
+      expect(
+        selectedDateUrls.every(
+          (url) =>
+            !url.searchParams.has("taxonomy_type") &&
+            !url.searchParams.has("taxonomy_slug"),
         ),
       ).toBe(true);
       fireEvent.click(
@@ -640,7 +864,22 @@ describe("SportsShell live filters", () => {
         within(taxonomySwitch).getByText("extend.worldcup.odds"),
       ).toBeDefined();
       expect(soccerLink?.className).toContain("px-3");
-      expect(soccerLink?.getAttribute("aria-current")).toBe("page");
+      expect(soccerLink?.getAttribute("aria-current")).toBeNull();
+      expect(
+        within(taxonomySwitch)
+          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getAttribute("aria-current"),
+      ).toBe("page");
+      expect(
+        fetchMock.mock.calls
+          .map(([value]) => new URL(String(value)))
+          .filter((url) => !url.pathname.endsWith("/taxonomy-counts"))
+          .every(
+            (url) =>
+              !url.searchParams.has("taxonomy_type") &&
+              !url.searchParams.has("taxonomy_slug"),
+          ),
+      ).toBe(true);
       expect(screen.getByTestId("sports-page-header").className).not.toContain(
         "border-b",
       );
