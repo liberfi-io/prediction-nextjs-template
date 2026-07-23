@@ -493,7 +493,7 @@ function SportsPropOdds({
       {price === undefined ? (
         "-"
       ) : (
-        <OddsNumber value={convertPrice(price, format)} variant="fade" />
+        <OddsNumber value={convertPrice(price, format)} variant="roll" />
       )}
     </span>
   );

@@ -18,7 +18,13 @@ jest.mock("../../worldcup/odds/OddsFormatProvider", () => ({
 }));
 
 jest.mock("../../worldcup/odds/OddsNumber", () => ({
-  OddsNumber: ({ value }: { value: string }) => <span>{value}</span>,
+  OddsNumber: ({
+    value,
+    variant,
+  }: {
+    value: string;
+    variant: string;
+  }) => <span data-odds-variant={variant}>{value}</span>,
 }));
 
 describe("SportsPropsList", () => {
@@ -115,12 +121,18 @@ describe("SportsPropsList", () => {
     expect(screen.getAllByText("Yes")).toHaveLength(2);
     expect(screen.getByText("+900")).toBeDefined();
     expect(screen.getByText("+300")).toBeDefined();
+    expect(
+      container.querySelectorAll('[data-odds-variant="roll"]'),
+    ).toHaveLength(2);
     expect(container.querySelector('[data-source="polymarket"]')).toBeNull();
     expect(screen.getByTestId("predict-trade-modal")).toBeDefined();
 
     fireEvent.click(
       screen.getByText("Will Kylian Mbappé win?").closest("button")!,
     );
+    expect(
+      container.querySelectorAll('[data-odds-variant="roll"]'),
+    ).toHaveLength(3);
     const yesButton = screen.getByRole("button", { name: "Yes +900" });
     fireEvent.mouseEnter(yesButton);
     expect(yesButton.style.transform).toBe("translateY(2px)");
