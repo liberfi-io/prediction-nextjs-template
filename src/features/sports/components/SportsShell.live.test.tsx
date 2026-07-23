@@ -316,6 +316,126 @@ describe("SportsShell live filters", () => {
     }
   });
 
+  it("commits live date and taxonomy selections before requests resolve", () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn(
+      (_input: RequestInfo | URL) => new Promise<Response>(() => undefined),
+    );
+    global.fetch = fetchMock;
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ view: "live" }}
+          lang="en"
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: {
+              sections: [
+                {
+                  section: "sports",
+                  children: [
+                    {
+                      section: "sports",
+                      node_type: "sport",
+                      slug: "soccer",
+                      label: "Soccer",
+                    },
+                  ],
+                },
+              ],
+            },
+            match_taxonomy_counts: [
+              {
+                taxonomy_type: "sport",
+                taxonomy_slug: "soccer",
+                match_count: 7,
+              },
+            ],
+          }}
+        />,
+      );
+
+      const datePicker = screen.getByTestId("sports-live-date-picker");
+      fireEvent.click(
+        within(datePicker).getByTestId("sports-live-date-2026-07-24"),
+      );
+      expect(
+        within(datePicker)
+          .getByTestId("sports-live-date-2026-07-24")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).not.toBeNull();
+
+      fireEvent.click(
+        within(datePicker).getByRole("button", {
+          name: "extend.worldcup.tab.today",
+        }),
+      );
+      expect(
+        within(datePicker)
+          .getByTestId("sports-live-date-2026-07-23")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+
+      const taxonomySwitch = screen.getByTestId(
+        "sports-live-taxonomy-switch",
+      );
+      const soccerLink = within(taxonomySwitch).getByRole("link", {
+        name: /soccer/i,
+      });
+      fireEvent.click(soccerLink);
+
+      expect(soccerLink.getAttribute("aria-current")).toBe("page");
+      expect(
+        within(taxonomySwitch)
+          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getAttribute("aria-current"),
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).not.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+      const taxonomyRequest = new URL(
+        String(fetchMock.mock.calls[4]?.[0]),
+        "http://localhost",
+      );
+      expect(taxonomyRequest.pathname).toContain("/sports/matches");
+      expect(taxonomyRequest.searchParams.get("taxonomy_type")).toBe("sport");
+      expect(taxonomyRequest.searchParams.get("taxonomy_slug")).toBe("soccer");
+      expect(taxonomyRequest.searchParams.get("start_time_gte")).toBe(
+        "2026-07-23T00:00:00Z",
+      );
+      expect(taxonomyRequest.searchParams.get("start_time_lt")).toBe(
+        "2026-07-24T00:00:00Z",
+      );
+
+      const allLink = within(taxonomySwitch).getByRole("link", {
+        name: "extend.sports.filters.all",
+      });
+      fireEvent.click(allLink);
+      expect(allLink.getAttribute("aria-current")).toBe("page");
+      expect(soccerLink.getAttribute("aria-current")).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(6);
+      const allRequest = new URL(
+        String(fetchMock.mock.calls[5]?.[0]),
+        "http://localhost",
+      );
+      expect(allRequest.searchParams.has("taxonomy_type")).toBe(false);
+      expect(allRequest.searchParams.has("taxonomy_slug")).toBe(false);
+    } finally {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    }
+  });
+
   it("ignores a stale live cursor response after switching weeks", async () => {
     const originalFetch = global.fetch;
     let resolveOldPage: (value: unknown) => void = () => undefined;
@@ -541,7 +661,7 @@ describe("SportsShell live filters", () => {
     }
   });
 
-  it("clears stale taxonomy counts when the next date match request fails", async () => {
+  it("keeps successful taxonomy counts when the date match request fails", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
@@ -609,8 +729,116 @@ describe("SportsShell live filters", () => {
         expect(
           within(
             screen.getByTestId("sports-live-taxonomy-switch"),
-          ).queryByRole("link", { name: /soccer/i }),
-        ).toBeNull(),
+          ).getByRole("link", { name: /soccer/i }).textContent,
+        ).toContain("3"),
+      );
+    } finally {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("keeps the selected date counts when a taxonomy request supersedes its match request", async () => {
+    const originalFetch = global.fetch;
+    let resolveTaxonomyCounts: (value: Response) => void = () => undefined;
+    const taxonomyCountsResponse = new Promise<Response>((resolve) => {
+      resolveTaxonomyCounts = resolve;
+    });
+    const fetchMock = jest.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname.endsWith("/taxonomy-counts")) {
+        return taxonomyCountsResponse;
+      }
+      if (url.searchParams.get("taxonomy_slug") === "soccer") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            items: [],
+            has_more: false,
+            next_cursor: null,
+            limit: 20,
+          }),
+        });
+      }
+      return new Promise<Response>(() => undefined);
+    });
+    global.fetch = fetchMock;
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ view: "live" }}
+          lang="en"
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: {
+              sections: [
+                {
+                  section: "sports",
+                  children: [
+                    {
+                      section: "sports",
+                      node_type: "sport",
+                      slug: "soccer",
+                      label: "Soccer",
+                    },
+                  ],
+                },
+              ],
+            },
+            match_taxonomy_counts: [
+              {
+                taxonomy_type: "sport",
+                taxonomy_slug: "soccer",
+                match_count: 7,
+              },
+            ],
+          }}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("sports-live-date-2026-07-24"),
+      );
+      const taxonomySwitch = screen.getByTestId(
+        "sports-live-taxonomy-switch",
+      );
+      fireEvent.click(
+        within(taxonomySwitch).getByRole("link", { name: /soccer/i }),
+      );
+
+      await act(async () => {
+        resolveTaxonomyCounts({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                taxonomy_type: "sport",
+                taxonomy_slug: "soccer",
+                match_count: 3,
+              },
+            ],
+          }),
+        } as Response);
+        await taxonomyCountsResponse;
+      });
+
+      await waitFor(() =>
+        expect(
+          within(taxonomySwitch).getByRole("link", { name: /soccer/i })
+            .textContent,
+        ).toContain("3"),
+      );
+      const taxonomyRequest = fetchMock.mock.calls
+        .map(([value]) => new URL(String(value), "http://localhost"))
+        .find((url) => url.searchParams.get("taxonomy_slug") === "soccer");
+      expect(taxonomyRequest?.searchParams.get("start_time_gte")).toBe(
+        "2026-07-24T00:00:00Z",
       );
     } finally {
       jest.useRealTimers();
