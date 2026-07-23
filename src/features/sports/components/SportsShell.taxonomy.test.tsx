@@ -767,6 +767,7 @@ describe("SportsShell taxonomy labels", () => {
       .closest("button");
 
     expect(toolbar.className).toContain("justify-between");
+    expect(toolbar.className).toContain("min-h-12");
     expect(toolbar.className).not.toContain("border-t");
     expect(tabs.className).not.toContain("border-t");
     expect(toolbar.firstElementChild).toBe(tabs);
@@ -801,6 +802,7 @@ describe("SportsShell taxonomy labels", () => {
     expect(header.contains(toolbar)).toBe(true);
     expect(list?.contains(toolbar)).toBe(false);
     expect(toolbar.className).toContain("justify-end");
+    expect(toolbar.className).toContain("min-h-12");
     expect(toolbar.className).toContain("py-2");
     expect(oddsFormatButton).not.toBeNull();
   });

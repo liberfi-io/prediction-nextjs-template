@@ -1429,7 +1429,7 @@ function SportsListToolbar({
     <div
       data-testid={testId}
       className={cn(
-        "flex items-center gap-3 py-2",
+        "flex min-h-12 items-center gap-3 py-2",
         align === "end" ? "justify-end" : "justify-between",
       )}
     >
