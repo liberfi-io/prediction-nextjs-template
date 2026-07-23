@@ -4,6 +4,20 @@ import { SportsPropsList } from "./SportsPropsList";
 
 const mockOpenTradeModal = jest.fn();
 
+jest.mock("@liberfi.io/i18n", () => ({
+  useTranslation: () => ({
+    t: (key: string) =>
+      ({
+        "predict.market.yes": "是",
+        "predict.market.no": "否",
+        "predict.event.viewEvent": "View Event",
+        "predict.event.showMore": "Show More",
+        "predict.event.back": "Back",
+        "predict.event.volume": "vol",
+      })[key] ?? key,
+  }),
+}));
+
 jest.mock("@liberfi.io/ui-predict", () => ({
   PREDICT_TRADE_MODAL_ID: "predict-trade",
   PredictTradeModal: () => <div data-testid="predict-trade-modal" />,
@@ -118,7 +132,7 @@ describe("SportsPropsList", () => {
     expect(card.textContent).toContain("$1.2K");
     expect(screen.getByText("Will Kylian Mbappé win?")).toBeDefined();
     expect(screen.getByText("Will Erling Haaland win?")).toBeDefined();
-    expect(screen.getAllByText("Yes")).toHaveLength(2);
+    expect(screen.getAllByText("是")).toHaveLength(2);
     expect(screen.getByText("+900")).toBeDefined();
     expect(screen.getByText("+300")).toBeDefined();
     expect(
@@ -133,7 +147,7 @@ describe("SportsPropsList", () => {
     expect(
       container.querySelectorAll('[data-odds-variant="roll"]'),
     ).toHaveLength(3);
-    const yesButton = screen.getByRole("button", { name: "Yes +900" });
+    const yesButton = screen.getByRole("button", { name: "是 +900" });
     fireEvent.mouseEnter(yesButton);
     expect(yesButton.style.transform).toBe("translateY(2px)");
     fireEvent.click(yesButton);
@@ -196,13 +210,46 @@ describe("SportsPropsList", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Yes +400" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "No -400" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "是 +400" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "否 -400" })).toBeDefined();
     expect(
       screen.getByRole("link", { name: "WI Will Ronaldo retire?" }),
     ).toBeDefined();
     expect(screen.getByText("+400")).toBeDefined();
     expect(screen.getByText("-400")).toBeDefined();
+  });
+
+  it("preserves custom outcome labels", () => {
+    render(
+      <SportsPropsList
+        page={{
+          items: [
+            {
+              event_slug: "championship-winner",
+              section: "sports",
+              title: "Championship winner",
+              markets: [
+                {
+                  market_slug: "championship-winner",
+                  label: "Who will win?",
+                  outcomes: [
+                    { outcome: "yes", label: "Home", price: 0.2 },
+                    { outcome: "no", label: "Away", price: 0.8 },
+                  ],
+                },
+              ],
+            },
+          ],
+          has_more: false,
+          limit: 20,
+        }}
+        loading={false}
+        onLoadMore={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Home +400" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Away -400" })).toBeDefined();
   });
 
   it("automatically loads the next props page", () => {

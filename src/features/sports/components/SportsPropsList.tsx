@@ -358,6 +358,7 @@ function OutcomeButtons({
   format: OddsFormat;
   onSelectOutcome: (market: SportsInlineMarket, side: "yes" | "no") => void;
 }) {
+  const { t } = useTranslation();
   const outcomes = (["yes", "no"] as const).map((side) => ({
     side,
     outcome: findOutcome(market, side),
@@ -371,7 +372,14 @@ function OutcomeButtons({
           side={side}
           onClick={() => onSelectOutcome(market, side)}
         >
-          <span className="truncate">{outcome?.label ?? side}</span>
+          <span className="truncate">
+            {outcomeButtonLabel(
+              outcome,
+              side,
+              t("predict.market.yes"),
+              t("predict.market.no"),
+            )}
+          </span>
           <SportsPropOdds
             outcome={outcome}
             format={format}
@@ -381,6 +389,19 @@ function OutcomeButtons({
       ))}
     </div>
   );
+}
+
+function outcomeButtonLabel(
+  outcome: SportsMarketOutcome | undefined,
+  side: "yes" | "no",
+  yesLabel: string,
+  noLabel: string,
+): string {
+  const label = outcome?.label?.trim();
+  if (!label || label.toLowerCase() === "yes" || label.toLowerCase() === "no") {
+    return side === "yes" ? yesLabel : noLabel;
+  }
+  return label;
 }
 
 function ElevatedButton({
