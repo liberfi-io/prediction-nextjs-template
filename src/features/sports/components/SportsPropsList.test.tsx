@@ -3,6 +3,22 @@ import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import { SportsPropsList } from "./SportsPropsList";
 
 const mockOpenTradeModal = jest.fn();
+const mockGetScrollElement = () => document.body;
+const mockMeasureElement = jest.fn();
+const mockUseVirtualizer = jest.fn(({ count }: { count: number }) => ({
+  getVirtualItems: () =>
+    Array.from({ length: count }, (_, index) => ({
+      index,
+      key: index,
+      start: index * 264,
+    })),
+  getTotalSize: () => count * 264,
+  measureElement: mockMeasureElement,
+}));
+
+jest.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: (options: { count: number }) => mockUseVirtualizer(options),
+}));
 
 jest.mock("@liberfi.io/i18n", () => ({
   useTranslation: () => ({
@@ -44,42 +60,22 @@ jest.mock("../../worldcup/odds/OddsNumber", () => ({
 describe("SportsPropsList", () => {
   beforeEach(() => {
     mockOpenTradeModal.mockReset();
+    mockMeasureElement.mockReset();
+    mockUseVirtualizer.mockClear();
     (useAsyncModal as jest.Mock).mockReturnValue({
       onOpen: mockOpenTradeModal,
     });
-
-    class TestIntersectionObserver {
-      constructor(private readonly callback: IntersectionObserverCallback) {}
-
-      observe(element: Element) {
-        this.callback(
-          [
-            {
-              isIntersecting: true,
-              target: element,
-            } as IntersectionObserverEntry,
-          ],
-          this as unknown as IntersectionObserver,
-        );
-      }
-
-      disconnect() {}
-      unobserve() {}
-      takeRecords() {
-        return [];
-      }
-      readonly root = null;
-      readonly rootMargin = "300px";
-      readonly thresholds = [0];
-    }
-
-    window.IntersectionObserver =
-      TestIntersectionObserver as unknown as typeof IntersectionObserver;
+    window.matchMedia = jest.fn().mockReturnValue({
+      matches: false,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    });
   });
 
   it("renders independent props cards with event data and selected odds format", () => {
     const { container } = render(
       <SportsPropsList
+        getScrollElement={mockGetScrollElement}
         page={{
           items: [
             {
@@ -140,6 +136,18 @@ describe("SportsPropsList", () => {
     ).toHaveLength(2);
     expect(container.querySelector('[data-source="polymarket"]')).toBeNull();
     expect(screen.getByTestId("predict-trade-modal")).toBeDefined();
+    expect(mockUseVirtualizer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        count: 1,
+        estimateSize: expect.any(Function),
+        getScrollElement: expect.any(Function),
+        overscan: 3,
+      }),
+    );
+    expect(
+      screen.getByTestId("sports-props-virtual-list").style.height,
+    ).toBe("264px");
+    expect(card.closest(".p-2")?.getAttribute("style")).toBeNull();
 
     fireEvent.click(
       screen.getByText("Will Kylian Mbappé win?").closest("button")!,
@@ -169,11 +177,13 @@ describe("SportsPropsList", () => {
     const gridStyles = container.querySelector("style")?.textContent;
     expect(gridStyles).toContain("repeat(2, minmax(0, 1fr))");
     expect(gridStyles).not.toContain("repeat(3, minmax(0, 1fr))");
+    expect(gridStyles).not.toContain("sportsPropCardEnter");
   });
 
   it("renders both outcome labels for a single binary market", () => {
     render(
       <SportsPropsList
+        getScrollElement={mockGetScrollElement}
         page={{
           items: [
             {
@@ -222,6 +232,7 @@ describe("SportsPropsList", () => {
   it("preserves custom outcome labels", () => {
     render(
       <SportsPropsList
+        getScrollElement={mockGetScrollElement}
         page={{
           items: [
             {
@@ -256,6 +267,7 @@ describe("SportsPropsList", () => {
     const onLoadMore = jest.fn();
     render(
       <SportsPropsList
+        getScrollElement={mockGetScrollElement}
         page={{
           items: [
             {
@@ -276,9 +288,46 @@ describe("SportsPropsList", () => {
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 
+  it("virtualizes one card per row on mobile", () => {
+    window.matchMedia = jest.fn().mockReturnValue({
+      matches: true,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    });
+
+    render(
+      <SportsPropsList
+        getScrollElement={mockGetScrollElement}
+        page={{
+          items: [
+            {
+              event_slug: "first-prop",
+              section: "sports",
+              title: "First prop",
+            },
+            {
+              event_slug: "second-prop",
+              section: "sports",
+              title: "Second prop",
+            },
+          ],
+          has_more: false,
+          limit: 20,
+        }}
+        loading={false}
+        onLoadMore={jest.fn()}
+      />,
+    );
+
+    expect(mockUseVirtualizer).toHaveBeenLastCalledWith(
+      expect.objectContaining({ count: 2 }),
+    );
+  });
+
   it("uses a title fallback when the event image fails", () => {
     const { container } = render(
       <SportsPropsList
+        getScrollElement={mockGetScrollElement}
         page={{
           items: [
             {

@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
 import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -39,24 +41,58 @@ import {
 import { OddsNumber } from "../../worldcup/odds/OddsNumber";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
 import { SportsEmptyState } from "./SportsEmptyState";
-import { SportsPropsGrid } from "./SportsPropsGrid";
+import {
+  SPORTS_CARD_INTERACTION_CLASS,
+  SPORTS_CARD_SURFACE_CLASS,
+} from "./sportsCardSurface";
+import {
+  SPORTS_PROPS_DESKTOP_COLUMNS,
+  SPORTS_PROPS_MOBILE_MEDIA_QUERY,
+  SportsPropsGrid,
+} from "./SportsPropsGrid";
 import { sportsOutcomePrice } from "./sportsOutcomePrice";
 
 const DISPLAYED_MARKET_COUNT = 3;
+const ESTIMATED_PROPS_ROW_HEIGHT = 264;
 
 /** Renders the independently evolved sports props event-card list. */
 export function SportsPropsList({
   page,
   loading,
   onLoadMore,
+  getScrollElement,
 }: {
   page: SportsPage<SportsPropEventCard>;
   loading: boolean;
   onLoadMore: () => void;
+  getScrollElement: () => HTMLElement | null;
 }) {
   const { t } = useTranslation();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const canLoadMore = page.has_more && Boolean(page.next_cursor);
+  const cardsPerRow = usePropsCardsPerRow();
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const rows = useMemo(
+    () =>
+      Array.from(
+        { length: Math.ceil(page.items.length / cardsPerRow) },
+        (_, index) =>
+          page.items.slice(
+            index * cardsPerRow,
+            (index + 1) * cardsPerRow,
+          ),
+      ),
+    [cardsPerRow, page.items],
+  );
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement,
+    estimateSize: () => ESTIMATED_PROPS_ROW_HEIGHT,
+    getItemKey: (index) => rows[index]?.[0]?.event_slug ?? index,
+    overscan: 3,
+    scrollMargin,
+  });
+  const virtualItems = virtualizer.getVirtualItems();
   const { onOpen: openTradeModal } =
     useAsyncModal<PredictTradeModalParams>(PREDICT_TRADE_MODAL_ID);
   const handleSelectOutcome = useCallback(
@@ -76,18 +112,29 @@ export function SportsPropsList({
     [openTradeModal],
   );
 
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !canLoadMore || loading) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) onLoadMore();
-      },
-      { rootMargin: "300px" },
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const scroll = getScrollElement();
+    if (!list || !scroll) return;
+    const nextMargin =
+      list.getBoundingClientRect().top -
+      scroll.getBoundingClientRect().top +
+      scroll.scrollTop;
+    setScrollMargin((current) =>
+      current === nextMargin ? current : nextMargin,
     );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [canLoadMore, loading, onLoadMore]);
+  });
+
+  useEffect(() => {
+    const last = virtualItems[virtualItems.length - 1];
+    if (
+      canLoadMore &&
+      !loading &&
+      (rows.length === 0 || (last && last.index >= rows.length - 2))
+    ) {
+      onLoadMore();
+    }
+  }, [canLoadMore, loading, onLoadMore, rows.length, virtualItems]);
 
   if (page.items.length === 0) {
     return <SportsEmptyState label={t("extend.sports.empty.props")} />;
@@ -95,34 +142,43 @@ export function SportsPropsList({
 
   return (
     <SportsPropsGrid className="pb-4">
-      <div className="sports-props-card-grid grid">
-        {page.items.map((event, index) => (
+      <div
+        ref={listRef}
+        data-testid="sports-props-virtual-list"
+        className="relative w-full"
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {virtualItems.map((item) => (
           <div
-            key={event.event_slug}
-            className="p-2"
+            key={item.key}
+            ref={virtualizer.measureElement}
+            data-index={item.index}
+            className="absolute left-0 top-0 w-full"
             style={{
-              animation: `sportsPropCardEnter 0.45s cubic-bezier(0.34,1.56,0.64,1) ${(index % 2) * 35}ms both`,
+              transform: `translateY(${item.start - scrollMargin}px)`,
             }}
           >
-            <SportsPropCard
-              event={event}
-              onSelectOutcome={handleSelectOutcome}
-            />
+            <div className="sports-props-card-grid grid">
+              {rows[item.index]?.map((event) => (
+                <div key={event.event_slug} className="p-2">
+                  <SportsPropCard
+                    event={event}
+                    onSelectOutcome={handleSelectOutcome}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
       <style>{`
-        @keyframes sportsPropCardEnter {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
         .sports-prop-card button:focus-visible,
         .sports-prop-card a:focus-visible {
           outline: 2px solid hsl(var(--heroui-primary) / 0.4);
           outline-offset: 2px;
         }
       `}</style>
-      <div ref={loadMoreRef} className="flex h-8 items-center justify-center">
+      <div className="flex h-8 items-center justify-center">
         {loading && (
           <span
             aria-label={t("extend.leaderboard.loading")}
@@ -168,7 +224,7 @@ function SportsPropCard({
   return (
     <article
       data-testid="sports-prop-card"
-      className="sports-prop-card group flex h-full min-h-[248px] flex-col overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.65)] bg-[rgba(24,24,27,0.4)] transition-[border-color,background-color,box-shadow] duration-300 ease-out hover:border-[rgba(63,63,70,0.55)] hover:bg-[rgba(24,24,27,0.46)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] motion-reduce:transition-none"
+      className={`sports-prop-card group flex h-full min-h-[248px] flex-col ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
     >
       <div className="flex flex-1 flex-col gap-2 p-3.5">
         <CardHeader
@@ -230,6 +286,24 @@ function SportsPropCard({
       </CardFooter>
     </article>
   );
+}
+
+function usePropsCardsPerRow(): number {
+  const [cardsPerRow, setCardsPerRow] = useState(
+    SPORTS_PROPS_DESKTOP_COLUMNS,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia(SPORTS_PROPS_MOBILE_MEDIA_QUERY);
+    const update = () =>
+      setCardsPerRow(media.matches ? 1 : SPORTS_PROPS_DESKTOP_COLUMNS);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return cardsPerRow;
 }
 
 function CardHeader({

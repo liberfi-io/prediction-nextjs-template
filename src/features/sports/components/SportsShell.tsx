@@ -51,6 +51,10 @@ import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
+import {
+  SPORTS_CARD_INTERACTION_CLASS,
+  SPORTS_CARD_SURFACE_CLASS,
+} from "./sportsCardSurface";
 import { SportsPropsListSkeleton } from "./SportsPropsListSkeleton";
 import {
   formatSportsLiveDateRange,
@@ -137,6 +141,11 @@ export function SportsShell({
   lang,
 }: SportsShellProps) {
   const { t } = useTranslation();
+  const sportsListScrollRef = useRef<HTMLDivElement>(null);
+  const getSportsListScrollElement = useCallback(
+    () => sportsListScrollRef.current,
+    [],
+  );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [pendingTaxonomyNode, setPendingTaxonomyNode] =
     useState<SportsTaxonomyNode | null>(null);
@@ -532,6 +541,7 @@ export function SportsShell({
           )}
 
           <div
+            ref={sportsListScrollRef}
             id="sports-list-scroll"
             aria-busy={
               pendingTaxonomyNode || isContentTabSwitching ? "true" : undefined
@@ -566,6 +576,7 @@ export function SportsShell({
                   page={propPage}
                   loading={loadingResource === "props"}
                   onLoadMore={() => void loadMore("props")}
+                  getScrollElement={getSportsListScrollElement}
                 />
               ) : (
                 <SportsMatchList
@@ -598,6 +609,7 @@ export function SportsShell({
                         page={propPage}
                         loading={loadingResource === "props"}
                         onLoadMore={() => void loadMore("props")}
+                        getScrollElement={getSportsListScrollElement}
                       />
                     ) : null}
                   </section>
@@ -1370,7 +1382,9 @@ function MatchCard({ match }: { match: SportsMatchCardData }) {
     router.push(`${href}?${params.toString()}`);
   };
   return (
-    <div className="group overflow-hidden rounded-[14px] border border-[rgba(39,39,42,0.65)] bg-[rgba(24,24,27,0.4)] transition-[border-color,background-color,box-shadow] duration-300 ease-out [contain-intrinsic-size:auto_140px] [content-visibility:auto] hover:border-[rgba(63,63,70,0.55)] hover:bg-[rgba(24,24,27,0.46)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] motion-reduce:transition-none">
+    <div
+      className={`group [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
+    >
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           {match.start_time && (
