@@ -6,6 +6,7 @@ import type {
   SportsTaxonomyResponse,
 } from "../types";
 import type { SportsSsrDeadline } from "../route/sportsSsrDeadline";
+import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
 
 type RuntimeSportsClient = {
   getSportsTaxonomy?: (params: Record<string, unknown>) => Promise<unknown>;
@@ -41,6 +42,13 @@ export async function prefetchSportsPageData(input: {
   const hasTaxonomyFilter = Boolean(
     input.filters?.taxonomy_type && input.filters.taxonomy_slug,
   );
+  const isLiveView =
+    input.filters?.view === "live" ||
+    (!input.filters?.view && !hasTaxonomyFilter);
+  const matchParams = {
+    ...params,
+    ...(isLiveView ? sportsLiveTimeRange(new Date()) : {}),
+  };
   const showMatches = input.filters?.view !== "proposals";
   const showProps =
     input.filters?.view === "proposals" ||
@@ -55,7 +63,7 @@ export async function prefetchSportsPageData(input: {
     input.deadline
       .withRemainingTimeout(() =>
         showMatches
-          ? readSportsPage(input.section, "matches", params)
+          ? readSportsPage(input.section, "matches", matchParams)
           : Promise.resolve({ items: [] }),
       )
       .catch(() => ({ items: [] })),

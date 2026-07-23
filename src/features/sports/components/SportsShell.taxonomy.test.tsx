@@ -679,6 +679,9 @@ describe("SportsShell taxonomy labels", () => {
 
   it("automatically loads the next live match page", async () => {
     const originalFetch = global.fetch;
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -709,13 +712,19 @@ describe("SportsShell taxonomy labels", () => {
       );
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-      expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
-        "cursor=live-next",
+      const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+      expect(requestedUrl.searchParams.get("cursor")).toBe("live-next");
+      expect(requestedUrl.searchParams.get("start_time_gte")).toBe(
+        "2026-07-23T00:00:00Z",
+      );
+      expect(requestedUrl.searchParams.get("start_time_lt")).toBe(
+        "2026-07-30T00:00:00Z",
       );
       expect(
         screen.queryByRole("button", { name: "extend.portfolio.loadMore" }),
       ).toBeNull();
     } finally {
+      jest.useRealTimers();
       global.fetch = originalFetch;
     }
   });

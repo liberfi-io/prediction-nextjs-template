@@ -1,8 +1,15 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { SportsShell } from "./SportsShell";
 import {
   formatSportsLiveDateRange,
-  matchesForDate,
+  matchesForUtcDate,
 } from "./SportsLiveFilters";
 
 jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
@@ -19,40 +26,142 @@ describe("SportsShell live filters", () => {
   it("only includes years when the live range crosses a calendar year", () => {
     expect(
       formatSportsLiveDateRange(
-        [new Date(2026, 6, 23), new Date(2026, 6, 29)],
+        [
+          new Date("2026-07-23T00:00:00Z"),
+          new Date("2026-07-29T00:00:00Z"),
+        ],
         "en",
       ),
     ).toBe("Jul 23 – Jul 29");
     expect(
       formatSportsLiveDateRange(
-        [new Date(2026, 11, 29), new Date(2027, 0, 4)],
+        [
+          new Date("2026-12-29T00:00:00Z"),
+          new Date("2027-01-04T00:00:00Z"),
+        ],
         "en",
       ),
     ).toBe("Dec 29, 2026 – Jan 4, 2027");
   });
 
-  it("filters matches by the selected local calendar day", () => {
-    const selectedDate = new Date(2026, 6, 23);
+  it("filters matches by the selected UTC calendar day", () => {
+    const selectedDate = new Date("2026-07-23T00:00:00Z");
     const selectedMatch = {
       match_group_slug: "selected",
       section: "sports" as const,
       title: "Selected",
-      start_time: new Date(2026, 6, 23, 20).toISOString(),
+      start_time: "2026-07-23T20:00:00Z",
     };
     const nextDateMatch = {
       ...selectedMatch,
       match_group_slug: "next-date",
       title: "Next date",
-      start_time: new Date(2026, 6, 24, 10).toISOString(),
+      start_time: "2026-07-24T10:00:00Z",
     };
 
     expect(
-      matchesForDate([selectedMatch, nextDateMatch], selectedDate),
+      matchesForUtcDate([selectedMatch, nextDateMatch], selectedDate),
     ).toEqual([selectedMatch]);
   });
 
-  it("renders the date range and first-level taxonomy switches", () => {
-    jest.useFakeTimers().setSystemTime(new Date(2026, 6, 23, 12));
+  it("ignores a stale live cursor response after switching weeks", async () => {
+    const originalFetch = global.fetch;
+    let resolveOldPage: (value: unknown) => void = () => undefined;
+    const oldPage = new Promise((resolve) => {
+      resolveOldPage = resolve;
+    });
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => oldPage)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [],
+          has_more: false,
+          next_cursor: null,
+          limit: 20,
+        }),
+      });
+    global.fetch = fetchMock;
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
+
+    try {
+      render(
+        <SportsShell
+          section="sports"
+          filters={{ view: "live" }}
+          lang="en"
+          data={{
+            matches: [],
+            props: [],
+            taxonomy: null,
+            match_pagination: {
+              has_more: true,
+              next_cursor: "old-week-cursor",
+              limit: 20,
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "extend.sports.filters.nextWeek",
+        }),
+      );
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      await waitFor(() =>
+        expect(
+          screen.getByText("extend.sports.empty.matches"),
+        ).toBeDefined(),
+      );
+
+      await act(async () => {
+        resolveOldPage({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                match_group_slug: "stale-old-week",
+                section: "sports",
+                title: "Stale old week match",
+                start_time: "2026-07-30T13:00:00Z",
+              },
+            ],
+            has_more: false,
+            next_cursor: null,
+            limit: 20,
+          }),
+        });
+        await Promise.resolve();
+      });
+
+      expect(screen.queryByText("Stale old week match")).toBeNull();
+      expect(screen.getByText("extend.sports.empty.matches")).toBeDefined();
+    } finally {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("renders the date range and first-level taxonomy switches", async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [],
+        next_cursor: null,
+        has_more: false,
+        limit: 20,
+      }),
+    });
+    global.fetch = fetchMock;
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
     try {
       render(
         <SportsShell
@@ -113,6 +222,13 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
+      expect(
+        (
+          within(datePicker).getByRole("button", {
+            name: "extend.sports.filters.previousWeek",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true);
 
       fireEvent.click(
         within(datePicker).getByTestId("sports-live-date-2026-07-25"),
@@ -129,6 +245,22 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-30")
           .getAttribute("aria-current"),
       ).toBe("date");
+      expect(
+        document.querySelector('[data-sports-list-loading="true"]'),
+      ).not.toBeNull();
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      const nextWeekUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
+      expect(nextWeekUrl.searchParams.get("start_time_gte")).toBe(
+        "2026-07-30T00:00:00Z",
+      );
+      expect(nextWeekUrl.searchParams.get("start_time_lt")).toBe(
+        "2026-08-06T00:00:00Z",
+      );
+      await waitFor(() =>
+        expect(
+          document.querySelector('[data-sports-list-loading="true"]'),
+        ).toBeNull(),
+      );
 
       fireEvent.click(
         within(datePicker).getByRole("button", {
@@ -142,6 +274,15 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      const previousWeekButton = within(datePicker).getByRole("button", {
+        name: "extend.sports.filters.previousWeek",
+      }) as HTMLButtonElement;
+      expect(previousWeekButton.disabled).toBe(true);
+      fireEvent.click(previousWeekButton);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(heading.textContent).toContain("Jul 23");
+      expect(heading.textContent).toContain("Jul 29");
 
       fireEvent.click(
         within(datePicker).getByTestId("sports-live-date-2026-07-25"),
@@ -156,6 +297,7 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
 
       const taxonomySwitch = screen.getByTestId("sports-live-taxonomy-switch");
       expect(within(taxonomySwitch).getByText("12")).toBeDefined();
@@ -183,6 +325,7 @@ describe("SportsShell live filters", () => {
       expect(screen.getByTestId("sports-live-date-picker")).toBeDefined();
     } finally {
       jest.useRealTimers();
+      global.fetch = originalFetch;
     }
   });
 });

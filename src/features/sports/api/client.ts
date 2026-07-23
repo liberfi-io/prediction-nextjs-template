@@ -1,12 +1,14 @@
 import type { SportsPage, SportsSection, TaxonomySelection } from "../types";
+import type { SportsLiveTimeRange } from "../live/sportsLiveTimeRange";
 
-/** Loads the next sports page while passing the opaque server cursor unchanged. */
-export async function fetchNextSportsPage<T>(input: {
+/** Loads a sports page with optional taxonomy, time-range, and cursor filters. */
+export async function fetchSportsPage<T>(input: {
   section: SportsSection;
   resource: "matches" | "props";
   taxonomy?: TaxonomySelection;
+  timeRange?: SportsLiveTimeRange;
   limit: number;
-  cursor: string;
+  cursor?: string;
   lang?: string;
 }): Promise<SportsPage<T>> {
   const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
@@ -18,8 +20,12 @@ export async function fetchNextSportsPage<T>(input: {
     url.searchParams.set("taxonomy_type", input.taxonomy.taxonomy_type);
     url.searchParams.set("taxonomy_slug", input.taxonomy.taxonomy_slug);
   }
+  if (input.timeRange) {
+    url.searchParams.set("start_time_gte", input.timeRange.start_time_gte);
+    url.searchParams.set("start_time_lt", input.timeRange.start_time_lt);
+  }
   url.searchParams.set("limit", String(input.limit));
-  url.searchParams.set("cursor", input.cursor);
+  if (input.cursor) url.searchParams.set("cursor", input.cursor);
   if (input.lang) url.searchParams.set("lang", input.lang);
 
   const response = await fetch(url);

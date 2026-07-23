@@ -45,9 +45,10 @@ import type {
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
-import { fetchNextSportsPage } from "../api/client";
+import { fetchSportsPage } from "../api/client";
 import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
+import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
 import { isTaxonomyNodeActive, taxonomyHref } from "../route/sportsTaxonomyNav";
 import { SportsStartTime } from "./SportsStartTime";
 import { SportsEmptyState } from "./SportsEmptyState";
@@ -59,6 +60,7 @@ import { SportsPropsListSkeleton } from "./SportsPropsListSkeleton";
 import {
   formatSportsLiveDateRange,
   matchesForDate,
+  matchesForUtcDate,
   sportsLiveDates,
   SportsLiveFilters,
 } from "./SportsLiveFilters";
@@ -105,10 +107,16 @@ const MONEYLINE_PRIMARY_MARKET_CATEGORIES = [
   "moneyline",
 ] as const satisfies readonly (keyof SportsPrimaryMarkets)[];
 
-function shiftLocalDate(value: Date, dayOffset: number): Date {
+function shiftUtcDate(value: Date, dayOffset: number): Date {
   const date = new Date(value);
-  date.setDate(date.getDate() + dayOffset);
+  date.setUTCDate(date.getUTCDate() + dayOffset);
   return date;
+}
+
+function isPreviousLiveWeekDisabled(rangeStart: Date, now: Date): boolean {
+  const currentWeekStart = sportsLiveDates(rangeStart)[0] ?? rangeStart;
+  const today = sportsLiveDates(now)[0] ?? now;
+  return currentWeekStart.getTime() <= today.getTime();
 }
 
 const SportsPropsList = dynamic(
@@ -148,6 +156,7 @@ export function SportsShell({
 }: SportsShellProps) {
   const { t } = useTranslation();
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
+  const liveRangeRequestIdRef = useRef(0);
   const getSportsListScrollElement = useCallback(
     () => sportsListScrollRef.current,
     [],
@@ -174,6 +183,7 @@ export function SportsShell({
   const [loadingResource, setLoadingResource] = useState<
     "matches" | "props" | null
   >(null);
+  const [liveRangeLoading, setLiveRangeLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
   const [liveDateRangeStart, setLiveDateRangeStart] = useState(() => new Date());
@@ -184,31 +194,81 @@ export function SportsShell({
     () => sportsLiveDates(liveDateRangeStart),
     [liveDateRangeStart],
   );
+  const previousLiveWeekDisabled = isPreviousLiveWeekDisabled(
+    liveDateRangeStart,
+    new Date(),
+  );
+  const usesLiveMatchRange =
+    filters.view === "live" ||
+    (!filters.view && !filters.taxonomy_type && !filters.taxonomy_slug);
+  const requestLiveRange = useCallback(
+    async (rangeStart: Date) => {
+      const normalizedStart = sportsLiveDates(rangeStart)[0] ?? rangeStart;
+      const requestId = liveRangeRequestIdRef.current + 1;
+      liveRangeRequestIdRef.current = requestId;
+      setLiveDateRangeStart(normalizedStart);
+      setSelectedLiveDate(normalizedStart);
+      setLiveRangeLoading(true);
+      try {
+        const page = await fetchSportsPage<SportsMatchCardData>({
+          section,
+          resource: "matches",
+          taxonomy: filters.taxonomy_type
+            ? {
+                taxonomy_type: filters.taxonomy_type,
+                taxonomy_slug: filters.taxonomy_slug,
+              }
+            : undefined,
+          timeRange: sportsLiveTimeRange(normalizedStart),
+          limit: matches.limit,
+          lang,
+        });
+        if (liveRangeRequestIdRef.current === requestId) setMatches(page);
+      } catch {
+        if (liveRangeRequestIdRef.current === requestId) {
+          setMatches({ items: [], has_more: false, limit: matches.limit });
+        }
+      } finally {
+        if (liveRangeRequestIdRef.current === requestId) {
+          setLiveRangeLoading(false);
+        }
+      }
+    },
+    [filters.taxonomy_slug, filters.taxonomy_type, lang, matches.limit, section],
+  );
   const changeLiveWeek = useCallback(
     (direction: "previous" | "next") => {
-      const nextWeekStart = shiftLocalDate(
-        liveDateRangeStart,
+      const currentWeekStart =
+        sportsLiveDates(liveDateRangeStart)[0] ?? liveDateRangeStart;
+      if (
+        direction === "previous" &&
+        isPreviousLiveWeekDisabled(currentWeekStart, new Date())
+      ) {
+        return;
+      }
+      const nextWeekStart = shiftUtcDate(
+        currentWeekStart,
         direction === "previous" ? -7 : 7,
       );
-      setLiveDateRangeStart(nextWeekStart);
-      setSelectedLiveDate(nextWeekStart);
+      void requestLiveRange(nextWeekStart);
     },
-    [liveDateRangeStart],
+    [liveDateRangeStart, requestLiveRange],
   );
   const selectLiveToday = useCallback(() => {
-    const today = new Date();
-    setLiveDateRangeStart(today);
-    setSelectedLiveDate(today);
-  }, []);
+    void requestLiveRange(new Date());
+  }, [requestLiveRange]);
 
   useEffect(
-    () =>
+    () => {
+      liveRangeRequestIdRef.current += 1;
+      setLiveRangeLoading(false);
       setMatches({
         items: data.matches,
         has_more: data.match_pagination?.has_more ?? false,
         next_cursor: data.match_pagination?.next_cursor,
         limit: data.match_pagination?.limit ?? 20,
-      }),
+      });
+    },
     [data.matches, data.match_pagination],
   );
   useEffect(
@@ -227,9 +287,10 @@ export function SportsShell({
     if (!currentPage.has_more || !currentPage.next_cursor || loadingResource) {
       return;
     }
+    const matchRangeRequestId = liveRangeRequestIdRef.current;
     setLoadingResource(resource);
     try {
-      const nextPage = await fetchNextSportsPage<
+      const nextPage = await fetchSportsPage<
         SportsMatchCardData | SportsPropEventCardData
       >({
         section,
@@ -242,8 +303,19 @@ export function SportsShell({
           : undefined,
         limit: currentPage.limit,
         cursor: currentPage.next_cursor,
+        timeRange:
+          resource === "matches" && usesLiveMatchRange
+            ? sportsLiveTimeRange(liveDateRangeStart)
+            : undefined,
         lang,
       });
+      if (
+        resource === "matches" &&
+        usesLiveMatchRange &&
+        liveRangeRequestIdRef.current !== matchRangeRequestId
+      ) {
+        return;
+      }
       if (resource === "matches") {
         setMatches((current) => ({
           ...nextPage,
@@ -546,6 +618,7 @@ export function SportsShell({
                 lang={lang || "en"}
                 onDateChange={setSelectedLiveDate}
                 onToday={selectLiveToday}
+                previousWeekDisabled={previousLiveWeekDisabled}
                 onPreviousWeek={() => changeLiveWeek("previous")}
                 onNextWeek={() => changeLiveWeek("next")}
                 onTaxonomyNavigate={handleTaxonomyNavigate}
@@ -582,9 +655,13 @@ export function SportsShell({
               <SportsListSkeleton
                 loadingLabel={t("extend.leaderboard.loading")}
               />
+            ) : isLiveView && liveRangeLoading ? (
+              <SportsListSkeleton
+                loadingLabel={t("extend.leaderboard.loading")}
+              />
             ) : isLiveView ? (
               <SportsMatchList
-                matches={matchesForDate(matches.items, selectedLiveDate)}
+                matches={matchesForUtcDate(matches.items, selectedLiveDate)}
                 todayOnly={false}
                 hasMore={matches.has_more && Boolean(matches.next_cursor)}
                 loading={loadingResource === "matches"}
