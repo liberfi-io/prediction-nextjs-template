@@ -30,7 +30,7 @@ export function resolveSportsPageFilters(
   const viewFilter = SPORTS_VIEWS.has(view as SportsPageFilters["view"])
     ? { view: view as SportsPageFilters["view"] }
     : {};
-  const liveCalendarFilter = resolveLiveCalendarFilter(
+  const liveCalendarFilter = resolveMatchCalendarFilter(
     searchParams,
     viewFilter.view,
   );
@@ -50,7 +50,7 @@ export function resolveSportsPageFilters(
   return { ...viewFilter, ...liveCalendarFilter };
 }
 
-function resolveLiveCalendarFilter(
+function resolveMatchCalendarFilter(
   searchParams: SportsPageSearchParams,
   view: SportsPageFilters["view"],
 ): Pick<
@@ -80,7 +80,7 @@ function resolveLiveCalendarFilter(
   ) {
     return {};
   }
-  const result: ReturnType<typeof resolveLiveCalendarFilter> = {
+  const result: ReturnType<typeof resolveMatchCalendarFilter> = {
     start_time_gte: startTimeGte,
     start_time_lt: startTimeLt,
   };

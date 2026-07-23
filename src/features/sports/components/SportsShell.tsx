@@ -261,6 +261,14 @@ export function SportsShell({
   const usesLiveMatchRange =
     filters.view === "live" ||
     (!filters.view && !filters.taxonomy_type && !filters.taxonomy_slug);
+  const matchRequestView =
+    filters.view === "live" ||
+    filters.view === "upcoming" ||
+    filters.view === "results"
+      ? filters.view
+      : usesLiveMatchRange
+        ? "live"
+        : undefined;
   const requestLiveMatches = useCallback(
     async (request: SportsLiveMatchRequest) => {
       const { date } = request;
@@ -445,8 +453,7 @@ export function SportsShell({
       >({
         section,
         resource,
-        view:
-          resource === "matches" && usesLiveMatchRange ? "live" : undefined,
+        view: resource === "matches" ? matchRequestView : undefined,
         taxonomy: liveTaxonomyOverride.kind === "node"
           ? {
               taxonomy_type: liveTaxonomyOverride.node.node_type,
@@ -463,7 +470,14 @@ export function SportsShell({
         timeRange:
           resource === "matches" && usesLiveMatchRange
             ? sportsLiveTimeRange(selectedLiveDate)
-            : undefined,
+            : resource === "matches" &&
+                filters.start_time_gte &&
+                filters.start_time_lt
+              ? {
+                  start_time_gte: filters.start_time_gte,
+                  start_time_lt: filters.start_time_lt,
+                }
+              : undefined,
         lang,
       });
       if (

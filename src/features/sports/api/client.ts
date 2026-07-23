@@ -11,7 +11,7 @@ import {
   SPORTS_TAXONOMY_COUNTS_PATH,
 } from "./sportsTaxonomyCounts";
 
-/** Loads a sports page with optional taxonomy, time-range, and cursor filters. */
+/** Loads a sports page with optional view, taxonomy, time-range, and cursor filters. */
 export async function fetchSportsPage<T>(input: {
   section: SportsSection;
   resource: "matches" | "props";
@@ -52,7 +52,7 @@ export async function fetchSportsPage<T>(input: {
   };
 }
 
-/** Loads sports taxonomy match counts for a live UTC range. */
+/** Loads sports taxonomy match counts for a product view and optional time range. */
 export async function fetchSportsTaxonomyCounts(
   timeRange?: SportsLiveTimeRange,
   view: "live" | "upcoming" | "results" = "live",
