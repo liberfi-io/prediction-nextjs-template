@@ -22,6 +22,7 @@ describe("fetchSportsPage", () => {
     await fetchSportsPage({
       section: "esports",
       resource: "matches",
+      view: "live",
       taxonomy: {
         taxonomy_type: "game",
         taxonomy_slug: "league-of-legends",
@@ -48,6 +49,7 @@ describe("fetchSportsPage", () => {
       "2026-07-30T00:00:00Z",
     );
     expect(requestedUrl.searchParams.has("sport_slug")).toBe(false);
+    expect(requestedUrl.searchParams.get("view")).toBe("live");
   });
 
   it("stops pagination when either server continuation field is empty", async () => {
@@ -111,5 +113,6 @@ describe("fetchSportsPage", () => {
       "2026-07-30T00:00:00Z",
     );
     expect(requestedUrl.searchParams.has("status")).toBe(false);
+    expect(requestedUrl.searchParams.get("view")).toBe("live");
   });
 });

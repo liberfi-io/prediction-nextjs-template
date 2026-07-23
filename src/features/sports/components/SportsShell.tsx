@@ -335,6 +335,7 @@ export function SportsShell({
         const page = await fetchSportsPage<SportsMatchCardData>({
           section,
           resource: "matches",
+          view: "live",
           taxonomy: taxonomyNode
             ? {
                 taxonomy_type: taxonomyNode.node_type,
@@ -444,6 +445,8 @@ export function SportsShell({
       >({
         section,
         resource,
+        view:
+          resource === "matches" && usesLiveMatchRange ? "live" : undefined,
         taxonomy: liveTaxonomyOverride.kind === "node"
           ? {
               taxonomy_type: liveTaxonomyOverride.node.node_type,

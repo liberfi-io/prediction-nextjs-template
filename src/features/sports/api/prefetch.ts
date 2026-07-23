@@ -73,6 +73,7 @@ export async function prefetchSportsPageData(input: {
     : undefined;
   const matchParams = {
     ...params,
+    ...(isLiveView ? { view: "live" } : {}),
     ...liveTimeRange,
   };
   const showMatches = input.filters?.view !== "proposals";
@@ -103,7 +104,7 @@ export async function prefetchSportsPageData(input: {
     input.section === "sports" && liveTimeRange
       ? input.deadline
           .withRemainingTimeout(() =>
-            readSportsTaxonomyCounts(liveTimeRange),
+            readSportsTaxonomyCounts(liveTimeRange, "live"),
           )
           .catch(() => ({ items: [] }))
       : Promise.resolve(undefined),
@@ -123,9 +124,11 @@ export async function prefetchSportsPageData(input: {
 
 async function readSportsTaxonomyCounts(
   params: SportsLiveTimeRange,
+  view: "live",
 ): Promise<unknown> {
   const url = resolvePredictUrl(SPORTS_TAXONOMY_COUNTS_PATH);
   appendSportsLiveTimeRange(url, params);
+  url.searchParams.set("view", view);
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return response.json();

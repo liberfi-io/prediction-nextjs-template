@@ -63,7 +63,7 @@ describe("live sports prefetch", () => {
     expect(matchesUrl?.searchParams.get("start_time_lt")).toBe(
       "2026-07-24T00:00:00Z",
     );
-    expect(matchesUrl?.searchParams.has("view")).toBe(false);
+    expect(matchesUrl?.searchParams.get("view")).toBe("live");
     expect(countsUrl?.searchParams.get("start_time_gte")).toBe(
       "2026-07-23T00:00:00Z",
     );
@@ -71,6 +71,7 @@ describe("live sports prefetch", () => {
       "2026-07-24T00:00:00Z",
     );
     expect(countsUrl?.searchParams.has("status")).toBe(false);
+    expect(countsUrl?.searchParams.get("view")).toBe("live");
     expect(result.match_taxonomy_counts).toEqual([]);
   });
 
@@ -110,5 +111,8 @@ describe("live sports prefetch", () => {
             "2026-07-31T00:00:00Z",
       ),
     ).toBe(true);
+    expect(urls.every((url) => url.searchParams.get("view") === "live")).toBe(
+      true,
+    );
   });
 });
