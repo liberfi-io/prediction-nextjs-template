@@ -22,4 +22,39 @@ describe("resolveSportsPageFilters", () => {
     });
     expect(resolveSportsPageFilters({ view: "unknown" })).toEqual({});
   });
+
+  it("keeps a valid live range and rejects invalid ranges", () => {
+    expect(
+      resolveSportsPageFilters({
+        view: "live",
+        start_time_gte: "2026-07-30T00:00:00Z",
+        start_time_lt: "2026-08-06T00:00:00Z",
+      }),
+    ).toEqual({
+      view: "live",
+      start_time_gte: "2026-07-30T00:00:00Z",
+      start_time_lt: "2026-08-06T00:00:00Z",
+    });
+    expect(
+      resolveSportsPageFilters({
+        view: "live",
+        start_time_gte: "2026-08-06T00:00:00Z",
+        start_time_lt: "2026-07-30T00:00:00Z",
+      }),
+    ).toEqual({ view: "live" });
+    expect(
+      resolveSportsPageFilters({
+        view: "live",
+        start_time_gte: "2026-07-30",
+        start_time_lt: "2026-08-06",
+      }),
+    ).toEqual({ view: "live" });
+    expect(
+      resolveSportsPageFilters({
+        view: "live",
+        start_time_gte: "2026-02-30T00:00:00Z",
+        start_time_lt: "2026-03-09T00:00:00Z",
+      }),
+    ).toEqual({ view: "live" });
+  });
 });

@@ -17,6 +17,12 @@ export interface SportsTaxonomyCounts {
   total_count: number;
 }
 
+export interface SportsTaxonomyMatchCount {
+  taxonomy_type: TaxonomyType;
+  taxonomy_slug: string;
+  match_count: number;
+}
+
 export interface SportsTaxonomySection {
   section: SportsSection;
   featured?: SportsTaxonomyNode[];
@@ -130,6 +136,7 @@ export interface SportsPageData {
   taxonomy: SportsTaxonomyResponse | null;
   matches: SportsMatchCard[];
   props: SportsPropEventCard[];
+  match_taxonomy_counts?: SportsTaxonomyMatchCount[];
   match_pagination?: SportsPagination;
   prop_pagination?: SportsPagination;
 }
@@ -148,12 +155,18 @@ interface SportsViewFilter {
   view?: "live" | "proposals";
 }
 
+interface SportsLiveRangeFilter {
+  start_time_gte?: string;
+  start_time_lt?: string;
+}
+
 export interface TaxonomySelection {
   taxonomy_type: TaxonomyType;
   taxonomy_slug: string;
 }
 
 export type SportsPageFilters = SportsViewFilter &
+  SportsLiveRangeFilter &
   (
     | TaxonomySelection
     | { taxonomy_type?: undefined; taxonomy_slug?: undefined }

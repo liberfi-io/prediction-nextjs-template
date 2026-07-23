@@ -1,4 +1,4 @@
-import { fetchSportsPage } from "./client";
+import { fetchSportsPage, fetchSportsTaxonomyCounts } from "./client";
 
 describe("fetchSportsPage", () => {
   afterEach(() => {
@@ -69,5 +69,47 @@ describe("fetchSportsPage", () => {
         cursor: "previous",
       }),
     ).resolves.toMatchObject({ has_more: false });
+  });
+
+  it("loads taxonomy counts for the selected live UTC range", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            taxonomy_type: "league",
+            taxonomy_slug: "mlb",
+            match_count: 7,
+          },
+        ],
+      }),
+    });
+
+    await expect(
+      fetchSportsTaxonomyCounts({
+        start_time_gte: "2026-07-23T00:00:00Z",
+        start_time_lt: "2026-07-30T00:00:00Z",
+      }),
+    ).resolves.toEqual([
+      {
+        taxonomy_type: "league",
+        taxonomy_slug: "mlb",
+        match_count: 7,
+      },
+    ]);
+
+    const requestedUrl = new URL(
+      String(jest.mocked(global.fetch).mock.calls[0]?.[0]),
+    );
+    expect(requestedUrl.pathname).toBe(
+      "/predict-api/api/v1/sports/matches/taxonomy-counts",
+    );
+    expect(requestedUrl.searchParams.get("start_time_gte")).toBe(
+      "2026-07-23T00:00:00Z",
+    );
+    expect(requestedUrl.searchParams.get("start_time_lt")).toBe(
+      "2026-07-30T00:00:00Z",
+    );
+    expect(requestedUrl.searchParams.has("status")).toBe(false);
   });
 });

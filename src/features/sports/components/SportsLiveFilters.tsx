@@ -9,7 +9,11 @@ import type {
   SportsSection,
   SportsTaxonomyNode,
 } from "../types";
-import { taxonomyHref } from "../route/sportsTaxonomyNav";
+import {
+  sportsLiveHref,
+  taxonomyHref,
+} from "../route/sportsTaxonomyNav";
+import type { SportsLiveTimeRange } from "../live/sportsLiveTimeRange";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 
 const SPORTS_LIVE_DATE_COUNT = 7;
@@ -18,6 +22,7 @@ export interface SportsLiveTaxonomyItem {
   node: SportsTaxonomyNode;
   active: boolean;
   count?: number;
+  showZeroCount?: boolean;
 }
 
 function startOfLocalDay(value: Date): Date {
@@ -103,6 +108,7 @@ export function SportsLiveFilters({
   taxonomyItems,
   dates,
   selectedDate,
+  timeRange,
   lang,
   onDateChange,
   onToday,
@@ -116,6 +122,7 @@ export function SportsLiveFilters({
   taxonomyItems: SportsLiveTaxonomyItem[];
   dates: Date[];
   selectedDate: Date;
+  timeRange: SportsLiveTimeRange;
   lang: string;
   onDateChange: (date: Date) => void;
   onToday: () => void;
@@ -211,7 +218,7 @@ export function SportsLiveFilters({
         className="no-scrollbar flex gap-2 overflow-x-auto"
       >
         <Link
-          href={`/${section}?view=live`}
+          href={sportsLiveHref(section, timeRange)}
           onClick={onAllNavigate}
           aria-current={!hasActiveTaxonomy ? "page" : undefined}
           className={cn(
@@ -223,10 +230,10 @@ export function SportsLiveFilters({
         >
           {t("extend.sports.filters.all")}
         </Link>
-        {taxonomyItems.map(({ node, active, count }) => (
+        {taxonomyItems.map(({ node, active, count, showZeroCount }) => (
           <Link
             key={`${node.node_type}:${node.slug}`}
-            href={taxonomyHref(section, node, "live")}
+            href={taxonomyHref(section, node, "live", timeRange)}
             onClick={(event) => onTaxonomyNavigate(event, node)}
             aria-current={active ? "page" : undefined}
             className={cn(
@@ -237,7 +244,7 @@ export function SportsLiveFilters({
             )}
           >
             <LocalizedTaxonomyLabel node={node} pageSection={section} />
-            {typeof count === "number" && count > 0 && (
+            {typeof count === "number" && (count > 0 || showZeroCount) && (
               <span className="tabular-nums text-zinc-500">{count}</span>
             )}
           </Link>

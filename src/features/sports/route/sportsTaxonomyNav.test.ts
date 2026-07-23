@@ -35,6 +35,17 @@ describe("sports taxonomy navigation", () => {
     );
   });
 
+  it("preserves the selected live range in taxonomy links", () => {
+    expect(
+      taxonomyHref("sports", node, "live", {
+        start_time_gte: "2026-07-30T00:00:00Z",
+        start_time_lt: "2026-08-06T00:00:00Z",
+      }),
+    ).toBe(
+      "/sports?view=live&start_time_gte=2026-07-30T00%3A00%3A00Z&start_time_lt=2026-08-06T00%3A00%3A00Z&taxonomy_type=league&taxonomy_slug=epl",
+    );
+  });
+
   it("determines active state from both canonical taxonomy fields", () => {
     expect(
       isTaxonomyNodeActive(

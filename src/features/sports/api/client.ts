@@ -1,5 +1,15 @@
-import type { SportsPage, SportsSection, TaxonomySelection } from "../types";
+import type {
+  SportsPage,
+  SportsSection,
+  SportsTaxonomyMatchCount,
+  TaxonomySelection,
+} from "../types";
 import type { SportsLiveTimeRange } from "../live/sportsLiveTimeRange";
+import {
+  appendSportsLiveTimeRange,
+  normalizeSportsTaxonomyCounts,
+  SPORTS_TAXONOMY_COUNTS_PATH,
+} from "./sportsTaxonomyCounts";
 
 /** Loads a sports page with optional taxonomy, time-range, and cursor filters. */
 export async function fetchSportsPage<T>(input: {
@@ -36,4 +46,20 @@ export async function fetchSportsPage<T>(input: {
     items: page.items ?? [],
     has_more: Boolean(page.has_more && page.next_cursor),
   };
+}
+
+/** Loads sports taxonomy match counts for a live UTC range. */
+export async function fetchSportsTaxonomyCounts(
+  timeRange: SportsLiveTimeRange,
+): Promise<SportsTaxonomyMatchCount[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
+  const url = new URL(
+    `${baseUrl}${SPORTS_TAXONOMY_COUNTS_PATH}`,
+    window.location.origin,
+  );
+  appendSportsLiveTimeRange(url, timeRange);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
+  return normalizeSportsTaxonomyCounts(await response.json());
 }

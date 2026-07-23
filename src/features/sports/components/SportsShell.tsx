@@ -43,9 +43,13 @@ import type {
   SportsMarket,
   SportsMarketOutcome,
   SportsSection,
+  SportsTaxonomyMatchCount,
   SportsTaxonomyNode,
 } from "../types";
-import { fetchSportsPage } from "../api/client";
+import {
+  fetchSportsPage,
+  fetchSportsTaxonomyCounts,
+} from "../api/client";
 import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
@@ -184,11 +188,22 @@ export function SportsShell({
     "matches" | "props" | null
   >(null);
   const [liveRangeLoading, setLiveRangeLoading] = useState(false);
+  const [liveTaxonomyCounts, setLiveTaxonomyCounts] = useState<
+    SportsTaxonomyMatchCount[] | undefined
+  >(() => data.match_taxonomy_counts);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
-  const [liveDateRangeStart, setLiveDateRangeStart] = useState(() => new Date());
+  const [liveDateRangeStart, setLiveDateRangeStart] = useState(
+    () =>
+      (filters.start_time_gte
+        ? new Date(filters.start_time_gte)
+        : new Date()),
+  );
   const [selectedLiveDate, setSelectedLiveDate] = useState(
-    () => sportsLiveDates(new Date())[0] ?? new Date(),
+    () =>
+      sportsLiveDates(
+        filters.start_time_gte ? new Date(filters.start_time_gte) : new Date(),
+      )[0] ?? new Date(),
   );
   const liveDates = useMemo(
     () => sportsLiveDates(liveDateRangeStart),
@@ -210,20 +225,31 @@ export function SportsShell({
       setSelectedLiveDate(normalizedStart);
       setLiveRangeLoading(true);
       try {
-        const page = await fetchSportsPage<SportsMatchCardData>({
-          section,
-          resource: "matches",
-          taxonomy: filters.taxonomy_type
-            ? {
-                taxonomy_type: filters.taxonomy_type,
-                taxonomy_slug: filters.taxonomy_slug,
-              }
-            : undefined,
-          timeRange: sportsLiveTimeRange(normalizedStart),
-          limit: matches.limit,
-          lang,
-        });
-        if (liveRangeRequestIdRef.current === requestId) setMatches(page);
+        const timeRange = sportsLiveTimeRange(normalizedStart);
+        const [page, taxonomyCounts] = await Promise.all([
+          fetchSportsPage<SportsMatchCardData>({
+            section,
+            resource: "matches",
+            taxonomy: filters.taxonomy_type
+              ? {
+                  taxonomy_type: filters.taxonomy_type,
+                  taxonomy_slug: filters.taxonomy_slug,
+                }
+              : undefined,
+            timeRange,
+            limit: matches.limit,
+            lang,
+          }),
+          section === "sports"
+            ? fetchSportsTaxonomyCounts(timeRange).catch(() => [])
+            : Promise.resolve(undefined),
+        ]);
+        if (liveRangeRequestIdRef.current === requestId) {
+          setMatches(page);
+          if (taxonomyCounts !== undefined) {
+            setLiveTaxonomyCounts(taxonomyCounts);
+          }
+        }
       } catch {
         if (liveRangeRequestIdRef.current === requestId) {
           setMatches({ items: [], has_more: false, limit: matches.limit });
@@ -268,8 +294,9 @@ export function SportsShell({
         next_cursor: data.match_pagination?.next_cursor,
         limit: data.match_pagination?.limit ?? 20,
       });
+      setLiveTaxonomyCounts(data.match_taxonomy_counts);
     },
-    [data.matches, data.match_pagination],
+    [data.match_taxonomy_counts, data.matches, data.match_pagination],
   );
   useEffect(
     () =>
@@ -380,10 +407,25 @@ export function SportsShell({
   const isStandaloneProposalsView =
     !hasTaxonomySelection &&
     isSpecialViewActive(effectiveFilters, "proposals");
+  const liveTaxonomyCountByNode = useMemo(
+    () =>
+      liveTaxonomyCounts
+        ? new Map(
+            liveTaxonomyCounts.map((count) => [
+              `${count.taxonomy_type}:${count.taxonomy_slug}`,
+              count.match_count,
+            ]),
+          )
+        : undefined,
+    [liveTaxonomyCounts],
+  );
   const liveTaxonomyItems = taxonomyNodes.map((node) => ({
     node,
     active: taxonomyBranchContainsActiveNode(node, effectiveFilters),
-    count: taxonomyNodeCount(node),
+    showZeroCount: Boolean(liveTaxonomyCountByNode),
+    count:
+      liveTaxonomyCountByNode?.get(`${node.node_type}:${node.slug}`) ??
+      (liveTaxonomyCountByNode ? 0 : taxonomyNodeCount(node)),
   }));
   const mobileTaxonomyScrollTarget = isSpecialViewActive(
     effectiveFilters,
@@ -615,6 +657,7 @@ export function SportsShell({
                 taxonomyItems={liveTaxonomyItems}
                 dates={liveDates}
                 selectedDate={selectedLiveDate}
+                timeRange={sportsLiveTimeRange(liveDateRangeStart)}
                 lang={lang || "en"}
                 onDateChange={setSelectedLiveDate}
                 onToday={selectLiveToday}
