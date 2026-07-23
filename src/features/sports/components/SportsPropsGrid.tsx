@@ -16,13 +16,11 @@ export function SportsPropsGrid({
   return (
     <div className={cn("sports-props-grid -mx-2", className)} {...props}>
       <style>{`
-        .sports-props-grid .sports-props-card-grid,
-        .sports-props-grid .sports-props-skeleton-grid {
+        .sports-props-grid .sports-props-card-grid {
           grid-template-columns: repeat(${SPORTS_PROPS_DESKTOP_COLUMNS}, minmax(0, 1fr)) !important;
         }
         @media ${SPORTS_PROPS_MOBILE_MEDIA_QUERY} {
-          .sports-props-grid .sports-props-card-grid,
-          .sports-props-grid .sports-props-skeleton-grid {
+          .sports-props-grid .sports-props-card-grid {
             grid-template-columns: minmax(0, 1fr) !important;
           }
         }

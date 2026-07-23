@@ -622,7 +622,7 @@ describe("SportsShell taxonomy labels", () => {
     }
   });
 
-  it("uses the props card skeleton while switching to more props", () => {
+  it("uses the shared list skeleton while switching to more props", () => {
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
     let renderNextTab: FrameRequestCallback | undefined;
@@ -664,11 +664,10 @@ describe("SportsShell taxonomy labels", () => {
       );
 
       expect(
-        document.querySelector('[data-sports-props-list-loading="true"]'),
-      ).not.toBeNull();
-      expect(
         document.querySelector('[data-sports-list-loading="true"]'),
-      ).toBeNull();
+      ).not.toBeNull();
+      expect(screen.getAllByTestId("sports-list-loading-row")).toHaveLength(5);
+      expect(screen.queryByTestId("sports-prop-skeleton-card")).toBeNull();
 
       act(() => renderNextTab?.(0));
     } finally {
