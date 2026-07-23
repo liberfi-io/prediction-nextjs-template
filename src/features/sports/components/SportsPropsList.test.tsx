@@ -136,6 +136,10 @@ describe("SportsPropsList", () => {
     ).toHaveLength(2);
     expect(container.querySelector('[data-source="polymarket"]')).toBeNull();
     expect(screen.getByTestId("predict-trade-modal")).toBeDefined();
+    const titleLink = screen.getByRole("link", {
+      name: "Ballon d'Or Winner 2026",
+    });
+    expect(titleLink.className).toContain("cursor-pointer");
     expect(mockUseVirtualizer).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 1,
@@ -152,6 +156,9 @@ describe("SportsPropsList", () => {
     fireEvent.click(
       screen.getByText("Will Kylian Mbappé win?").closest("button")!,
     );
+    expect(
+      screen.getByRole("link", { name: "Ballon d'Or Winner 2026" }),
+    ).toBeDefined();
     expect(
       container.querySelectorAll('[data-odds-variant="roll"]'),
     ).toHaveLength(3);
@@ -225,6 +232,9 @@ describe("SportsPropsList", () => {
     expect(
       screen.getByRole("link", { name: "WI Will Ronaldo retire?" }),
     ).toBeDefined();
+    const viewEventLink = screen.getByRole("link", { name: "View Event" });
+    expect(viewEventLink.className).toContain("cursor-pointer");
+    expect(viewEventLink.className).toContain("hover:underline");
     expect(screen.getByText("+400")).toBeDefined();
     expect(screen.getByText("-400")).toBeDefined();
   });

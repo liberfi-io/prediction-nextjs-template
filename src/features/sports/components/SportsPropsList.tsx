@@ -229,8 +229,6 @@ function SportsPropCard({
       <div className="flex flex-1 flex-col gap-2 p-3.5">
         <CardHeader
           event={event}
-          expanded={Boolean(expandedMarket)}
-          onCollapse={() => setExpandedSlug(null)}
         />
 
         <div className="flex flex-1 flex-col">
@@ -267,8 +265,8 @@ function SportsPropCard({
         ) : (
           <Link
             href={`/event/${encodeURIComponent(event.event_slug)}`}
-            prefetch={false}
-            className="flex items-center gap-1 text-[10px] text-zinc-500 transition-colors hover:text-slate-200 lg:text-xs"
+            prefetch
+            className="flex cursor-pointer items-center gap-1 text-[10px] text-zinc-500 underline-offset-2 transition-colors hover:text-slate-200 hover:underline focus-visible:text-slate-200 focus-visible:underline lg:text-xs"
           >
             {singleMarket
               ? t("predict.event.viewEvent")
@@ -308,37 +306,19 @@ function usePropsCardsPerRow(): number {
 
 function CardHeader({
   event,
-  expanded,
-  onCollapse,
 }: {
   event: SportsPropEventCard;
-  expanded: boolean;
-  onCollapse: () => void;
 }) {
-  const content = (
-    <>
-      <SportsPropImage event={event} />
-      <h2 className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-200 line-clamp-2 sm:text-base">
-        {event.title}
-      </h2>
-    </>
-  );
-
-  return expanded ? (
-    <button
-      type="button"
-      className="flex w-full cursor-pointer items-center gap-3 text-left"
-      onClick={onCollapse}
-    >
-      {content}
-    </button>
-  ) : (
+  return (
     <Link
       href={`/event/${encodeURIComponent(event.event_slug)}`}
-      prefetch={false}
-      className="flex w-full items-center gap-3 text-left"
+      prefetch
+      className="group/detail-link flex w-full cursor-pointer items-center gap-3 text-left"
     >
-      {content}
+      <SportsPropImage event={event} />
+      <h2 className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-200 transition-colors line-clamp-2 group-hover/detail-link:text-white group-focus-visible/detail-link:text-white sm:text-base">
+        {event.title}
+      </h2>
     </Link>
   );
 }
