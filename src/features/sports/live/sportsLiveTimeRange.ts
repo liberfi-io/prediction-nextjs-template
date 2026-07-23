@@ -7,13 +7,13 @@ function formatUtcRfc3339(value: Date): string {
   return value.toISOString().replace(".000Z", "Z");
 }
 
-/** Returns a seven-day UTC half-open range for the supplied calendar date. */
+/** Returns a one-day UTC half-open range for the supplied calendar date. */
 export function sportsLiveTimeRange(start: Date): SportsLiveTimeRange {
   const lowerBound = new Date(
     Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()),
   );
   const upperBound = new Date(lowerBound);
-  upperBound.setUTCDate(upperBound.getUTCDate() + 7);
+  upperBound.setUTCDate(upperBound.getUTCDate() + 1);
   return {
     start_time_gte: formatUtcRfc3339(lowerBound),
     start_time_lt: formatUtcRfc3339(upperBound),

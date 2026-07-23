@@ -64,6 +64,65 @@ describe("SportsShell live filters", () => {
     ).toEqual([selectedMatch]);
   });
 
+  it("restores the selected date and visible range from navigation filters", async () => {
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date("2026-07-23T00:30:00Z"));
+    const data = {
+      matches: [],
+      props: [],
+      taxonomy: null,
+      match_taxonomy_counts: [],
+    };
+    try {
+      const { rerender } = render(
+        <SportsShell
+          section="sports"
+          filters={{
+            view: "live",
+            start_time_gte: "2026-07-24T00:00:00Z",
+            start_time_lt: "2026-07-25T00:00:00Z",
+            live_range_start: "2026-07-23T00:00:00Z",
+          }}
+          lang="en"
+          data={data}
+        />,
+      );
+
+      expect(
+        screen
+          .getByTestId("sports-live-date-2026-07-24")
+          .getAttribute("aria-current"),
+      ).toBe("date");
+      rerender(
+        <SportsShell
+          section="sports"
+          filters={{
+            view: "live",
+            start_time_gte: "2026-07-30T00:00:00Z",
+            start_time_lt: "2026-07-31T00:00:00Z",
+            live_range_start: "2026-07-30T00:00:00Z",
+          }}
+          lang="en"
+          data={data}
+        />,
+      );
+
+      await waitFor(() =>
+        expect(
+          screen
+            .getByTestId("sports-live-date-2026-07-30")
+            .getAttribute("aria-current"),
+        ).toBe("date"),
+      );
+      expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(
+        "Jul 30",
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("ignores a stale live cursor response after switching weeks", async () => {
     const originalFetch = global.fetch;
     let resolveOldPage: (value: unknown) => void = () => undefined;
@@ -244,9 +303,8 @@ describe("SportsShell live filters", () => {
           .textContent,
       ).toContain("7");
       expect(
-        within(taxonomySwitch).getByRole("link", { name: /tennis/i })
-          .textContent,
-      ).toContain("0");
+        within(taxonomySwitch).queryByRole("link", { name: /tennis/i }),
+      ).toBeNull();
 
       fireEvent.click(
         screen.getByRole("button", {
@@ -269,7 +327,7 @@ describe("SportsShell live filters", () => {
           .getByRole("link", { name: /soccer/i })
           .getAttribute("href"),
       ).toContain(
-        "start_time_gte=2026-07-30T00%3A00%3A00Z&start_time_lt=2026-08-06T00%3A00%3A00Z",
+        "start_time_gte=2026-07-30T00%3A00%3A00Z&start_time_lt=2026-07-31T00%3A00%3A00Z",
       );
       const requestedUrls = fetchMock.mock.calls.map(
         ([value]) => new URL(String(value), "http://localhost"),
@@ -281,7 +339,7 @@ describe("SportsShell live filters", () => {
             url.searchParams.get("start_time_gte") ===
               "2026-07-30T00:00:00Z" &&
             url.searchParams.get("start_time_lt") ===
-              "2026-08-06T00:00:00Z",
+              "2026-07-31T00:00:00Z",
         ),
       ).toBe(true);
     } finally {
@@ -290,22 +348,25 @@ describe("SportsShell live filters", () => {
     }
   });
 
-  it("clears stale taxonomy counts when the next range count request fails", async () => {
+  it("clears stale taxonomy counts when the next date match request fails", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
       if (url.pathname.endsWith("/taxonomy-counts")) {
-        return Promise.reject(new Error("count request failed"));
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                taxonomy_type: "sport",
+                taxonomy_slug: "soccer",
+                match_count: 3,
+              },
+            ],
+          }),
+        });
       }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({
-          items: [],
-          has_more: false,
-          next_cursor: null,
-          limit: 20,
-        }),
-      });
+      return Promise.reject(new Error("match request failed"));
     });
     jest
       .useFakeTimers()
@@ -351,14 +412,12 @@ describe("SportsShell live filters", () => {
           name: "extend.sports.filters.nextWeek",
         }),
       );
-      const taxonomySwitch = screen.getByTestId(
-        "sports-live-taxonomy-switch",
-      );
       await waitFor(() =>
         expect(
-          within(taxonomySwitch).getByRole("link", { name: /soccer/i })
-            .textContent,
-        ).toContain("0"),
+          within(
+            screen.getByTestId("sports-live-taxonomy-switch"),
+          ).queryByRole("link", { name: /soccer/i }),
+        ).toBeNull(),
       );
     } finally {
       jest.useRealTimers();
@@ -380,6 +439,11 @@ describe("SportsShell live filters", () => {
                     taxonomy_type: "sport",
                     taxonomy_slug: "soccer",
                     match_count: 12,
+                  },
+                  {
+                    taxonomy_type: "sport",
+                    taxonomy_slug: "tennis",
+                    match_count: 1,
                   },
                 ],
               }
@@ -447,6 +511,7 @@ describe("SportsShell live filters", () => {
       const datePicker = screen.getByTestId("sports-live-date-picker");
       expect(within(datePicker).getAllByRole("button")).toHaveLength(10);
       expect(datePicker.className).toContain("overflow-hidden");
+      expect(datePicker.className).toContain("sm:max-w-[560px]");
       expect(
         screen.getByTestId("sports-live-date-grid").className,
       ).toContain("grid-cols-7");
@@ -462,10 +527,33 @@ describe("SportsShell live filters", () => {
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(true);
+      expect(
+        within(datePicker).getByRole("button", {
+          name: "extend.worldcup.tab.today",
+        }).className,
+      ).toContain("cursor-pointer");
+      expect(within(datePicker).getByText("Thu").className).toContain(
+        "whitespace-nowrap",
+      );
+      expect(heading.querySelector('[data-sports-navigation-icon="live"]')).not
+        .toBeNull();
 
       fireEvent.click(
         within(datePicker).getByTestId("sports-live-date-2026-07-25"),
       );
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      const selectedDateUrls = fetchMock.mock.calls.map(
+        ([value]) => new URL(String(value)),
+      );
+      expect(
+        selectedDateUrls.every(
+          (url) =>
+            url.searchParams.get("start_time_gte") ===
+              "2026-07-25T00:00:00Z" &&
+            url.searchParams.get("start_time_lt") ===
+              "2026-07-26T00:00:00Z",
+        ),
+      ).toBe(true);
       fireEvent.click(
         within(datePicker).getByRole("button", {
           name: "extend.sports.filters.nextWeek",
@@ -481,16 +569,21 @@ describe("SportsShell live filters", () => {
       expect(
         document.querySelector('[data-sports-list-loading="true"]'),
       ).not.toBeNull();
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
       const nextWeekUrl = fetchMock.mock.calls
         .map(([value]) => new URL(String(value)))
-        .find((url) => !url.pathname.endsWith("/taxonomy-counts"));
+        .find(
+          (url) =>
+            !url.pathname.endsWith("/taxonomy-counts") &&
+            url.searchParams.get("start_time_gte") ===
+              "2026-07-30T00:00:00Z",
+        );
       expect(nextWeekUrl).toBeDefined();
       expect(nextWeekUrl?.searchParams.get("start_time_gte")).toBe(
         "2026-07-30T00:00:00Z",
       );
       expect(nextWeekUrl?.searchParams.get("start_time_lt")).toBe(
-        "2026-08-06T00:00:00Z",
+        "2026-07-31T00:00:00Z",
       );
       await waitFor(() =>
         expect(
@@ -510,13 +603,13 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
       const previousWeekButton = within(datePicker).getByRole("button", {
         name: "extend.sports.filters.previousWeek",
       }) as HTMLButtonElement;
       expect(previousWeekButton.disabled).toBe(true);
       fireEvent.click(previousWeekButton);
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(6);
       expect(heading.textContent).toContain("Jul 23");
       expect(heading.textContent).toContain("Jul 29");
 
@@ -533,7 +626,7 @@ describe("SportsShell live filters", () => {
           .getByTestId("sports-live-date-2026-07-23")
           .getAttribute("aria-current"),
       ).toBe("date");
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(10));
 
       const taxonomySwitch = screen.getByTestId("sports-live-taxonomy-switch");
       expect(within(taxonomySwitch).getByText("12")).toBeDefined();
@@ -541,8 +634,12 @@ describe("SportsShell live filters", () => {
         .getByText("soccer")
         .closest("a");
       expect(soccerLink?.getAttribute("href")).toBe(
-        "/sports?view=live&start_time_gte=2026-07-23T00%3A00%3A00Z&start_time_lt=2026-07-30T00%3A00%3A00Z&taxonomy_type=sport&taxonomy_slug=soccer",
+        "/sports?view=live&start_time_gte=2026-07-23T00%3A00%3A00Z&start_time_lt=2026-07-24T00%3A00%3A00Z&live_range_start=2026-07-23T00%3A00%3A00Z&taxonomy_type=sport&taxonomy_slug=soccer",
       );
+      expect(
+        within(taxonomySwitch).getByText("extend.worldcup.odds"),
+      ).toBeDefined();
+      expect(soccerLink?.className).toContain("px-3");
       expect(soccerLink?.getAttribute("aria-current")).toBe("page");
       expect(screen.getByTestId("sports-page-header").className).not.toContain(
         "border-b",

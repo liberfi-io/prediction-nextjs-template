@@ -718,7 +718,7 @@ describe("SportsShell taxonomy labels", () => {
         "2026-07-23T00:00:00Z",
       );
       expect(requestedUrl.searchParams.get("start_time_lt")).toBe(
-        "2026-07-30T00:00:00Z",
+        "2026-07-24T00:00:00Z",
       );
       expect(
         screen.queryByRole("button", { name: "extend.portfolio.loadMore" }),
@@ -844,7 +844,7 @@ describe("SportsShell taxonomy labels", () => {
     });
   });
 
-  it("uses the shared localized label at mobile, rail, and live entry points", () => {
+  it("uses the shared localized label at mobile and rail entry points", () => {
     render(
       <SportsShell
         section="sports"
@@ -871,7 +871,7 @@ describe("SportsShell taxonomy labels", () => {
       />,
     );
 
-    expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(3);
+    expect(screen.getAllByTestId("localized-taxonomy-label")).toHaveLength(2);
   });
 
   it("shows the target taxonomy and a list skeleton immediately after navigation", async () => {
@@ -1086,17 +1086,17 @@ describe("SportsShell taxonomy labels", () => {
     const liveIcons = container.querySelectorAll(
       '[data-sports-navigation-icon="live"]',
     );
-    expect(liveIcons).toHaveLength(2);
+    expect(liveIcons).toHaveLength(3);
     expect(
       Array.from(liveIcons).every((icon) =>
-        icon.classList.contains("text-bearish"),
+        icon.classList.contains("text-bullish"),
       ),
     ).toBe(true);
     expect(
       container.querySelectorAll(
         '[data-sports-navigation-icon="live"][data-animated="true"]',
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       container.querySelectorAll('[data-sports-navigation-icon="proposals"]'),
     ).toHaveLength(2);
@@ -1305,7 +1305,8 @@ describe("SportsShell taxonomy labels", () => {
         link.classList.contains("h-8"),
     );
 
-    expect(mobileParentLink?.classList.contains("bg-emerald-950")).toBe(true);
+    expect(mobileParentLink?.classList.contains("bg-bullish/10")).toBe(true);
+    expect(mobileParentLink?.classList.contains("text-bullish")).toBe(true);
     expect(desktopParentLink).toBeDefined();
     expect(desktopParentLink?.classList.contains("bg-content1")).toBe(false);
     expect(

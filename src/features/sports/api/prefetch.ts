@@ -44,6 +44,7 @@ export async function prefetchSportsPageData(input: {
   delete apiFilters.view;
   delete apiFilters.start_time_gte;
   delete apiFilters.start_time_lt;
+  delete apiFilters.live_range_start;
   const params = {
     ...apiFilters,
     ...(input.lang ? { lang: input.lang } : {}),

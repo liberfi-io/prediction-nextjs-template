@@ -13,6 +13,8 @@ const TAXONOMY_TYPES = new Set<SportsPageFilters["taxonomy_type"]>([
 ]);
 
 const SPORTS_VIEWS = new Set<SportsPageFilters["view"]>(["live", "proposals"]);
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const ONE_WEEK_MS = 7 * ONE_DAY_MS;
 const RFC3339_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/;
 
@@ -23,7 +25,10 @@ export function resolveSportsPageFilters(
   const viewFilter = SPORTS_VIEWS.has(view as SportsPageFilters["view"])
     ? { view: view as SportsPageFilters["view"] }
     : {};
-  const rangeFilter = resolveLiveRangeFilter(searchParams, viewFilter.view);
+  const liveCalendarFilter = resolveLiveCalendarFilter(
+    searchParams,
+    viewFilter.view,
+  );
   const taxonomyType = firstValue(searchParams.taxonomy_type);
   const taxonomySlug = firstValue(searchParams.taxonomy_slug);
   if (
@@ -32,37 +37,60 @@ export function resolveSportsPageFilters(
   ) {
     return {
       ...viewFilter,
-      ...rangeFilter,
+      ...liveCalendarFilter,
       taxonomy_type: taxonomyType as TaxonomyType,
       taxonomy_slug: taxonomySlug,
     };
   }
-  return { ...viewFilter, ...rangeFilter };
+  return { ...viewFilter, ...liveCalendarFilter };
 }
 
-function resolveLiveRangeFilter(
+function resolveLiveCalendarFilter(
   searchParams: SportsPageSearchParams,
   view: SportsPageFilters["view"],
-): Pick<SportsPageFilters, "start_time_gte" | "start_time_lt"> {
+): Pick<
+  SportsPageFilters,
+  "start_time_gte" | "start_time_lt" | "live_range_start"
+> {
   if (view !== "live") return {};
   const startTimeGte = firstValue(searchParams.start_time_gte);
   const startTimeLt = firstValue(searchParams.start_time_lt);
   if (!startTimeGte || !startTimeLt) return {};
   const lowerBound = Date.parse(startTimeGte);
   const upperBound = Date.parse(startTimeLt);
+  const now = new Date();
+  const today = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   if (
     !isValidRfc3339(startTimeGte) ||
     !isValidRfc3339(startTimeLt) ||
     !Number.isFinite(lowerBound) ||
     !Number.isFinite(upperBound) ||
-    lowerBound >= upperBound
+    upperBound - lowerBound !== ONE_DAY_MS ||
+    lowerBound < today
   ) {
     return {};
   }
-  return {
+  const result: ReturnType<typeof resolveLiveCalendarFilter> = {
     start_time_gte: startTimeGte,
     start_time_lt: startTimeLt,
   };
+  const value = firstValue(searchParams.live_range_start);
+  if (!value || !isValidRfc3339(value)) return result;
+  const rangeStart = Date.parse(value);
+  if (
+    !Number.isFinite(rangeStart) ||
+    rangeStart < today ||
+    lowerBound < rangeStart ||
+    lowerBound >= rangeStart + ONE_WEEK_MS
+  ) {
+    return result;
+  }
+  result.live_range_start = value;
+  return result;
 }
 
 function isValidRfc3339(value: string): boolean {

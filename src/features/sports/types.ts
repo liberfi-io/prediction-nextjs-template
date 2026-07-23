@@ -158,6 +158,7 @@ interface SportsViewFilter {
 interface SportsLiveRangeFilter {
   start_time_gte?: string;
   start_time_lt?: string;
+  live_range_start?: string;
 }
 
 export interface TaxonomySelection {

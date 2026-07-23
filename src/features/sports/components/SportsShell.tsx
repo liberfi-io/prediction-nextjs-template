@@ -123,6 +123,14 @@ function isPreviousLiveWeekDisabled(rangeStart: Date, now: Date): boolean {
   return currentWeekStart.getTime() <= today.getTime();
 }
 
+function initialLiveDate(
+  filters: SportsPageFilters,
+  field: "start_time_gte" | "live_range_start",
+): Date {
+  const value = filters[field];
+  return value ? new Date(value) : new Date();
+}
+
 const SportsPropsList = dynamic(
   () => import("./SportsPropsList").then((module) => module.SportsPropsList),
   { loading: SportsPropsListFallback },
@@ -195,15 +203,14 @@ export function SportsShell({
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
   const [liveDateRangeStart, setLiveDateRangeStart] = useState(
     () =>
-      (filters.start_time_gte
-        ? new Date(filters.start_time_gte)
-        : new Date()),
+      filters.live_range_start
+        ? initialLiveDate(filters, "live_range_start")
+        : initialLiveDate(filters, "start_time_gte"),
   );
   const [selectedLiveDate, setSelectedLiveDate] = useState(
     () =>
-      sportsLiveDates(
-        filters.start_time_gte ? new Date(filters.start_time_gte) : new Date(),
-      )[0] ?? new Date(),
+      sportsLiveDates(initialLiveDate(filters, "start_time_gte"))[0] ??
+      new Date(),
   );
   const liveDates = useMemo(
     () => sportsLiveDates(liveDateRangeStart),
@@ -216,16 +223,20 @@ export function SportsShell({
   const usesLiveMatchRange =
     filters.view === "live" ||
     (!filters.view && !filters.taxonomy_type && !filters.taxonomy_slug);
-  const requestLiveRange = useCallback(
-    async (rangeStart: Date) => {
-      const normalizedStart = sportsLiveDates(rangeStart)[0] ?? rangeStart;
+  const requestLiveDate = useCallback(
+    async (date: Date, nextRangeStart?: Date) => {
+      const normalizedDate = sportsLiveDates(date)[0] ?? date;
       const requestId = liveRangeRequestIdRef.current + 1;
       liveRangeRequestIdRef.current = requestId;
-      setLiveDateRangeStart(normalizedStart);
-      setSelectedLiveDate(normalizedStart);
+      if (nextRangeStart) {
+        setLiveDateRangeStart(
+          sportsLiveDates(nextRangeStart)[0] ?? nextRangeStart,
+        );
+      }
+      setSelectedLiveDate(normalizedDate);
       setLiveRangeLoading(true);
       try {
-        const timeRange = sportsLiveTimeRange(normalizedStart);
+        const timeRange = sportsLiveTimeRange(normalizedDate);
         const [page, taxonomyCounts] = await Promise.all([
           fetchSportsPage<SportsMatchCardData>({
             section,
@@ -253,6 +264,7 @@ export function SportsShell({
       } catch {
         if (liveRangeRequestIdRef.current === requestId) {
           setMatches({ items: [], has_more: false, limit: matches.limit });
+          if (section === "sports") setLiveTaxonomyCounts([]);
         }
       } finally {
         if (liveRangeRequestIdRef.current === requestId) {
@@ -276,13 +288,40 @@ export function SportsShell({
         currentWeekStart,
         direction === "previous" ? -7 : 7,
       );
-      void requestLiveRange(nextWeekStart);
+      void requestLiveDate(nextWeekStart, nextWeekStart);
     },
-    [liveDateRangeStart, requestLiveRange],
+    [liveDateRangeStart, requestLiveDate],
   );
   const selectLiveToday = useCallback(() => {
-    void requestLiveRange(new Date());
-  }, [requestLiveRange]);
+    const today = new Date();
+    void requestLiveDate(today, today);
+  }, [requestLiveDate]);
+  const selectLiveDate = useCallback(
+    (date: Date) => {
+      void requestLiveDate(date);
+    },
+    [requestLiveDate],
+  );
+  const selectedLiveFilterStart = filters.start_time_gte;
+  const visibleLiveFilterStart = filters.live_range_start;
+
+  useEffect(() => {
+    const nextSelectedDate =
+      sportsLiveDates(
+        selectedLiveFilterStart
+          ? new Date(selectedLiveFilterStart)
+          : new Date(),
+      )[0] ??
+      new Date();
+    const nextRangeStart =
+      sportsLiveDates(
+        visibleLiveFilterStart
+          ? new Date(visibleLiveFilterStart)
+          : nextSelectedDate,
+      )[0] ?? nextSelectedDate;
+    setSelectedLiveDate(nextSelectedDate);
+    setLiveDateRangeStart(nextRangeStart);
+  }, [selectedLiveFilterStart, visibleLiveFilterStart]);
 
   useEffect(
     () => {
@@ -332,7 +371,7 @@ export function SportsShell({
         cursor: currentPage.next_cursor,
         timeRange:
           resource === "matches" && usesLiveMatchRange
-            ? sportsLiveTimeRange(liveDateRangeStart)
+            ? sportsLiveTimeRange(selectedLiveDate)
             : undefined,
         lang,
       });
@@ -422,7 +461,6 @@ export function SportsShell({
   const liveTaxonomyItems = taxonomyNodes.map((node) => ({
     node,
     active: taxonomyBranchContainsActiveNode(node, effectiveFilters),
-    showZeroCount: Boolean(liveTaxonomyCountByNode),
     count:
       liveTaxonomyCountByNode?.get(`${node.node_type}:${node.slug}`) ??
       (liveTaxonomyCountByNode ? 0 : taxonomyNodeCount(node)),
@@ -545,12 +583,12 @@ export function SportsShell({
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
                     isSpecialViewActive(filters, "live")
-                      ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                      ? "border-bullish/30 bg-bullish/10 text-bullish"
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
                 >
                   <span className="flex items-center gap-1.5">
-                    <LiveNavigationIcon className="h-4 w-4 text-bearish" />
+                    <LiveNavigationIcon className="h-4 w-4 text-bullish" />
                     {t("extend.sports.filters.live")}
                   </span>
                 </Link>
@@ -561,7 +599,7 @@ export function SportsShell({
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
                     isSpecialViewActive(filters, "proposals")
-                      ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                      ? "border-bullish/30 bg-bullish/10 text-bullish"
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
                 >
@@ -583,7 +621,7 @@ export function SportsShell({
                       className={cn(
                         "shrink-0 rounded-full border px-3 py-1.5 text-sm",
                         taxonomyBranchContainsActiveNode(node, effectiveFilters)
-                          ? "border-emerald-700 bg-emerald-950 text-emerald-100"
+                          ? "border-bullish/30 bg-bullish/10 text-bullish"
                           : "border-zinc-800 bg-zinc-900 text-zinc-300",
                       )}
                     >
@@ -632,12 +670,13 @@ export function SportsShell({
               <div>
                 <h1 className="text-xl font-semibold text-zinc-50">
                   {isLiveView ? (
-                    <>
+                    <span className="inline-flex items-center gap-1.5">
+                      <LiveNavigationIcon className="h-[18px] w-[18px] text-bullish" />
                       {t("extend.sports.filters.live")}{" "}
                       <span className="text-sm font-normal text-zinc-500">
                         ({liveDateRangeLabel})
                       </span>
-                    </>
+                    </span>
                   ) : isStandaloneProposalsView ? (
                     t("extend.sports.filters.proposals")
                   ) : activeTaxonomyNode ? (
@@ -657,15 +696,19 @@ export function SportsShell({
                 taxonomyItems={liveTaxonomyItems}
                 dates={liveDates}
                 selectedDate={selectedLiveDate}
-                timeRange={sportsLiveTimeRange(liveDateRangeStart)}
+                timeRange={sportsLiveTimeRange(selectedLiveDate)}
+                liveRangeStart={
+                  sportsLiveTimeRange(liveDateRangeStart).start_time_gte
+                }
                 lang={lang || "en"}
-                onDateChange={setSelectedLiveDate}
+                onDateChange={selectLiveDate}
                 onToday={selectLiveToday}
                 previousWeekDisabled={previousLiveWeekDisabled}
                 onPreviousWeek={() => changeLiveWeek("previous")}
                 onNextWeek={() => changeLiveWeek("next")}
                 onTaxonomyNavigate={handleTaxonomyNavigate}
                 onAllNavigate={handleSpecialViewNavigate}
+                trailingControl={<OddsFormatSelect />}
               />
             )}
             {hasTaxonomySelection && !isLiveView && (
@@ -976,7 +1019,7 @@ function SpecialNavigationLink({
     >
       <span className="flex items-center gap-1.5">
         {icon === "live" ? (
-          <LiveNavigationIcon className="h-[18px] w-[18px] text-bearish" />
+          <LiveNavigationIcon className="h-[18px] w-[18px] text-bullish" />
         ) : (
           <ProposalsNavigationIcon className="h-[18px] w-[18px]" />
         )}

@@ -1,9 +1,14 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useTranslation } from "@liberfi.io/i18n";
-import { ChevronLeftIcon, ChevronRightIcon, cn } from "@liberfi.io/ui";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  cn,
+  HorizontalScrollContainer,
+} from "@liberfi.io/ui";
 import type {
   SportsMatchCard,
   SportsSection,
@@ -22,7 +27,6 @@ export interface SportsLiveTaxonomyItem {
   node: SportsTaxonomyNode;
   active: boolean;
   count?: number;
-  showZeroCount?: boolean;
 }
 
 function startOfLocalDay(value: Date): Date {
@@ -109,6 +113,8 @@ export function SportsLiveFilters({
   dates,
   selectedDate,
   timeRange,
+  liveRangeStart,
+  trailingControl,
   lang,
   onDateChange,
   onToday,
@@ -123,6 +129,8 @@ export function SportsLiveFilters({
   dates: Date[];
   selectedDate: Date;
   timeRange: SportsLiveTimeRange;
+  liveRangeStart: string;
+  trailingControl?: ReactNode;
   lang: string;
   onDateChange: (date: Date) => void;
   onToday: () => void;
@@ -138,6 +146,9 @@ export function SportsLiveFilters({
   const { t } = useTranslation();
   const selectedDateKey = utcDateKey(selectedDate);
   const hasActiveTaxonomy = taxonomyItems.some((item) => item.active);
+  const visibleTaxonomyItems = taxonomyItems.filter(
+    (item) => typeof item.count === "number" && item.count > 0,
+  );
   const fullDateFormatter = new Intl.DateTimeFormat(lang, {
     weekday: "long",
     year: "numeric",
@@ -154,11 +165,11 @@ export function SportsLiveFilters({
     <div className="space-y-3 pb-4">
       <div
         data-testid="sports-live-date-picker"
-        className="flex w-full max-w-[480px] items-stretch gap-0.5 overflow-hidden sm:gap-1"
+        className="flex w-full max-w-[520px] items-stretch gap-0.5 overflow-hidden sm:max-w-[560px] sm:gap-1"
       >
         <button
           type="button"
-          className="flex h-10 shrink-0 items-center rounded-md px-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:px-2 sm:text-sm"
+          className="flex h-10 shrink-0 cursor-pointer items-center rounded-md px-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:h-12 sm:px-2 sm:text-sm"
           onClick={onToday}
         >
           {t("extend.worldcup.tab.today")}
@@ -166,7 +177,7 @@ export function SportsLiveFilters({
         <button
           type="button"
           aria-label={t("extend.sports.filters.previousWeek")}
-          className="flex h-10 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-700 disabled:hover:bg-transparent disabled:hover:text-zinc-700 sm:w-8"
+          className="flex h-10 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-700 disabled:hover:bg-transparent disabled:hover:text-zinc-700 sm:h-12 sm:w-8"
           disabled={previousWeekDisabled}
           onClick={onPreviousWeek}
         >
@@ -187,14 +198,16 @@ export function SportsLiveFilters({
                 aria-label={fullDateFormatter.format(date)}
                 aria-current={selected ? "date" : undefined}
                 className={cn(
-                  "flex h-10 min-w-0 flex-col items-center justify-center rounded-md border px-0.5 py-1 text-[10px] leading-none transition-colors sm:text-xs",
+                  "flex h-10 min-w-0 cursor-pointer flex-col items-center justify-center rounded-md border px-0.5 py-1 text-[9px] leading-none transition-colors sm:h-12 sm:px-1 sm:py-1.5 sm:text-xs",
                   selected
                     ? "border-zinc-600 bg-zinc-900 text-zinc-100"
                     : "border-transparent text-zinc-500 hover:bg-zinc-900/60 hover:text-zinc-300",
                 )}
                 onClick={() => onDateChange(date)}
               >
-                <span className="truncate">{weekdayFormatter.format(date)}</span>
+                <span className="whitespace-nowrap">
+                  {weekdayFormatter.format(date)}
+                </span>
                 <span className="mt-1 text-xs font-medium tabular-nums sm:text-sm">
                   {date.getUTCDate()}
                 </span>
@@ -205,7 +218,7 @@ export function SportsLiveFilters({
         <button
           type="button"
           aria-label={t("extend.sports.filters.nextWeek")}
-          className="flex h-10 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:w-8"
+          className="flex h-10 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-900/60 hover:text-zinc-200 sm:h-12 sm:w-8"
           onClick={onNextWeek}
         >
           <ChevronRightIcon className="h-4 w-4" />
@@ -215,40 +228,57 @@ export function SportsLiveFilters({
       <nav
         data-testid="sports-live-taxonomy-switch"
         aria-label={t("extend.sports.filters.all")}
-        className="no-scrollbar flex gap-2 overflow-x-auto"
+        className="flex min-w-0 items-center gap-2"
       >
-        <Link
-          href={sportsLiveHref(section, timeRange)}
-          onClick={onAllNavigate}
-          aria-current={!hasActiveTaxonomy ? "page" : undefined}
-          className={cn(
-            "shrink-0 rounded-lg border px-4 py-2 text-sm transition-colors",
-            !hasActiveTaxonomy
-              ? "border-zinc-600 bg-zinc-900 text-zinc-100"
-              : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-300",
-          )}
+        <HorizontalScrollContainer
+          forceShowArrows
+          className="min-w-0 flex-1"
+          classNames={{
+            content: "gap-1.5",
+            leftArrow: "from-[#09090b]",
+            rightArrow: "from-[#09090b]",
+          }}
         >
-          {t("extend.sports.filters.all")}
-        </Link>
-        {taxonomyItems.map(({ node, active, count, showZeroCount }) => (
           <Link
-            key={`${node.node_type}:${node.slug}`}
-            href={taxonomyHref(section, node, "live", timeRange)}
-            onClick={(event) => onTaxonomyNavigate(event, node)}
-            aria-current={active ? "page" : undefined}
+            href={sportsLiveHref(section, timeRange, liveRangeStart)}
+            onClick={onAllNavigate}
+            aria-current={!hasActiveTaxonomy ? "page" : undefined}
             className={cn(
-              "flex shrink-0 items-center gap-3 rounded-lg border px-4 py-2 text-sm transition-colors",
-              active
+              "shrink-0 rounded-lg border px-3 py-1.5 text-xs transition-colors",
+              !hasActiveTaxonomy
                 ? "border-zinc-600 bg-zinc-900 text-zinc-100"
                 : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-300",
             )}
           >
-            <LocalizedTaxonomyLabel node={node} pageSection={section} />
-            {typeof count === "number" && (count > 0 || showZeroCount) && (
-              <span className="tabular-nums text-zinc-500">{count}</span>
-            )}
+            {t("extend.sports.filters.all")}
           </Link>
-        ))}
+          {visibleTaxonomyItems.map(({ node, active, count }) => (
+            <Link
+              key={`${node.node_type}:${node.slug}`}
+              href={taxonomyHref(
+                section,
+                node,
+                "live",
+                timeRange,
+                liveRangeStart,
+              )}
+              onClick={(event) => onTaxonomyNavigate(event, node)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors",
+                active
+                  ? "border-zinc-600 bg-zinc-900 text-zinc-100"
+                  : "border-zinc-900 bg-zinc-950 text-zinc-500 hover:text-zinc-300",
+              )}
+            >
+              <LocalizedTaxonomyLabel node={node} pageSection={section} />
+              {typeof count === "number" && count > 0 && (
+                <span className="tabular-nums text-zinc-500">{count}</span>
+              )}
+            </Link>
+          ))}
+        </HorizontalScrollContainer>
+        {trailingControl && <div className="shrink-0">{trailingControl}</div>}
       </nav>
     </div>
   );

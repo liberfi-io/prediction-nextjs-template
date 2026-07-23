@@ -22,7 +22,7 @@ describe("live sports prefetch", () => {
     process.env.PREDICT_URL = originalPredictUrl;
   });
 
-  it("requests only matches in the current seven-day UTC range", async () => {
+  it("requests only matches in the current UTC day", async () => {
     jest
       .useFakeTimers()
       .setSystemTime(new Date("2026-07-23T00:30:00Z"));
@@ -58,14 +58,14 @@ describe("live sports prefetch", () => {
       "2026-07-23T00:00:00Z",
     );
     expect(matchesUrl?.searchParams.get("start_time_lt")).toBe(
-      "2026-07-30T00:00:00Z",
+      "2026-07-24T00:00:00Z",
     );
     expect(matchesUrl?.searchParams.has("view")).toBe(false);
     expect(countsUrl?.searchParams.get("start_time_gte")).toBe(
       "2026-07-23T00:00:00Z",
     );
     expect(countsUrl?.searchParams.get("start_time_lt")).toBe(
-      "2026-07-30T00:00:00Z",
+      "2026-07-24T00:00:00Z",
     );
     expect(countsUrl?.searchParams.has("status")).toBe(false);
     expect(result.match_taxonomy_counts).toEqual([]);
@@ -91,7 +91,7 @@ describe("live sports prefetch", () => {
         taxonomy_type: "sport",
         taxonomy_slug: "soccer",
         start_time_gte: "2026-07-30T00:00:00Z",
-        start_time_lt: "2026-08-06T00:00:00Z",
+        start_time_lt: "2026-07-31T00:00:00Z",
       },
     });
 
@@ -104,7 +104,7 @@ describe("live sports prefetch", () => {
           url.searchParams.get("start_time_gte") ===
             "2026-07-30T00:00:00Z" &&
           url.searchParams.get("start_time_lt") ===
-            "2026-08-06T00:00:00Z",
+            "2026-07-31T00:00:00Z",
       ),
     ).toBe(true);
   });
