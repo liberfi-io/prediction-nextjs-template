@@ -49,17 +49,12 @@ export function formatSportsLiveDateRange(dates: Date[], lang: string): string {
   const end = dates[dates.length - 1];
   if (!start || !end) return "";
   const crossesYear = start.getFullYear() !== end.getFullYear();
-  const startLabel = new Intl.DateTimeFormat(lang, {
+  const formatter = new Intl.DateTimeFormat(lang, {
     month: "short",
     day: "numeric",
     ...(crossesYear ? { year: "numeric" } : {}),
-  }).format(start);
-  const endLabel = new Intl.DateTimeFormat(lang, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(end);
-  return `${startLabel} – ${endLabel}`;
+  });
+  return `${formatter.format(start)} – ${formatter.format(end)}`;
 }
 
 /** Returns matches whose start time falls on the selected local date. */

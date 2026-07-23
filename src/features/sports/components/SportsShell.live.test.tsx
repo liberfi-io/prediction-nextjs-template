@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { SportsShell } from "./SportsShell";
-import { matchesForDate } from "./SportsLiveFilters";
+import {
+  formatSportsLiveDateRange,
+  matchesForDate,
+} from "./SportsLiveFilters";
 
 jest.mock("../i18n/LocalizedTaxonomyLabel", () => ({
   LocalizedTaxonomyLabel: ({ node }: { node: { slug: string } }) => (
@@ -13,6 +16,21 @@ jest.mock("../../worldcup/odds/OddsNumber", () => ({
 }));
 
 describe("SportsShell live filters", () => {
+  it("only includes years when the live range crosses a calendar year", () => {
+    expect(
+      formatSportsLiveDateRange(
+        [new Date(2026, 6, 23), new Date(2026, 6, 29)],
+        "en",
+      ),
+    ).toBe("Jul 23 – Jul 29");
+    expect(
+      formatSportsLiveDateRange(
+        [new Date(2026, 11, 29), new Date(2027, 0, 4)],
+        "en",
+      ),
+    ).toBe("Dec 29, 2026 – Jan 4, 2027");
+  });
+
   it("filters matches by the selected local calendar day", () => {
     const selectedDate = new Date(2026, 6, 23);
     const selectedMatch = {
@@ -81,7 +99,8 @@ describe("SportsShell live filters", () => {
       const heading = screen.getByRole("heading", { level: 1 });
       expect(heading.textContent).toContain("extend.sports.filters.live");
       expect(heading.textContent).toContain("Jul 23");
-      expect(heading.textContent).toContain("Jul 29, 2026");
+      expect(heading.textContent).toContain("Jul 29");
+      expect(heading.textContent).not.toContain("2026");
 
       const datePicker = screen.getByTestId("sports-live-date-picker");
       expect(within(datePicker).getAllByRole("button")).toHaveLength(7);
