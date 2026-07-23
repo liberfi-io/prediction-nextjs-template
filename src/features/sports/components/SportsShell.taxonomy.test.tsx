@@ -18,6 +18,7 @@ import {
   sportsMoneylineSelectionSlots,
   sportsMoneylineSlotCount,
   sportsOddsAnimationVariant,
+  sportsDisplayedMarketCategories,
   sportsPrimaryMarketCategories,
   SportsMatchCard,
   SportsMatchGroupHeading,
@@ -125,6 +126,53 @@ describe("SportsShell taxonomy labels", () => {
       "spread",
       "total",
     ]);
+  });
+
+  it("falls back to moneyline when only one secondary market is available", () => {
+    const market = (market_type: string) => ({
+      market_slug: market_type,
+      market_type,
+      label: market_type,
+      outcomes: [],
+    });
+    const match = {
+      match_group_slug: "partial-secondary-markets",
+      section: "sports" as const,
+      sport_slug: "baseball",
+      title: "Guardians vs Twins",
+    };
+    const moneyline = market("moneyline");
+    const spread = market("spreads");
+    const total = market("totals");
+
+    expect(
+      sportsDisplayedMarketCategories(
+        match.section,
+        match.sport_slug,
+        resolvePrimarySportsMarkets([moneyline, spread]),
+      ),
+    ).toEqual(["moneyline"]);
+    expect(
+      sportsDisplayedMarketCategories(
+        match.section,
+        match.sport_slug,
+        resolvePrimarySportsMarkets([moneyline, total]),
+      ),
+    ).toEqual(["moneyline"]);
+    expect(
+      sportsDisplayedMarketCategories(
+        match.section,
+        match.sport_slug,
+        resolvePrimarySportsMarkets([moneyline, spread, total]),
+      ),
+    ).toEqual(["moneyline", "spread", "total"]);
+    expect(
+      sportsDisplayedMarketCategories(
+        "esports",
+        match.sport_slug,
+        resolvePrimarySportsMarkets([moneyline, total]),
+      ),
+    ).toEqual(["moneyline", "total"]);
   });
 
   it("selects the latest date group at or before the virtual range", () => {
@@ -934,6 +982,56 @@ describe("SportsShell taxonomy labels", () => {
       { category: "spread", layout: "fluid-row" },
       { category: "total", layout: "fluid-row" },
     ]);
+  });
+
+  it("hides an incomplete secondary market from desktop and mobile cards", () => {
+    const { container } = render(
+      <SportsMatchCard
+        match={{
+          match_group_slug: "partial-baseball-markets",
+          section: "sports",
+          sport_slug: "baseball",
+          title: "Guardians vs Twins",
+          participants: [
+            { name: "Guardians", abbreviation: "CLE", role: "home" },
+            { name: "Twins", abbreviation: "MIN", role: "away" },
+          ],
+          inline_markets: [
+            {
+              market_slug: "guardians-moneyline",
+              market_type: "moneyline",
+              label: "Guardians win",
+              outcomes: [
+                { outcome: "yes", label: "Guardians", price: 0.4 },
+              ],
+            },
+            {
+              market_slug: "twins-moneyline",
+              market_type: "moneyline",
+              label: "Twins win",
+              outcomes: [{ outcome: "yes", label: "Twins", price: 0.6 }],
+            },
+            {
+              market_slug: "match-spread",
+              market_type: "spreads",
+              label: "Twins -1.5",
+              line: -1.5,
+              outcomes: [
+                { outcome: "yes", label: "Twins", price: 0.5 },
+                { outcome: "no", label: "Guardians", price: 0.5 },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      Array.from(
+        container.querySelectorAll("[data-sports-market-column]"),
+        (column) => column.getAttribute("data-sports-market-column"),
+      ),
+    ).toEqual(["moneyline", "moneyline"]);
   });
 
   it("uses the shared localized label at mobile and rail entry points", () => {

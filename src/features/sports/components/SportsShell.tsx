@@ -94,7 +94,7 @@ type SportsLiveTaxonomyOverride =
 type SportsLiveMatchRequest =
   | { kind: "date"; date: Date; nextRangeStart?: Date }
   | { kind: "taxonomy"; date: Date; node: SportsTaxonomyNode | null };
-type SportsPrimaryMarkets = Record<
+export type SportsPrimaryMarkets = Record<
   "moneyline" | "spread" | "total",
   SportsMarket[]
 >;
@@ -163,6 +163,27 @@ export function sportsPrimaryMarketCategories(
     return MONEYLINE_TOTAL_PRIMARY_MARKET_CATEGORIES;
   }
   return SPORTS_PRIMARY_MARKET_CATEGORIES;
+}
+
+/** Returns the market columns that contain a complete list-card layout. */
+export function sportsDisplayedMarketCategories(
+  section: SportsSection,
+  sportSlug: string | undefined,
+  markets: SportsPrimaryMarkets,
+): readonly (keyof SportsPrimaryMarkets)[] {
+  const supportedCategories = sportsPrimaryMarketCategories(
+    section,
+    sportSlug,
+  );
+  if (supportedCategories.length < SPORTS_PRIMARY_MARKET_CATEGORIES.length) {
+    return supportedCategories;
+  }
+  const hasMoneyline = markets.moneyline.length > 0;
+  const hasCompleteSecondaryMarkets =
+    markets.spread.length > 0 && markets.total.length > 0;
+  return hasMoneyline && !hasCompleteSecondaryMarkets
+    ? MONEYLINE_PRIMARY_MARKET_CATEGORIES
+    : SPORTS_PRIMARY_MARKET_CATEGORIES;
 }
 
 interface SportsShellProps {
@@ -1771,20 +1792,11 @@ export function SportsMatchCard({
     rawMoneylineSelections,
     participants,
   );
-  const hasOnlyMoneyline =
-    primaryMarkets.moneyline.length > 0 &&
-    primaryMarkets.spread.length === 0 &&
-    primaryMarkets.total.length === 0;
-  const supportedCategories = sportsPrimaryMarketCategories(
+  const displayedCategories = sportsDisplayedMarketCategories(
     match.section,
     match.sport_slug,
+    primaryMarkets,
   );
-  const displayedCategories =
-    supportedCategories.length < SPORTS_PRIMARY_MARKET_CATEGORIES.length
-      ? supportedCategories
-      : hasOnlyMoneyline
-        ? MONEYLINE_PRIMARY_MARKET_CATEGORIES
-        : SPORTS_PRIMARY_MARKET_CATEGORIES;
   const open = () => router.push(href);
   const openMarket = (market: SportsInlineMarket, outcome: string) => {
     const params = new URLSearchParams({ market: market.market_slug, outcome });
