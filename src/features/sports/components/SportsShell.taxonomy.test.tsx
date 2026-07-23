@@ -1040,7 +1040,83 @@ describe("SportsShell taxonomy labels", () => {
     fireEvent.click(screen.getAllByRole("link", { name: /live/i })[0]);
     expect(
       container.querySelector("#sports-list-scroll")?.getAttribute("aria-busy"),
-    ).toBeNull();
+    ).toBe("true");
+  });
+
+  it("shows the target special view and loading state immediately", async () => {
+    const data = {
+      matches: [],
+      props: [],
+      taxonomy: {
+        sections: [
+          {
+            section: "sports" as const,
+            children: [],
+          },
+        ],
+      },
+    };
+    const { container, rerender } = render(
+      <SportsShell section="sports" filters={{ view: "live" }} data={data} />,
+    );
+
+    const proposalsLink = screen.getAllByRole("link", {
+      name: /filters\.proposals/i,
+    })[0];
+    fireEvent.click(proposalsLink);
+
+    expect(proposalsLink.classList.contains("bg-content1")).toBe(true);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
+      /filters\.proposals/i,
+    );
+    const list = container.querySelector("#sports-list-scroll");
+    expect(list?.getAttribute("aria-busy")).toBe("true");
+    expect(
+      list?.querySelector('[data-sports-list-loading="true"]'),
+    ).not.toBeNull();
+
+    rerender(
+      <SportsShell
+        section="sports"
+        filters={{ view: "proposals" }}
+        data={data}
+      />,
+    );
+
+    await waitFor(() => expect(list?.getAttribute("aria-busy")).toBeNull());
+  });
+
+  it("keeps special-view loading visible until taxonomy filters are cleared", async () => {
+    const data = {
+      matches: [],
+      props: [],
+      taxonomy: {
+        sections: [{ section: "sports" as const, children: [] }],
+      },
+    };
+    const { container, rerender } = render(
+      <SportsShell
+        section="sports"
+        filters={{
+          view: "live",
+          taxonomy_type: "sport",
+          taxonomy_slug: "football",
+        }}
+        data={data}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("link", { name: /live/i })[0]);
+    await act(async () => {});
+
+    const list = container.querySelector("#sports-list-scroll");
+    expect(list?.getAttribute("aria-busy")).toBe("true");
+
+    rerender(
+      <SportsShell section="sports" filters={{ view: "live" }} data={data} />,
+    );
+
+    await waitFor(() => expect(list?.getAttribute("aria-busy")).toBeNull());
   });
 
   it("renders navigation groups and keeps counts off special links", () => {

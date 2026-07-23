@@ -434,13 +434,15 @@ export function SportsShell({
         taxonomy_type: pendingTaxonomyNode.node_type,
         taxonomy_slug: pendingTaxonomyNode.slug,
       }
-    : isLiveTaxonomyCleared
-      ? {
-          ...filters,
-          taxonomy_type: undefined,
-          taxonomy_slug: undefined,
-        }
-      : filters;
+    : pendingTaxonomyView
+      ? { view: pendingTaxonomyView }
+      : isLiveTaxonomyCleared
+        ? {
+            ...filters,
+            taxonomy_type: undefined,
+            taxonomy_slug: undefined,
+          }
+        : filters;
   const primaryNavigationFilters: SportsPageFilters = isSpecialViewActive(
     effectiveFilters,
     "live",
@@ -473,10 +475,22 @@ export function SportsShell({
     return true;
   };
   const handleSpecialViewNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (isPlainSameWindowNavigation(event)) {
-      setPendingTaxonomyNode(null);
-      setPendingTaxonomyView(undefined);
+    if (!isPlainSameWindowNavigation(event)) return;
+    const targetView = new URL(
+      event.currentTarget.href,
+      window.location.origin,
+    ).searchParams.get("view");
+    if (targetView !== "live" && targetView !== "proposals") return;
+    if (
+      !hasTaxonomyFilter(effectiveFilters) &&
+      isSpecialViewActive(effectiveFilters, targetView)
+    ) {
+      event.preventDefault();
+      return;
     }
+    setIsLiveTaxonomyCleared(false);
+    setPendingTaxonomyNode(null);
+    setPendingTaxonomyView(targetView);
   };
   const activeTopLevelSlug = findActiveTopLevelSlug(
     taxonomyNodes,
@@ -537,18 +551,30 @@ export function SportsShell({
     return () => window.cancelAnimationFrame(frame);
   }, [activeTab, displayedTab]);
   useEffect(() => {
-    if (
+    const taxonomyArrived =
       pendingTaxonomyNode &&
       filters.taxonomy_type === pendingTaxonomyNode.node_type &&
-      filters.taxonomy_slug === pendingTaxonomyNode.slug
-    ) {
+      filters.taxonomy_slug === pendingTaxonomyNode.slug;
+    const specialViewArrived =
+      !pendingTaxonomyNode &&
+      pendingTaxonomyView !== undefined &&
+      filters.view === pendingTaxonomyView &&
+      !filters.taxonomy_type &&
+      !filters.taxonomy_slug;
+    if (taxonomyArrived || specialViewArrived) {
       setPendingTaxonomyNode(null);
       setPendingTaxonomyView(undefined);
     }
-  }, [filters.taxonomy_type, filters.taxonomy_slug, pendingTaxonomyNode]);
+  }, [
+    filters.taxonomy_type,
+    filters.taxonomy_slug,
+    filters.view,
+    pendingTaxonomyNode,
+    pendingTaxonomyView,
+  ]);
 
   useEffect(() => {
-    if (!pendingTaxonomyNode) return;
+    if (!pendingTaxonomyNode && !pendingTaxonomyView) return;
     const clearPendingNavigation = () => {
       setPendingTaxonomyNode(null);
       setPendingTaxonomyView(undefined);
@@ -559,7 +585,7 @@ export function SportsShell({
       window.clearTimeout(timeout);
       window.removeEventListener("popstate", clearPendingNavigation);
     };
-  }, [pendingTaxonomyNode]);
+  }, [pendingTaxonomyNode, pendingTaxonomyView]);
 
   useEffect(() => {
     const container = mobileTaxonomyScrollRef.current;
@@ -631,7 +657,7 @@ export function SportsShell({
                   data-taxonomy-scroll-target="live"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
-                    isSpecialViewActive(filters, "live")
+                    isSpecialViewActive(effectiveFilters, "live")
                       ? "border-bullish/30 bg-bullish/10 text-bullish"
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
@@ -647,7 +673,7 @@ export function SportsShell({
                   data-taxonomy-scroll-target="proposals"
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium",
-                    isSpecialViewActive(filters, "proposals")
+                    isSpecialViewActive(effectiveFilters, "proposals")
                       ? "border-bullish/30 bg-bullish/10 text-bullish"
                       : "border-zinc-800 bg-zinc-900 text-zinc-300",
                   )}
@@ -785,11 +811,15 @@ export function SportsShell({
             ref={sportsListScrollRef}
             id="sports-list-scroll"
             aria-busy={
-              pendingTaxonomyNode || isContentTabSwitching ? "true" : undefined
+              pendingTaxonomyNode ||
+              pendingTaxonomyView ||
+              isContentTabSwitching
+                ? "true"
+                : undefined
             }
             className="no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
           >
-            {pendingTaxonomyNode ? (
+            {pendingTaxonomyNode || pendingTaxonomyView ? (
               <SportsListLoadingState
                 loadingLabel={t("extend.leaderboard.loading")}
               />
