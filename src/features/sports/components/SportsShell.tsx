@@ -283,6 +283,9 @@ export function SportsShell({
   const activeTaxonomyNode = findTaxonomyNode(taxonomyNodes, effectiveFilters);
   const hasTaxonomySelection = Boolean(activeTaxonomyNode);
   const isLiveView = isSpecialViewActive(effectiveFilters, "live");
+  const isStandaloneProposalsView =
+    !hasTaxonomySelection &&
+    isSpecialViewActive(effectiveFilters, "proposals");
   const liveTaxonomyItems = taxonomyNodes.map((node) => ({
     node,
     active: taxonomyBranchContainsActiveNode(node, effectiveFilters),
@@ -499,6 +502,8 @@ export function SportsShell({
                         ({liveDateRangeLabel})
                       </span>
                     </>
+                  ) : isStandaloneProposalsView ? (
+                    t("extend.sports.filters.proposals")
                   ) : activeTaxonomyNode ? (
                     <LocalizedTaxonomyLabel
                       node={activeTaxonomyNode}
@@ -603,6 +608,14 @@ export function SportsShell({
 
                 {!isSpecialViewActive(filters, "live") && (
                   <section className="space-y-3">
+                    {isStandaloneProposalsView && (
+                      <div
+                        data-testid="sports-proposals-odds-toolbar"
+                        className="flex justify-end"
+                      >
+                        <OddsFormatSelect />
+                      </div>
+                    )}
                     {propPage.items.length > 0 ||
                     filters.view === "proposals" ? (
                       <SportsPropsList

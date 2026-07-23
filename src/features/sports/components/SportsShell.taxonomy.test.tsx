@@ -760,6 +760,28 @@ describe("SportsShell taxonomy labels", () => {
     expect(toolbar.lastElementChild?.contains(oddsFormatButton)).toBe(true);
   });
 
+  it("labels the standalone proposals list and right-aligns its odds format selector", () => {
+    render(
+      <SportsShell
+        section="sports"
+        filters={{ view: "proposals" }}
+        data={{ matches: [], props: [], taxonomy: null }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "extend.sports.filters.proposals",
+    );
+
+    const toolbar = screen.getByTestId("sports-proposals-odds-toolbar");
+    const oddsFormatButton = within(toolbar)
+      .getByText("extend.worldcup.odds")
+      .closest("button");
+
+    expect(toolbar.className).toContain("justify-end");
+    expect(oddsFormatButton).not.toBeNull();
+  });
+
   it("aligns one set of market headers with each date group", () => {
     render(<SportsMatchGroupHeading title="Wed, Jul 22" />);
 
