@@ -19,6 +19,7 @@ import {
 
 type RuntimeSportsClient = {
   getSportsTaxonomy?: (params: Record<string, unknown>) => Promise<unknown>;
+  getEsportsTaxonomy?: (params: Record<string, unknown>) => Promise<unknown>;
 };
 
 interface PageResponse<T> {
@@ -50,7 +51,10 @@ export async function prefetchSportsPageData(input: {
     ...(input.lang ? { lang: input.lang } : {}),
   };
 
-  const readTaxonomy = client.getSportsTaxonomy;
+  const readTaxonomy =
+    input.section === "esports"
+      ? client.getEsportsTaxonomy
+      : client.getSportsTaxonomy;
   const hasTaxonomyFilter = Boolean(
     input.filters?.taxonomy_type && input.filters.taxonomy_slug,
   );

@@ -1,7 +1,8 @@
 "use client";
 
-import { EventsPageSkeleton } from "@liberfi.io/ui-predict";
+import { usePathname } from "next/navigation";
+import { NavigationPendingFallback } from "../components/NavigationPendingFallback";
 
 export default function Loading() {
-  return <EventsPageSkeleton />;
+  return <NavigationPendingFallback pathname={usePathname()} />;
 }
