@@ -1,7 +1,8 @@
+import { SPORTS_CARD_SURFACE_CLASS } from "./sportsCardSurface";
 import {
-  SPORTS_CARD_SURFACE_CLASS,
-} from "./sportsCardSurface";
-import { SportsPropsGrid } from "./SportsPropsGrid";
+  SPORTS_PROP_CARD_HEIGHT_CLASS,
+  SportsPropsGrid,
+} from "./SportsPropsGrid";
 
 /** Renders a loading state shaped like the sports props event-card grid. */
 export function SportsPropsListSkeleton({
@@ -22,7 +23,7 @@ export function SportsPropsListSkeleton({
           <div key={index} className="p-2">
             <div
               data-testid="sports-prop-skeleton-card"
-              className={`flex min-h-[248px] flex-col ${SPORTS_CARD_SURFACE_CLASS}`}
+              className={`flex flex-col ${SPORTS_PROP_CARD_HEIGHT_CLASS} ${SPORTS_CARD_SURFACE_CLASS}`}
             >
               <div className="flex flex-1 flex-col gap-2 p-3.5">
                 <div className="flex items-center gap-3">

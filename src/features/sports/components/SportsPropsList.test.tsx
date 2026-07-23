@@ -5,7 +5,11 @@ import { SportsPropsList } from "./SportsPropsList";
 const mockOpenTradeModal = jest.fn();
 const mockGetScrollElement = () => document.body;
 const mockMeasureElement = jest.fn();
-const mockUseVirtualizer = jest.fn(({ count }: { count: number }) => ({
+type MockVirtualizerOptions = {
+  count: number;
+  estimateSize: () => number;
+};
+const mockUseVirtualizer = jest.fn(({ count }: MockVirtualizerOptions) => ({
   getVirtualItems: () =>
     Array.from({ length: count }, (_, index) => ({
       index,
@@ -17,7 +21,8 @@ const mockUseVirtualizer = jest.fn(({ count }: { count: number }) => ({
 }));
 
 jest.mock("@tanstack/react-virtual", () => ({
-  useVirtualizer: (options: { count: number }) => mockUseVirtualizer(options),
+  useVirtualizer: (options: MockVirtualizerOptions) =>
+    mockUseVirtualizer(options),
 }));
 
 jest.mock("@liberfi.io/i18n", () => ({
@@ -120,6 +125,8 @@ describe("SportsPropsList", () => {
     );
 
     const card = screen.getByTestId("sports-prop-card");
+    expect(card.className).toContain("min-h-0");
+    expect(card.className).toContain("md:min-h-[248px]");
     expect(card.className).toContain("border-[rgba(39,39,42,0.65)]");
     expect(card.className).toContain("hover:border-[rgba(63,63,70,0.55)]");
     expect(container.querySelector("img")?.getAttribute("src")).toBe(
@@ -332,6 +339,8 @@ describe("SportsPropsList", () => {
     expect(mockUseVirtualizer).toHaveBeenLastCalledWith(
       expect.objectContaining({ count: 2 }),
     );
+    const mobileVirtualizerOptions = mockUseVirtualizer.mock.calls.at(-1)?.[0];
+    expect(mobileVirtualizerOptions?.estimateSize()).toBe(240);
   });
 
   it("uses a title fallback when the event image fails", () => {

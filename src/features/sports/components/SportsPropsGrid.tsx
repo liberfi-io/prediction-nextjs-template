@@ -3,6 +3,9 @@ import { cn } from "@liberfi.io/ui";
 
 export const SPORTS_PROPS_MOBILE_MEDIA_QUERY = "(max-width: 767px)";
 export const SPORTS_PROPS_DESKTOP_COLUMNS = 2;
+export const SPORTS_PROP_CARD_HEIGHT_CLASS = "min-h-0 md:min-h-[248px]";
+export const SPORTS_PROPS_DESKTOP_ROW_ESTIMATE = 264;
+export const SPORTS_PROPS_MOBILE_ROW_ESTIMATE = 240;
 
 /** Provides the responsive two-column grid boundary shared by props content. */
 export function SportsPropsGrid({

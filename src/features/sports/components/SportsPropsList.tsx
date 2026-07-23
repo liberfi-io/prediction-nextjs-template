@@ -46,14 +46,16 @@ import {
   SPORTS_CARD_SURFACE_CLASS,
 } from "./sportsCardSurface";
 import {
+  SPORTS_PROP_CARD_HEIGHT_CLASS,
   SPORTS_PROPS_DESKTOP_COLUMNS,
+  SPORTS_PROPS_DESKTOP_ROW_ESTIMATE,
   SPORTS_PROPS_MOBILE_MEDIA_QUERY,
+  SPORTS_PROPS_MOBILE_ROW_ESTIMATE,
   SportsPropsGrid,
 } from "./SportsPropsGrid";
 import { sportsOutcomePrice } from "./sportsOutcomePrice";
 
 const DISPLAYED_MARKET_COUNT = 3;
-const ESTIMATED_PROPS_ROW_HEIGHT = 264;
 
 /** Renders the independently evolved sports props event-card list. */
 export function SportsPropsList({
@@ -87,7 +89,10 @@ export function SportsPropsList({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement,
-    estimateSize: () => ESTIMATED_PROPS_ROW_HEIGHT,
+    estimateSize: () =>
+      cardsPerRow === 1
+        ? SPORTS_PROPS_MOBILE_ROW_ESTIMATE
+        : SPORTS_PROPS_DESKTOP_ROW_ESTIMATE,
     getItemKey: (index) => rows[index]?.[0]?.event_slug ?? index,
     overscan: 3,
     scrollMargin,
@@ -224,7 +229,7 @@ function SportsPropCard({
   return (
     <article
       data-testid="sports-prop-card"
-      className={`sports-prop-card group flex h-full min-h-[248px] flex-col ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
+      className={`sports-prop-card group flex h-full flex-col ${SPORTS_PROP_CARD_HEIGHT_CLASS} ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
     >
       <div className="flex flex-1 flex-col gap-2 p-3.5">
         <CardHeader

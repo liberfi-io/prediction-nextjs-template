@@ -10,7 +10,8 @@ describe("SportsPropsListSkeleton", () => {
     expect(screen.getByRole("status").textContent).toBe("Loading");
     const cards = screen.getAllByTestId("sports-prop-skeleton-card");
     expect(cards).toHaveLength(6);
-    expect(cards[0]?.className).toContain("min-h-[248px]");
+    expect(cards[0]?.className).toContain("min-h-0");
+    expect(cards[0]?.className).toContain("md:min-h-[248px]");
     expect(cards[0]?.className).toContain("border-[rgba(39,39,42,0.65)]");
     expect(cards[0]?.className).toContain("bg-[rgba(24,24,27,0.4)]");
 
