@@ -26,7 +26,7 @@ describe("live sports prefetch", () => {
     jest
       .useFakeTimers()
       .setSystemTime(new Date("2026-07-23T00:30:00Z"));
-    process.env.PREDICT_URL = "https://predict.example/";
+    process.env.PREDICT_URL = "https://predict.example/prediction";
     jest.mocked(getServerPredictClient).mockReturnValue({
       getSportsTaxonomy: jest.fn().mockResolvedValue(null),
     } as never);
@@ -48,12 +48,15 @@ describe("live sports prefetch", () => {
       ([value]) => new URL(String(value)),
     );
     const matchesUrl = requestedUrls.find(
-      (url) => url.pathname === "/api/v1/sports/matches",
+      (url) => url.pathname === "/prediction/api/v1/sports/matches",
     );
     const countsUrl = requestedUrls.find(
       (url) =>
-        url.pathname === "/api/v1/sports/matches/taxonomy-counts",
+        url.pathname ===
+        "/prediction/api/v1/sports/matches/taxonomy-counts",
     );
+    expect(matchesUrl).toBeDefined();
+    expect(countsUrl).toBeDefined();
     expect(matchesUrl?.searchParams.get("start_time_gte")).toBe(
       "2026-07-23T00:00:00Z",
     );

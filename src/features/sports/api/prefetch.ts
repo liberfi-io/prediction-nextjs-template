@@ -124,10 +124,7 @@ export async function prefetchSportsPageData(input: {
 async function readSportsTaxonomyCounts(
   params: SportsLiveTimeRange,
 ): Promise<unknown> {
-  const url = new URL(
-    SPORTS_TAXONOMY_COUNTS_PATH,
-    ensureTrailingSlash(process.env.PREDICT_URL!),
-  );
+  const url = resolvePredictUrl(SPORTS_TAXONOMY_COUNTS_PATH);
   appendSportsLiveTimeRange(url, params);
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
@@ -153,10 +150,7 @@ async function readSportsPage(
   resource: "matches" | "props",
   params: Record<string, unknown>,
 ): Promise<unknown> {
-  const url = new URL(
-    `/api/v1/${section}/${resource}`,
-    ensureTrailingSlash(process.env.PREDICT_URL!),
-  );
+  const url = resolvePredictUrl(`/api/v1/${section}/${resource}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") {
       url.searchParams.set(key, String(value));
@@ -165,6 +159,13 @@ async function readSportsPage(
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return response.json();
+}
+
+function resolvePredictUrl(path: string): URL {
+  return new URL(
+    path.replace(/^\/+/, ""),
+    ensureTrailingSlash(process.env.PREDICT_URL!),
+  );
 }
 
 function ensureTrailingSlash(value: string): string {
