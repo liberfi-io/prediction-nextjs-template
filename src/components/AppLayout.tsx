@@ -150,7 +150,7 @@ const NoPrefetchLink: LinkComponentType = (props) => (
 );
 
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
+const LEADERBOARD_NAV_HREF = "/leaderboard?interval=7d";
 const SPORTS_FLAGS = SPORTS_FEATURE_FLAGS;
 
 function navPathname(href: string): string {
