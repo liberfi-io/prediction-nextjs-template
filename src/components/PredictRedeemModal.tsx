@@ -17,8 +17,12 @@ import { Button, ModalContent, Spinner, StyledModal, useScreen } from "@liberfi.
 import { AsyncModal, type RenderAsyncModalProps } from "@liberfi.io/ui-scaffold";
 import { useAuthCallback, useWallets, type EvmWalletAdapter } from "@liberfi.io/wallet-connector";
 import { PREDICT_REDEEM_MODAL_ID, usePredictWallet } from "@liberfi.io/ui-predict";
+import {
+  resolveRedeemOutcome,
+  type RedeemOutcome as StructuralRedeemOutcome,
+} from "./predictOutcomeIdentity";
 
-export type RedeemOutcome = "yes" | "no";
+export type RedeemOutcome = StructuralRedeemOutcome;
 
 export type RedeemDisplayParams = {
   title?: string;
@@ -132,26 +136,47 @@ function RedeemForm({
     [wallets],
   );
 
-  const positionOutcome = display?.outcome ?? resolveOutcome(position.side, market.outcomes) ?? "no";
-  const winningOutcome = resolveOutcome(market.result ?? "", market.outcomes);
+  const positionOutcome = resolveRedeemOutcome(
+    display?.outcome ?? position.side,
+    market.outcomes,
+  );
+  const winningOutcome = resolveRedeemOutcome(market.result ?? "", market.outcomes);
   const hasSettledResult = market.result != null && market.result !== "";
-  const isWinner = hasSettledResult && winningOutcome ? positionOutcome === winningOutcome : true;
+  const hasValidOutcomeIdentity =
+    positionOutcome !== undefined &&
+    (!hasSettledResult || winningOutcome !== undefined);
+  const isWinner =
+    hasSettledResult &&
+    hasValidOutcomeIdentity &&
+    positionOutcome === winningOutcome;
   const settledPositionValue = finiteAmount(position.current_value);
-  const expectedPayout = hasSettledResult
-    ? isWinner ? position.size : 0
-    : settledPositionValue ?? 0;
+  const expectedPayout = hasValidOutcomeIdentity
+    ? hasSettledResult
+      ? isWinner
+        ? position.size
+        : 0
+      : settledPositionValue
+    : undefined;
   const yesLabel = String(t("extend.worldcup.detail.trade.yes", { defaultValue: "Yes" }));
   const noLabel = String(t("extend.worldcup.detail.trade.no", { defaultValue: "No" }));
-  const sideLabel = display?.sideLabel ?? outcomeLabel(positionOutcome, yesLabel, noLabel);
+  const sideLabel =
+    display?.sideLabel ??
+    (positionOutcome ? outcomeLabel(positionOutcome, yesLabel, noLabel) : undefined);
   const positionTitle = display?.title ?? event?.title ?? market.question;
   const positionSubtitle = display?.marketLabel;
   const winnerLabel =
-    (winningOutcome ? outcomeLabel(winningOutcome, yesLabel, noLabel) : undefined) ??
-    market.result ??
-    "";
+    (winningOutcome ? outcomeLabel(winningOutcome, yesLabel, noLabel) : undefined) ?? "";
 
   const handleRedeem = useCallback(async () => {
-    if (!conditionId || !walletAddress || !evmWallet) return;
+    if (
+      !conditionId ||
+      !walletAddress ||
+      !evmWallet ||
+      !hasValidOutcomeIdentity ||
+      expectedPayout === undefined
+    ) {
+      return;
+    }
 
     setStatus("pending");
     setErrorMessage(null);
@@ -203,6 +228,7 @@ function RedeemForm({
     position.event?.slug,
     market.slug,
     event?.slug,
+    hasValidOutcomeIdentity,
     expectedPayout,
     onSuccess,
     t,
@@ -210,7 +236,10 @@ function RedeemForm({
 
   const authenticatedRedeem = useAuthCallback(handleRedeem);
   const canRedeem =
-    status === "idle" && Boolean(conditionId && walletAddress && evmWallet && position.redeemable);
+    status === "idle" &&
+    hasValidOutcomeIdentity &&
+    expectedPayout !== undefined &&
+    Boolean(conditionId && walletAddress && evmWallet && position.redeemable);
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -250,12 +279,22 @@ function RedeemForm({
           label={t("extend.portfolio.expectedRedeemAmount", {
             defaultValue: "Expected Amount",
           })}
-          value={`$${expectedPayout.toFixed(2)}`}
-          valueClassName={expectedPayout > 0 ? "text-bullish" : "text-zinc-400"}
+          value={expectedPayout === undefined ? "—" : `$${expectedPayout.toFixed(2)}`}
+          valueClassName={
+            expectedPayout !== undefined && expectedPayout > 0 ? "text-bullish" : "text-zinc-400"
+          }
         />
       </div>
 
-      {expectedPayout <= 0 && (
+      {!hasValidOutcomeIdentity && (
+        <p className="text-sm text-red-400">
+          {t("predict.redeem.outcomeUnavailable", {
+            defaultValue: "Outcome data is unavailable. Refresh and try again.",
+          })}
+        </p>
+      )}
+
+      {expectedPayout === 0 && (
         <p className="text-sm text-zinc-500">{t("predict.redeem.noWinnings")}</p>
       )}
 
@@ -323,20 +362,6 @@ function InfoRow({
       </span>
     </div>
   );
-}
-
-function resolveOutcome(
-  side: string,
-  outcomes: { label: string }[] | undefined,
-): RedeemOutcome | undefined {
-  const lower = side.trim().toLowerCase();
-  if (lower === "yes" || lower === "over" || lower === "odd") return "yes";
-  if (lower === "no" || lower === "under" || lower === "even") return "no";
-  if (!outcomes) return undefined;
-  const idx = outcomes.findIndex((outcome) => outcome.label.trim().toLowerCase() === lower);
-  if (idx === 0) return "yes";
-  if (idx === 1) return "no";
-  return undefined;
 }
 
 function outcomeLabel(outcome: RedeemOutcome, yesLabel: string, noLabel: string): string {

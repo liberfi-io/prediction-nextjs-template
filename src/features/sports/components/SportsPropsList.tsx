@@ -620,6 +620,7 @@ function toPredictMarket(
     outcomes: (["yes", "no"] as const).map((side) => {
       const outcome = findOutcome(market, side);
       return {
+        key: side,
         label: outcome?.label ?? side,
         price: outcome?.price,
         best_bid: outcome?.best_bid,

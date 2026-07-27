@@ -143,6 +143,7 @@ export interface SmartEventRef {
 }
 
 export interface SmartOutcomeRef {
+  key?: string;
   label?: string;
   labelTrans?: string;
 }

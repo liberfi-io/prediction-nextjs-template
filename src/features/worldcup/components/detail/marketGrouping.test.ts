@@ -9,8 +9,8 @@ describe("categorizeMarkets", () => {
       question: "First five innings winner",
       status: "open",
       outcomes: [
-        { label: "Home", price: 0.55 },
-        { label: "Away", price: 0.45 },
+        { key: "yes", label: "Home", price: 0.55 },
+        { key: "no", label: "Away", price: 0.45 },
       ],
       source: "polymarket",
       provider_meta: {

@@ -63,6 +63,10 @@ describe("adaptSportsMatchDetail", () => {
     expect(result.event.markets?.[0]).toMatchObject({
       event_slug: detail.match_group_slug,
       status: "open",
+      outcomes: [
+        { key: "yes", label: "Yes" },
+        { key: "no", label: "No" },
+      ],
       provider_meta: {
         "polymarket.sportsMarketType": "moneyline",
       },

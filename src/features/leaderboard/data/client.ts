@@ -189,6 +189,7 @@ interface SmartEventRefDto {
 }
 
 interface SmartOutcomeRefDto {
+  key?: string;
   label?: string;
   label_trans?: string;
 }
@@ -456,6 +457,7 @@ function adaptSmartMarketRef(d?: SmartMarketRefDto): SmartMarketRef | undefined 
     descriptionTrans: d.description_trans,
     imageUrl: d.image_url,
     outcomes: (d.outcomes ?? []).map((outcome) => ({
+      key: outcome.key,
       label: outcome.label,
       labelTrans: outcome.label_trans,
     })),

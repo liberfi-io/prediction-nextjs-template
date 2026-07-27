@@ -174,6 +174,8 @@ export interface WcLiveInfo {
 }
 
 export interface WcOutcome {
+  /** Canonical side identity when the private World Cup adapter can prove it. */
+  key?: string;
   /** English base label (Convention B). */
   label: string;
   /**

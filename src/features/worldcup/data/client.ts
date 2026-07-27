@@ -1519,59 +1519,73 @@ export interface WcPropsResponseDto {
   props: WcPropEventDto[] | null;
 }
 
-/**
- * A prop event is "binary" when it is a single Yes/No market (e.g. "Will Messi
- * play?"). Multi-candidate events (winner, top scorer, group winners, ...) hold
- * one market per candidate, each `[candidate, "No"]`.
- */
-function isBinaryProp(markets: WcMarketDto[]): boolean {
-  if (markets.length !== 1) return false;
-  const names = (markets[0].outcomes ?? []).map((o) => o.name.toLowerCase());
-  return names.includes("no") && names.includes("yes");
+function exactBinaryOutcomes(
+  market: WcMarketDto,
+): { yes: WcOutcomeDto; no: WcOutcomeDto } | undefined {
+  const outcomes = market.outcomes ?? [];
+  if (outcomes.length !== 2) return undefined;
+  const yes = outcomes.filter(
+    (outcome) => outcome.name.trim().toLowerCase() === "yes",
+  );
+  const no = outcomes.filter(
+    (outcome) => outcome.name.trim().toLowerCase() === "no",
+  );
+  return yes.length === 1 && no.length === 1
+    ? { yes: yes[0], no: no[0] }
+    : undefined;
 }
 
-/** Pick the candidate ("non-No") outcome of a per-candidate prop market. */
-function leadOutcome(market: WcMarketDto): WcOutcomeDto | undefined {
+function exactCandidateOutcome(
+  market: WcMarketDto,
+): WcOutcomeDto | undefined {
   const outcomes = market.outcomes ?? [];
-  return outcomes.find((o) => o.name.toLowerCase() !== "no") ?? outcomes[0];
+  if (outcomes.length !== 2) return undefined;
+  const no = outcomes.filter(
+    (outcome) => outcome.name.trim().toLowerCase() === "no",
+  );
+  const candidates = outcomes.filter(
+    (outcome) => outcome.name.trim().toLowerCase() !== "no",
+  );
+  return no.length === 1 && candidates.length === 1
+    ? candidates[0]
+    : undefined;
 }
 
 /** Adapt a single backend prop event into the local {@link WcProp} shape. */
 function adaptPropEvent(dto: WcPropEventDto): WcProp {
   const markets = (dto.markets ?? []).filter((market) => market.status === "open");
 
-  let outcomes: WcOutcome[];
-  if (isBinaryProp(markets)) {
+  let outcomes: WcOutcome[] = [];
+  const binary =
+    markets.length === 1 ? exactBinaryOutcomes(markets[0]) : undefined;
+  if (binary && markets[0].slug?.trim()) {
     // Single Yes/No market: keep both sides, Yes first (triggers the binary
     // buy-button layout in propToEvent), localize the canonical labels.
-    const byName = new Map(
-      (markets[0].outcomes ?? []).map((o) => [o.name.toLowerCase(), o]),
-    );
-    const yes = byName.get("yes");
-    const no = byName.get("no");
     // Yes/No are deterministic — translated client-side via i18n, not *_trans.
     outcomes = [
-      outcomeBase("Yes", yes),
-      outcomeBase("No", no),
+      outcomeBase("Yes", binary.yes, markets[0], { key: "yes" }),
+      outcomeBase("No", binary.no, markets[0], { key: "no" }),
     ];
   } else {
     // Multi-candidate: one outcome per market (its candidate side), desc price.
     // Free-text candidate labels carry the backend's localized `*_trans`; team
     // candidates additionally carry a code so the UI can use its i18n name.
-    outcomes = markets
-      .map((m): WcOutcome | null => {
-        const lead = leadOutcome(m);
-        if (!lead) return null;
-        const label = m.group_item_title || lead.name;
-        const team = getTeamByName(label);
-        return {
-          ...outcomeBase(label, lead),
-          labelTrans: m.group_item_title_trans ?? lead.name_trans,
-          teamCode: team?.code,
-        };
-      })
-      .filter((o): o is WcOutcome => o !== null)
-      .sort((a, b) => b.price - a.price);
+    const candidateOutcomes: WcOutcome[] = [];
+    for (const m of markets) {
+      const lead = exactCandidateOutcome(m);
+      if (!lead || !m.slug?.trim()) {
+        candidateOutcomes.length = 0;
+        break;
+      }
+      const label = m.group_item_title || lead.name;
+      const team = getTeamByName(label);
+      candidateOutcomes.push({
+        ...outcomeBase(label, lead, m, { key: "yes" }),
+        labelTrans: m.group_item_title_trans ?? lead.name_trans,
+        teamCode: team?.code,
+      });
+    }
+    outcomes = candidateOutcomes.sort((a, b) => b.price - a.price);
   }
 
   return {

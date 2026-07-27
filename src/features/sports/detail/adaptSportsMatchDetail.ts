@@ -99,6 +99,7 @@ function adaptMarket(
     status: isOpen ? "open" : market.closed ? "closed" : "pending",
     start_at: detail.start_time,
     outcomes: (market.outcomes ?? []).map((outcome) => ({
+      key: outcome.outcome,
       label: outcome.label,
       price: outcome.price ?? outcome.last_trade_price,
       best_bid: outcome.best_bid,

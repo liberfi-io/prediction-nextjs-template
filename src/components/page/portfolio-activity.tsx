@@ -58,6 +58,10 @@ import { TradeModal } from "../TradeModal";
 import { TradePanel } from "../../features/worldcup/components/detail/TradePanel";
 import { SETUP_WALLET_MODAL_ID } from "../SetupWalletModal";
 import type { PredictRedeemModalParams, RedeemOutcome } from "../PredictRedeemModal";
+import {
+  resolveOpposedSidePositive,
+  resolvePositionOutcome,
+} from "./positionOutcomeIdentity";
 
 export type ActivityTab = "positions" | "orders" | "history";
 
@@ -83,6 +87,7 @@ type ActivityEvent = {
   title_trans?: unknown;
 };
 type ActivityOutcome = {
+  key: string;
   label?: string;
   label_trans?: unknown;
 };
@@ -334,7 +339,9 @@ function worldcupSpreadSideIsPositive(
   if (!isWorldcupSpreadMarket(market) || !side) return undefined;
   const team = spreadCoverTeam(market, hint);
   if (!team) return undefined;
-  return team.keys.has(side.trim().toLowerCase());
+  const opposingKeys =
+    team.keys === hint.homeKeys ? hint.awayKeys : hint.homeKeys;
+  return resolveOpposedSidePositive(side, team.keys, opposingKeys);
 }
 
 function worldcupTotalsSubtitle(
@@ -638,34 +645,25 @@ function activityDisplay(
 function sellOutcomeForPosition(
   position: PredictPosition,
   display: ActivityDisplay,
-): RedeemOutcome {
-  const side = position.side?.trim().toLowerCase();
-  if (side === "yes" || side === "no") return side;
-  if (
-    position.market &&
-    isWorldcupSpreadMarket(position.market) &&
-    typeof display.plainSidePositive === "boolean"
-  ) {
-    return display.plainSidePositive ? "yes" : "no";
-  }
-  if (
-    position.market &&
-    (
-      isWorldcupTotalsMarket(position.market) ||
-      isWorldcupTeamTotalGoalsMarket(position.market) ||
-      isWorldcupCornerTotalMarket(position.market) ||
-      isWorldcupTeamTotalCornersMarket(position.market)
-    )
-  ) {
-    if (side === "over") return "yes";
-    if (side === "under") return "no";
-  }
-  if (position.market && isWorldcupCornerOddEvenMarket(position.market)) {
-    if (side === "odd") return "yes";
-    if (side === "even") return "no";
-  }
-  if (display.plainSide) return "yes";
-  return "no";
+): RedeemOutcome | undefined {
+  const market = position.market;
+  return resolvePositionOutcome({
+    side: position.side,
+    positiveSide:
+      market &&
+      isWorldcupSpreadMarket(market) &&
+      typeof display.plainSidePositive === "boolean"
+        ? display.plainSidePositive
+        : undefined,
+    mapsOverUnder:
+      market !== undefined &&
+      (isWorldcupTotalsMarket(market) ||
+        isWorldcupTeamTotalGoalsMarket(market) ||
+        isWorldcupCornerTotalMarket(market) ||
+        isWorldcupTeamTotalCornersMarket(market)),
+    mapsOddEven:
+      market !== undefined && isWorldcupCornerOddEvenMarket(market),
+  });
 }
 
 function sellPositionSideOverride(position: PredictPosition): string | undefined {
@@ -777,11 +775,12 @@ export function PositionsPanel({
     (position: PredictPosition, display: ActivityDisplay) => {
       const event = worldcupTradeEvent(position, display);
       const market = worldcupTradeMarket(position, display);
-      if (!event || !market) return;
+      const outcome = sellOutcomeForPosition(position, display);
+      if (!event || !market || !outcome) return;
       setWorldcupSellRequest({
         event,
         market,
-        outcome: sellOutcomeForPosition(position, display),
+        outcome,
         initialPositionSide: sellPositionSideOverride(position),
       });
       setWorldcupTradeSide("sell");
@@ -960,11 +959,13 @@ function PositionRow({
         return;
       }
       const initialPositionSide = sellPositionSideOverride(position);
+      const initialOutcome = sellOutcomeForPosition(position, display);
+      if (!initialOutcome) return;
       openSellModal({
         params: {
           event: position.event,
           market: position.market,
-          initialOutcome: sellOutcomeForPosition(position, display),
+          initialOutcome,
           ...(initialPositionSide ? { initialPositionSide } : {}),
         } as PredictSellModalParams & { initialPositionSide?: string },
       });
