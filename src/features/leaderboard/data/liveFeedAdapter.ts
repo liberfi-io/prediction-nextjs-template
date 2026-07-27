@@ -75,6 +75,7 @@ interface SmartEventRefDto {
 }
 
 interface SmartOutcomeRefDto {
+  key?: string;
   label?: string;
   label_trans?: string;
 }
@@ -128,6 +129,7 @@ function adaptSmartEventRef(d?: SmartEventRefDto): SmartEventRef | undefined {
 
 function adaptSmartOutcomeRef(d: SmartOutcomeRefDto): SmartOutcomeRef {
   return {
+    key: d.key,
     label: d.label,
     labelTrans: d.label_trans,
   };

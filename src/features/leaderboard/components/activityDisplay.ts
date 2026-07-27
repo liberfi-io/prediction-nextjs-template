@@ -13,7 +13,11 @@ import {
   sportsType,
 } from "../../worldcup/components/detail/marketGrouping";
 import type { WcMatch } from "../../worldcup/types";
-import type { WalletActivity, WalletTokenPnl } from "../types";
+import type {
+  SmartOutcomeRef,
+  WalletActivity,
+  WalletTokenPnl,
+} from "../types";
 
 export function transText(trans: string | undefined, base: string | undefined): string {
   return trans || base || "";
@@ -36,6 +40,12 @@ export interface LeaderboardDisplayItem {
 }
 
 export type WorldcupMatchBySlug = Map<string, WcMatch>;
+
+function hasStructuralKey(
+  outcome: SmartOutcomeRef,
+): outcome is SmartOutcomeRef & { key: string } {
+  return typeof outcome.key === "string" && outcome.key.length > 0;
+}
 
 export interface LeaderboardDisplay {
   title: string;
@@ -81,6 +91,10 @@ export function worldcupMatchSlugForLeaderboardItem(item: LeaderboardDisplayItem
 function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | undefined {
   const market = item.market;
   if (!market) return undefined;
+  const outcomes = market.outcomes ?? [];
+  if (outcomes.length === 0 || !outcomes.every(hasStructuralKey)) {
+    return undefined;
+  }
   return {
     slug: market.slug || item.conditionId || item.tokenId || "",
     source: "polymarket",
@@ -89,7 +103,8 @@ function toWorldcupPredictMarket(item: LeaderboardDisplayItem): PredictMarket | 
     question: market.question || item.marketQuestion || item.marketQuestionTrans || market.questionTrans || "",
     question_trans: market.questionTrans || item.marketQuestionTrans,
     image_url: market.imageUrl,
-    outcomes: (market.outcomes ?? []).map((outcome) => ({
+    outcomes: outcomes.map((outcome) => ({
+      key: outcome.key,
       label: outcome.label || "",
       label_trans: outcome.labelTrans,
     })),

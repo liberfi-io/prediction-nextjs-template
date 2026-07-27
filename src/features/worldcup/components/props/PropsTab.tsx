@@ -15,6 +15,7 @@ import { useWorldcupProps } from "../../data/queries";
 import { TEAMS } from "../../data/teams";
 import type { WcOutcome, WcProp } from "../../types";
 import { PropsSkeleton } from "../skeletons";
+import { projectWorldCupPropMarkets } from "./propMarketProjection";
 
 const NoPrefetchLink: LinkComponentType = (props) => (
   <Link prefetch={false} target="_blank" rel="noopener noreferrer" {...props} />
@@ -43,27 +44,11 @@ function propToEvent(prop: WcProp, isEn: boolean, t: TFn): PredictEvent {
     }
     return isEn ? o.label : o.labelTrans || o.label;
   };
-  const isBinary = (prop.outcomes[0]?.label ?? "").toLowerCase() === "yes";
-
-  const markets: PredictMarket[] = isBinary
-    ? [
-        {
-          slug: `${prop.slug}-mkt`,
-          event_slug: prop.slug,
-          question: title,
-          status: "open",
-          source: "polymarket",
-          outcomes: prop.outcomes.map((o) => ({ label: label(o), price: o.price })),
-        },
-      ]
-    : prop.outcomes.map((o, i) => ({
-        slug: `${prop.slug}-${i}`,
-        event_slug: prop.slug,
-        question: label(o),
-        status: "open",
-        source: "polymarket",
-        outcomes: [{ label: label(o), price: o.price }],
-      }));
+  const markets: PredictMarket[] = projectWorldCupPropMarkets(
+    prop,
+    title,
+    label,
+  );
 
   const teamCode = prop.outcomes.find((o) => o.teamCode)?.teamCode;
   const flag = teamCode ? TEAMS[teamCode.toUpperCase()]?.flag : undefined;
