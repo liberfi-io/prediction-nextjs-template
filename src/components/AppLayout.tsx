@@ -505,10 +505,13 @@ function PageShell({ children }: PropsWithChildren) {
               <div className="shrink-0 flex items-center gap-1">
                 <Logo icon={<LogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
-                  {/* Hide "matches" (跨平台匹配) in the desktop header only;
-                        the route/module and mobile footer entry stay intact. */}
+                  {/* Hide ended or non-primary destinations in the desktop
+                        header only; routes and mobile footer entries stay intact. */}
                   {navItems
-                    .filter((item) => item.key !== "matches")
+                    .filter(
+                      (item) =>
+                        item.key !== "matches" && item.key !== "worldcup",
+                    )
                     .map((item) => {
                       const itemPathname = navPathname(item.href);
                       const active = activePathname.startsWith(itemPathname);
