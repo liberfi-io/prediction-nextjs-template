@@ -97,12 +97,12 @@ v1-o1LY7VK
 前端路由效果：
 
 ```text
-/world-cup
+/sports
 ```
 
 说明：
 
-- 无页面路由的 `start_param` 只用于捕获 referral 或群组上下文，打开后会进入默认世界杯页面。
+- 无页面路由的 `start_param` 只用于捕获 referral 或群组上下文，打开后会进入默认体育页面。
 - 新生成的 referral-only 链接必须使用 `v1-r<referral>`，避免 referral code 以 `g` 开头时和 chat-only 格式冲突。
 - `v1-<referral>` 仅用于兼容旧链接；如果第二段能被解析为 `g<chatIdBase62>` 或 `o<operatorBase62>`，会优先按对应结构化字段处理。
 - `o<operatorBase62>` 只作为运营 Bot 来源提示；前端不把它写入 referral。最终登录与下单归因只以后端校验 Telegram 签名后的 `initData.start_param` 为准。
