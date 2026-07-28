@@ -25,7 +25,12 @@ export interface BuildEventMarketDataResourceInput extends Omit<
 export interface BuildSportsMarketDataResourceInput extends BuildEventsMarketDataResourceInput {
   section: "sports" | "esports";
   resource: "matches" | "props" | "detail";
-  selectedBook?: { marketSlug: string; outcome: string };
+  selectedBook?: MarketDataSelectedBook;
+}
+
+export interface MarketDataSelectedBook {
+  marketSlug: string;
+  outcome: "yes" | "no";
 }
 
 export function buildEventsMarketDataResource({
@@ -139,27 +144,37 @@ export function buildSportsMarketDataResource({
   const selectedOutcome = selectedMarket?.outcomes.find(
     (outcome) => outcome.key === selectedBook?.outcome,
   );
+  const bookTarget =
+    selectedMarket?.realtime_book_supported && selectedOutcome?.book_channel
+      ? {
+          source: selectedMarket.source,
+          marketSlug: selectedMarket.market_slug,
+          outcome: selectedOutcome.key,
+          channel: selectedOutcome.book_channel,
+        }
+      : undefined;
   return {
-    key: `${section}:${resource}:${structureETag}`,
+    key:
+      `${section}:${resource}:${structureETag}` +
+      (bookTarget
+        ? `:book:${bookTarget.source}:${bookTarget.marketSlug}:${bookTarget.outcome}`
+        : ""),
     structure,
     structureETag,
     structurePath,
     initialQuotes,
     watch: {
       quote_markets: Array.from(quoteMarkets.values()),
-      ...(selectedMarket?.realtime_book_supported &&
-      selectedOutcome?.book_channel
+      ...(bookTarget
         ? {
             orderbook_market: {
-              source: selectedMarket.source,
-              market_slug: selectedMarket.market_slug,
+              source: bookTarget.source,
+              market_slug: bookTarget.marketSlug,
             },
           }
         : {}),
     },
-    ...(selectedOutcome?.book_channel
-      ? { bookChannel: selectedOutcome.book_channel }
-      : {}),
+    ...(bookTarget ? { bookChannel: bookTarget.channel } : {}),
   };
 }
 

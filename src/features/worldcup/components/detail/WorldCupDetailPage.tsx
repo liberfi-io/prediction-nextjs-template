@@ -217,6 +217,7 @@ export function WorldCupDetailPage({
   analyticsSurface = "world_cup_detail",
   marketDataEnabled = false,
   marketDataOrderbook,
+  onMarketDataSelectionChange,
 }: {
   id: string;
   /** Deep-link market short code from the entry URL (`?market=`). */
@@ -237,6 +238,11 @@ export function WorldCupDetailPage({
   marketDataEnabled?: boolean;
   /** Provider-neutral book for the selected market-data-v1 outcome. */
   marketDataOrderbook?: Orderbook | null;
+  /** Switches the market-data-v1 Book resource when the user changes selection. */
+  onMarketDataSelectionChange?: (selection: {
+    marketSlug: string;
+    outcome: "yes" | "no";
+  }) => void;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -478,6 +484,13 @@ export function WorldCupDetailPage({
     [oddsFormat],
   );
   const selectedMarket = selection?.option.market;
+  useEffect(() => {
+    if (!marketDataEnabled || !selectedMarket) return;
+    onMarketDataSelectionChange?.({
+      marketSlug: selectedMarket.slug,
+      outcome,
+    });
+  }, [marketDataEnabled, onMarketDataSelectionChange, outcome, selectedMarket]);
   const selectedMarketDataOrderbook =
     marketDataOrderbook != null &&
     marketDataOrderbook.market_id === selectedMarket?.slug &&

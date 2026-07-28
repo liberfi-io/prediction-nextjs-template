@@ -108,7 +108,9 @@ describe("events market data resource", () => {
       selectedBook: { marketSlug: "market", outcome: "yes" },
     });
 
-    expect(input.key).toBe('sports:matches:W/"sports"');
+    expect(input.key).toBe(
+      'sports:matches:W/"sports":book:polymarket:market:yes',
+    );
     expect(input.watch.quote_markets).toEqual([
       { source: "polymarket", market_slug: "market" },
     ]);

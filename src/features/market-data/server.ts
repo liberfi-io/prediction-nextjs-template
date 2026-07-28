@@ -22,6 +22,7 @@ import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
   buildSportsMarketDataResource,
+  type MarketDataSelectedBook,
 } from "./resource";
 
 const STRUCTURE_MEDIA_TYPE =
@@ -95,7 +96,7 @@ export async function getEventMarketDataHydration(input: {
   enabled: boolean;
   event: PredictEvent;
   requestHeaders: HeadersInit;
-  selectedBook?: { marketSlug: string; outcome: string };
+  selectedBook?: MarketDataSelectedBook;
 }): Promise<MarketDataResourceInput | undefined> {
   if (!input.enabled) return undefined;
   const baseUrl = process.env.PREDICT_URL;
@@ -224,7 +225,7 @@ export async function getSportsMatchMarketDataHydration(input: {
   match: import("../sports/types").SportsMatchDetail;
   lang: string;
   requestHeaders: HeadersInit;
-  selectedBook?: { marketSlug: string; outcome: string };
+  selectedBook?: MarketDataSelectedBook;
 }): Promise<MarketDataResourceInput | undefined> {
   if (!input.enabled || !process.env.PREDICT_URL) return undefined;
   const search = recordSearch(input.lang ? { lang: input.lang } : {});

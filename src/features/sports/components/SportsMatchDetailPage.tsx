@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useMarketDataResource,
@@ -14,6 +14,10 @@ import { adaptSportsMatchDetail } from "../detail/adaptSportsMatchDetail";
 import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
 import { useSportsMatchMarketGroups } from "../live/useSportsMatchMarketGroups";
 import type { SportsMatchDetail } from "../types";
+import {
+  buildSportsMarketDataResource,
+  type MarketDataSelectedBook,
+} from "../../market-data/resource";
 import {
   sportsMatchForMarketDataBranch,
   sportsOrderbookForMarketDataBranch,
@@ -36,13 +40,53 @@ export function SportsMatchDetailPage(props: SportsMatchDetailPageProps) {
 }
 
 function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
-  if (!props.marketDataResource) {
+  const baseResource = props.marketDataResource;
+  if (!baseResource) {
     throw new Error(
       "Market data resource is required when market data is enabled",
     );
   }
-  const state = useMarketDataResource(props.marketDataResource);
-  return <SportsMatchDetailBody {...props} marketDataState={state} />;
+  const initialOutcome =
+    props.initialOutcome === "yes" || props.initialOutcome === "no"
+      ? props.initialOutcome
+      : undefined;
+  const [selectedBook, setSelectedBook] = useState<
+    MarketDataSelectedBook | undefined
+  >(
+    props.initialMarketSlug && initialOutcome
+      ? { marketSlug: props.initialMarketSlug, outcome: initialOutcome }
+      : undefined,
+  );
+  const resource = useMemo(
+    () =>
+      buildSportsMarketDataResource({
+        section: props.match.section,
+        resource: "detail",
+        structure: baseResource.structure,
+        structureETag: baseResource.structureETag,
+        structurePath: baseResource.structurePath,
+        initialQuotes: baseResource.initialQuotes,
+        selectedBook,
+      }),
+    [baseResource, props.match.section, selectedBook],
+  );
+  const state = useMarketDataResource(resource);
+  const handleSelectionChange = useCallback((next: MarketDataSelectedBook) => {
+    setSelectedBook((current) =>
+      current?.marketSlug === next.marketSlug &&
+      current.outcome === next.outcome
+        ? current
+        : next,
+    );
+  }, []);
+  return (
+    <SportsMatchDetailBody
+      {...props}
+      marketDataState={state}
+      marketDataSelectedBook={selectedBook}
+      onMarketDataSelectionChange={handleSelectionChange}
+    />
+  );
 }
 
 function SportsMatchDetailBody({
@@ -51,8 +95,12 @@ function SportsMatchDetailBody({
   initialOutcome,
   marketDataCapability = { enabled: false },
   marketDataState,
+  marketDataSelectedBook,
+  onMarketDataSelectionChange,
 }: SportsMatchDetailPageProps & {
   marketDataState?: MarketDataResourceState;
+  marketDataSelectedBook?: MarketDataSelectedBook;
+  onMarketDataSelectionChange?: (selection: MarketDataSelectedBook) => void;
 }) {
   const branchMatch = useMemo(
     () =>
@@ -77,14 +125,10 @@ function SportsMatchDetailBody({
     () => adaptSportsMatchDetail(branchMatch, marketGroups, realtimeLiveState),
     [branchMatch, marketGroups, realtimeLiveState],
   );
-  const marketDataOutcome =
-    initialOutcome === "yes" || initialOutcome === "no"
-      ? initialOutcome
-      : undefined;
   const marketDataOrderbook = sportsOrderbookForMarketDataBranch(
     marketDataState,
-    initialMarketSlug ?? undefined,
-    marketDataOutcome,
+    marketDataSelectedBook?.marketSlug,
+    marketDataSelectedBook?.outcome,
   );
 
   return (
@@ -100,6 +144,7 @@ function SportsMatchDetailBody({
           analyticsSurface="prediction_detail"
           marketDataEnabled={marketDataCapability.enabled}
           marketDataOrderbook={marketDataOrderbook}
+          onMarketDataSelectionChange={onMarketDataSelectionChange}
         />
       </div>
     </div>
