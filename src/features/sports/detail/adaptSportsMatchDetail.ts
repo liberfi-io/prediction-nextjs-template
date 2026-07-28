@@ -22,6 +22,7 @@ export function adaptSportsMatchDetail(
   const markets = marketGroups.flatMap((group) =>
     (group.markets ?? []).map((market) => adaptMarket(detail, market)),
   );
+  const source = resolveEventSource(detail, markets);
   const participants = resolveParticipants(detail.participants);
   const status = resolveMatchStatus(liveState?.status ?? detail.status);
   const kickoffMs = detail.start_time
@@ -45,7 +46,7 @@ export function adaptSportsMatchDetail(
     volume,
     liquidity,
     markets,
-    source: "polymarket",
+    source,
     provider_meta: {
       "sports.section": detail.section,
       "sports.sportSlug": detail.sport_slug,
@@ -107,7 +108,7 @@ function adaptMarket(
     })),
     volume: market.volume,
     liquidity: market.liquidity,
-    source: "polymarket",
+    source: resolveMarketSource(market),
     provider_meta: {
       "polymarket.conditionId": market.condition_id,
       "polymarket.sportsMarketType": market.market_type,
@@ -117,6 +118,44 @@ function adaptMarket(
       "sports.period": market.period,
     },
   };
+}
+
+function resolveMarketSource(market: SportsMarket): PredictMarket["source"] {
+  const sources = new Set(
+    (market.outcomes ?? [])
+      .map((outcome) => outcome.orderbook?.source)
+      .filter((source) => source !== undefined),
+  );
+  if (sources.size > 1) {
+    throw new Error(`Sports market ${market.market_slug} mixes data sources`);
+  }
+  const outcomeSource = sources.values().next().value;
+  if (market.source && outcomeSource && market.source !== outcomeSource) {
+    throw new Error(
+      `Sports market ${market.market_slug} has conflicting source`,
+    );
+  }
+  const source = market.source ?? outcomeSource;
+  if (!source) {
+    throw new Error(
+      `Sports market ${market.market_slug} has no canonical source`,
+    );
+  }
+  return source;
+}
+
+function resolveEventSource(
+  detail: SportsMatchDetail,
+  markets: PredictMarket[],
+): PredictEvent["source"] {
+  const sources = new Set(markets.map((market) => market.source));
+  if (detail.source) sources.add(detail.source);
+  if (sources.size !== 1) {
+    throw new Error(
+      `Sports match ${detail.match_group_slug} does not have one canonical source`,
+    );
+  }
+  return sources.values().next().value!;
 }
 
 function resolveLiveScore(

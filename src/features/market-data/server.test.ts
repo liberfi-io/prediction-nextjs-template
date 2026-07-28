@@ -1,4 +1,9 @@
-import { buildPredictApiUrl, getEventsMarketDataHydration } from "./server";
+import {
+  buildPredictApiUrl,
+  getEventMarketDataHydration,
+  getEventsMarketDataHydration,
+} from "./server";
+import { marketStructureETag, marketStructureValidator } from "./structure";
 
 describe("market data SSR hydration", () => {
   it("preserves a configured prediction API base path", () => {
@@ -66,9 +71,7 @@ describe("market data SSR hydration", () => {
     };
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
-      headers: new Headers({
-        "x-market-structure-etag": 'W/"composite-generation"',
-      }),
+      headers: new Headers(),
       json: async () => composite,
     });
     global.fetch = fetchMock;
@@ -85,9 +88,50 @@ describe("market data SSR hydration", () => {
       expect(
         new Headers(fetchMock.mock.calls[0]![1]!.headers).get("accept"),
       ).toBe("application/json");
-      expect(result?.structureETag).toBe('W/"composite-generation"');
-      expect(result?.structure.items[0]?.resource_slug).toBe("event");
-      expect(result?.initialQuotes?.markets[0]?.market_slug).toBe("market");
+      expect(result?.resource.structureETag).toBe(
+        marketStructureETag(
+          marketStructureValidator(result?.resource.structure, null),
+        ),
+      );
+      expect(result?.resource.structure.items[0]?.resource_slug).toBe("event");
+      expect(result?.resource.initialQuotes?.markets[0]?.market_slug).toBe(
+        "market",
+      );
+      expect(result?.page).toEqual(composite);
+    } finally {
+      global.fetch = originalFetch;
+      process.env.PREDICT_URL = originalPredictUrl;
+    }
+  });
+
+  it("preserves the backend validator for a pass-through detail route", async () => {
+    const originalFetch = global.fetch;
+    const originalPredictUrl = process.env.PREDICT_URL;
+    const event = {
+      slug: "event",
+      source: "kalshi" as const,
+      title: "Event",
+      status: "open" as const,
+      markets: [],
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        "x-market-structure-etag": 'W/"backend-generation"',
+      }),
+      json: async () => event,
+    });
+    process.env.PREDICT_URL = "https://predict.example";
+
+    try {
+      const result = await getEventMarketDataHydration({
+        enabled: true,
+        event,
+        requestHeaders: {},
+      });
+
+      expect(result?.event).toEqual(event);
+      expect(result?.resource.structureETag).toBe('W/"backend-generation"');
     } finally {
       global.fetch = originalFetch;
       process.env.PREDICT_URL = originalPredictUrl;

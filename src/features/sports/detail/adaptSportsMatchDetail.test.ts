@@ -2,6 +2,7 @@ import type { SportsMatchDetail } from "../types";
 import { adaptSportsMatchDetail } from "./adaptSportsMatchDetail";
 
 const detail: SportsMatchDetail = {
+  source: "polymarket",
   match_group_slug: "chi-hai-jin-2026-07-25",
   section: "sports",
   sport_slug: "soccer",
@@ -111,10 +112,99 @@ describe("adaptSportsMatchDetail", () => {
     expect(result.event.end_at).toBeUndefined();
     expect(result.event.markets?.[0].end_at).toBeUndefined();
   });
+
+  it("preserves the orderbook source on adapted markets", () => {
+    const kalshiDetail: SportsMatchDetail = {
+      ...detail,
+      source: "kalshi",
+      market_groups: detail.market_groups?.map((group) => ({
+        ...group,
+        markets: group.markets?.map((market) => ({
+          ...market,
+          source: "kalshi",
+          outcomes: market.outcomes?.map((outcome) => ({
+            ...outcome,
+            orderbook: {
+              market_slug: market.market_slug,
+              source: "kalshi",
+              outcome: outcome.outcome,
+            },
+          })),
+        })),
+      })),
+    };
+
+    const result = adaptSportsMatchDetail(kalshiDetail);
+
+    expect(result.event.source).toBe("kalshi");
+    expect(
+      result.event.markets?.every((market) => market.source === "kalshi"),
+    ).toBe(true);
+  });
+
+  it("rejects outcomes from mixed sources within one market", () => {
+    const mixedDetail: SportsMatchDetail = {
+      ...detail,
+      market_groups: [
+        {
+          market_category: "main",
+          label: "Main",
+          markets: [
+            {
+              ...sportsMarket("mixed", "Mixed", 0.5),
+              outcomes: [
+                {
+                  outcome: "yes",
+                  label: "Yes",
+                  orderbook: {
+                    market_slug: "mixed",
+                    source: "polymarket",
+                    outcome: "yes",
+                  },
+                },
+                {
+                  outcome: "no",
+                  label: "No",
+                  orderbook: {
+                    market_slug: "mixed",
+                    source: "kalshi",
+                    outcome: "no",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(() => adaptSportsMatchDetail(mixedDetail)).toThrow(
+      "Sports market mixed mixes data sources",
+    );
+  });
+
+  it("rejects a market without a canonical source", () => {
+    const sourceMissing: SportsMatchDetail = {
+      ...detail,
+      source: undefined,
+      market_groups: detail.market_groups?.map((group) => ({
+        ...group,
+        markets: group.markets?.map((market) => ({
+          ...market,
+          source: undefined,
+        })),
+      })),
+    };
+
+    expect(() => adaptSportsMatchDetail(sourceMissing)).toThrow(
+      "has no canonical source",
+    );
+  });
 });
 
 function sportsMarket(slug: string, label: string, price: number) {
   return {
+    source: "polymarket" as const,
     market_slug: slug,
     market_type: "moneyline",
     label,

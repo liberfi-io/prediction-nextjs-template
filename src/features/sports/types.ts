@@ -72,6 +72,7 @@ export interface SportsMarketOutcome {
 }
 
 export interface SportsInlineMarket {
+  source?: ProviderSource;
   market_slug: string;
   market_type?: string;
   condition_id?: string;
@@ -100,6 +101,7 @@ export interface SportsMarketGroup {
 }
 
 export interface SportsMatchCard {
+  source?: ProviderSource;
   match_group_slug: string;
   section: SportsSection;
   sport_slug?: string;

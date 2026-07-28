@@ -6,10 +6,22 @@ import type {
   PredictEvent,
   PredictPage,
 } from "@liberfi.io/react-predict";
+import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
 import { resolveSportsMatchRequestView } from "../sports/route/matchRequestView";
 import { sportsLiveTimeRange } from "../sports/live/sportsLiveTimeRange";
-import type { SportsPageFilters, SportsSection } from "../sports/types";
-import { structureFromComposite } from "./structure";
+import type {
+  SportsMatchCard,
+  SportsMatchDetail,
+  SportsPage,
+  SportsPageFilters,
+  SportsPropEventCard,
+  SportsSection,
+} from "../sports/types";
+import {
+  marketStructureETag,
+  marketStructureValidator,
+  structureFromComposite,
+} from "./structure";
 import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
@@ -40,7 +52,13 @@ function recordSearch(params: Record<string, unknown>): string {
 }
 
 function initialQuotesFromPage(
-  page: PredictPage<PredictEvent> | undefined,
+  page:
+    | {
+        items: Array<{
+          initial_quotes?: MarketDataInitialQuotes;
+        }>;
+      }
+    | undefined,
 ): MarketDataInitialQuotes | undefined {
   const markets =
     page?.items.flatMap((event) => event.initial_quotes?.markets ?? []) ?? [];
@@ -51,7 +69,13 @@ export async function getEventsMarketDataHydration(input: {
   enabled: boolean;
   params: ListEventsParams;
   requestHeaders: HeadersInit;
-}): Promise<MarketDataResourceInput | undefined> {
+}): Promise<
+  | {
+      page: PredictPage<PredictEvent>;
+      resource: MarketDataResourceInput;
+    }
+  | undefined
+> {
   if (!input.enabled) return undefined;
   const baseUrl = process.env.PREDICT_URL;
   if (!baseUrl) return undefined;
@@ -66,19 +90,24 @@ export async function getEventsMarketDataHydration(input: {
     },
   });
   if (!response.ok) return undefined;
-  const page = (await response.json()) as PredictPage<PredictEvent>;
-  const etag = response.headers.get("x-market-structure-etag");
-  if (!etag) return undefined;
+  const page = filterTradableEventsPage(
+    (await response.json()) as PredictPage<PredictEvent>,
+  );
   const structure = structureFromComposite(
     page,
     null,
   ) as unknown as MarketStructureResponse;
-  return buildEventsMarketDataResource({
-    structure,
-    structureETag: etag,
-    structurePath: `/api/v1/events${search ? `?${search}` : ""}`,
-    initialQuotes: initialQuotesFromPage(page),
-  });
+  return {
+    page,
+    resource: buildEventsMarketDataResource({
+      structure,
+      structureETag: marketStructureETag(
+        marketStructureValidator(structure, null),
+      ),
+      structurePath: `/api/v1/events${search ? `?${search}` : ""}`,
+      initialQuotes: initialQuotesFromPage(page),
+    }),
+  };
 }
 
 export async function getEventMarketDataHydration(input: {
@@ -86,7 +115,9 @@ export async function getEventMarketDataHydration(input: {
   event: PredictEvent;
   requestHeaders: HeadersInit;
   selectedBook?: MarketDataSelectedBook;
-}): Promise<MarketDataResourceInput | undefined> {
+}): Promise<
+  { event: PredictEvent; resource: MarketDataResourceInput } | undefined
+> {
   if (!input.enabled) return undefined;
   const baseUrl = process.env.PREDICT_URL;
   if (!baseUrl) return undefined;
@@ -101,25 +132,36 @@ export async function getEventMarketDataHydration(input: {
     },
   });
   if (!response.ok) return undefined;
+  const structureETag = response.headers.get("x-market-structure-etag");
+  if (!structureETag) return undefined;
   const event = (await response.json()) as PredictEvent;
-  const etag = response.headers.get("x-market-structure-etag");
-  if (!etag) return undefined;
   const structure = structureFromComposite(
     { items: [event] },
     null,
   ) as unknown as MarketStructureResponse;
-  return buildEventMarketDataResource({
-    structure,
-    structureETag: etag,
-    structurePath: path,
+  return {
     event,
-    selectedBook: input.selectedBook,
-  });
+    resource: buildEventMarketDataResource({
+      structure,
+      structureETag,
+      structurePath: path,
+      event,
+      selectedBook: input.selectedBook,
+    }),
+  };
 }
 
 export interface SportsMarketDataHydration {
   matches?: MarketDataResourceInput;
   props?: MarketDataResourceInput;
+}
+
+export interface SportsMarketDataHydrationResult {
+  resources: SportsMarketDataHydration;
+  pages: {
+    matches?: SportsPage<SportsMatchCard>;
+    props?: SportsPage<SportsPropEventCard>;
+  };
 }
 
 export async function getSportsMarketDataHydration(input: {
@@ -128,7 +170,7 @@ export async function getSportsMarketDataHydration(input: {
   filters: SportsPageFilters;
   lang: string;
   requestHeaders: HeadersInit;
-}): Promise<SportsMarketDataHydration | undefined> {
+}): Promise<SportsMarketDataHydrationResult | undefined> {
   if (!input.enabled || !process.env.PREDICT_URL) return undefined;
   const common: Record<string, unknown> = {
     ...(input.filters.taxonomy_type
@@ -183,37 +225,74 @@ export async function getSportsMarketDataHydration(input: {
           },
         },
       );
-      if (!response.ok) return [resource, undefined] as const;
-      const etag = response.headers.get("x-market-structure-etag");
-      if (!etag) return [resource, undefined] as const;
-      const page = (await response.json()) as PredictPage<PredictEvent>;
+      if (!response.ok) return undefined;
+      const structureETag = response.headers.get("x-market-structure-etag");
+      if (!structureETag) return undefined;
+      const responseBody = await response.json();
+      if (resource === "matches") {
+        const page = responseBody as SportsPage<SportsMatchCard>;
+        const structure = structureFromComposite(
+          page,
+          null,
+        ) as unknown as MarketStructureResponse;
+        return {
+          resource,
+          page,
+          marketDataResource: buildSportsMarketDataResource({
+            section: input.section,
+            resource,
+            structure,
+            structureETag,
+            structurePath: path,
+            initialQuotes: initialQuotesFromPage(page),
+          }),
+        } as const;
+      }
+      const page = responseBody as SportsPage<SportsPropEventCard>;
       const structure = structureFromComposite(
         page,
         null,
       ) as unknown as MarketStructureResponse;
-      return [
+      return {
         resource,
-        buildSportsMarketDataResource({
+        page,
+        marketDataResource: buildSportsMarketDataResource({
           section: input.section,
           resource,
           structure,
-          structureETag: etag,
+          structureETag,
           structurePath: path,
           initialQuotes: initialQuotesFromPage(page),
         }),
-      ] as const;
+      } as const;
     }),
   );
-  return Object.fromEntries(entries) as SportsMarketDataHydration;
+  const result: SportsMarketDataHydrationResult = {
+    resources: {},
+    pages: {},
+  };
+  for (const entry of entries) {
+    if (!entry) continue;
+    if (entry.resource === "matches") {
+      result.resources.matches = entry.marketDataResource;
+      result.pages.matches = entry.page;
+    } else {
+      result.resources.props = entry.marketDataResource;
+      result.pages.props = entry.page;
+    }
+  }
+  return result;
 }
 
 export async function getSportsMatchMarketDataHydration(input: {
   enabled: boolean;
-  match: import("../sports/types").SportsMatchDetail;
+  match: SportsMatchDetail;
   lang: string;
   requestHeaders: HeadersInit;
   selectedBook?: MarketDataSelectedBook;
-}): Promise<MarketDataResourceInput | undefined> {
+}): Promise<
+  { match: SportsMatchDetail; resource: MarketDataResourceInput } | undefined
+> {
   if (!input.enabled || !process.env.PREDICT_URL) return undefined;
   const search = recordSearch(input.lang ? { lang: input.lang } : {});
   const path =
@@ -231,19 +310,23 @@ export async function getSportsMatchMarketDataHydration(input: {
     },
   );
   if (!response.ok) return undefined;
-  const etag = response.headers.get("x-market-structure-etag");
-  if (!etag) return undefined;
-  const match = (await response.json()) as PredictEvent;
-  return buildSportsMarketDataResource({
-    section: input.match.section,
-    resource: "detail",
-    structure: structureFromComposite(
-      { items: [match] },
-      null,
-    ) as unknown as MarketStructureResponse,
-    structureETag: etag,
-    structurePath: path,
-    initialQuotes: match.initial_quotes,
-    selectedBook: input.selectedBook,
-  });
+  const structureETag = response.headers.get("x-market-structure-etag");
+  if (!structureETag) return undefined;
+  const match = (await response.json()) as SportsMatchDetail;
+  const structure = structureFromComposite(
+    { items: [match] },
+    null,
+  ) as unknown as MarketStructureResponse;
+  return {
+    match,
+    resource: buildSportsMarketDataResource({
+      section: input.match.section,
+      resource: "detail",
+      structure,
+      structureETag,
+      structurePath: path,
+      initialQuotes: match.initial_quotes,
+      selectedBook: input.selectedBook,
+    }),
+  };
 }

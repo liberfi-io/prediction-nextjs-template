@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
-import type { PredictEvent, PredictPage } from "@liberfi.io/react-predict";
 
 type JsonRecord = Record<string, unknown>;
+interface StructuralCompositePage {
+  items: unknown[];
+  initial_quotes_contract_enabled?: unknown;
+}
 
 function asRecord(value: unknown): JsonRecord {
   return value !== null && typeof value === "object"
@@ -64,7 +67,11 @@ function structuralEvent(value: unknown): JsonRecord {
   return {
     resource_type: event.resource_type ?? "event",
     source: event.source,
-    resource_slug: event.resource_slug ?? event.slug,
+    resource_slug:
+      event.resource_slug ??
+      event.slug ??
+      event.match_group_slug ??
+      event.event_slug,
     ...(event.section ? { section: event.section } : {}),
     title: event.title,
     ...(event.title_trans ? { title_trans: event.title_trans } : {}),
@@ -77,7 +84,7 @@ function structuralEvent(value: unknown): JsonRecord {
 }
 
 export function structureFromComposite(
-  page: PredictPage<PredictEvent>,
+  page: StructuralCompositePage,
   upstreamStructureETag: string | null,
 ): JsonRecord {
   return {
@@ -124,14 +131,28 @@ function validatorItem(value: unknown): JsonRecord {
     source: item.source,
     resource_slug: item.resource_slug,
     section: item.section,
+    title: item.title,
+    title_trans: item.title_trans,
     status: item.status,
+    market_view: item.market_view,
     markets_included: item.markets_included,
+    item_channel: item.item_channel,
     markets: (item.markets as JsonRecord[]).map((market) => ({
       source: market.source,
       market_slug: market.market_slug,
+      question: market.question,
+      question_trans: market.question_trans,
       status: market.status,
+      realtime_supported: market.realtime_supported,
+      realtime_book_supported: market.realtime_book_supported,
       outcomes: (market.outcomes as JsonRecord[]).map((outcome) => ({
         key: outcome.key,
+        label: outcome.label,
+        label_trans: outcome.label_trans,
+        quote_capable: outcome.quote_capable,
+        orderbook_capable: outcome.orderbook_capable,
+        price_history_supported: outcome.price_history_supported,
+        book_channel: outcome.book_channel,
       })),
     })),
   };
@@ -143,6 +164,8 @@ export function marketStructureValidator(
 ): JsonRecord {
   const root = asRecord(value);
   return {
+    representation_schema_version: root.representation_schema_version,
+    initial_quotes_contract_enabled: root.initial_quotes_contract_enabled,
     items: Array.isArray(root.items) ? root.items.map(validatorItem) : [],
   };
 }

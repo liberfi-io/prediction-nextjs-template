@@ -29,17 +29,29 @@ export default async function Page() {
     ...(lang ? { lang } : {}),
     ...(ENABLE_KALSHI ? {} : { source: "polymarket" as const }),
   });
-  await Promise.race([
+  const marketDataHydrationPromise = MARKET_DATA_FEATURE_CAPABILITY.enabled
+    ? Promise.race([
+        getEventsMarketDataHydration({
+          enabled: true,
+          params,
+          requestHeaders,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("market data hydration timeout")),
+            3000,
+          ),
+        ),
+      ]).catch(() => undefined)
+    : Promise.resolve(undefined);
+  const legacyPrefetchPromise = Promise.race([
     queryClient.prefetchInfiniteQuery({
       queryKey: infiniteEventsQueryKey(params),
       queryFn: ({ pageParam }) =>
         fetchEventsPage(client, {
           ...params,
           ...(pageParam ? { cursor: pageParam } : {}),
-        }).then((page) => {
-          const filtered = filterTradableEventsPage(page);
-          return filtered;
-        }),
+        }).then((page) => filterTradableEventsPage(page)),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage: {
         has_more?: boolean;
@@ -54,17 +66,22 @@ export default async function Page() {
       setTimeout(() => reject(new Error("prefetch timeout")), 3000),
     ),
   ]).catch(() => {});
-  const marketDataResource = await getEventsMarketDataHydration({
-    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
-    params,
-    requestHeaders,
-  }).catch(() => undefined);
+  const [marketDataHydration] = await Promise.all([
+    marketDataHydrationPromise,
+    legacyPrefetchPromise,
+  ]);
+  if (marketDataHydration) {
+    queryClient.setQueryData(infiniteEventsQueryKey(params), {
+      pages: [marketDataHydration.page],
+      pageParams: [undefined],
+    });
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <PredictListPage
         marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
-        marketDataResource={marketDataResource}
+        marketDataResource={marketDataHydration?.resource}
       />
     </HydrationBoundary>
   );

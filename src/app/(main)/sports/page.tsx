@@ -25,29 +25,63 @@ export default async function Page({
 
   const filters = resolveSportsPageFilters(await searchParams);
   const { lang, requestHeaders } = await getPredictionLocaleContext();
-  const data = await prefetchSportsPageData({
+  const deadline = createSportsSsrDeadline(3000);
+  const marketDataHydrationPromise = MARKET_DATA_FEATURE_CAPABILITY.enabled
+    ? deadline
+        .withRemainingTimeout(() =>
+          getSportsMarketDataHydration({
+            enabled: true,
+            section: "sports",
+            filters,
+            lang,
+            requestHeaders,
+          }),
+        )
+        .catch(() => undefined)
+    : Promise.resolve(undefined);
+  const dataPromise = prefetchSportsPageData({
     section: "sports",
     lang,
     requestHeaders,
-    deadline: createSportsSsrDeadline(3000),
+    deadline,
     filters,
   });
-  const marketDataResources = await getSportsMarketDataHydration({
-    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
-    section: "sports",
-    filters,
-    lang,
-    requestHeaders,
-  }).catch(() => undefined);
+  const [marketDataHydration, data] = await Promise.all([
+    marketDataHydrationPromise,
+    dataPromise,
+  ]);
+  const hydratedData = {
+    ...data,
+    ...(marketDataHydration?.pages.matches
+      ? {
+          matches: marketDataHydration.pages.matches.items,
+          match_pagination: {
+            next_cursor: marketDataHydration.pages.matches.next_cursor,
+            has_more: marketDataHydration.pages.matches.has_more,
+            limit: marketDataHydration.pages.matches.limit,
+          },
+        }
+      : {}),
+    ...(marketDataHydration?.pages.props
+      ? {
+          props: marketDataHydration.pages.props.items,
+          prop_pagination: {
+            next_cursor: marketDataHydration.pages.props.next_cursor,
+            has_more: marketDataHydration.pages.props.has_more,
+            limit: marketDataHydration.pages.props.limit,
+          },
+        }
+      : {}),
+  };
 
   return (
     <SportsShell
       section="sports"
-      data={data}
+      data={hydratedData}
       filters={filters}
       lang={lang}
       marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
-      marketDataResources={marketDataResources}
+      marketDataResources={marketDataHydration?.resources}
     />
   );
 }

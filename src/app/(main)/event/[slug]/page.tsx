@@ -249,27 +249,30 @@ export default async function Page({ params, searchParams }: PageProps) {
             ?.outcomes?.find((candidate) => candidate.outcome === outcome)
             ?.orderbook
         : undefined;
-    const marketDataResource = await getSportsMatchMarketDataHydration({
-      enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
-      match,
-      lang: localeContext.lang,
-      requestHeaders: localeContext.requestHeaders,
-      selectedBook: selectedSportsBook
-        ? {
-            source: selectedSportsBook.source,
-            marketSlug: selectedSportsBook.market_slug,
-            outcomeKey: selectedSportsBook.outcome,
-            displayOutcome: outcome as "yes" | "no",
-          }
-        : undefined,
-    }).catch(() => undefined);
+    const marketDataHydration = await withTimeout(
+      getSportsMatchMarketDataHydration({
+        enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+        match,
+        lang: localeContext.lang,
+        requestHeaders: localeContext.requestHeaders,
+        selectedBook: selectedSportsBook
+          ? {
+              source: selectedSportsBook.source,
+              marketSlug: selectedSportsBook.market_slug,
+              outcomeKey: selectedSportsBook.outcome,
+              displayOutcome: outcome as "yes" | "no",
+            }
+          : undefined,
+      }),
+      PREFETCH_TIMEOUT_MS,
+    ).catch(() => undefined);
     return (
       <SportsMatchDetailPage
-        match={match}
+        match={marketDataHydration?.match ?? match}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
         marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
-        marketDataResource={marketDataResource}
+        marketDataResource={marketDataHydration?.resource}
       />
     );
   }
@@ -304,10 +307,6 @@ export default async function Page({ params, searchParams }: PageProps) {
         );
   if (!resolved) notFound();
 
-  queryClient.setQueryData(
-    eventQueryKey(eventSlug, resolved.source, resolved.lang),
-    resolved.event,
-  );
   const selectedEventMarket = market
     ? resolved.event.markets?.find((candidate) => candidate.slug === market)
     : undefined;
@@ -317,19 +316,26 @@ export default async function Page({ params, searchParams }: PageProps) {
       : outcome === "no"
         ? selectedEventMarket?.outcomes[1]
         : undefined;
-  const marketDataResource = await getEventMarketDataHydration({
-    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
-    event: resolved.event,
-    requestHeaders: localeContext.requestHeaders,
-    selectedBook:
-      selectedEventMarket && selectedEventOutcome
-        ? {
-            source: selectedEventMarket.source,
-            marketSlug: selectedEventMarket.slug,
-            outcomeKey: selectedEventOutcome.key,
-          }
-        : undefined,
-  }).catch(() => undefined);
+  const marketDataHydration = await withTimeout(
+    getEventMarketDataHydration({
+      enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+      event: resolved.event,
+      requestHeaders: localeContext.requestHeaders,
+      selectedBook:
+        selectedEventMarket && selectedEventOutcome
+          ? {
+              source: selectedEventMarket.source,
+              marketSlug: selectedEventMarket.slug,
+              outcomeKey: selectedEventOutcome.key,
+            }
+          : undefined,
+    }),
+    PREFETCH_TIMEOUT_MS,
+  ).catch(() => undefined);
+  queryClient.setQueryData(
+    eventQueryKey(eventSlug, resolved.source, resolved.lang),
+    marketDataHydration?.event ?? resolved.event,
+  );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -337,7 +343,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         id={eventSlug}
         source={resolved.source}
         marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
-        marketDataResource={marketDataResource}
+        marketDataResource={marketDataHydration?.resource}
       />
     </HydrationBoundary>
   );

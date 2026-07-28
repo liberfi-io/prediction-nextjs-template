@@ -28,6 +28,7 @@ const openMarket = {
 };
 
 const composite = {
+  initial_quotes_contract_enabled: true,
   items: [
     {
       source: "polymarket",

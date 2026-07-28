@@ -5,6 +5,7 @@ import {
   filterMarketStructure,
   marketStructureETag,
   marketStructureValidator,
+  structureFromComposite,
 } from "src/features/market-data/structure";
 import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "src/features/market-data/constants";
 
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
   const requireMarkets = withMarkets !== "false" && withMarkets !== "0";
   const filtered = filterTradableEventsPage(page, { requireMarkets });
   const structure = marketStructureValidator(
-    filtered,
+    structureFromComposite(filtered, null),
     upstream.headers.get("x-market-structure-etag"),
   );
   return NextResponse.json(filtered, {
