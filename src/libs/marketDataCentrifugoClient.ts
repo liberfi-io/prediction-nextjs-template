@@ -65,11 +65,13 @@ class CentrifugoMarketDataTransport implements MarketDataTransport {
     });
     let active = true;
     let epoch = "";
+    let hasSubscribed = false;
 
     subscription.on("subscribed", (value) => {
       if (!active) return;
       const context = record(value);
       const position = record(context.streamPosition);
+      hasSubscribed = true;
       epoch = typeof position.epoch === "string" ? position.epoch : "";
       callbacks.onSubscribed({
         epoch,
@@ -102,7 +104,7 @@ class CentrifugoMarketDataTransport implements MarketDataTransport {
       callbacks.onError(context.error ?? value);
     });
     subscription.on("subscribing", (value) => {
-      if (!active) return;
+      if (!active || !hasSubscribed) return;
       callbacks.onError({
         code: "centrifugo_subscribing",
         context: value,

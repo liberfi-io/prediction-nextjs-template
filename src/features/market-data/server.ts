@@ -8,11 +8,7 @@ import type {
 } from "@liberfi.io/react-predict";
 import { resolveSportsMatchRequestView } from "../sports/route/matchRequestView";
 import { sportsLiveTimeRange } from "../sports/live/sportsLiveTimeRange";
-import type {
-  SportsPageData,
-  SportsPageFilters,
-  SportsSection,
-} from "../sports/types";
+import type { SportsPageFilters, SportsSection } from "../sports/types";
 import { structureFromComposite } from "./structure";
 import {
   buildEventMarketDataResource,
@@ -55,7 +51,6 @@ export async function getEventsMarketDataHydration(input: {
   enabled: boolean;
   params: ListEventsParams;
   requestHeaders: HeadersInit;
-  page?: PredictPage<PredictEvent>;
 }): Promise<MarketDataResourceInput | undefined> {
   if (!input.enabled) return undefined;
   const baseUrl = process.env.PREDICT_URL;
@@ -133,7 +128,6 @@ export async function getSportsMarketDataHydration(input: {
   filters: SportsPageFilters;
   lang: string;
   requestHeaders: HeadersInit;
-  data: SportsPageData;
 }): Promise<SportsMarketDataHydration | undefined> {
   if (!input.enabled || !process.env.PREDICT_URL) return undefined;
   const common: Record<string, unknown> = {

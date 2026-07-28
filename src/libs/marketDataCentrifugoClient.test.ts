@@ -113,6 +113,11 @@ describe("market data Centrifugo transport", () => {
       onError,
     });
     const subscription = client.subscriptions.get("event.channel")!;
+    subscription.emit("subscribed", {
+      recovered: true,
+      streamPosition: { epoch: "epoch-2", offset: 41 },
+    });
+    onSubscribed.mockClear();
     subscription.emit("subscribing", { code: 1 });
     subscription.emit("subscribed", {
       recovered: false,
@@ -128,6 +133,24 @@ describe("market data Centrifugo transport", () => {
       offset: 0,
       recovered: false,
     });
+  });
+
+  it("does not report the normal initial subscribing transition as an error", () => {
+    const client = new FakeClient();
+    const transport = createMarketDataCentrifugoTransportFactory({
+      endpoint: "wss://example.test/connection/websocket",
+      createClient: () => client,
+    })();
+    const onError = jest.fn();
+
+    transport.subscribe("event.channel", {
+      onSubscribed: jest.fn(),
+      onPublication: jest.fn(),
+      onError,
+    });
+    client.subscriptions.get("event.channel")!.emit("subscribing", { code: 0 });
+
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it("makes unsubscribe idempotent and ignores late events", () => {

@@ -38,7 +38,6 @@ export default async function Page({
     filters,
     lang,
     requestHeaders,
-    data,
   }).catch(() => undefined);
 
   return (

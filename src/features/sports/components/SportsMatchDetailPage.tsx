@@ -71,6 +71,7 @@ function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
           source: initialBook.source,
           marketSlug: initialBook.market_slug,
           outcomeKey: initialBook.outcome,
+          displayOutcome: initialOutcome,
         }
       : undefined,
   );
@@ -95,7 +96,8 @@ function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
     setSelectedBook((current) =>
       current?.marketSlug === next.marketSlug &&
       current.source === next.source &&
-      current.outcomeKey === next.outcomeKey
+      current.outcomeKey === next.outcomeKey &&
+      current.displayOutcome === next.displayOutcome
         ? current
         : next,
     );
@@ -149,10 +151,8 @@ function SportsMatchDetailBody({
   const marketDataOrderbook = sportsOrderbookForMarketDataBranch(
     marketDataState,
     marketDataSelectedBook?.marketSlug,
-    marketDataSelectedBook?.outcomeKey === "yes" ||
-      marketDataSelectedBook?.outcomeKey === "no"
-      ? marketDataSelectedBook.outcomeKey
-      : undefined,
+    marketDataSelectedBook?.outcomeKey,
+    marketDataSelectedBook?.displayOutcome,
   );
 
   return (

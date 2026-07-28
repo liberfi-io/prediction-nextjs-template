@@ -243,6 +243,7 @@ export function WorldCupDetailPage({
     source: ProviderSource;
     marketSlug: string;
     outcomeKey: string;
+    displayOutcome: "yes" | "no";
   }) => void;
 }) {
   const router = useRouter();
@@ -493,6 +494,7 @@ export function WorldCupDetailPage({
       source: selectedMarket.source,
       marketSlug: selectedMarket.slug,
       outcomeKey,
+      displayOutcome: outcome,
     });
   }, [marketDataEnabled, onMarketDataSelectionChange, outcome, selectedMarket]);
   const selectedMarketDataOrderbook =

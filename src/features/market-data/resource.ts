@@ -34,6 +34,7 @@ export interface MarketDataSelectedBook {
   source: ProviderSource;
   marketSlug: string;
   outcomeKey: string;
+  displayOutcome?: "yes" | "no";
 }
 
 export function buildEventsMarketDataResource({

@@ -100,7 +100,7 @@ describe("sports market data compatibility branch", () => {
         market_slug: "market",
         orderbooks: [
           {
-            outcome: "yes",
+            outcome: "home",
             observed_at: "2026-07-28T00:00:00Z",
             bids: [{ price: "0.40", size: "10" }],
             asks: [{ price: "0.60", size: "12" }],
@@ -112,14 +112,16 @@ describe("sports market data compatibility branch", () => {
         available: true,
         source: "polymarket",
         market_slug: "market",
-        outcome: "yes",
+        outcome: "home",
         observed_at: "2026-07-28T00:00:01Z",
         bids: [{ price: "0.49", size: "20" }],
         asks: [{ price: "0.51", size: "21" }],
       },
     };
 
-    expect(sportsOrderbookForMarketDataBranch(state, "market", "yes")).toEqual({
+    expect(
+      sportsOrderbookForMarketDataBranch(state, "market", "home", "yes"),
+    ).toEqual({
       market_id: "market",
       outcome: "yes",
       bids: [{ price: 0.49, size: 20 }],
@@ -143,7 +145,7 @@ describe("sports market data compatibility branch", () => {
     };
 
     expect(
-      sportsOrderbookForMarketDataBranch(state, "market", "yes"),
+      sportsOrderbookForMarketDataBranch(state, "market", "yes", "yes"),
     ).toBeNull();
   });
 

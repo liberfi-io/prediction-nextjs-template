@@ -1,5 +1,4 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import type { PredictEvent, PredictPage } from "@liberfi.io/react-predict";
 import {
   resolveEventsParams,
   infiniteEventsQueryKey,
@@ -30,8 +29,6 @@ export default async function Page() {
     ...(lang ? { lang } : {}),
     ...(ENABLE_KALSHI ? {} : { source: "polymarket" as const }),
   });
-  let initialPage: PredictPage<PredictEvent> | undefined;
-
   await Promise.race([
     queryClient.prefetchInfiniteQuery({
       queryKey: infiniteEventsQueryKey(params),
@@ -41,7 +38,6 @@ export default async function Page() {
           ...(pageParam ? { cursor: pageParam } : {}),
         }).then((page) => {
           const filtered = filterTradableEventsPage(page);
-          if (!pageParam) initialPage = filtered;
           return filtered;
         }),
       initialPageParam: undefined as string | undefined,
@@ -62,7 +58,6 @@ export default async function Page() {
     enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
     params,
     requestHeaders,
-    page: initialPage,
   }).catch(() => undefined);
 
   return (

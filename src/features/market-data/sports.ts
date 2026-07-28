@@ -33,28 +33,29 @@ function orderbookLevels(
 export function sportsOrderbookForMarketDataBranch(
   state: MarketDataResourceState | undefined,
   marketSlug: string | undefined,
-  outcome: "yes" | "no" | undefined,
+  outcomeKey: string | undefined,
+  displayOutcome: "yes" | "no" | undefined,
 ): Orderbook | null {
-  if (!state || !marketSlug || !outcome) return null;
+  if (!state || !marketSlug || !outcomeKey || !displayOutcome) return null;
   const live = state.liveBook;
-  if (live?.market_slug === marketSlug && live.outcome === outcome) {
+  if (live?.market_slug === marketSlug && live.outcome === outcomeKey) {
     if (!live.available) return null;
     return {
       market_id: marketSlug,
-      outcome,
+      outcome: displayOutcome,
       bids: orderbookLevels(live.bids),
       asks: orderbookLevels(live.asks),
     };
   }
   const snapshot = state.orderbooks?.orderbooks.find(
-    (book) => book.outcome === outcome,
+    (book) => book.outcome === outcomeKey,
   );
   if (state.orderbooks?.market_slug !== marketSlug || !snapshot) {
     return null;
   }
   return {
     market_id: marketSlug,
-    outcome,
+    outcome: displayOutcome,
     bids: orderbookLevels(snapshot.bids),
     asks: orderbookLevels(snapshot.asks),
   };

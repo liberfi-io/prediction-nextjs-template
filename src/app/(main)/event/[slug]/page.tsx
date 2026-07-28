@@ -259,6 +259,7 @@ export default async function Page({ params, searchParams }: PageProps) {
             source: selectedSportsBook.source,
             marketSlug: selectedSportsBook.market_slug,
             outcomeKey: selectedSportsBook.outcome,
+            displayOutcome: outcome as "yes" | "no",
           }
         : undefined,
     }).catch(() => undefined);
