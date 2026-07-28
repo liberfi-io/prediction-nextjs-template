@@ -7,7 +7,10 @@ import {
 } from "src/features/sports/route/pageFilters";
 import { createSportsSsrDeadline } from "src/features/sports/route/sportsSsrDeadline";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
-import { resolveSportsFeatureFlags } from "src/libs/featureFlags";
+import {
+  MARKET_DATA_FEATURE_CAPABILITY,
+  resolveSportsFeatureFlags,
+} from "src/libs/featureFlags";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +33,12 @@ export default async function Page({
   });
 
   return (
-    <SportsShell section="sports" data={data} filters={filters} lang={lang} />
+    <SportsShell
+      section="sports"
+      data={data}
+      filters={filters}
+      lang={lang}
+      marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+    />
   );
 }

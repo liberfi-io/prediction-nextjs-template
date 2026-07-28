@@ -16,6 +16,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import type { MarketDataCapability } from "@liberfi.io/react-predict";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   defaultRangeExtractor,
@@ -47,10 +48,7 @@ import type {
   SportsTaxonomyMatchCount,
   SportsTaxonomyNode,
 } from "../types";
-import {
-  fetchSportsPage,
-  fetchSportsTaxonomyCounts,
-} from "../api/client";
+import { fetchSportsPage, fetchSportsTaxonomyCounts } from "../api/client";
 import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
@@ -87,6 +85,11 @@ import { teamButtonColors } from "../../worldcup/odds/team-button-colors";
 import { useOddsFormat } from "../../worldcup/odds/OddsFormatProvider";
 import { convertPrice } from "../../worldcup/odds/convert-price";
 import type { OddsFormat } from "../../worldcup/odds/convert-price";
+import {
+  sportsMatchesForMarketDataBranch,
+  sportsPageForMarketDataBranch,
+  sportsPropsForMarketDataBranch,
+} from "../../market-data/sports";
 
 type SportsContentTab = "today" | "games" | "props";
 type SportsLiveTaxonomyOverride =
@@ -172,10 +175,7 @@ export function sportsDisplayedMarketCategories(
   sportSlug: string | undefined,
   markets: SportsPrimaryMarkets,
 ): readonly (keyof SportsPrimaryMarkets)[] {
-  const supportedCategories = sportsPrimaryMarketCategories(
-    section,
-    sportSlug,
-  );
+  const supportedCategories = sportsPrimaryMarketCategories(section, sportSlug);
   if (supportedCategories.length < SPORTS_PRIMARY_MARKET_CATEGORIES.length) {
     return supportedCategories;
   }
@@ -192,6 +192,7 @@ interface SportsShellProps {
   data: SportsPageData;
   filters: SportsPageFilters;
   lang?: string;
+  marketDataCapability?: MarketDataCapability;
 }
 
 export function SportsShell({
@@ -199,6 +200,7 @@ export function SportsShell({
   data,
   filters,
   lang,
+  marketDataCapability = { enabled: false },
 }: SportsShellProps) {
   const { t } = useTranslation();
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
@@ -208,6 +210,10 @@ export function SportsShell({
     () => sportsListScrollRef.current,
     [],
   );
+  const branchData = useMemo(
+    () => sportsPageForMarketDataBranch(data, marketDataCapability.enabled),
+    [data, marketDataCapability.enabled],
+  );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [pendingTaxonomyNode, setPendingTaxonomyNode] =
     useState<SportsTaxonomyNode | null>(null);
@@ -215,18 +221,18 @@ export function SportsShell({
     useState<SportsPageFilters["view"]>();
   const [matches, setMatches] = useState<SportsPage<SportsMatchCardData>>(
     () => ({
-      items: data.matches,
-      has_more: data.match_pagination?.has_more ?? false,
-      next_cursor: data.match_pagination?.next_cursor,
-      limit: data.match_pagination?.limit ?? 20,
+      items: branchData.matches,
+      has_more: branchData.match_pagination?.has_more ?? false,
+      next_cursor: branchData.match_pagination?.next_cursor,
+      limit: branchData.match_pagination?.limit ?? 20,
     }),
   );
   const [propPage, setPropPage] = useState<SportsPage<SportsPropEventCardData>>(
     () => ({
-      items: data.props,
-      has_more: data.prop_pagination?.has_more ?? false,
-      next_cursor: data.prop_pagination?.next_cursor,
-      limit: data.prop_pagination?.limit ?? 20,
+      items: branchData.props,
+      has_more: branchData.prop_pagination?.has_more ?? false,
+      next_cursor: branchData.prop_pagination?.next_cursor,
+      limit: branchData.prop_pagination?.limit ?? 20,
     }),
   );
   const [loadingResource, setLoadingResource] = useState<
@@ -237,14 +243,13 @@ export function SportsShell({
     useState<SportsLiveTaxonomyOverride>({ kind: "route" });
   const [liveTaxonomyCounts, setLiveTaxonomyCounts] = useState<
     SportsTaxonomyMatchCount[] | undefined
-  >(() => data.match_taxonomy_counts);
+  >(() => branchData.match_taxonomy_counts);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
-  const [liveDateRangeStart, setLiveDateRangeStart] = useState(
-    () =>
-      filters.live_range_start
-        ? initialLiveDate(filters, "live_range_start")
-        : initialLiveDate(filters, "start_time_gte"),
+  const [liveDateRangeStart, setLiveDateRangeStart] = useState(() =>
+    filters.live_range_start
+      ? initialLiveDate(filters, "live_range_start")
+      : initialLiveDate(filters, "start_time_gte"),
   );
   const [selectedLiveDate, setSelectedLiveDate] = useState(
     () =>
@@ -268,7 +273,7 @@ export function SportsShell({
       const { date } = request;
       const nextRangeStart = request.nextRangeStart;
       const taxonomyNode =
-        request.kind === "taxonomy" ? request.node ?? undefined : undefined;
+        request.kind === "taxonomy" ? (request.node ?? undefined) : undefined;
       const normalizedDate = sportsLiveDates(date)[0] ?? date;
       const normalizedRangeStart =
         sportsLiveDates(nextRangeStart ?? liveDateRangeStart)[0] ??
@@ -286,9 +291,7 @@ export function SportsShell({
         setPendingTaxonomyNode(null);
         setPendingTaxonomyView(undefined);
         setLiveTaxonomyOverride(
-          taxonomyNode
-            ? { kind: "node", node: taxonomyNode }
-            : { kind: "all" },
+          taxonomyNode ? { kind: "node", node: taxonomyNode } : { kind: "all" },
         );
         setSelectedLiveDate(normalizedDate);
         setLiveRangeLoading(true);
@@ -308,27 +311,18 @@ export function SportsShell({
           );
       window.history[
         request.kind === "taxonomy" ? "pushState" : "replaceState"
-      ](
-        window.history.state,
-        "",
-        nextHref,
-      );
+      ](window.history.state, "", nextHref);
       if (request.kind === "date" && section === "sports") {
-        const countsRequestId =
-          liveTaxonomyCountsRequestIdRef.current + 1;
+        const countsRequestId = liveTaxonomyCountsRequestIdRef.current + 1;
         liveTaxonomyCountsRequestIdRef.current = countsRequestId;
         void fetchSportsTaxonomyCounts(timeRange)
           .then((taxonomyCounts) => {
-            if (
-              liveTaxonomyCountsRequestIdRef.current === countsRequestId
-            ) {
+            if (liveTaxonomyCountsRequestIdRef.current === countsRequestId) {
               setLiveTaxonomyCounts(taxonomyCounts);
             }
           })
           .catch(() => {
-            if (
-              liveTaxonomyCountsRequestIdRef.current === countsRequestId
-            ) {
+            if (liveTaxonomyCountsRequestIdRef.current === countsRequestId) {
               setLiveTaxonomyCounts([]);
             }
           });
@@ -349,7 +343,13 @@ export function SportsShell({
           lang,
         });
         if (liveRangeRequestIdRef.current === requestId) {
-          setMatches(page);
+          setMatches({
+            ...page,
+            items: sportsMatchesForMarketDataBranch(
+              page.items,
+              marketDataCapability.enabled,
+            ),
+          });
         }
       } catch {
         if (liveRangeRequestIdRef.current === requestId) {
@@ -361,7 +361,13 @@ export function SportsShell({
         }
       }
     },
-    [lang, liveDateRangeStart, matches.limit, section],
+    [
+      lang,
+      liveDateRangeStart,
+      marketDataCapability.enabled,
+      matches.limit,
+      section,
+    ],
   );
   const selectLiveWeek = useCallback(
     (date: Date) => {
@@ -396,8 +402,7 @@ export function SportsShell({
         selectedLiveFilterStart
           ? new Date(selectedLiveFilterStart)
           : new Date(),
-      )[0] ??
-      new Date();
+      )[0] ?? new Date();
     const nextRangeStart =
       sportsLiveDates(
         visibleLiveFilterStart
@@ -408,30 +413,31 @@ export function SportsShell({
     setLiveDateRangeStart(nextRangeStart);
   }, [selectedLiveFilterStart, visibleLiveFilterStart]);
 
-  useEffect(
-    () => {
-      liveRangeRequestIdRef.current += 1;
-      liveTaxonomyCountsRequestIdRef.current += 1;
-      setLiveRangeLoading(false);
-      setMatches({
-        items: data.matches,
-        has_more: data.match_pagination?.has_more ?? false,
-        next_cursor: data.match_pagination?.next_cursor,
-        limit: data.match_pagination?.limit ?? 20,
-      });
-      setLiveTaxonomyCounts(data.match_taxonomy_counts);
-    },
-    [data.match_taxonomy_counts, data.matches, data.match_pagination],
-  );
+  useEffect(() => {
+    liveRangeRequestIdRef.current += 1;
+    liveTaxonomyCountsRequestIdRef.current += 1;
+    setLiveRangeLoading(false);
+    setMatches({
+      items: branchData.matches,
+      has_more: branchData.match_pagination?.has_more ?? false,
+      next_cursor: branchData.match_pagination?.next_cursor,
+      limit: branchData.match_pagination?.limit ?? 20,
+    });
+    setLiveTaxonomyCounts(branchData.match_taxonomy_counts);
+  }, [
+    branchData.match_taxonomy_counts,
+    branchData.matches,
+    branchData.match_pagination,
+  ]);
   useEffect(
     () =>
       setPropPage({
-        items: data.props,
-        has_more: data.prop_pagination?.has_more ?? false,
-        next_cursor: data.prop_pagination?.next_cursor,
-        limit: data.prop_pagination?.limit ?? 20,
+        items: branchData.props,
+        has_more: branchData.prop_pagination?.has_more ?? false,
+        next_cursor: branchData.prop_pagination?.next_cursor,
+        limit: branchData.prop_pagination?.limit ?? 20,
       }),
-    [data.props, data.prop_pagination],
+    [branchData.props, branchData.prop_pagination],
   );
 
   async function loadMore(resource: "matches" | "props") {
@@ -448,17 +454,18 @@ export function SportsShell({
         section,
         resource,
         view: resource === "matches" ? matchRequestView : undefined,
-        taxonomy: liveTaxonomyOverride.kind === "node"
-          ? {
-              taxonomy_type: liveTaxonomyOverride.node.node_type,
-              taxonomy_slug: liveTaxonomyOverride.node.slug,
-            }
-          : liveTaxonomyOverride.kind === "route" && filters.taxonomy_type
+        taxonomy:
+          liveTaxonomyOverride.kind === "node"
             ? {
-                taxonomy_type: filters.taxonomy_type,
-                taxonomy_slug: filters.taxonomy_slug,
+                taxonomy_type: liveTaxonomyOverride.node.node_type,
+                taxonomy_slug: liveTaxonomyOverride.node.slug,
               }
-            : undefined,
+            : liveTaxonomyOverride.kind === "route" && filters.taxonomy_type
+              ? {
+                  taxonomy_type: filters.taxonomy_type,
+                  taxonomy_slug: filters.taxonomy_slug,
+                }
+              : undefined,
         limit: currentPage.limit,
         cursor: currentPage.next_cursor,
         timeRange:
@@ -486,7 +493,10 @@ export function SportsShell({
           ...nextPage,
           items: mergeUniqueSportsItems(
             current.items,
-            nextPage.items as SportsMatchCardData[],
+            sportsMatchesForMarketDataBranch(
+              nextPage.items as SportsMatchCardData[],
+              marketDataCapability.enabled,
+            ),
             (match) => match.match_group_slug,
           ),
         }));
@@ -495,7 +505,10 @@ export function SportsShell({
           ...nextPage,
           items: mergeUniqueSportsItems(
             current.items,
-            nextPage.items as SportsPropEventCardData[],
+            sportsPropsForMarketDataBranch(
+              nextPage.items as SportsPropEventCardData[],
+              marketDataCapability.enabled,
+            ),
             (event) => event.event_slug,
           ),
         }));
@@ -590,8 +603,7 @@ export function SportsShell({
   const showMatchLeague = shouldShowMatchLeague(effectiveFilters);
   const isLiveView = isSpecialViewActive(effectiveFilters, "live");
   const isStandaloneProposalsView =
-    !hasTaxonomySelection &&
-    isSpecialViewActive(effectiveFilters, "proposals");
+    !hasTaxonomySelection && isSpecialViewActive(effectiveFilters, "proposals");
   const liveTaxonomyCountByNode = useMemo(
     () =>
       liveTaxonomyCounts
@@ -1499,10 +1511,7 @@ function SportsContentTabs({
 
 function SportsProposalsOddsToolbar() {
   return (
-    <SportsListToolbar
-      testId="sports-proposals-odds-toolbar"
-      align="end"
-    >
+    <SportsListToolbar testId="sports-proposals-odds-toolbar" align="end">
       <div className="shrink-0">
         <OddsFormatSelect />
       </div>
@@ -1625,9 +1634,7 @@ function SportsMatchList({
         ? null
         : document.getElementById("sports-list-scroll"),
     estimateSize: (index) =>
-      rows[index]?.kind === "heading"
-        ? SPORTS_MATCH_GROUP_ROW_HEIGHT
-        : 168,
+      rows[index]?.kind === "heading" ? SPORTS_MATCH_GROUP_ROW_HEIGHT : 168,
     overscan: 4,
     rangeExtractor,
   });
@@ -2337,9 +2344,7 @@ function SportsMarketColumn({
       : Array.from({ length: slotCount }, (_, index) => rawSelections[index]);
   const hasThreeWayMoneyline = moneylineSlotCount === 3;
   const growButtons =
-    layout === "column" &&
-    hasThreeWayMoneyline &&
-    category !== "moneyline";
+    layout === "column" && hasThreeWayMoneyline && category !== "moneyline";
   return (
     <div
       data-sports-market-column={category}

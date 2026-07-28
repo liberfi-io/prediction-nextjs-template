@@ -2,17 +2,20 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { MarketDataCapability } from "@liberfi.io/react-predict";
 import { useResolvedApiLang } from "src/i18n/ResolvedLocaleProvider";
 import { WorldCupDetailPage } from "src/features/worldcup/components/detail/WorldCupDetailPage";
 import { adaptSportsMatchDetail } from "../detail/adaptSportsMatchDetail";
 import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
 import { useSportsMatchMarketGroups } from "../live/useSportsMatchMarketGroups";
 import type { SportsMatchDetail } from "../types";
+import { sportsMatchForMarketDataBranch } from "../../market-data/sports";
 
 interface SportsMatchDetailPageProps {
   match: SportsMatchDetail;
   initialMarketSlug?: string | null;
   initialOutcome?: string | null;
+  marketDataCapability?: MarketDataCapability;
 }
 
 /** Renders a generic Sports match through the shared World Cup detail UX. */
@@ -20,19 +23,25 @@ export function SportsMatchDetailPage({
   match,
   initialMarketSlug,
   initialOutcome,
+  marketDataCapability = { enabled: false },
 }: SportsMatchDetailPageProps) {
+  const branchMatch = useMemo(
+    () => sportsMatchForMarketDataBranch(match, marketDataCapability.enabled),
+    [marketDataCapability.enabled, match],
+  );
   const realtimeLiveState = useSportsMatchLiveState(
-    match.section,
-    match.match_group_slug,
+    branchMatch.section,
+    branchMatch.match_group_slug,
   );
   const marketGroups = useSportsMatchMarketGroups(
-    match.section,
-    match.match_group_slug,
-    match.market_groups ?? [],
+    branchMatch.section,
+    branchMatch.match_group_slug,
+    branchMatch.market_groups ?? [],
+    { enabled: !marketDataCapability.enabled },
   );
   const viewModel = useMemo(
-    () => adaptSportsMatchDetail(match, marketGroups, realtimeLiveState),
-    [marketGroups, match, realtimeLiveState],
+    () => adaptSportsMatchDetail(branchMatch, marketGroups, realtimeLiveState),
+    [branchMatch, marketGroups, realtimeLiveState],
   );
 
   return (
@@ -57,11 +66,13 @@ export function SportsMatchDetailSkeleton({
   section = "sports",
   initialMarketSlug,
   initialOutcome,
+  marketDataCapability,
 }: {
   matchGroupSlug: string;
   section?: SportsMatchDetail["section"];
   initialMarketSlug?: string | null;
   initialOutcome?: string | null;
+  marketDataCapability?: MarketDataCapability;
 }) {
   const lang = useResolvedApiLang();
   const { data } = useQuery({
@@ -87,6 +98,7 @@ export function SportsMatchDetailSkeleton({
         match={data}
         initialMarketSlug={initialMarketSlug}
         initialOutcome={initialOutcome}
+        marketDataCapability={marketDataCapability}
       />
     );
   }

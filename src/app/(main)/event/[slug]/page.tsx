@@ -238,6 +238,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         match={sportsRoute.detail as SportsMatchDetail}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
       />
     );
   }
@@ -249,6 +250,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         section={sportsRoute.section}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
       />
     );
   }
