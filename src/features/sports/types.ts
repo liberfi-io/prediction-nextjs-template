@@ -1,4 +1,7 @@
-import type { MarketDataInitialQuotes } from "@liberfi.io/react-predict";
+import type {
+  MarketDataInitialQuotes,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 
 export type SportsSection = "sports" | "esports";
 
@@ -63,7 +66,7 @@ export interface SportsMarketOutcome {
   last_trade_price?: number;
   orderbook?: {
     market_slug: string;
-    source: "polymarket";
+    source: ProviderSource;
     outcome: "yes" | "no";
   };
 }
