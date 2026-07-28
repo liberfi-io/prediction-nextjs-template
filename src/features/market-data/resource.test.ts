@@ -7,7 +7,9 @@ import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
   buildSportsMarketDataResource,
+  eventOrderbooksFromMarketDataState,
   mergeMarketDataEvent,
+  withEventMarketDataSelectedBook,
 } from "./resource";
 
 const event: PredictEvent = {
@@ -98,6 +100,37 @@ describe("events market data resource", () => {
     expect(input.watch.quote_events).toHaveLength(1);
   });
 
+  it("atomically replaces and clears the selected event book", () => {
+    const input = buildEventMarketDataResource({
+      structure,
+      structureETag: 'W/"detail"',
+      structurePath: "/api/v1/events/event?source=polymarket",
+      event,
+    });
+
+    const selected = withEventMarketDataSelectedBook(input, {
+      marketSlug: "market",
+      outcome: "yes",
+    });
+    expect(selected.key).toBe(
+      'event:polymarket:event:W/"detail":book:polymarket:market:yes',
+    );
+    expect(selected.watch.quote_events).toEqual(input.watch.quote_events);
+    expect(selected.watch.orderbook_market).toEqual({
+      source: "polymarket",
+      market_slug: "market",
+    });
+    expect(selected.bookChannel).toBe(
+      "market.book.polymarket.market.yes",
+    );
+
+    const cleared = withEventMarketDataSelectedBook(selected, null);
+    expect(cleared.key).toBe('event:polymarket:event:W/"detail"');
+    expect(cleared.watch.quote_events).toEqual(input.watch.quote_events);
+    expect(cleared.watch.orderbook_market).toBeUndefined();
+    expect(cleared.bookChannel).toBeUndefined();
+  });
+
   it("builds a sports resource from provider-neutral market keys", () => {
     const input = buildSportsMarketDataResource({
       section: "sports",
@@ -159,5 +192,73 @@ describe("events market data resource", () => {
       { key: "yes", label: "Yes", best_bid: 0.52, best_ask: 0.54 },
       { key: "no", label: "No" },
     ]);
+  });
+
+  it("maps plural books by outcome and lets the live book replace its snapshot", () => {
+    const state: MarketDataResourceState = {
+      key: "event",
+      generation: 1,
+      phase: "live",
+      orderbooks: {
+        schema_version: 1,
+        source: "polymarket",
+        market_slug: "market",
+        orderbooks: [
+          {
+            outcome: "yes",
+            observed_at: "2026-07-28T00:00:00Z",
+            bids: [{ price: "0.40", size: "10" }],
+            asks: [{ price: "0.60", size: "12" }],
+          },
+          {
+            outcome: "no",
+            observed_at: "2026-07-28T00:00:00Z",
+            bids: [{ price: "0.45", size: "8" }],
+            asks: [{ price: "0.55", size: "9" }],
+          },
+        ],
+      },
+      liveBook: {
+        schema_version: 1,
+        available: true,
+        source: "polymarket",
+        market_slug: "market",
+        outcome: "yes",
+        observed_at: "2026-07-28T00:00:01Z",
+        bids: [{ price: "0.41", size: "11" }],
+        asks: [{ price: "0.59", size: "13" }],
+      },
+    };
+
+    const books = eventOrderbooksFromMarketDataState(state);
+
+    expect(books.get("market:yes")).toMatchObject({
+      bids: [{ price: 0.41, size: 11 }],
+      asks: [{ price: 0.59, size: 13 }],
+    });
+    expect(books.get("market:no")).toMatchObject({
+      bids: [{ price: 0.45, size: 8 }],
+      asks: [{ price: 0.55, size: 9 }],
+    });
+  });
+
+  it("ignores protocol outcomes that the orderbook UI cannot represent", () => {
+    const state: MarketDataResourceState = {
+      key: "event",
+      generation: 1,
+      phase: "live",
+      liveBook: {
+        schema_version: 1,
+        available: true,
+        source: "polymarket",
+        market_slug: "market",
+        outcome: "draw",
+        observed_at: "2026-07-28T00:00:01Z",
+        bids: [{ price: "0.50", size: "10" }],
+        asks: [{ price: "0.51", size: "10" }],
+      },
+    };
+
+    expect(eventOrderbooksFromMarketDataState(state).size).toBe(0);
   });
 });

@@ -1,12 +1,16 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast } from "@liberfi.io/ui";
 import { Chain } from "@liberfi.io/types";
-import { EventDetailPage, usePredictWallet } from "@liberfi.io/ui-predict";
+import {
+  EventDetailPage,
+  usePredictWallet,
+  type EventMarketDataBookSelection,
+} from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
   eventQueryKey,
@@ -28,7 +32,11 @@ import { trackMatchDetailView } from "../../lib/analytics";
 import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
-import { mergeMarketDataEvent } from "../../features/market-data/resource";
+import {
+  eventOrderbooksFromMarketDataState,
+  mergeMarketDataEvent,
+  withEventMarketDataSelectedBook,
+} from "../../features/market-data/resource";
 
 export function PredictDetailPage({
   id,
@@ -52,8 +60,24 @@ export function PredictDetailPage({
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
+  const [bookSelectionState, setBookSelectionState] = useState<{
+    resourceKey: string;
+    selection: EventMarketDataBookSelection | null;
+  }>();
+  const selectedBook =
+    bookSelectionState &&
+    bookSelectionState.resourceKey === marketDataResource?.key
+      ? bookSelectionState.selection
+      : undefined;
+  const activeMarketDataResource = useMemo(
+    () =>
+      marketDataResource && selectedBook !== undefined
+        ? withEventMarketDataSelectedBook(marketDataResource, selectedBook)
+        : marketDataResource,
+    [marketDataResource, selectedBook],
+  );
   const marketDataState = useMarketDataResource(
-    marketDataResource ?? `event:${source}:${id}:legacy`,
+    activeMarketDataResource ?? `event:${source}:${id}:legacy`,
   );
   const event = queryClient.getQueryData<PredictEvent>(
     eventQueryKey(id, source, lang),
@@ -62,6 +86,13 @@ export function PredictDetailPage({
     marketDataCapability.enabled && event
       ? mergeMarketDataEvent(event, marketDataState)
       : undefined;
+  const marketDataOrderbooks = useMemo(
+    () =>
+      marketDataCapability.enabled
+        ? eventOrderbooksFromMarketDataState(marketDataState)
+        : undefined,
+    [marketDataCapability.enabled, marketDataState],
+  );
 
   useEffect(() => {
     trackMatchDetailView({
@@ -135,6 +166,16 @@ export function PredictDetailPage({
   const handleSetupRequired = useCallback(() => {
     void openSetupWallet();
   }, [openSetupWallet]);
+  const handleMarketDataBookSelectionChange = useCallback(
+    (selection: EventMarketDataBookSelection | null) => {
+      if (!marketDataResource) return;
+      setBookSelectionState({
+        resourceKey: marketDataResource.key,
+        selection,
+      });
+    },
+    [marketDataResource],
+  );
 
   return (
     <div
@@ -157,6 +198,12 @@ export function PredictDetailPage({
           onSetupRequired={handleSetupRequired}
           marketDataCapability={marketDataCapability}
           marketDataEvent={marketDataEvent}
+          marketDataOrderbooks={marketDataOrderbooks}
+          onMarketDataBookSelectionChange={
+            marketDataCapability.enabled
+              ? handleMarketDataBookSelectionChange
+              : undefined
+          }
         />
       </div>
     </div>

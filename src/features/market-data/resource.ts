@@ -4,6 +4,7 @@ import type {
   MarketDataResourceState,
   MarketOutcome,
   MarketStructureResponse,
+  Orderbook,
   PredictEvent,
 } from "@liberfi.io/react-predict";
 
@@ -19,7 +20,7 @@ export interface BuildEventMarketDataResourceInput extends Omit<
   "initialQuotes"
 > {
   event: PredictEvent;
-  selectedBook?: { marketSlug: string; outcome: string };
+  selectedBook?: MarketDataSelectedBook;
 }
 
 export interface BuildSportsMarketDataResourceInput extends BuildEventsMarketDataResourceInput {
@@ -74,15 +75,7 @@ export function buildEventMarketDataResource({
       candidate.resource_slug === event.slug &&
       candidate.source === event.source,
   );
-  const selectedMarket = selectedBook
-    ? item?.markets.find(
-        (market) => market.market_slug === selectedBook.marketSlug,
-      )
-    : undefined;
-  const selectedOutcome = selectedMarket?.outcomes.find(
-    (outcome) => outcome.key === selectedBook?.outcome,
-  );
-  return {
+  const base: MarketDataResourceInput = {
     key: `event:${event.source}:${event.slug}:${structureETag}`,
     structure,
     structureETag,
@@ -98,19 +91,48 @@ export function buildEventMarketDataResource({
             },
           ]
         : [],
-      ...(selectedMarket?.realtime_book_supported &&
-      selectedOutcome?.book_channel
-        ? {
-            orderbook_market: {
-              source: selectedMarket.source,
-              market_slug: selectedMarket.market_slug,
-            },
-          }
-        : {}),
     },
-    ...(selectedOutcome?.book_channel
-      ? { bookChannel: selectedOutcome.book_channel }
-      : {}),
+  };
+  return selectedBook
+    ? withEventMarketDataSelectedBook(base, selectedBook)
+    : base;
+}
+
+export function withEventMarketDataSelectedBook(
+  input: MarketDataResourceInput,
+  selectedBook: MarketDataSelectedBook | null,
+): MarketDataResourceInput {
+  const baseKey = input.key.split(":book:", 1)[0]!;
+  const { orderbook_market: _orderbookMarket, ...quoteWatch } = input.watch;
+  const { bookChannel: _bookChannel, ...base } = input;
+  if (!selectedBook) {
+    return { ...base, key: baseKey, watch: quoteWatch };
+  }
+  const eventSource = input.watch.quote_events?.[0]?.source;
+  const market = input.structure.items
+    .flatMap((item) => item.markets)
+    .find(
+      (candidate) =>
+        candidate.market_slug === selectedBook.marketSlug &&
+        (!eventSource || candidate.source === eventSource),
+    );
+  const outcome = market?.outcomes.find(
+    (candidate) => candidate.key === selectedBook.outcome,
+  );
+  if (!market?.realtime_book_supported || !outcome?.book_channel) {
+    return { ...base, key: baseKey, watch: quoteWatch };
+  }
+  return {
+    ...base,
+    key: `${baseKey}:book:${market.source}:${market.market_slug}:${outcome.key}`,
+    watch: {
+      ...quoteWatch,
+      orderbook_market: {
+        source: market.source,
+        market_slug: market.market_slug,
+      },
+    },
+    bookChannel: outcome.book_channel,
   };
 }
 
@@ -220,4 +242,59 @@ export function mergeMarketDataEvent(
       }),
     })),
   };
+}
+
+function orderbookLevels(
+  levels: Array<{ price: string; size: string }> | undefined,
+): Orderbook["bids"] {
+  return (levels ?? []).flatMap((level) => {
+    const price = Number(level.price);
+    const size = Number(level.size);
+    return Number.isFinite(price) &&
+      price >= 0 &&
+      price <= 1 &&
+      Number.isFinite(size) &&
+      size >= 0
+      ? [{ price, size }]
+      : [];
+  });
+}
+
+function isOrderbookOutcome(
+  outcome: string,
+): outcome is NonNullable<Orderbook["outcome"]> {
+  return outcome === "yes" || outcome === "no";
+}
+
+export function eventOrderbooksFromMarketDataState(
+  state: MarketDataResourceState,
+): ReadonlyMap<string, Orderbook | null> {
+  const books = new Map<string, Orderbook | null>();
+  const snapshot = state.orderbooks;
+  if (snapshot) {
+    for (const orderbook of snapshot.orderbooks) {
+      if (!isOrderbookOutcome(orderbook.outcome)) continue;
+      books.set(`${snapshot.market_slug}:${orderbook.outcome}`, {
+        market_id: snapshot.market_slug,
+        outcome: orderbook.outcome,
+        bids: orderbookLevels(orderbook.bids),
+        asks: orderbookLevels(orderbook.asks),
+      });
+    }
+  }
+  const live = state.liveBook;
+  if (live && isOrderbookOutcome(live.outcome)) {
+    books.set(
+      `${live.market_slug}:${live.outcome}`,
+      live.available
+        ? {
+            market_id: live.market_slug,
+            outcome: live.outcome,
+            bids: orderbookLevels(live.bids),
+            asks: orderbookLevels(live.asks),
+          }
+        : null,
+    );
+  }
+  return books;
 }
