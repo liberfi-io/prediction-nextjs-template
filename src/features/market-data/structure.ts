@@ -11,38 +11,56 @@ function asRecord(value: unknown): JsonRecord {
 
 function structuralOutcome(value: unknown): JsonRecord {
   const outcome = asRecord(value);
+  const orderbook = asRecord(outcome.orderbook);
   return {
-    key: outcome.key,
+    key: outcome.key ?? outcome.outcome,
     label: outcome.label,
     ...(outcome.label_trans ? { label_trans: outcome.label_trans } : {}),
     quote_capable: outcome.quote_capable,
     orderbook_capable: outcome.orderbook_capable,
     price_history_supported: outcome.price_history_supported,
-    ...(outcome.book_channel ? { book_channel: outcome.book_channel } : {}),
+    ...((outcome.book_channel ?? orderbook.book_channel)
+      ? { book_channel: outcome.book_channel ?? orderbook.book_channel }
+      : {}),
   };
 }
 
 function structuralMarket(value: unknown): JsonRecord {
   const market = asRecord(value);
+  const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
+  const firstOrderbook = asRecord(asRecord(outcomes[0]).orderbook);
   return {
-    source: market.source,
+    source: market.source ?? firstOrderbook.source,
     market_slug: market.market_slug ?? market.slug,
-    question: market.question,
+    question: market.question ?? market.label,
     ...(market.question_trans ? { question_trans: market.question_trans } : {}),
     status: market.status,
     realtime_supported: market.realtime_supported,
     realtime_book_supported: market.realtime_book_supported,
-    outcomes: Array.isArray(market.outcomes)
-      ? market.outcomes.map(structuralOutcome)
-      : [],
+    outcomes: outcomes.map(structuralOutcome),
   };
 }
 
 function structuralEvent(value: unknown): JsonRecord {
   const event = asRecord(value);
-  const markets = Array.isArray(event.markets)
-    ? event.markets.filter((market) => asRecord(market).status === "open")
+  const groupedMarkets = Array.isArray(event.market_groups)
+    ? event.market_groups.flatMap((group) => {
+        const markets = asRecord(group).markets;
+        return Array.isArray(markets) ? markets : [];
+      })
     : [];
+  const markets = [
+    ...(Array.isArray(event.markets) ? event.markets : []),
+    ...(Array.isArray(event.inline_markets) ? event.inline_markets : []),
+    ...groupedMarkets,
+  ].filter((market) => asRecord(market).status === "open");
+  const uniqueMarkets = new Map<string, JsonRecord>();
+  markets.map(structuralMarket).forEach((market) => {
+    uniqueMarkets.set(
+      `${String(market.source)}\u0000${String(market.market_slug)}`,
+      market,
+    );
+  });
   return {
     resource_type: event.resource_type ?? "event",
     source: event.source,
@@ -54,7 +72,7 @@ function structuralEvent(value: unknown): JsonRecord {
     market_view: event.market_view ?? "full",
     markets_included: event.markets_included ?? true,
     ...(event.item_channel ? { item_channel: event.item_channel } : {}),
-    markets: markets.map(structuralMarket),
+    markets: [...uniqueMarkets.values()],
   };
 }
 
@@ -121,13 +139,10 @@ function validatorItem(value: unknown): JsonRecord {
 
 export function marketStructureValidator(
   value: unknown,
-  upstreamStructureETag: string | null,
+  _upstreamStructureETag: string | null,
 ): JsonRecord {
   const root = asRecord(value);
   return {
-    ...(upstreamStructureETag
-      ? { upstream_structure_version: upstreamStructureETag }
-      : {}),
     items: Array.isArray(root.items) ? root.items.map(validatorItem) : [],
   };
 }

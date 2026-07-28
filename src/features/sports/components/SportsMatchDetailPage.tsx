@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   useMarketDataResource,
@@ -40,6 +41,7 @@ export function SportsMatchDetailPage(props: SportsMatchDetailPageProps) {
 }
 
 function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
+  const router = useRouter();
   const baseResource = props.marketDataResource;
   if (!baseResource) {
     throw new Error(
@@ -50,11 +52,26 @@ function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
     props.initialOutcome === "yes" || props.initialOutcome === "no"
       ? props.initialOutcome
       : undefined;
+  const initialBook = props.initialMarketSlug
+    ? [
+        ...(props.match.inline_markets ?? []),
+        ...(props.match.market_groups ?? []).flatMap(
+          (group) => group.markets ?? [],
+        ),
+      ]
+        .find((market) => market.market_slug === props.initialMarketSlug)
+        ?.outcomes?.find((outcome) => outcome.outcome === initialOutcome)
+        ?.orderbook
+    : undefined;
   const [selectedBook, setSelectedBook] = useState<
     MarketDataSelectedBook | undefined
   >(
-    props.initialMarketSlug && initialOutcome
-      ? { marketSlug: props.initialMarketSlug, outcome: initialOutcome }
+    initialBook
+      ? {
+          source: initialBook.source,
+          marketSlug: initialBook.market_slug,
+          outcomeKey: initialBook.outcome,
+        }
       : undefined,
   );
   const resource = useMemo(
@@ -71,10 +88,14 @@ function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
     [baseResource, props.match.section, selectedBook],
   );
   const state = useMarketDataResource(resource);
+  useEffect(() => {
+    if (state.structureInvalidated) router.refresh();
+  }, [router, state.structureInvalidated]);
   const handleSelectionChange = useCallback((next: MarketDataSelectedBook) => {
     setSelectedBook((current) =>
       current?.marketSlug === next.marketSlug &&
-      current.outcome === next.outcome
+      current.source === next.source &&
+      current.outcomeKey === next.outcomeKey
         ? current
         : next,
     );
@@ -128,7 +149,10 @@ function SportsMatchDetailBody({
   const marketDataOrderbook = sportsOrderbookForMarketDataBranch(
     marketDataState,
     marketDataSelectedBook?.marketSlug,
-    marketDataSelectedBook?.outcome,
+    marketDataSelectedBook?.outcomeKey === "yes" ||
+      marketDataSelectedBook?.outcomeKey === "no"
+      ? marketDataSelectedBook.outcomeKey
+      : undefined,
   );
 
   return (

@@ -13,18 +13,13 @@ import type {
   SportsPageFilters,
   SportsSection,
 } from "../sports/types";
-import {
-  filterMarketStructure,
-  marketStructureETag,
-  marketStructureValidator,
-} from "./structure";
+import { structureFromComposite } from "./structure";
 import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
   buildSportsMarketDataResource,
   type MarketDataSelectedBook,
 } from "./resource";
-import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "./constants";
 
 export function buildPredictApiUrl(baseUrl: string, path: string): URL {
   return new URL(path.replace(/^\/+/, ""), `${baseUrl.replace(/\/+$/, "")}/`);
@@ -72,21 +67,22 @@ export async function getEventsMarketDataHydration(input: {
     cache: "no-store",
     headers: {
       ...Object.fromEntries(new Headers(input.requestHeaders)),
-      Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
+      Accept: "application/json",
     },
   });
   if (!response.ok) return undefined;
-  const structure = filterMarketStructure(
-    await response.json(),
+  const page = (await response.json()) as PredictPage<PredictEvent>;
+  const etag = response.headers.get("x-market-structure-etag");
+  if (!etag) return undefined;
+  const structure = structureFromComposite(
+    page,
+    null,
   ) as unknown as MarketStructureResponse;
-  const etag = marketStructureETag(
-    marketStructureValidator(structure, response.headers.get("etag")),
-  );
   return buildEventsMarketDataResource({
     structure,
     structureETag: etag,
     structurePath: `/api/v1/events${search ? `?${search}` : ""}`,
-    initialQuotes: initialQuotesFromPage(input.page),
+    initialQuotes: initialQuotesFromPage(page),
   });
 }
 
@@ -106,18 +102,22 @@ export async function getEventMarketDataHydration(input: {
     cache: "no-store",
     headers: {
       ...Object.fromEntries(new Headers(input.requestHeaders)),
-      Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
+      Accept: "application/json",
     },
   });
   if (!response.ok) return undefined;
-  const structure = (await response.json()) as MarketStructureResponse;
-  const etag = response.headers.get("etag");
+  const event = (await response.json()) as PredictEvent;
+  const etag = response.headers.get("x-market-structure-etag");
   if (!etag) return undefined;
+  const structure = structureFromComposite(
+    { items: [event] },
+    null,
+  ) as unknown as MarketStructureResponse;
   return buildEventMarketDataResource({
     structure,
     structureETag: etag,
     structurePath: path,
-    event: input.event,
+    event,
     selectedBook: input.selectedBook,
   });
 }
@@ -125,15 +125,6 @@ export async function getEventMarketDataHydration(input: {
 export interface SportsMarketDataHydration {
   matches?: MarketDataResourceInput;
   props?: MarketDataResourceInput;
-}
-
-function sportsInitialQuotes(
-  data: SportsPageData,
-  resource: "matches" | "props",
-): MarketDataInitialQuotes | undefined {
-  const items = resource === "matches" ? data.matches : data.props;
-  const markets = items.flatMap((item) => item.initial_quotes?.markets ?? []);
-  return markets.length > 0 ? { schema_version: 1, markets } : undefined;
 }
 
 export async function getSportsMarketDataHydration(input: {
@@ -194,14 +185,18 @@ export async function getSportsMarketDataHydration(input: {
           cache: "no-store",
           headers: {
             ...Object.fromEntries(new Headers(input.requestHeaders)),
-            Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
+            Accept: "application/json",
           },
         },
       );
       if (!response.ok) return [resource, undefined] as const;
-      const etag = response.headers.get("etag");
+      const etag = response.headers.get("x-market-structure-etag");
       if (!etag) return [resource, undefined] as const;
-      const structure = (await response.json()) as MarketStructureResponse;
+      const page = (await response.json()) as PredictPage<PredictEvent>;
+      const structure = structureFromComposite(
+        page,
+        null,
+      ) as unknown as MarketStructureResponse;
       return [
         resource,
         buildSportsMarketDataResource({
@@ -210,7 +205,7 @@ export async function getSportsMarketDataHydration(input: {
           structure,
           structureETag: etag,
           structurePath: path,
-          initialQuotes: sportsInitialQuotes(input.data, resource),
+          initialQuotes: initialQuotesFromPage(page),
         }),
       ] as const;
     }),
@@ -237,20 +232,24 @@ export async function getSportsMatchMarketDataHydration(input: {
       cache: "no-store",
       headers: {
         ...Object.fromEntries(new Headers(input.requestHeaders)),
-        Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
+        Accept: "application/json",
       },
     },
   );
   if (!response.ok) return undefined;
-  const etag = response.headers.get("etag");
+  const etag = response.headers.get("x-market-structure-etag");
   if (!etag) return undefined;
+  const match = (await response.json()) as PredictEvent;
   return buildSportsMarketDataResource({
     section: input.match.section,
     resource: "detail",
-    structure: (await response.json()) as MarketStructureResponse,
+    structure: structureFromComposite(
+      { items: [match] },
+      null,
+    ) as unknown as MarketStructureResponse,
     structureETag: etag,
     structurePath: path,
-    initialQuotes: input.match.initial_quotes,
+    initialQuotes: match.initial_quotes,
     selectedBook: input.selectedBook,
   });
 }

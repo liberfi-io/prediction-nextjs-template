@@ -6,6 +6,7 @@ import type {
   MarketStructureResponse,
   Orderbook,
   PredictEvent,
+  ProviderSource,
 } from "@liberfi.io/react-predict";
 
 export interface BuildEventsMarketDataResourceInput {
@@ -30,8 +31,9 @@ export interface BuildSportsMarketDataResourceInput extends BuildEventsMarketDat
 }
 
 export interface MarketDataSelectedBook {
+  source: ProviderSource;
   marketSlug: string;
-  outcome: "yes" | "no";
+  outcomeKey: string;
 }
 
 export function buildEventsMarketDataResource({
@@ -108,16 +110,15 @@ export function withEventMarketDataSelectedBook(
   if (!selectedBook) {
     return { ...base, key: baseKey, watch: quoteWatch };
   }
-  const eventSource = input.watch.quote_events?.[0]?.source;
   const market = input.structure.items
     .flatMap((item) => item.markets)
     .find(
       (candidate) =>
         candidate.market_slug === selectedBook.marketSlug &&
-        (!eventSource || candidate.source === eventSource),
+        candidate.source === selectedBook.source,
     );
   const outcome = market?.outcomes.find(
-    (candidate) => candidate.key === selectedBook.outcome,
+    (candidate) => candidate.key === selectedBook.outcomeKey,
   );
   if (!market?.realtime_book_supported || !outcome?.book_channel) {
     return { ...base, key: baseKey, watch: quoteWatch };
@@ -161,10 +162,14 @@ export function buildSportsMarketDataResource({
   const selectedMarket = selectedBook
     ? structure.items
         .flatMap((item) => item.markets)
-        .find((market) => market.market_slug === selectedBook.marketSlug)
+        .find(
+          (market) =>
+            market.source === selectedBook.source &&
+            market.market_slug === selectedBook.marketSlug,
+        )
     : undefined;
   const selectedOutcome = selectedMarket?.outcomes.find(
-    (outcome) => outcome.key === selectedBook?.outcome,
+    (outcome) => outcome.key === selectedBook?.outcomeKey,
   );
   const bookTarget =
     selectedMarket?.realtime_book_supported && selectedOutcome?.book_channel
@@ -260,12 +265,6 @@ function orderbookLevels(
   });
 }
 
-function isOrderbookOutcome(
-  outcome: string,
-): outcome is NonNullable<Orderbook["outcome"]> {
-  return outcome === "yes" || outcome === "no";
-}
-
 export function eventOrderbooksFromMarketDataState(
   state: MarketDataResourceState,
 ): ReadonlyMap<string, Orderbook | null> {
@@ -273,23 +272,20 @@ export function eventOrderbooksFromMarketDataState(
   const snapshot = state.orderbooks;
   if (snapshot) {
     for (const orderbook of snapshot.orderbooks) {
-      if (!isOrderbookOutcome(orderbook.outcome)) continue;
       books.set(`${snapshot.market_slug}:${orderbook.outcome}`, {
         market_id: snapshot.market_slug,
-        outcome: orderbook.outcome,
         bids: orderbookLevels(orderbook.bids),
         asks: orderbookLevels(orderbook.asks),
       });
     }
   }
   const live = state.liveBook;
-  if (live && isOrderbookOutcome(live.outcome)) {
+  if (live) {
     books.set(
       `${live.market_slug}:${live.outcome}`,
       live.available
         ? {
             market_id: live.market_slug,
-            outcome: live.outcome,
             bids: orderbookLevels(live.bids),
             asks: orderbookLevels(live.asks),
           }

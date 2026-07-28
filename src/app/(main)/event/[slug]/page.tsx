@@ -237,15 +237,30 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   if (sportsRoute.kind === "sports_match") {
     const match = sportsRoute.detail as SportsMatchDetail;
+    const selectedSportsBook =
+      market && (outcome === "yes" || outcome === "no")
+        ? [
+            ...(match.inline_markets ?? []),
+            ...(match.market_groups ?? []).flatMap(
+              (group) => group.markets ?? [],
+            ),
+          ]
+            .find((candidate) => candidate.market_slug === market)
+            ?.outcomes?.find((candidate) => candidate.outcome === outcome)
+            ?.orderbook
+        : undefined;
     const marketDataResource = await getSportsMatchMarketDataHydration({
       enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
       match,
       lang: localeContext.lang,
       requestHeaders: localeContext.requestHeaders,
-      selectedBook:
-        market && (outcome === "yes" || outcome === "no")
-          ? { marketSlug: market, outcome }
-          : undefined,
+      selectedBook: selectedSportsBook
+        ? {
+            source: selectedSportsBook.source,
+            marketSlug: selectedSportsBook.market_slug,
+            outcomeKey: selectedSportsBook.outcome,
+          }
+        : undefined,
     }).catch(() => undefined);
     return (
       <SportsMatchDetailPage
@@ -292,13 +307,26 @@ export default async function Page({ params, searchParams }: PageProps) {
     eventQueryKey(eventSlug, resolved.source, resolved.lang),
     resolved.event,
   );
+  const selectedEventMarket = market
+    ? resolved.event.markets?.find((candidate) => candidate.slug === market)
+    : undefined;
+  const selectedEventOutcome =
+    outcome === "yes"
+      ? selectedEventMarket?.outcomes[0]
+      : outcome === "no"
+        ? selectedEventMarket?.outcomes[1]
+        : undefined;
   const marketDataResource = await getEventMarketDataHydration({
     enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
     event: resolved.event,
     requestHeaders: localeContext.requestHeaders,
     selectedBook:
-      market && (outcome === "yes" || outcome === "no")
-        ? { marketSlug: market, outcome }
+      selectedEventMarket && selectedEventOutcome
+        ? {
+            source: selectedEventMarket.source,
+            marketSlug: selectedEventMarket.slug,
+            outcomeKey: selectedEventOutcome.key,
+          }
         : undefined,
   }).catch(() => undefined);
 

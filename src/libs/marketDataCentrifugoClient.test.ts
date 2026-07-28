@@ -98,6 +98,38 @@ describe("market data Centrifugo transport", () => {
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
+  it("closes the live gate while reconnecting and forwards the new epoch ack", () => {
+    const client = new FakeClient();
+    const transport = createMarketDataCentrifugoTransportFactory({
+      endpoint: "wss://example.test/connection/websocket",
+      createClient: () => client,
+    })();
+    const onSubscribed = jest.fn();
+    const onError = jest.fn();
+
+    transport.subscribe("event.channel", {
+      onSubscribed,
+      onPublication: jest.fn(),
+      onError,
+    });
+    const subscription = client.subscriptions.get("event.channel")!;
+    subscription.emit("subscribing", { code: 1 });
+    subscription.emit("subscribed", {
+      recovered: false,
+      streamPosition: { epoch: "epoch-3", offset: 0 },
+    });
+
+    expect(onError).toHaveBeenCalledWith({
+      code: "centrifugo_subscribing",
+      context: { code: 1 },
+    });
+    expect(onSubscribed).toHaveBeenCalledWith({
+      epoch: "epoch-3",
+      offset: 0,
+      recovered: false,
+    });
+  });
+
   it("makes unsubscribe idempotent and ignores late events", () => {
     const client = new FakeClient();
     const transport = createMarketDataCentrifugoTransportFactory({

@@ -101,6 +101,20 @@ class CentrifugoMarketDataTransport implements MarketDataTransport {
       const context = record(value);
       callbacks.onError(context.error ?? value);
     });
+    subscription.on("subscribing", (value) => {
+      if (!active) return;
+      callbacks.onError({
+        code: "centrifugo_subscribing",
+        context: value,
+      });
+    });
+    subscription.on("unsubscribed", (value) => {
+      if (!active) return;
+      callbacks.onError({
+        code: "centrifugo_unsubscribed",
+        context: value,
+      });
+    });
     subscription.subscribe();
 
     const unsubscribe = () => {

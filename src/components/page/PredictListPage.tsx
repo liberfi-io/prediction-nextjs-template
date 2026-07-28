@@ -52,6 +52,9 @@ export function PredictListPage({
   const marketDataState = useMarketDataResource(
     marketDataResource ?? "events:legacy",
   );
+  useEffect(() => {
+    if (marketDataState.structureInvalidated) router.refresh();
+  }, [marketDataState.structureInvalidated, router]);
   const getMarketDataEvent = useCallback(
     (event: PredictEvent) =>
       marketDataCapability.enabled

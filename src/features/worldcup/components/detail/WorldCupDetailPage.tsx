@@ -240,8 +240,9 @@ export function WorldCupDetailPage({
   marketDataOrderbook?: Orderbook | null;
   /** Switches the market-data-v1 Book resource when the user changes selection. */
   onMarketDataSelectionChange?: (selection: {
+    source: ProviderSource;
     marketSlug: string;
-    outcome: "yes" | "no";
+    outcomeKey: string;
   }) => void;
 }) {
   const router = useRouter();
@@ -486,9 +487,12 @@ export function WorldCupDetailPage({
   const selectedMarket = selection?.option.market;
   useEffect(() => {
     if (!marketDataEnabled || !selectedMarket) return;
+    const outcomeKey = selectedMarket.outcomes[outcome === "yes" ? 0 : 1]?.key;
+    if (!outcomeKey) return;
     onMarketDataSelectionChange?.({
+      source: selectedMarket.source,
       marketSlug: selectedMarket.slug,
-      outcome,
+      outcomeKey,
     });
   }, [marketDataEnabled, onMarketDataSelectionChange, outcome, selectedMarket]);
   const selectedMarketDataOrderbook =

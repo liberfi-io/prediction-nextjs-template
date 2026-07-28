@@ -109,8 +109,9 @@ describe("events market data resource", () => {
     });
 
     const selected = withEventMarketDataSelectedBook(input, {
+      source: "polymarket",
       marketSlug: "market",
-      outcome: "yes",
+      outcomeKey: "yes",
     });
     expect(selected.key).toBe(
       'event:polymarket:event:W/"detail":book:polymarket:market:yes',
@@ -120,9 +121,7 @@ describe("events market data resource", () => {
       source: "polymarket",
       market_slug: "market",
     });
-    expect(selected.bookChannel).toBe(
-      "market.book.polymarket.market.yes",
-    );
+    expect(selected.bookChannel).toBe("market.book.polymarket.market.yes");
 
     const cleared = withEventMarketDataSelectedBook(selected, null);
     expect(cleared.key).toBe('event:polymarket:event:W/"detail"');
@@ -138,7 +137,11 @@ describe("events market data resource", () => {
       structure,
       structureETag: 'W/"sports"',
       structurePath: "/api/v1/sports/matches",
-      selectedBook: { marketSlug: "market", outcome: "yes" },
+      selectedBook: {
+        source: "polymarket",
+        marketSlug: "market",
+        outcomeKey: "yes",
+      },
     });
 
     expect(input.key).toBe(
@@ -147,6 +150,42 @@ describe("events market data resource", () => {
     expect(input.watch.quote_markets).toEqual([
       { source: "polymarket", market_slug: "market" },
     ]);
+    expect(input.watch.orderbook_market).toEqual({
+      source: "polymarket",
+      market_slug: "market",
+    });
+    expect(input.bookChannel).toBe("market.book.polymarket.market.yes");
+  });
+
+  it("uses source with market slug when selecting a mixed-provider sports book", () => {
+    const polymarketItem = structure.items[0]!;
+    const kalshiItem = {
+      ...polymarketItem,
+      source: "kalshi" as const,
+      resource_slug: "kalshi-event",
+      item_channel: "event.kalshi.event.markets",
+      markets: polymarketItem.markets.map((market) => ({
+        ...market,
+        source: "kalshi" as const,
+        outcomes: market.outcomes.map((outcome) => ({
+          ...outcome,
+          book_channel: "market.book.kalshi.market.yes",
+        })),
+      })),
+    };
+    const input = buildSportsMarketDataResource({
+      section: "sports",
+      resource: "detail",
+      structure: { ...structure, items: [kalshiItem, polymarketItem] },
+      structureETag: 'W/"mixed"',
+      structurePath: "/api/v1/sports/matches/event",
+      selectedBook: {
+        source: "polymarket",
+        marketSlug: "market",
+        outcomeKey: "yes",
+      },
+    });
+
     expect(input.watch.orderbook_market).toEqual({
       source: "polymarket",
       market_slug: "market",
@@ -242,7 +281,7 @@ describe("events market data resource", () => {
     });
   });
 
-  it("ignores protocol outcomes that the orderbook UI cannot represent", () => {
+  it("keys books by arbitrary catalog Outcome Key", () => {
     const state: MarketDataResourceState = {
       key: "event",
       generation: 1,
@@ -259,6 +298,12 @@ describe("events market data resource", () => {
       },
     };
 
-    expect(eventOrderbooksFromMarketDataState(state).size).toBe(0);
+    expect(
+      eventOrderbooksFromMarketDataState(state).get("market:draw"),
+    ).toMatchObject({
+      market_id: "market",
+      bids: [{ price: 0.5, size: 10 }],
+      asks: [{ price: 0.51, size: 10 }],
+    });
   });
 });

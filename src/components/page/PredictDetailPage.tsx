@@ -62,7 +62,9 @@ export function PredictDetailPage({
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
   const [bookSelectionState, setBookSelectionState] = useState<{
     resourceKey: string;
-    selection: EventMarketDataBookSelection | null;
+    selection:
+      | (EventMarketDataBookSelection & { source: ProviderSource })
+      | null;
   }>();
   const selectedBook =
     bookSelectionState &&
@@ -93,6 +95,9 @@ export function PredictDetailPage({
         : undefined,
     [marketDataCapability.enabled, marketDataState],
   );
+  useEffect(() => {
+    if (marketDataState.structureInvalidated) router.refresh();
+  }, [marketDataState.structureInvalidated, router]);
 
   useEffect(() => {
     trackMatchDetailView({
@@ -171,10 +176,10 @@ export function PredictDetailPage({
       if (!marketDataResource) return;
       setBookSelectionState({
         resourceKey: marketDataResource.key,
-        selection,
+        selection: selection ? { ...selection, source } : null,
       });
     },
-    [marketDataResource],
+    [marketDataResource, source],
   );
 
   return (

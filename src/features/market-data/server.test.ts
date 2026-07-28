@@ -28,4 +28,69 @@ describe("market data SSR hydration", () => {
       global.fetch = originalFetch;
     }
   });
+
+  it("hydrates structure, validator, and Initial Quote from one composite response", async () => {
+    const originalFetch = global.fetch;
+    const originalPredictUrl = process.env.PREDICT_URL;
+    const composite = {
+      items: [
+        {
+          slug: "event",
+          source: "polymarket",
+          title: "Event",
+          status: "open",
+          initial_quotes: {
+            schema_version: 1,
+            markets: [
+              {
+                source: "polymarket",
+                market_slug: "market",
+                realtime_supported: true,
+                outcomes: [],
+              },
+            ],
+          },
+          markets: [
+            {
+              slug: "market",
+              source: "polymarket",
+              question: "Question",
+              status: "open",
+              realtime_supported: true,
+              realtime_book_supported: false,
+              outcomes: [],
+            },
+          ],
+        },
+      ],
+    };
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        "x-market-structure-etag": 'W/"composite-generation"',
+      }),
+      json: async () => composite,
+    });
+    global.fetch = fetchMock;
+    process.env.PREDICT_URL = "https://predict.example";
+
+    try {
+      const result = await getEventsMarketDataHydration({
+        enabled: true,
+        params: { source: "polymarket" },
+        requestHeaders: {},
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(
+        new Headers(fetchMock.mock.calls[0]![1]!.headers).get("accept"),
+      ).toBe("application/json");
+      expect(result?.structureETag).toBe('W/"composite-generation"');
+      expect(result?.structure.items[0]?.resource_slug).toBe("event");
+      expect(result?.initialQuotes?.markets[0]?.market_slug).toBe("market");
+    } finally {
+      global.fetch = originalFetch;
+      process.env.PREDICT_URL = originalPredictUrl;
+    }
+  });
 });

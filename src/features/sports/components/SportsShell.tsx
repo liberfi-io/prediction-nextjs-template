@@ -291,6 +291,9 @@ function SportsMarketDataResourceMount({
 }) {
   const state = useMarketDataResource(input);
   useEffect(() => onState(state), [onState, state]);
+  useEffect(() => {
+    if (state.structureInvalidated) window.location.reload();
+  }, [state.structureInvalidated]);
   useEffect(
     () => () => {
       onRemove(input.key);
