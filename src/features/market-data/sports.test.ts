@@ -146,4 +146,88 @@ describe("sports market data compatibility branch", () => {
       sportsOrderbookForMarketDataBranch(state, "market", "yes"),
     ).toBeNull();
   });
+
+  it("keeps quotes isolated by the public source, market, and outcome key", () => {
+    const data: SportsPageData = {
+      taxonomy: null,
+      matches: [
+        {
+          match_group_slug: "match",
+          section: "sports",
+          title: "Match",
+          inline_markets: [
+            {
+              market_slug: "shared-market",
+              label: "Winner",
+              outcomes: [
+                {
+                  outcome: "yes",
+                  label: "Home",
+                  orderbook: {
+                    source: "polymarket",
+                    market_slug: "shared-market",
+                    outcome: "yes",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      props: [],
+    };
+    const states: MarketDataResourceState[] = [
+      quoteState("polymarket", "0.41", "0.43"),
+      quoteState("kalshi", "0.71", "0.73"),
+    ];
+
+    expect(
+      sportsPageForMarketDataBranch(data, true, states).matches[0]!
+        .inline_markets![0]!.outcomes![0],
+    ).toMatchObject({ best_bid: 0.41, best_ask: 0.43 });
+  });
 });
+
+function quoteState(
+  source: "polymarket" | "kalshi",
+  bestBid: string,
+  bestAsk: string,
+): MarketDataResourceState {
+  return {
+    key: source,
+    generation: 1,
+    phase: "live",
+    initialQuotes: {
+      schema_version: 1,
+      markets: [
+        {
+          source,
+          market_slug: "shared-market",
+          realtime_supported: true,
+          outcomes: [
+            {
+              source,
+              market_slug: "shared-market",
+              outcome: "yes",
+              bba: {
+                available: true,
+                empty: false,
+                best_bid: Number(bestBid),
+                best_ask: Number(bestAsk),
+                observed_at: "2026-07-28T00:00:00Z",
+              },
+              last_trade: {
+                available: false,
+                observed_at: "2026-07-28T00:00:00Z",
+              },
+              tick_size: {
+                available: false,
+                observed_at: "2026-07-28T00:00:00Z",
+              },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}

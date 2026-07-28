@@ -14,6 +14,10 @@ import type {
 
 type QuoteByOutcome = Map<string, MarketDataOutcomeQuote>;
 
+function quoteKey(source: string, marketSlug: string, outcome: string): string {
+  return `${source}\u0000${marketSlug}\u0000${outcome}`;
+}
+
 function orderbookLevels(
   levels: Array<{ price: string; size: string }> | undefined,
 ): Orderbook["bids"] {
@@ -61,7 +65,7 @@ function quotesFromStates(states: MarketDataResourceState[]): QuoteByOutcome {
     states.flatMap((state) =>
       (state.initialQuotes?.markets ?? []).flatMap((market) =>
         market.outcomes.map((outcome) => [
-          `${market.market_slug}\u0000${outcome.outcome}`,
+          quoteKey(market.source, market.market_slug, outcome.outcome),
           outcome,
         ]),
       ),
@@ -79,7 +83,10 @@ function structuralOutcome(
   delete selected.best_bid;
   delete selected.best_ask;
   delete selected.last_trade_price;
-  const quote = quotes.get(`${marketSlug}\u0000${outcome.outcome}`);
+  const source = outcome.orderbook?.source;
+  const quote = source
+    ? quotes.get(quoteKey(source, marketSlug, outcome.outcome))
+    : undefined;
   if (quote?.bba.available) {
     selected.best_bid = quote.bba.best_bid;
     selected.best_ask = quote.bba.best_ask;

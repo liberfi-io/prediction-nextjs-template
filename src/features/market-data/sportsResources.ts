@@ -1,4 +1,5 @@
 import type { MarketDataResourceInput } from "@liberfi.io/react-predict";
+import type { SportsPageFilters, SportsSection } from "../sports/types";
 import type { SportsMarketDataHydration } from "./server";
 
 export type SportsMarketDataResourceKind = "matches" | "props";
@@ -9,6 +10,28 @@ export interface SportsMarketDataResources {
   props: MarketDataResourceInput[];
 }
 
+/** Returns the React owner key for one server-routed Sports resource generation. */
+export function sportsMarketDataOwnerKey(input: {
+  section: SportsSection;
+  lang?: string;
+  filters: SportsPageFilters;
+  hydration?: SportsMarketDataHydration;
+}): string {
+  return [
+    input.section,
+    input.lang ?? "",
+    input.filters.view ?? "",
+    input.filters.taxonomy_type ?? "",
+    input.filters.taxonomy_slug ?? "",
+    input.filters.start_time_gte ?? "",
+    input.filters.start_time_lt ?? "",
+    input.filters.live_range_start ?? "",
+    input.hydration?.matches?.key ?? "",
+    input.hydration?.props?.key ?? "",
+  ].join("\u0000");
+}
+
+/** Creates the mounted resource set from the server-rendered hydration payload. */
 export function initialSportsMarketDataResources(
   hydration: SportsMarketDataHydration | undefined,
 ): SportsMarketDataResources {
@@ -18,6 +41,7 @@ export function initialSportsMarketDataResources(
   };
 }
 
+/** Appends a pagination generation or replaces one resource kind after navigation. */
 export function updateSportsMarketDataResources(
   current: SportsMarketDataResources,
   kind: SportsMarketDataResourceKind,

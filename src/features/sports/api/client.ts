@@ -1,7 +1,7 @@
-import type {
-  MarketDataInitialQuotes,
-  MarketDataResourceInput,
-  MarketStructureResponse,
+import {
+  type MarketDataInitialQuotes,
+  type MarketDataResourceInput,
+  type MarketStructureResponse,
 } from "@liberfi.io/react-predict";
 import type {
   SportsPage,
@@ -15,10 +15,8 @@ import {
   normalizeSportsTaxonomyCounts,
   SPORTS_TAXONOMY_COUNTS_PATH,
 } from "./sportsTaxonomyCounts";
+import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "../../market-data/constants";
 import { buildSportsMarketDataResource } from "../../market-data/resource";
-
-const MARKET_STRUCTURE_MEDIA_TYPE =
-  "application/vnd.liberfi.market-structure+json;version=1";
 
 export interface SportsPageRequest {
   section: SportsSection;
@@ -87,7 +85,7 @@ async function fetchSportsMarketDataResource<T>(
 ): Promise<MarketDataResourceInput | undefined> {
   const response = await fetch(sportsPageUrl(input), {
     cache: "no-store",
-    headers: { Accept: MARKET_STRUCTURE_MEDIA_TYPE },
+    headers: { Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1 },
   });
   if (!response.ok) return undefined;
   const etag = response.headers.get("etag");

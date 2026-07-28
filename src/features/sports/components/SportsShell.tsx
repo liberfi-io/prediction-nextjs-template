@@ -100,6 +100,7 @@ import {
 import type { SportsMarketDataHydration } from "../../market-data/server";
 import {
   initialSportsMarketDataResources,
+  sportsMarketDataOwnerKey,
   updateSportsMarketDataResources,
   type SportsMarketDataResourceKind,
   type SportsMarketDataResourceUpdate,
@@ -212,7 +213,13 @@ interface SportsShellProps {
 
 export function SportsShell(props: SportsShellProps) {
   if (props.marketDataCapability?.enabled) {
-    return <SportsShellWithMarketData {...props} />;
+    const ownerKey = sportsMarketDataOwnerKey({
+      section: props.section,
+      lang: props.lang,
+      filters: props.filters,
+      hydration: props.marketDataResources,
+    });
+    return <SportsShellWithMarketData key={ownerKey} {...props} />;
   }
   return <SportsShellBody {...props} marketDataStates={[]} />;
 }
@@ -224,9 +231,6 @@ function SportsShellWithMarketData(props: SportsShellProps) {
   const [states, setStates] = useState<Record<string, MarketDataResourceState>>(
     {},
   );
-  useEffect(() => {
-    setResources(initialSportsMarketDataResources(props.marketDataResources));
-  }, [props.marketDataResources]);
   const updateResource = useCallback(
     (
       kind: SportsMarketDataResourceKind,
@@ -605,11 +609,7 @@ function SportsShellBody({
           lang,
           marketDataEnabled: marketDataCapability.enabled,
         });
-      if (
-        resource === "matches" &&
-        usesLiveMatchRange &&
-        liveRangeRequestIdRef.current !== matchRangeRequestId
-      ) {
+      if (liveRangeRequestIdRef.current !== matchRangeRequestId) {
         return;
       }
       if (resource === "matches") {

@@ -1,6 +1,7 @@
 import type { MarketDataResourceInput } from "@liberfi.io/react-predict";
 import {
   initialSportsMarketDataResources,
+  sportsMarketDataOwnerKey,
   updateSportsMarketDataResources,
 } from "./sportsResources";
 
@@ -52,5 +53,28 @@ describe("sports market data resource generations", () => {
       "matches:new-route",
     ]);
     expect(replaced.props.map(({ key }) => key)).toEqual(["props:first"]);
+  });
+
+  it("changes the resource owner generation with route identity", () => {
+    const hydration = { matches: resource("matches:first") };
+    const initial = sportsMarketDataOwnerKey({
+      section: "sports",
+      lang: "en",
+      filters: { view: "live" },
+      hydration,
+    });
+
+    expect(
+      sportsMarketDataOwnerKey({
+        section: "sports",
+        lang: "en",
+        filters: {
+          view: "live",
+          taxonomy_type: "sport",
+          taxonomy_slug: "soccer",
+        },
+        hydration,
+      }),
+    ).not.toBe(initial);
   });
 });

@@ -132,7 +132,7 @@ describe("fetchSportsPage", () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
     const structureRequest = jest.mocked(global.fetch).mock.calls[1]!;
     expect(new Headers(structureRequest[1]?.headers).get("accept")).toBe(
-      "application/vnd.liberfi.market-structure+json;version=1",
+      "application/vnd.liberfi.market-structure+json;v=1",
     );
   });
 

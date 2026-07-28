@@ -24,9 +24,7 @@ import {
   buildSportsMarketDataResource,
   type MarketDataSelectedBook,
 } from "./resource";
-
-const STRUCTURE_MEDIA_TYPE =
-  "application/vnd.liberfi.market-structure+json;v=1";
+import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "./constants";
 
 export function buildPredictApiUrl(baseUrl: string, path: string): URL {
   return new URL(path.replace(/^\/+/, ""), `${baseUrl.replace(/\/+$/, "")}/`);
@@ -74,7 +72,7 @@ export async function getEventsMarketDataHydration(input: {
     cache: "no-store",
     headers: {
       ...Object.fromEntries(new Headers(input.requestHeaders)),
-      Accept: STRUCTURE_MEDIA_TYPE,
+      Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
     },
   });
   if (!response.ok) return undefined;
@@ -108,7 +106,7 @@ export async function getEventMarketDataHydration(input: {
     cache: "no-store",
     headers: {
       ...Object.fromEntries(new Headers(input.requestHeaders)),
-      Accept: STRUCTURE_MEDIA_TYPE,
+      Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
     },
   });
   if (!response.ok) return undefined;
@@ -196,7 +194,7 @@ export async function getSportsMarketDataHydration(input: {
           cache: "no-store",
           headers: {
             ...Object.fromEntries(new Headers(input.requestHeaders)),
-            Accept: STRUCTURE_MEDIA_TYPE,
+            Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
           },
         },
       );
@@ -239,7 +237,7 @@ export async function getSportsMatchMarketDataHydration(input: {
       cache: "no-store",
       headers: {
         ...Object.fromEntries(new Headers(input.requestHeaders)),
-        Accept: STRUCTURE_MEDIA_TYPE,
+        Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1,
       },
     },
   );

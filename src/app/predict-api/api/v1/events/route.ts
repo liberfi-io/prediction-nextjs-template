@@ -6,9 +6,7 @@ import {
   marketStructureETag,
   marketStructureValidator,
 } from "src/features/market-data/structure";
-
-const STRUCTURE_MEDIA_TYPE =
-  "application/vnd.liberfi.market-structure+json;v=1";
+import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "src/features/market-data/constants";
 
 function buildPredictUrl(baseUrl: string, path: string, search: string) {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -45,13 +43,13 @@ export async function GET(request: NextRequest) {
     request.nextUrl.search,
   );
   const structureRequested =
-    request.headers.get("accept") === STRUCTURE_MEDIA_TYPE;
+    request.headers.get("accept") === MARKET_STRUCTURE_MEDIA_TYPE_V1;
 
   const upstream = await fetch(upstreamUrl, {
     cache: "no-store",
     headers: forwardingHeaders(
       request,
-      structureRequested ? STRUCTURE_MEDIA_TYPE : "application/json",
+      structureRequested ? MARKET_STRUCTURE_MEDIA_TYPE_V1 : "application/json",
     ),
   });
 
@@ -81,7 +79,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(structure, {
       headers: {
         ...headers,
-        "content-type": STRUCTURE_MEDIA_TYPE,
+        "content-type": MARKET_STRUCTURE_MEDIA_TYPE_V1,
       },
     });
   }
