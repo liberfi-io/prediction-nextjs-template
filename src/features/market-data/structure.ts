@@ -98,3 +98,36 @@ export function marketStructureETag(structure: JsonRecord): string {
     .digest("base64url");
   return `W/"market-structure-v1-${digest}"`;
 }
+
+function validatorItem(value: unknown): JsonRecord {
+  const item = structuralEvent(value);
+  return {
+    resource_type: item.resource_type,
+    source: item.source,
+    resource_slug: item.resource_slug,
+    section: item.section,
+    status: item.status,
+    markets_included: item.markets_included,
+    markets: (item.markets as JsonRecord[]).map((market) => ({
+      source: market.source,
+      market_slug: market.market_slug,
+      status: market.status,
+      outcomes: (market.outcomes as JsonRecord[]).map((outcome) => ({
+        key: outcome.key,
+      })),
+    })),
+  };
+}
+
+export function marketStructureValidator(
+  value: unknown,
+  upstreamStructureETag: string | null,
+): JsonRecord {
+  const root = asRecord(value);
+  return {
+    ...(upstreamStructureETag
+      ? { upstream_structure_version: upstreamStructureETag }
+      : {}),
+    items: Array.isArray(root.items) ? root.items.map(validatorItem) : [],
+  };
+}

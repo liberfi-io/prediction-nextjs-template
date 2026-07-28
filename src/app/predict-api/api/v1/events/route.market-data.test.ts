@@ -183,4 +183,29 @@ describe("events BFF market-data structure validator", () => {
     expect(response.headers.get("content-type")).toBe(STRUCTURE_MEDIA_TYPE);
     expect((await response.json()).items).toHaveLength(1);
   });
+
+  it("uses one validator across composite and structure representations", async () => {
+    const upstreamETag = 'W/"upstream-structure"';
+    jest
+      .spyOn(global, "fetch")
+      .mockResolvedValueOnce(
+        Response.json(composite, {
+          headers: { "x-market-structure-etag": upstreamETag },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json(structure, {
+          headers: { etag: upstreamETag },
+        }),
+      );
+
+    const compositeResponse = await GET(request());
+    const structureResponse = await GET(
+      request({ accept: STRUCTURE_MEDIA_TYPE }),
+    );
+
+    expect(compositeResponse.headers.get("x-market-structure-etag")).toBe(
+      structureResponse.headers.get("etag"),
+    );
+  });
 });

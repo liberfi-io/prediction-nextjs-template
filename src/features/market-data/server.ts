@@ -6,7 +6,11 @@ import type {
   PredictEvent,
   PredictPage,
 } from "@liberfi.io/react-predict";
-import { filterMarketStructure, marketStructureETag } from "./structure";
+import {
+  filterMarketStructure,
+  marketStructureETag,
+  marketStructureValidator,
+} from "./structure";
 import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
@@ -60,7 +64,7 @@ export async function getEventsMarketDataHydration(input: {
     await response.json(),
   ) as unknown as MarketStructureResponse;
   const etag = marketStructureETag(
-    structure as unknown as Record<string, unknown>,
+    marketStructureValidator(structure, response.headers.get("etag")),
   );
   return buildEventsMarketDataResource({
     structure,

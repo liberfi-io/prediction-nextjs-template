@@ -4,7 +4,7 @@ import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
 import {
   filterMarketStructure,
   marketStructureETag,
-  structureFromComposite,
+  marketStructureValidator,
 } from "src/features/market-data/structure";
 
 const STRUCTURE_MEDIA_TYPE =
@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
 
   if (structureRequested) {
     const structure = filterMarketStructure(await upstream.json());
-    const etag = marketStructureETag(structure);
+    const etag = marketStructureETag(
+      marketStructureValidator(structure, upstream.headers.get("etag")),
+    );
     const headers = {
       "cache-control": "no-store",
       etag,
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest) {
   const withMarkets = request.nextUrl.searchParams.get("with_markets");
   const requireMarkets = withMarkets !== "false" && withMarkets !== "0";
   const filtered = filterTradableEventsPage(page, { requireMarkets });
-  const structure = structureFromComposite(
+  const structure = marketStructureValidator(
     filtered,
     upstream.headers.get("x-market-structure-etag"),
   );
