@@ -19,6 +19,7 @@ import { Button } from "@heroui/react";
 import {
   useMarketDataResource,
   type MarketDataCapability,
+  type MarketDataResourceInput,
   type MarketDataResourceState,
 } from "@liberfi.io/react-predict";
 import { useTranslation } from "@liberfi.io/i18n";
@@ -52,7 +53,10 @@ import type {
   SportsTaxonomyMatchCount,
   SportsTaxonomyNode,
 } from "../types";
-import { fetchSportsPage, fetchSportsTaxonomyCounts } from "../api/client";
+import {
+  fetchSportsPageWithMarketData,
+  fetchSportsTaxonomyCounts,
+} from "../api/client";
 import { mergeUniqueSportsItems } from "../api/mergeUniqueSportsItems";
 import { LocalizedTaxonomyLabel } from "../i18n/LocalizedTaxonomyLabel";
 import { sportsLiveTimeRange } from "../live/sportsLiveTimeRange";
@@ -91,10 +95,15 @@ import { convertPrice } from "../../worldcup/odds/convert-price";
 import type { OddsFormat } from "../../worldcup/odds/convert-price";
 import {
   sportsMatchesForMarketDataBranch,
-  sportsPageForMarketDataBranch,
   sportsPropsForMarketDataBranch,
 } from "../../market-data/sports";
 import type { SportsMarketDataHydration } from "../../market-data/server";
+import {
+  initialSportsMarketDataResources,
+  updateSportsMarketDataResources,
+  type SportsMarketDataResourceKind,
+  type SportsMarketDataResourceUpdate,
+} from "../../market-data/sportsResources";
 
 type SportsContentTab = "today" | "games" | "props";
 type SportsLiveTaxonomyOverride =
@@ -202,22 +211,89 @@ interface SportsShellProps {
 }
 
 export function SportsShell(props: SportsShellProps) {
-  if (props.marketDataCapability?.enabled && props.marketDataResources) {
+  if (props.marketDataCapability?.enabled) {
     return <SportsShellWithMarketData {...props} />;
   }
   return <SportsShellBody {...props} marketDataStates={[]} />;
 }
 
 function SportsShellWithMarketData(props: SportsShellProps) {
-  const matchState = useMarketDataResource(
-    props.marketDataResources?.matches ?? `${props.section}:matches:legacy`,
+  const [resources, setResources] = useState(() =>
+    initialSportsMarketDataResources(props.marketDataResources),
   );
-  const propState = useMarketDataResource(
-    props.marketDataResources?.props ?? `${props.section}:props:legacy`,
+  const [states, setStates] = useState<Record<string, MarketDataResourceState>>(
+    {},
   );
+  useEffect(() => {
+    setResources(initialSportsMarketDataResources(props.marketDataResources));
+  }, [props.marketDataResources]);
+  const updateResource = useCallback(
+    (
+      kind: SportsMarketDataResourceKind,
+      resource: MarketDataResourceInput | undefined,
+      update: SportsMarketDataResourceUpdate,
+    ) => {
+      setResources((current) =>
+        updateSportsMarketDataResources(current, kind, resource, update),
+      );
+    },
+    [],
+  );
+  const recordState = useCallback((state: MarketDataResourceState) => {
+    setStates((current) =>
+      current[state.key] === state
+        ? current
+        : { ...current, [state.key]: state },
+    );
+  }, []);
+  const removeState = useCallback((key: string) => {
+    setStates((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }, []);
+  const inputs = [...resources.matches, ...resources.props];
   return (
-    <SportsShellBody {...props} marketDataStates={[matchState, propState]} />
+    <>
+      {inputs.map((input) => (
+        <SportsMarketDataResourceMount
+          key={input.key}
+          input={input}
+          onState={recordState}
+          onRemove={removeState}
+        />
+      ))}
+      <SportsShellBody
+        {...props}
+        marketDataStates={inputs.flatMap((input) =>
+          states[input.key] ? [states[input.key]] : [],
+        )}
+        onMarketDataResource={updateResource}
+      />
+    </>
   );
+}
+
+function SportsMarketDataResourceMount({
+  input,
+  onState,
+  onRemove,
+}: {
+  input: MarketDataResourceInput;
+  onState: (state: MarketDataResourceState) => void;
+  onRemove: (key: string) => void;
+}) {
+  const state = useMarketDataResource(input);
+  useEffect(() => onState(state), [onState, state]);
+  useEffect(
+    () => () => {
+      onRemove(input.key);
+    },
+    [input.key, onRemove],
+  );
+  return null;
 }
 
 function SportsShellBody({
@@ -227,8 +303,14 @@ function SportsShellBody({
   lang,
   marketDataCapability = { enabled: false },
   marketDataStates,
+  onMarketDataResource,
 }: SportsShellProps & {
   marketDataStates: MarketDataResourceState[];
+  onMarketDataResource?: (
+    kind: SportsMarketDataResourceKind,
+    resource: MarketDataResourceInput | undefined,
+    update: SportsMarketDataResourceUpdate,
+  ) => void;
 }) {
   const { t } = useTranslation();
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
@@ -238,15 +320,6 @@ function SportsShellBody({
     () => sportsListScrollRef.current,
     [],
   );
-  const branchData = useMemo(
-    () =>
-      sportsPageForMarketDataBranch(
-        data,
-        marketDataCapability.enabled,
-        marketDataStates,
-      ),
-    [data, marketDataCapability.enabled, marketDataStates],
-  );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [pendingTaxonomyNode, setPendingTaxonomyNode] =
     useState<SportsTaxonomyNode | null>(null);
@@ -254,18 +327,18 @@ function SportsShellBody({
     useState<SportsPageFilters["view"]>();
   const [matches, setMatches] = useState<SportsPage<SportsMatchCardData>>(
     () => ({
-      items: branchData.matches,
-      has_more: branchData.match_pagination?.has_more ?? false,
-      next_cursor: branchData.match_pagination?.next_cursor,
-      limit: branchData.match_pagination?.limit ?? 20,
+      items: data.matches,
+      has_more: data.match_pagination?.has_more ?? false,
+      next_cursor: data.match_pagination?.next_cursor,
+      limit: data.match_pagination?.limit ?? 20,
     }),
   );
   const [propPage, setPropPage] = useState<SportsPage<SportsPropEventCardData>>(
     () => ({
-      items: branchData.props,
-      has_more: branchData.prop_pagination?.has_more ?? false,
-      next_cursor: branchData.prop_pagination?.next_cursor,
-      limit: branchData.prop_pagination?.limit ?? 20,
+      items: data.props,
+      has_more: data.prop_pagination?.has_more ?? false,
+      next_cursor: data.prop_pagination?.next_cursor,
+      limit: data.prop_pagination?.limit ?? 20,
     }),
   );
   const [loadingResource, setLoadingResource] = useState<
@@ -276,7 +349,7 @@ function SportsShellBody({
     useState<SportsLiveTaxonomyOverride>({ kind: "route" });
   const [liveTaxonomyCounts, setLiveTaxonomyCounts] = useState<
     SportsTaxonomyMatchCount[] | undefined
-  >(() => branchData.match_taxonomy_counts);
+  >(() => data.match_taxonomy_counts);
   const [activeTab, setActiveTab] = useState<SportsContentTab>("games");
   const [displayedTab, setDisplayedTab] = useState<SportsContentTab>("games");
   const [liveDateRangeStart, setLiveDateRangeStart] = useState(() =>
@@ -361,28 +434,25 @@ function SportsShellBody({
           });
       }
       try {
-        const page = await fetchSportsPage<SportsMatchCardData>({
-          section,
-          resource: "matches",
-          view: "live",
-          taxonomy: taxonomyNode
-            ? {
-                taxonomy_type: taxonomyNode.node_type,
-                taxonomy_slug: taxonomyNode.slug,
-              }
-            : undefined,
-          timeRange,
-          limit: matches.limit,
-          lang,
-        });
-        if (liveRangeRequestIdRef.current === requestId) {
-          setMatches({
-            ...page,
-            items: sportsMatchesForMarketDataBranch(
-              page.items,
-              marketDataCapability.enabled,
-            ),
+        const { page, marketDataResource } =
+          await fetchSportsPageWithMarketData<SportsMatchCardData>({
+            section,
+            resource: "matches",
+            view: "live",
+            taxonomy: taxonomyNode
+              ? {
+                  taxonomy_type: taxonomyNode.node_type,
+                  taxonomy_slug: taxonomyNode.slug,
+                }
+              : undefined,
+            timeRange,
+            limit: matches.limit,
+            lang,
+            marketDataEnabled: marketDataCapability.enabled,
           });
+        if (liveRangeRequestIdRef.current === requestId) {
+          setMatches(page);
+          onMarketDataResource?.("matches", marketDataResource, "replace");
         }
       } catch {
         if (liveRangeRequestIdRef.current === requestId) {
@@ -399,6 +469,7 @@ function SportsShellBody({
       liveDateRangeStart,
       marketDataCapability.enabled,
       matches.limit,
+      onMarketDataResource,
       section,
     ],
   );
@@ -451,26 +522,44 @@ function SportsShellBody({
     liveTaxonomyCountsRequestIdRef.current += 1;
     setLiveRangeLoading(false);
     setMatches({
-      items: branchData.matches,
-      has_more: branchData.match_pagination?.has_more ?? false,
-      next_cursor: branchData.match_pagination?.next_cursor,
-      limit: branchData.match_pagination?.limit ?? 20,
+      items: data.matches,
+      has_more: data.match_pagination?.has_more ?? false,
+      next_cursor: data.match_pagination?.next_cursor,
+      limit: data.match_pagination?.limit ?? 20,
     });
-    setLiveTaxonomyCounts(branchData.match_taxonomy_counts);
-  }, [
-    branchData.match_taxonomy_counts,
-    branchData.matches,
-    branchData.match_pagination,
-  ]);
+    setLiveTaxonomyCounts(data.match_taxonomy_counts);
+  }, [data.match_taxonomy_counts, data.matches, data.match_pagination]);
   useEffect(
     () =>
       setPropPage({
-        items: branchData.props,
-        has_more: branchData.prop_pagination?.has_more ?? false,
-        next_cursor: branchData.prop_pagination?.next_cursor,
-        limit: branchData.prop_pagination?.limit ?? 20,
+        items: data.props,
+        has_more: data.prop_pagination?.has_more ?? false,
+        next_cursor: data.prop_pagination?.next_cursor,
+        limit: data.prop_pagination?.limit ?? 20,
       }),
-    [branchData.props, branchData.prop_pagination],
+    [data.props, data.prop_pagination],
+  );
+  const visibleMatches = useMemo(
+    () => ({
+      ...matches,
+      items: sportsMatchesForMarketDataBranch(
+        matches.items,
+        marketDataCapability.enabled,
+        marketDataStates,
+      ),
+    }),
+    [marketDataCapability.enabled, marketDataStates, matches],
+  );
+  const visiblePropPage = useMemo(
+    () => ({
+      ...propPage,
+      items: sportsPropsForMarketDataBranch(
+        propPage.items,
+        marketDataCapability.enabled,
+        marketDataStates,
+      ),
+    }),
+    [marketDataCapability.enabled, marketDataStates, propPage],
   );
 
   async function loadMore(resource: "matches" | "props") {
@@ -481,39 +570,41 @@ function SportsShellBody({
     const matchRangeRequestId = liveRangeRequestIdRef.current;
     setLoadingResource(resource);
     try {
-      const nextPage = await fetchSportsPage<
-        SportsMatchCardData | SportsPropEventCardData
-      >({
-        section,
-        resource,
-        view: resource === "matches" ? matchRequestView : undefined,
-        taxonomy:
-          liveTaxonomyOverride.kind === "node"
-            ? {
-                taxonomy_type: liveTaxonomyOverride.node.node_type,
-                taxonomy_slug: liveTaxonomyOverride.node.slug,
-              }
-            : liveTaxonomyOverride.kind === "route" && filters.taxonomy_type
+      const { page: nextPage, marketDataResource } =
+        await fetchSportsPageWithMarketData<
+          SportsMatchCardData | SportsPropEventCardData
+        >({
+          section,
+          resource,
+          view: resource === "matches" ? matchRequestView : undefined,
+          taxonomy:
+            liveTaxonomyOverride.kind === "node"
               ? {
-                  taxonomy_type: filters.taxonomy_type,
-                  taxonomy_slug: filters.taxonomy_slug,
+                  taxonomy_type: liveTaxonomyOverride.node.node_type,
+                  taxonomy_slug: liveTaxonomyOverride.node.slug,
                 }
-              : undefined,
-        limit: currentPage.limit,
-        cursor: currentPage.next_cursor,
-        timeRange:
-          resource === "matches" && usesLiveMatchRange
-            ? sportsLiveTimeRange(selectedLiveDate)
-            : resource === "matches" &&
-                filters.start_time_gte &&
-                filters.start_time_lt
-              ? {
-                  start_time_gte: filters.start_time_gte,
-                  start_time_lt: filters.start_time_lt,
-                }
-              : undefined,
-        lang,
-      });
+              : liveTaxonomyOverride.kind === "route" && filters.taxonomy_type
+                ? {
+                    taxonomy_type: filters.taxonomy_type,
+                    taxonomy_slug: filters.taxonomy_slug,
+                  }
+                : undefined,
+          limit: currentPage.limit,
+          cursor: currentPage.next_cursor,
+          timeRange:
+            resource === "matches" && usesLiveMatchRange
+              ? sportsLiveTimeRange(selectedLiveDate)
+              : resource === "matches" &&
+                  filters.start_time_gte &&
+                  filters.start_time_lt
+                ? {
+                    start_time_gte: filters.start_time_gte,
+                    start_time_lt: filters.start_time_lt,
+                  }
+                : undefined,
+          lang,
+          marketDataEnabled: marketDataCapability.enabled,
+        });
       if (
         resource === "matches" &&
         usesLiveMatchRange &&
@@ -526,10 +617,7 @@ function SportsShellBody({
           ...nextPage,
           items: mergeUniqueSportsItems(
             current.items,
-            sportsMatchesForMarketDataBranch(
-              nextPage.items as SportsMatchCardData[],
-              marketDataCapability.enabled,
-            ),
+            nextPage.items as SportsMatchCardData[],
             (match) => match.match_group_slug,
           ),
         }));
@@ -538,14 +626,12 @@ function SportsShellBody({
           ...nextPage,
           items: mergeUniqueSportsItems(
             current.items,
-            sportsPropsForMarketDataBranch(
-              nextPage.items as SportsPropEventCardData[],
-              marketDataCapability.enabled,
-            ),
+            nextPage.items as SportsPropEventCardData[],
             (event) => event.event_slug,
           ),
         }));
       }
+      onMarketDataResource?.(resource, marketDataResource, "append");
     } finally {
       setLoadingResource(null);
     }
@@ -987,7 +1073,10 @@ function SportsShellBody({
               />
             ) : isLiveView ? (
               <SportsMatchList
-                matches={matchesForUtcDate(matches.items, selectedLiveDate)}
+                matches={matchesForUtcDate(
+                  visibleMatches.items,
+                  selectedLiveDate,
+                )}
                 todayOnly={false}
                 showLeague={showMatchLeague}
                 taxonomyNodes={taxonomyNodes}
@@ -1008,14 +1097,14 @@ function SportsShellBody({
                 )
               ) : displayedTab === "props" ? (
                 <SportsPropsList
-                  page={propPage}
+                  page={visiblePropPage}
                   loading={loadingResource === "props"}
                   onLoadMore={() => void loadMore("props")}
                   getScrollElement={getSportsListScrollElement}
                 />
               ) : (
                 <SportsMatchList
-                  matches={matches.items}
+                  matches={visibleMatches.items}
                   todayOnly={displayedTab === "today"}
                   showLeague={showMatchLeague}
                   taxonomyNodes={taxonomyNodes}
@@ -1029,7 +1118,7 @@ function SportsShellBody({
                 {filters.view !== "proposals" && (
                   <section className="space-y-3">
                     <SportsMatchList
-                      matches={matches.items}
+                      matches={visibleMatches.items}
                       todayOnly={false}
                       showLeague={showMatchLeague}
                       taxonomyNodes={taxonomyNodes}
@@ -1042,10 +1131,10 @@ function SportsShellBody({
 
                 {!isSpecialViewActive(filters, "live") && (
                   <section className="space-y-3">
-                    {propPage.items.length > 0 ||
+                    {visiblePropPage.items.length > 0 ||
                     filters.view === "proposals" ? (
                       <SportsPropsList
-                        page={propPage}
+                        page={visiblePropPage}
                         loading={loadingResource === "props"}
                         onLoadMore={() => void loadMore("props")}
                         getScrollElement={getSportsListScrollElement}
