@@ -13,7 +13,10 @@ import {
   similarEventsQueryKey,
   useSimilarEvents,
 } from "@liberfi.io/react-predict";
-import type { ProviderSource } from "@liberfi.io/react-predict";
+import type {
+  MarketDataCapability,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
 import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
   FUND_WALLET_MODAL_ID,
@@ -25,7 +28,15 @@ import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
 
-export function PredictDetailPage({ id, source }: { id: string; source: ProviderSource }) {
+export function PredictDetailPage({
+  id,
+  source,
+  marketDataCapability,
+}: {
+  id: string;
+  source: ProviderSource;
+  marketDataCapability: MarketDataCapability;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -112,7 +123,11 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   }, [openSetupWallet]);
 
   return (
-    <div className={cn("w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto")}>
+    <div
+      className={cn(
+        "w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto",
+      )}
+    >
       <div className="p-2 lg:p-4 flex w-full max-w-[1550px] mx-auto">
         <EventDetailPage
           eventSlug={id}
@@ -126,6 +141,7 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
           )}
           onInsufficientBalance={handleInsufficientBalance}
           onSetupRequired={handleSetupRequired}
+          marketDataCapability={marketDataCapability}
         />
       </div>
     </div>

@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { LinkComponentType } from "@liberfi.io/ui";
 import { EventsUI } from "@liberfi.io/ui-predict";
-import type {
-  PredictEvent,
-  PredictMarket,
-} from "@liberfi.io/react-predict";
+import type { PredictEvent, PredictMarket } from "@liberfi.io/react-predict";
 import { useTranslation } from "@liberfi.io/i18n";
 import { predictEventHref } from "src/components/page/predict-source";
 import { useWorldcupProps } from "../../data/queries";

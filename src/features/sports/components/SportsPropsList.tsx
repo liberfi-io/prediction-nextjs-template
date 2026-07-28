@@ -79,10 +79,7 @@ export function SportsPropsList({
       Array.from(
         { length: Math.ceil(page.items.length / cardsPerRow) },
         (_, index) =>
-          page.items.slice(
-            index * cardsPerRow,
-            (index + 1) * cardsPerRow,
-          ),
+          page.items.slice(index * cardsPerRow, (index + 1) * cardsPerRow),
       ),
     [cardsPerRow, page.items],
   );
@@ -98,8 +95,9 @@ export function SportsPropsList({
     scrollMargin,
   });
   const virtualItems = virtualizer.getVirtualItems();
-  const { onOpen: openTradeModal } =
-    useAsyncModal<PredictTradeModalParams>(PREDICT_TRADE_MODAL_ID);
+  const { onOpen: openTradeModal } = useAsyncModal<PredictTradeModalParams>(
+    PREDICT_TRADE_MODAL_ID,
+  );
   const handleSelectOutcome = useCallback(
     (
       event: SportsPropEventCard,
@@ -232,9 +230,7 @@ function SportsPropCard({
       className={`sports-prop-card group flex h-full flex-col ${SPORTS_PROP_CARD_HEIGHT_CLASS} ${SPORTS_CARD_SURFACE_CLASS} ${SPORTS_CARD_INTERACTION_CLASS}`}
     >
       <div className="flex flex-1 flex-col gap-2 p-3.5">
-        <CardHeader
-          event={event}
-        />
+        <CardHeader event={event} />
 
         <div className="flex flex-1 flex-col">
           {activeMarket ? (
@@ -292,9 +288,7 @@ function SportsPropCard({
 }
 
 function usePropsCardsPerRow(): number {
-  const [cardsPerRow, setCardsPerRow] = useState(
-    SPORTS_PROPS_DESKTOP_COLUMNS,
-  );
+  const [cardsPerRow, setCardsPerRow] = useState(SPORTS_PROPS_DESKTOP_COLUMNS);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
@@ -309,11 +303,7 @@ function usePropsCardsPerRow(): number {
   return cardsPerRow;
 }
 
-function CardHeader({
-  event,
-}: {
-  event: SportsPropEventCard;
-}) {
+function CardHeader({ event }: { event: SportsPropEventCard }) {
   return (
     <Link
       href={`/event/${encodeURIComponent(event.event_slug)}`}
@@ -620,7 +610,7 @@ function toPredictMarket(
     outcomes: (["yes", "no"] as const).map((side) => {
       const outcome = findOutcome(market, side);
       return {
-        key: side,
+        key: outcome?.outcome ?? side,
         label: outcome?.label ?? side,
         price: outcome?.price,
         best_bid: outcome?.best_bid,
@@ -633,11 +623,7 @@ function toPredictMarket(
 function predictStatus(
   status?: string,
 ): "pending" | "open" | "closed" | "voided" {
-  if (
-    status === "pending" ||
-    status === "closed" ||
-    status === "voided"
-  ) {
+  if (status === "pending" || status === "closed" || status === "voided") {
     return status;
   }
   return "open";

@@ -27,6 +27,30 @@ function srcIndex(pkgDir) {
   return pkgDir;
 }
 
+function declarationIndex(pkgDir) {
+  for (const rel of [
+    `dist/${path.basename(pkgDir)}/src/index.d.ts`,
+    "dist/index.d.ts",
+    "dist/index.d.mts",
+  ]) {
+    if (fs.existsSync(path.join(pkgDir, rel))) return path.join(pkgDir, rel);
+  }
+  return srcIndex(pkgDir);
+}
+
+function declarationTarget(pkgDir, target) {
+  const clean = target.replace(/^\.\//, "");
+  const withoutRuntimeExtension = clean.replace(/\.(mjs|cjs|js)$/, "");
+  for (const rel of [
+    `${withoutRuntimeExtension}.d.ts`,
+    `${withoutRuntimeExtension}.d.mts`,
+    clean,
+  ]) {
+    if (fs.existsSync(path.join(pkgDir, rel))) return path.join(pkgDir, rel);
+  }
+  return path.join(pkgDir, clean);
+}
+
 function distTargetToSrc(pkgDir, target) {
   const clean = target.replace(/^\.\//, "");
   if (!clean.startsWith("dist/")) return undefined;
@@ -52,6 +76,7 @@ function toRootRelative(filePath) {
 
 function localSdkPaths() {
   const paths = {};
+  const useDeclarations = process.env.LOCAL_SDK_TYPECHECK_USE_DIST === "true";
   const allowed = new Set(
     (
       process.env.LOCAL_SDK_TYPECHECK_EXPORTS ||
@@ -63,7 +88,9 @@ function localSdkPaths() {
   );
   for (const { name, dir, pkgJson } of scanSdkPackages(sdkRoot)) {
     if (allowed.has(name)) {
-      paths[name] = [toRootRelative(srcIndex(dir))];
+      paths[name] = [
+        toRootRelative(useDeclarations ? declarationIndex(dir) : srcIndex(dir)),
+      ];
     }
 
     if (!pkgJson.exports) continue;
@@ -87,6 +114,10 @@ function localSdkPaths() {
 
       const target = resolveExportTarget(value);
       if (!target) continue;
+      if (useDeclarations) {
+        paths[publicExport] = [toRootRelative(declarationTarget(dir, target))];
+        continue;
+      }
       const src = distTargetToSrc(dir, target);
       if (!src) continue;
       paths[publicExport] = [toRootRelative(src)];

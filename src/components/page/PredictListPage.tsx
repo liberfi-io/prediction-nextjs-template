@@ -8,6 +8,7 @@ import { toast, type LinkComponentType } from "@liberfi.io/ui";
 import { EventsPage, usePredictWallet } from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import type {
+  MarketDataCapability,
   PredictEvent,
   PredictMarket,
   ProviderSource,
@@ -27,9 +28,15 @@ import {
 import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 
-const NoPrefetchLink: LinkComponentType = (props) => <Link prefetch={false} {...props} />;
+const NoPrefetchLink: LinkComponentType = (props) => (
+  <Link prefetch={false} {...props} />
+);
 
-export function PredictListPage() {
+export function PredictListPage({
+  marketDataCapability,
+}: {
+  marketDataCapability: MarketDataCapability;
+}) {
   const router = useRouter();
   const { t } = useTranslation();
   const lang = useResolvedApiLang();
@@ -107,6 +114,7 @@ export function PredictListPage() {
       onInsufficientBalance={handleInsufficientBalance}
       enableKalshi={ENABLE_KALSHI}
       lang={lang}
+      marketDataCapability={marketDataCapability}
     />
   );
 }

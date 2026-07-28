@@ -28,7 +28,10 @@ import {
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
-import { resolveSportsFeatureFlags } from "src/libs/featureFlags";
+import {
+  MARKET_DATA_FEATURE_CAPABILITY,
+  resolveSportsFeatureFlags,
+} from "src/libs/featureFlags";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
@@ -274,7 +277,11 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictDetailPage id={eventSlug} source={resolved.source} />
+      <PredictDetailPage
+        id={eventSlug}
+        source={resolved.source}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+      />
     </HydrationBoundary>
   );
 }

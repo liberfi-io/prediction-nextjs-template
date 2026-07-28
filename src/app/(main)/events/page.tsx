@@ -7,7 +7,10 @@ import {
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictListPage } from "src/components/page/PredictListPage";
-import { ENABLE_KALSHI } from "src/libs/featureFlags";
+import {
+  ENABLE_KALSHI,
+  MARKET_DATA_FEATURE_CAPABILITY,
+} from "src/libs/featureFlags";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
 
@@ -51,7 +54,7 @@ export default async function Page() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictListPage />
+      <PredictListPage marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY} />
     </HydrationBoundary>
   );
 }
