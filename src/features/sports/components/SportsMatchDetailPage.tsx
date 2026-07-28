@@ -2,7 +2,12 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { MarketDataCapability } from "@liberfi.io/react-predict";
+import {
+  useMarketDataResource,
+  type MarketDataCapability,
+  type MarketDataResourceInput,
+  type MarketDataResourceState,
+} from "@liberfi.io/react-predict";
 import { useResolvedApiLang } from "src/i18n/ResolvedLocaleProvider";
 import { WorldCupDetailPage } from "src/features/worldcup/components/detail/WorldCupDetailPage";
 import { adaptSportsMatchDetail } from "../detail/adaptSportsMatchDetail";
@@ -16,18 +21,42 @@ interface SportsMatchDetailPageProps {
   initialMarketSlug?: string | null;
   initialOutcome?: string | null;
   marketDataCapability?: MarketDataCapability;
+  marketDataResource?: MarketDataResourceInput;
 }
 
 /** Renders a generic Sports match through the shared World Cup detail UX. */
-export function SportsMatchDetailPage({
+export function SportsMatchDetailPage(props: SportsMatchDetailPageProps) {
+  if (props.marketDataCapability?.enabled && props.marketDataResource) {
+    return <SportsMatchDetailWithMarketData {...props} />;
+  }
+  return <SportsMatchDetailBody {...props} />;
+}
+
+function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
+  if (!props.marketDataResource) {
+    throw new Error("Market data resource is required when market data is enabled");
+  }
+  const state = useMarketDataResource(props.marketDataResource);
+  return <SportsMatchDetailBody {...props} marketDataState={state} />;
+}
+
+function SportsMatchDetailBody({
   match,
   initialMarketSlug,
   initialOutcome,
   marketDataCapability = { enabled: false },
-}: SportsMatchDetailPageProps) {
+  marketDataState,
+}: SportsMatchDetailPageProps & {
+  marketDataState?: MarketDataResourceState;
+}) {
   const branchMatch = useMemo(
-    () => sportsMatchForMarketDataBranch(match, marketDataCapability.enabled),
-    [marketDataCapability.enabled, match],
+    () =>
+      sportsMatchForMarketDataBranch(
+        match,
+        marketDataCapability.enabled,
+        marketDataState,
+      ),
+    [marketDataCapability.enabled, marketDataState, match],
   );
   const realtimeLiveState = useSportsMatchLiveState(
     branchMatch.section,
@@ -55,6 +84,7 @@ export function SportsMatchDetailPage({
           matchOverride={viewModel.match}
           showMatchCenter={false}
           analyticsSurface="prediction_detail"
+          marketDataEnabled={marketDataCapability.enabled}
         />
       </div>
     </div>
@@ -67,12 +97,14 @@ export function SportsMatchDetailSkeleton({
   initialMarketSlug,
   initialOutcome,
   marketDataCapability,
+  marketDataResource,
 }: {
   matchGroupSlug: string;
   section?: SportsMatchDetail["section"];
   initialMarketSlug?: string | null;
   initialOutcome?: string | null;
   marketDataCapability?: MarketDataCapability;
+  marketDataResource?: MarketDataResourceInput;
 }) {
   const lang = useResolvedApiLang();
   const { data } = useQuery({
@@ -99,6 +131,7 @@ export function SportsMatchDetailSkeleton({
         initialMarketSlug={initialMarketSlug}
         initialOutcome={initialOutcome}
         marketDataCapability={marketDataCapability}
+        marketDataResource={marketDataResource}
       />
     );
   }

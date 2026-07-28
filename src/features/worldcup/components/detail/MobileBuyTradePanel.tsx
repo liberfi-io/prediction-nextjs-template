@@ -2,21 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  Spinner,
-  cn,
-} from "@liberfi.io/ui";
+import { ChevronDownIcon, ChevronRightIcon, Spinner, cn } from "@liberfi.io/ui";
 import type {
   PredictEvent,
   PredictMarket,
   ProviderSource,
 } from "@liberfi.io/react-predict";
-import {
-  pickBestAsk,
-  useRealtimeOrderbook,
-} from "@liberfi.io/react-predict";
+import { pickBestAsk, useRealtimeOrderbook } from "@liberfi.io/react-predict";
 import {
   formatShares,
   KycModal,
@@ -65,12 +57,14 @@ export function MobileBuyTradePanel({
   outcome = "yes",
   onInsufficientBalance,
   oddsFormatter,
+  legacyOrderbookEnabled = true,
 }: {
   event: PredictEvent;
   market: PredictMarket;
   outcome?: TradeOutcome;
   onInsufficientBalance?: (source: ProviderSource) => void;
   oddsFormatter?: (price: number) => string;
+  legacyOrderbookEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const sharedOutcomePrice = useWorldcupOrderbookPrice(market.slug, outcome);
@@ -80,10 +74,11 @@ export function MobileBuyTradePanel({
       source: market.source ?? "polymarket",
       outcome,
     },
-    { enabled: market.status === "open" },
+    { enabled: legacyOrderbookEnabled && market.status === "open" },
   );
   const hasLiveOutcomeBook =
-    liveOrderbook?.market_id === market.slug && liveOrderbook?.outcome === outcome;
+    liveOrderbook?.market_id === market.slug &&
+    liveOrderbook?.outcome === outcome;
   const liveOutcomePrice = useMemo(() => {
     if (!hasLiveOutcomeBook) {
       return null;
@@ -155,12 +150,13 @@ export function MobileBuyTradePanel({
   const hasAmount = Number.isFinite(quantity) && quantity > 0;
   const eventTitle = event.title_trans || event.title;
   const { actionLabel, marketTitle, outcomeLabel } = useMemo(
-    () => getTradeDisplayLabels({
-      market: effectiveMarket,
-      outcome: activeOutcome,
-      side: "buy",
-      t,
-    }),
+    () =>
+      getTradeDisplayLabels({
+        market: effectiveMarket,
+        outcome: activeOutcome,
+        side: "buy",
+        t,
+      }),
     [activeOutcome, effectiveMarket, t],
   );
   const maxAmount = maxBuyAmount ?? floorUsd(usdcBalance ?? 0);
@@ -169,8 +165,8 @@ export function MobileBuyTradePanel({
     hasAmount && shares > 0 ? totalPayment / shares : 0;
   const effectiveOddsLabel =
     effectivePriceWithFee > 0
-      ? oddsFormatter?.(effectivePriceWithFee) ??
-        `${Number.parseFloat((effectivePriceWithFee * 100).toFixed(2))}¢`
+      ? (oddsFormatter?.(effectivePriceWithFee) ??
+        `${Number.parseFloat((effectivePriceWithFee * 100).toFixed(2))}¢`)
       : EMPTY_VALUE;
 
   const visiblePrice =
@@ -179,8 +175,8 @@ export function MobileBuyTradePanel({
       : pricePerShare;
   const priceLabel =
     Number.isFinite(visiblePrice) && visiblePrice > 0
-      ? oddsFormatter?.(visiblePrice) ??
-        `${Number.parseFloat((visiblePrice * 100).toFixed(2))}¢`
+      ? (oddsFormatter?.(visiblePrice) ??
+        `${Number.parseFloat((visiblePrice * 100).toFixed(2))}¢`)
       : EMPTY_VALUE;
 
   useEffect(() => {
@@ -284,10 +280,13 @@ export function MobileBuyTradePanel({
   const buttonLabel = useMemo(() => {
     if (isAuthChecking) return t("extend.worldcup.detail.trade.checkingLogin");
     if (!isAuthenticated) return t("extend.worldcup.detail.trade.loginToTrade");
-    if (needsKyc || kycRequired) return t("extend.worldcup.detail.trade.verify");
+    if (needsKyc || kycRequired)
+      return t("extend.worldcup.detail.trade.verify");
     if (needsSetup) return t("extend.worldcup.detail.trade.setup");
-    if (isBalanceLoading) return t("extend.worldcup.detail.trade.loadingBalance");
-    if (isMarketDataLoading) return t("extend.worldcup.detail.trade.loadingMarketData");
+    if (isBalanceLoading)
+      return t("extend.worldcup.detail.trade.loadingBalance");
+    if (isMarketDataLoading)
+      return t("extend.worldcup.detail.trade.loadingMarketData");
     if (isSubmitting) return t("extend.worldcup.detail.trade.submitting");
     if (!hasAmount) return t("extend.worldcup.detail.trade.enterAmount");
     if (hasAmount && potentialProfit > 0) {
@@ -361,100 +360,99 @@ export function MobileBuyTradePanel({
           </div>
         </div>
 
-      <div className="mt-2 flex items-center gap-3 px-1 py-1">
-        {event.image_url && (
-          <img
-            src={event.image_url}
-            alt={String(eventTitle)}
-            className="h-10 w-10 shrink-0 rounded-lg object-cover"
-          />
-        )}
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="line-clamp-1 text-sm leading-tight text-zinc-500">
-            {String(eventTitle)}
-          </span>
-          <span className="line-clamp-1 text-base font-semibold leading-tight">
-            <span>{marketTitle} · </span>
-            <span className="text-bullish">
-              {actionLabel} {outcomeLabel}
+        <div className="mt-2 flex items-center gap-3 px-1 py-1">
+          {event.image_url && (
+            <img
+              src={event.image_url}
+              alt={String(eventTitle)}
+              className="h-10 w-10 shrink-0 rounded-lg object-cover"
+            />
+          )}
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="line-clamp-1 text-sm leading-tight text-zinc-500">
+              {String(eventTitle)}
             </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-2 flex flex-col items-center px-1 py-2">
-        <label className="sr-only" htmlFor="mobile-trade-amount">
-          {t("extend.worldcup.detail.trade.amount")}
-        </label>
-        <div className="flex w-full items-center justify-center">
-          <input
-            id="mobile-trade-amount"
-            value={amountText}
-            inputMode="decimal"
-            placeholder="$0"
-            onChange={(event) => handleAmountInput(event.target.value)}
-            onFocus={() => {
-              amountFocusedRef.current = true;
-            }}
-            onBlur={() => {
-              amountFocusedRef.current = false;
-              setAmountText(amountDisplayText(quantity));
-            }}
-            className={cn(
-              "min-w-0 max-w-[260px] bg-transparent text-center text-5xl font-semibold leading-none outline-none placeholder:text-zinc-500",
-              hasAmount ? "text-zinc-100" : "text-zinc-400",
-            )}
-          />
+            <span className="line-clamp-1 text-base font-semibold leading-tight">
+              <span>{marketTitle} · </span>
+              <span className="text-bullish">
+                {actionLabel} {outcomeLabel}
+              </span>
+            </span>
+          </div>
         </div>
 
-        {orderType === "limit" && supportsLimitOrder && (
-          <div className="mt-2 flex items-center gap-2 rounded-[10px] bg-zinc-900/60 px-3 py-2">
-            <span className="text-sm font-medium text-zinc-500">
-              {t("extend.worldcup.detail.trade.limit")}
-            </span>
+        <div className="mt-2 flex flex-col items-center px-1 py-2">
+          <label className="sr-only" htmlFor="mobile-trade-amount">
+            {t("extend.worldcup.detail.trade.amount")}
+          </label>
+          <div className="flex w-full items-center justify-center">
             <input
-              value={limitPriceText}
+              id="mobile-trade-amount"
+              value={amountText}
               inputMode="decimal"
-              placeholder="50"
-              onChange={(event) => handleLimitPriceInput(event.target.value)}
+              placeholder="$0"
+              onChange={(event) => handleAmountInput(event.target.value)}
               onFocus={() => {
-                limitFocusedRef.current = true;
+                amountFocusedRef.current = true;
               }}
               onBlur={() => {
-                limitFocusedRef.current = false;
-                setLimitPriceText(
-                  Number.isFinite(limitPrice)
-                    ? String(Number.parseFloat((limitPrice * 100).toFixed(2)))
-                    : "",
-                );
+                amountFocusedRef.current = false;
+                setAmountText(amountDisplayText(quantity));
               }}
-              className="w-14 bg-transparent text-right text-sm font-semibold text-zinc-100 outline-none"
+              className={cn(
+                "min-w-0 max-w-[260px] bg-transparent text-center text-5xl font-semibold leading-none outline-none placeholder:text-zinc-500",
+                hasAmount ? "text-zinc-100" : "text-zinc-400",
+              )}
             />
-            <span className="text-sm font-semibold text-zinc-500">¢</span>
           </div>
-        )}
 
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          {QUICK_AMOUNTS.map((amount) => (
+          {orderType === "limit" && supportsLimitOrder && (
+            <div className="mt-2 flex items-center gap-2 rounded-[10px] bg-zinc-900/60 px-3 py-2">
+              <span className="text-sm font-medium text-zinc-500">
+                {t("extend.worldcup.detail.trade.limit")}
+              </span>
+              <input
+                value={limitPriceText}
+                inputMode="decimal"
+                placeholder="50"
+                onChange={(event) => handleLimitPriceInput(event.target.value)}
+                onFocus={() => {
+                  limitFocusedRef.current = true;
+                }}
+                onBlur={() => {
+                  limitFocusedRef.current = false;
+                  setLimitPriceText(
+                    Number.isFinite(limitPrice)
+                      ? String(Number.parseFloat((limitPrice * 100).toFixed(2)))
+                      : "",
+                  );
+                }}
+                className="w-14 bg-transparent text-right text-sm font-semibold text-zinc-100 outline-none"
+              />
+              <span className="text-sm font-semibold text-zinc-500">¢</span>
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {QUICK_AMOUNTS.map((amount) => (
+              <button
+                type="button"
+                key={amount}
+                onClick={() => handleQuickAmount(amount)}
+                className="rounded-full bg-content2 px-3 py-1 text-sm font-medium text-zinc-500 transition-colors hover:bg-content3 hover:text-zinc-100"
+              >
+                +${amount}
+              </button>
+            ))}
             <button
               type="button"
-              key={amount}
-              onClick={() => handleQuickAmount(amount)}
+              onClick={handleMax}
               className="rounded-full bg-content2 px-3 py-1 text-sm font-medium text-zinc-500 transition-colors hover:bg-content3 hover:text-zinc-100"
             >
-              +${amount}
+              {t("extend.worldcup.detail.trade.max")}
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={handleMax}
-            className="rounded-full bg-content2 px-3 py-1 text-sm font-medium text-zinc-500 transition-colors hover:bg-content3 hover:text-zinc-100"
-          >
-            {t("extend.worldcup.detail.trade.max")}
-          </button>
+          </div>
         </div>
-
-      </div>
 
         <div className="mt-2 flex items-center justify-between px-1 py-0.5 text-sm font-medium">
           <span className="text-zinc-400">
@@ -481,56 +479,56 @@ export function MobileBuyTradePanel({
               <ChevronRightIcon className="h-4 w-4" />
             )}
           </span>
-      </button>
-      {oddsOpen && (
-        <div className="mt-1 flex flex-col gap-y-1 px-1 pb-2 text-[13px] leading-5">
-          <Metric
-            label={t("predict.trade.numContracts")}
-            value={shares > 0 ? formatShares(shares) : EMPTY_VALUE}
-          />
-          <Metric
-            label={t("predict.trade.estFee")}
-            value={estimatedFee > 0 ? formatUsd(estimatedFee) : EMPTY_VALUE}
-          />
-          <Metric
-            label={t("predict.trade.totalPayment")}
-            value={
-              hasAmount && estimatedFee > 0
-                ? formatUsd(totalPayment)
-                : EMPTY_VALUE
-            }
-          />
-          <Metric
-            label={t("predict.trade.effectiveOdds")}
-            value={estimatedFee > 0 ? effectiveOddsLabel : EMPTY_VALUE}
-          />
-          <Metric
-            label={t("predict.trade.payout")}
-            value={hasAmount ? formatUsd(potentialPayout) : EMPTY_VALUE}
-          />
-          <Metric
-            label={t("predict.trade.estProfit")}
-            value={
-              hasAmount && potentialProfit > 0
-                ? `+${formatUsd(potentialProfit)}`
-                : EMPTY_VALUE
-            }
-            valueClassName={
-              hasAmount && potentialProfit > 0 ? "text-bullish" : undefined
-            }
-          />
-        </div>
-      )}
+        </button>
+        {oddsOpen && (
+          <div className="mt-1 flex flex-col gap-y-1 px-1 pb-2 text-[13px] leading-5">
+            <Metric
+              label={t("predict.trade.numContracts")}
+              value={shares > 0 ? formatShares(shares) : EMPTY_VALUE}
+            />
+            <Metric
+              label={t("predict.trade.estFee")}
+              value={estimatedFee > 0 ? formatUsd(estimatedFee) : EMPTY_VALUE}
+            />
+            <Metric
+              label={t("predict.trade.totalPayment")}
+              value={
+                hasAmount && estimatedFee > 0
+                  ? formatUsd(totalPayment)
+                  : EMPTY_VALUE
+              }
+            />
+            <Metric
+              label={t("predict.trade.effectiveOdds")}
+              value={estimatedFee > 0 ? effectiveOddsLabel : EMPTY_VALUE}
+            />
+            <Metric
+              label={t("predict.trade.payout")}
+              value={hasAmount ? formatUsd(potentialPayout) : EMPTY_VALUE}
+            />
+            <Metric
+              label={t("predict.trade.estProfit")}
+              value={
+                hasAmount && potentialProfit > 0
+                  ? `+${formatUsd(potentialProfit)}`
+                  : EMPTY_VALUE
+              }
+              valueClassName={
+                hasAmount && potentialProfit > 0 ? "text-bullish" : undefined
+              }
+            />
+          </div>
+        )}
 
-      {showErrors && validation.errors.length > 0 && (
-        <div className="mt-3 flex flex-col gap-1 rounded-[10px] border border-danger/20 bg-danger/10 px-3 py-2">
-          {validation.errors.map((error) => (
-            <span key={error} className="text-xs text-danger">
-              {error}
-            </span>
-          ))}
-        </div>
-      )}
+        {showErrors && validation.errors.length > 0 && (
+          <div className="mt-3 flex flex-col gap-1 rounded-[10px] border border-danger/20 bg-danger/10 px-3 py-2">
+            {validation.errors.map((error) => (
+              <span key={error} className="text-xs text-danger">
+                {error}
+              </span>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"
@@ -564,7 +562,12 @@ function Metric({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-zinc-500">{label}</span>
-      <span className={cn("font-semibold tabular-nums text-zinc-100", valueClassName)}>
+      <span
+        className={cn(
+          "font-semibold tabular-nums text-zinc-100",
+          valueClassName,
+        )}
+      >
         {value}
       </span>
     </div>

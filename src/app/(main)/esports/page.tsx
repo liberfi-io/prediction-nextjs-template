@@ -11,6 +11,7 @@ import {
   MARKET_DATA_FEATURE_CAPABILITY,
   resolveSportsFeatureFlags,
 } from "src/libs/featureFlags";
+import { getSportsMarketDataHydration } from "src/features/market-data/server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,14 @@ export default async function Page({
     deadline: createSportsSsrDeadline(3000),
     filters,
   });
+  const marketDataResources = await getSportsMarketDataHydration({
+    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+    section: "esports",
+    filters,
+    lang,
+    requestHeaders,
+    data,
+  }).catch(() => undefined);
 
   return (
     <SportsShell
@@ -39,6 +48,7 @@ export default async function Page({
       filters={filters}
       lang={lang}
       marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+      marketDataResources={marketDataResources}
     />
   );
 }

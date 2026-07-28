@@ -19,6 +19,13 @@ export interface BuildEventMarketDataResourceInput extends Omit<
   "initialQuotes"
 > {
   event: PredictEvent;
+  selectedBook?: { marketSlug: string; outcome: string };
+}
+
+export interface BuildSportsMarketDataResourceInput extends BuildEventsMarketDataResourceInput {
+  section: "sports" | "esports";
+  resource: "matches" | "props" | "detail";
+  selectedBook?: { marketSlug: string; outcome: string };
 }
 
 export function buildEventsMarketDataResource({
@@ -54,12 +61,21 @@ export function buildEventMarketDataResource({
   structureETag,
   structurePath,
   event,
+  selectedBook,
 }: BuildEventMarketDataResourceInput): MarketDataResourceInput {
   const item = structure.items.find(
     (candidate) =>
       candidate.resource_type === "event" &&
       candidate.resource_slug === event.slug &&
       candidate.source === event.source,
+  );
+  const selectedMarket = selectedBook
+    ? item?.markets.find(
+        (market) => market.market_slug === selectedBook.marketSlug,
+      )
+    : undefined;
+  const selectedOutcome = selectedMarket?.outcomes.find(
+    (outcome) => outcome.key === selectedBook?.outcome,
   );
   return {
     key: `event:${event.source}:${event.slug}:${structureETag}`,
@@ -77,7 +93,73 @@ export function buildEventMarketDataResource({
             },
           ]
         : [],
+      ...(selectedMarket?.realtime_book_supported &&
+      selectedOutcome?.book_channel
+        ? {
+            orderbook_market: {
+              source: selectedMarket.source,
+              market_slug: selectedMarket.market_slug,
+            },
+          }
+        : {}),
     },
+    ...(selectedOutcome?.book_channel
+      ? { bookChannel: selectedOutcome.book_channel }
+      : {}),
+  };
+}
+
+export function buildSportsMarketDataResource({
+  section,
+  resource,
+  structure,
+  structureETag,
+  structurePath,
+  initialQuotes,
+  selectedBook,
+}: BuildSportsMarketDataResourceInput): MarketDataResourceInput {
+  const quoteMarkets = new Map<
+    string,
+    { source: "polymarket" | "kalshi"; market_slug: string }
+  >();
+  structure.items.forEach((item) => {
+    item.markets.forEach((market) => {
+      if (!market.realtime_supported) return;
+      quoteMarkets.set(`${market.source}\u0000${market.market_slug}`, {
+        source: market.source,
+        market_slug: market.market_slug,
+      });
+    });
+  });
+  const selectedMarket = selectedBook
+    ? structure.items
+        .flatMap((item) => item.markets)
+        .find((market) => market.market_slug === selectedBook.marketSlug)
+    : undefined;
+  const selectedOutcome = selectedMarket?.outcomes.find(
+    (outcome) => outcome.key === selectedBook?.outcome,
+  );
+  return {
+    key: `${section}:${resource}:${structureETag}`,
+    structure,
+    structureETag,
+    structurePath,
+    initialQuotes,
+    watch: {
+      quote_markets: Array.from(quoteMarkets.values()),
+      ...(selectedMarket?.realtime_book_supported &&
+      selectedOutcome?.book_channel
+        ? {
+            orderbook_market: {
+              source: selectedMarket.source,
+              market_slug: selectedMarket.market_slug,
+            },
+          }
+        : {}),
+    },
+    ...(selectedOutcome?.book_channel
+      ? { bookChannel: selectedOutcome.book_channel }
+      : {}),
   };
 }
 

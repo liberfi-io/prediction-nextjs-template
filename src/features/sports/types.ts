@@ -1,3 +1,5 @@
+import type { MarketDataInitialQuotes } from "@liberfi.io/react-predict";
+
 export type SportsSection = "sports" | "esports";
 
 export type TaxonomyType = "sport" | "game" | "league" | "tournament";
@@ -108,6 +110,7 @@ export interface SportsMatchCard {
   volume?: number;
   live_state?: SportsLiveState;
   inline_markets?: SportsInlineMarket[];
+  initial_quotes?: MarketDataInitialQuotes;
 }
 
 export interface SportsMatchDetail extends SportsMatchCard {
@@ -130,6 +133,7 @@ export interface SportsPropEventCard {
   start_time?: string;
   parent_match_group_slug?: string;
   markets?: SportsInlineMarket[];
+  initial_quotes?: MarketDataInitialQuotes;
 }
 
 export interface SportsPageData {

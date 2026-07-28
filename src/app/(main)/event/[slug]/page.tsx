@@ -33,7 +33,10 @@ import {
   resolveSportsFeatureFlags,
 } from "src/libs/featureFlags";
 import { getServerPredictClient } from "src/libs/server/predictClient";
-import { getEventMarketDataHydration } from "src/features/market-data/server";
+import {
+  getEventMarketDataHydration,
+  getSportsMatchMarketDataHydration,
+} from "src/features/market-data/server";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
 interface PageProps {
@@ -233,12 +236,24 @@ export default async function Page({ params, searchParams }: PageProps) {
   }
 
   if (sportsRoute.kind === "sports_match") {
+    const match = sportsRoute.detail as SportsMatchDetail;
+    const marketDataResource = await getSportsMatchMarketDataHydration({
+      enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+      match,
+      lang: localeContext.lang,
+      requestHeaders: localeContext.requestHeaders,
+      selectedBook:
+        market && (outcome === "yes" || outcome === "no")
+          ? { marketSlug: market, outcome }
+          : undefined,
+    }).catch(() => undefined);
     return (
       <SportsMatchDetailPage
-        match={sportsRoute.detail as SportsMatchDetail}
+        match={match}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
         marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataResource}
       />
     );
   }
@@ -281,6 +296,10 @@ export default async function Page({ params, searchParams }: PageProps) {
     enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
     event: resolved.event,
     requestHeaders: localeContext.requestHeaders,
+    selectedBook:
+      market && (outcome === "yes" || outcome === "no")
+        ? { marketSlug: market, outcome }
+        : undefined,
   }).catch(() => undefined);
 
   return (

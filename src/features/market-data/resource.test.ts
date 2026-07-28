@@ -6,6 +6,7 @@ import type {
 import {
   buildEventMarketDataResource,
   buildEventsMarketDataResource,
+  buildSportsMarketDataResource,
   mergeMarketDataEvent,
 } from "./resource";
 
@@ -57,6 +58,7 @@ const structure: MarketStructureResponse = {
               quote_capable: true,
               orderbook_capable: true,
               price_history_supported: true,
+              book_channel: "market.book.polymarket.market.yes",
             },
           ],
         },
@@ -94,6 +96,27 @@ describe("events market data resource", () => {
     expect(input.key).toBe('event:polymarket:event:W/"detail"');
     expect(input.initialQuotes).toBe(event.initial_quotes);
     expect(input.watch.quote_events).toHaveLength(1);
+  });
+
+  it("builds a sports resource from provider-neutral market keys", () => {
+    const input = buildSportsMarketDataResource({
+      section: "sports",
+      resource: "matches",
+      structure,
+      structureETag: 'W/"sports"',
+      structurePath: "/api/v1/sports/matches",
+      selectedBook: { marketSlug: "market", outcome: "yes" },
+    });
+
+    expect(input.key).toBe('sports:matches:W/"sports"');
+    expect(input.watch.quote_markets).toEqual([
+      { source: "polymarket", market_slug: "market" },
+    ]);
+    expect(input.watch.orderbook_market).toEqual({
+      source: "polymarket",
+      market_slug: "market",
+    });
+    expect(input.bookChannel).toBe("market.book.polymarket.market.yes");
   });
 
   it("merges available quotes by public outcome key without structural fallback", () => {

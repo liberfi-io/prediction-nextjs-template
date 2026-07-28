@@ -16,7 +16,11 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-import type { MarketDataCapability } from "@liberfi.io/react-predict";
+import {
+  useMarketDataResource,
+  type MarketDataCapability,
+  type MarketDataResourceState,
+} from "@liberfi.io/react-predict";
 import { useTranslation } from "@liberfi.io/i18n";
 import {
   defaultRangeExtractor,
@@ -90,6 +94,7 @@ import {
   sportsPageForMarketDataBranch,
   sportsPropsForMarketDataBranch,
 } from "../../market-data/sports";
+import type { SportsMarketDataHydration } from "../../market-data/server";
 
 type SportsContentTab = "today" | "games" | "props";
 type SportsLiveTaxonomyOverride =
@@ -193,15 +198,38 @@ interface SportsShellProps {
   filters: SportsPageFilters;
   lang?: string;
   marketDataCapability?: MarketDataCapability;
+  marketDataResources?: SportsMarketDataHydration;
 }
 
-export function SportsShell({
+export function SportsShell(props: SportsShellProps) {
+  if (props.marketDataCapability?.enabled && props.marketDataResources) {
+    return <SportsShellWithMarketData {...props} />;
+  }
+  return <SportsShellBody {...props} marketDataStates={[]} />;
+}
+
+function SportsShellWithMarketData(props: SportsShellProps) {
+  const matchState = useMarketDataResource(
+    props.marketDataResources?.matches ?? `${props.section}:matches:legacy`,
+  );
+  const propState = useMarketDataResource(
+    props.marketDataResources?.props ?? `${props.section}:props:legacy`,
+  );
+  return (
+    <SportsShellBody {...props} marketDataStates={[matchState, propState]} />
+  );
+}
+
+function SportsShellBody({
   section,
   data,
   filters,
   lang,
   marketDataCapability = { enabled: false },
-}: SportsShellProps) {
+  marketDataStates,
+}: SportsShellProps & {
+  marketDataStates: MarketDataResourceState[];
+}) {
   const { t } = useTranslation();
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
   const liveRangeRequestIdRef = useRef(0);
@@ -211,8 +239,13 @@ export function SportsShell({
     [],
   );
   const branchData = useMemo(
-    () => sportsPageForMarketDataBranch(data, marketDataCapability.enabled),
-    [data, marketDataCapability.enabled],
+    () =>
+      sportsPageForMarketDataBranch(
+        data,
+        marketDataCapability.enabled,
+        marketDataStates,
+      ),
+    [data, marketDataCapability.enabled, marketDataStates],
   );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [pendingTaxonomyNode, setPendingTaxonomyNode] =
