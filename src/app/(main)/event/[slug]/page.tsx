@@ -33,6 +33,7 @@ import {
   resolveSportsFeatureFlags,
 } from "src/libs/featureFlags";
 import { getServerPredictClient } from "src/libs/server/predictClient";
+import { getEventMarketDataHydration } from "src/features/market-data/server";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
 interface PageProps {
@@ -274,6 +275,11 @@ export default async function Page({ params, searchParams }: PageProps) {
     eventQueryKey(eventSlug, resolved.source, resolved.lang),
     resolved.event,
   );
+  const marketDataResource = await getEventMarketDataHydration({
+    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+    event: resolved.event,
+    requestHeaders: localeContext.requestHeaders,
+  }).catch(() => undefined);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -281,6 +287,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         id={eventSlug}
         source={resolved.source}
         marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataResource}
       />
     </HydrationBoundary>
   );

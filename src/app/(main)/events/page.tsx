@@ -1,4 +1,5 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import type { PredictEvent, PredictPage } from "@liberfi.io/react-predict";
 import {
   resolveEventsParams,
   infiniteEventsQueryKey,
@@ -13,6 +14,7 @@ import {
 } from "src/libs/featureFlags";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
+import { getEventsMarketDataHydration } from "src/features/market-data/server";
 
 export default async function Page() {
   const queryClient = createServerQueryClient();
@@ -28,6 +30,7 @@ export default async function Page() {
     ...(lang ? { lang } : {}),
     ...(ENABLE_KALSHI ? {} : { source: "polymarket" as const }),
   });
+  let initialPage: PredictPage<PredictEvent> | undefined;
 
   await Promise.race([
     queryClient.prefetchInfiniteQuery({
@@ -36,7 +39,11 @@ export default async function Page() {
         fetchEventsPage(client, {
           ...params,
           ...(pageParam ? { cursor: pageParam } : {}),
-        }).then(filterTradableEventsPage),
+        }).then((page) => {
+          const filtered = filterTradableEventsPage(page);
+          if (!pageParam) initialPage = filtered;
+          return filtered;
+        }),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage: {
         has_more?: boolean;
@@ -51,10 +58,19 @@ export default async function Page() {
       setTimeout(() => reject(new Error("prefetch timeout")), 3000),
     ),
   ]).catch(() => {});
+  const marketDataResource = await getEventsMarketDataHydration({
+    enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+    params,
+    requestHeaders,
+    page: initialPage,
+  }).catch(() => undefined);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictListPage marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY} />
+      <PredictListPage
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataResource}
+      />
     </HydrationBoundary>
   );
 }

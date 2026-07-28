@@ -11,11 +11,12 @@ import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
   eventQueryKey,
   similarEventsQueryKey,
+  useMarketDataResource,
   useSimilarEvents,
-} from "@liberfi.io/react-predict";
-import type {
-  MarketDataCapability,
-  ProviderSource,
+  type MarketDataCapability,
+  type MarketDataResourceInput,
+  type PredictEvent,
+  type ProviderSource,
 } from "@liberfi.io/react-predict";
 import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
@@ -27,15 +28,18 @@ import { trackMatchDetailView } from "../../lib/analytics";
 import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
+import { mergeMarketDataEvent } from "../../features/market-data/resource";
 
 export function PredictDetailPage({
   id,
   source,
   marketDataCapability,
+  marketDataResource,
 }: {
   id: string;
   source: ProviderSource;
   marketDataCapability: MarketDataCapability;
+  marketDataResource?: MarketDataResourceInput;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -48,6 +52,16 @@ export function PredictDetailPage({
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
+  const marketDataState = useMarketDataResource(
+    marketDataResource ?? `event:${source}:${id}:legacy`,
+  );
+  const event = queryClient.getQueryData<PredictEvent>(
+    eventQueryKey(id, source, lang),
+  );
+  const marketDataEvent =
+    marketDataCapability.enabled && event
+      ? mergeMarketDataEvent(event, marketDataState)
+      : undefined;
 
   useEffect(() => {
     trackMatchDetailView({
@@ -142,6 +156,7 @@ export function PredictDetailPage({
           onInsufficientBalance={handleInsufficientBalance}
           onSetupRequired={handleSetupRequired}
           marketDataCapability={marketDataCapability}
+          marketDataEvent={marketDataEvent}
         />
       </div>
     </div>
