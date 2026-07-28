@@ -27,6 +27,7 @@ export interface SportsPageRequest {
   limit: number;
   cursor?: string;
   lang?: string;
+  signal?: AbortSignal;
 }
 
 function sportsPagePath(input: SportsPageRequest): string {
@@ -57,7 +58,9 @@ function sportsPageUrl(input: SportsPageRequest): URL {
 export async function fetchSportsPage<T>(
   input: SportsPageRequest,
 ): Promise<SportsPage<T>> {
-  const response = await fetch(sportsPageUrl(input));
+  const response = await fetch(sportsPageUrl(input), {
+    signal: input.signal,
+  });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   const page = (await response.json()) as SportsPage<T>;
   return {
@@ -86,6 +89,7 @@ async function fetchSportsMarketDataResource<T>(
   const response = await fetch(sportsPageUrl(input), {
     cache: "no-store",
     headers: { Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1 },
+    signal: input.signal,
   });
   if (!response.ok) return undefined;
   const etag = response.headers.get("etag");
@@ -108,7 +112,7 @@ export async function fetchSportsPageWithMarketData<T>(
   marketDataResource?: MarketDataResourceInput;
 }> {
   const page = await fetchSportsPage<T>(input);
-  if (!input.marketDataEnabled) return { page };
+  if (!input.marketDataEnabled || input.signal?.aborted) return { page };
   const marketDataResource = await fetchSportsMarketDataResource(
     input,
     page,
@@ -120,6 +124,7 @@ export async function fetchSportsPageWithMarketData<T>(
 export async function fetchSportsTaxonomyCounts(
   timeRange?: SportsLiveTimeRange,
   view: "live" | "upcoming" | "results" = "live",
+  signal?: AbortSignal,
 ): Promise<SportsTaxonomyMatchCount[]> {
   const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
   const url = new URL(
@@ -129,7 +134,7 @@ export async function fetchSportsTaxonomyCounts(
   if (timeRange) appendSportsLiveTimeRange(url, timeRange);
   url.searchParams.set("view", view);
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return normalizeSportsTaxonomyCounts(await response.json());
 }

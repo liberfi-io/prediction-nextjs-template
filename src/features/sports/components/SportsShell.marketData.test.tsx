@@ -55,14 +55,7 @@ describe("SportsShell market data generations", () => {
     const oldPage = new Promise((resolve) => {
       resolveOldPage = resolve;
     });
-    global.fetch = jest
-      .fn()
-      .mockImplementationOnce(() => oldPage)
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ etag: 'W/"late"' }),
-        json: async () => emptyStructure,
-      });
+    global.fetch = jest.fn().mockImplementationOnce(() => oldPage);
 
     const initialResource = resource("matches:first");
     const view = render(
@@ -101,6 +94,8 @@ describe("SportsShell market data generations", () => {
     await waitFor(() =>
       expect(mockUnmountedResourceKeys).toContain("matches:first"),
     );
+    const oldSignal = jest.mocked(global.fetch).mock.calls[0]?.[1]?.signal;
+    expect(oldSignal?.aborted).toBe(true);
 
     await act(async () => {
       resolveOldPage({
@@ -121,7 +116,7 @@ describe("SportsShell market data generations", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(view.queryByText("Late match")).toBeNull();
   });
 });

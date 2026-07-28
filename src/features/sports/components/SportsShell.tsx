@@ -320,6 +320,22 @@ function SportsShellBody({
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
   const liveRangeRequestIdRef = useRef(0);
   const liveTaxonomyCountsRequestIdRef = useRef(0);
+  const requestControllersRef = useRef(new Set<AbortController>());
+  const startRequest = useCallback(() => {
+    const controller = new AbortController();
+    requestControllersRef.current.add(controller);
+    return controller;
+  }, []);
+  const finishRequest = useCallback((controller: AbortController) => {
+    requestControllersRef.current.delete(controller);
+  }, []);
+  useEffect(
+    () => () => {
+      requestControllersRef.current.forEach((controller) => controller.abort());
+      requestControllersRef.current.clear();
+    },
+    [],
+  );
   const getSportsListScrollElement = useCallback(
     () => sportsListScrollRef.current,
     [],
@@ -425,7 +441,12 @@ function SportsShellBody({
       if (request.kind === "date" && section === "sports") {
         const countsRequestId = liveTaxonomyCountsRequestIdRef.current + 1;
         liveTaxonomyCountsRequestIdRef.current = countsRequestId;
-        void fetchSportsTaxonomyCounts(timeRange)
+        const countsController = startRequest();
+        void fetchSportsTaxonomyCounts(
+          timeRange,
+          "live",
+          countsController.signal,
+        )
           .then((taxonomyCounts) => {
             if (liveTaxonomyCountsRequestIdRef.current === countsRequestId) {
               setLiveTaxonomyCounts(taxonomyCounts);
@@ -435,8 +456,10 @@ function SportsShellBody({
             if (liveTaxonomyCountsRequestIdRef.current === countsRequestId) {
               setLiveTaxonomyCounts([]);
             }
-          });
+          })
+          .finally(() => finishRequest(countsController));
       }
+      const pageController = startRequest();
       try {
         const { page, marketDataResource } =
           await fetchSportsPageWithMarketData<SportsMatchCardData>({
@@ -453,6 +476,7 @@ function SportsShellBody({
             limit: matches.limit,
             lang,
             marketDataEnabled: marketDataCapability.enabled,
+            signal: pageController.signal,
           });
         if (liveRangeRequestIdRef.current === requestId) {
           setMatches(page);
@@ -463,6 +487,7 @@ function SportsShellBody({
           setMatches({ items: [], has_more: false, limit: matches.limit });
         }
       } finally {
+        finishRequest(pageController);
         if (liveRangeRequestIdRef.current === requestId) {
           setLiveRangeLoading(false);
         }
@@ -471,10 +496,12 @@ function SportsShellBody({
     [
       lang,
       liveDateRangeStart,
+      finishRequest,
       marketDataCapability.enabled,
       matches.limit,
       onMarketDataResource,
       section,
+      startRequest,
     ],
   );
   const selectLiveWeek = useCallback(
@@ -572,6 +599,7 @@ function SportsShellBody({
       return;
     }
     const matchRangeRequestId = liveRangeRequestIdRef.current;
+    const controller = startRequest();
     setLoadingResource(resource);
     try {
       const { page: nextPage, marketDataResource } =
@@ -608,6 +636,7 @@ function SportsShellBody({
                 : undefined,
           lang,
           marketDataEnabled: marketDataCapability.enabled,
+          signal: controller.signal,
         });
       if (liveRangeRequestIdRef.current !== matchRangeRequestId) {
         return;
@@ -633,6 +662,7 @@ function SportsShellBody({
       }
       onMarketDataResource?.(resource, marketDataResource, "append");
     } finally {
+      finishRequest(controller);
       setLoadingResource(null);
     }
   }
