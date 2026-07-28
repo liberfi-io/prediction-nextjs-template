@@ -14,7 +14,10 @@ import { adaptSportsMatchDetail } from "../detail/adaptSportsMatchDetail";
 import { useSportsMatchLiveState } from "../live/useSportsMatchLiveState";
 import { useSportsMatchMarketGroups } from "../live/useSportsMatchMarketGroups";
 import type { SportsMatchDetail } from "../types";
-import { sportsMatchForMarketDataBranch } from "../../market-data/sports";
+import {
+  sportsMatchForMarketDataBranch,
+  sportsOrderbookForMarketDataBranch,
+} from "../../market-data/sports";
 
 interface SportsMatchDetailPageProps {
   match: SportsMatchDetail;
@@ -34,7 +37,9 @@ export function SportsMatchDetailPage(props: SportsMatchDetailPageProps) {
 
 function SportsMatchDetailWithMarketData(props: SportsMatchDetailPageProps) {
   if (!props.marketDataResource) {
-    throw new Error("Market data resource is required when market data is enabled");
+    throw new Error(
+      "Market data resource is required when market data is enabled",
+    );
   }
   const state = useMarketDataResource(props.marketDataResource);
   return <SportsMatchDetailBody {...props} marketDataState={state} />;
@@ -72,6 +77,15 @@ function SportsMatchDetailBody({
     () => adaptSportsMatchDetail(branchMatch, marketGroups, realtimeLiveState),
     [branchMatch, marketGroups, realtimeLiveState],
   );
+  const marketDataOutcome =
+    initialOutcome === "yes" || initialOutcome === "no"
+      ? initialOutcome
+      : undefined;
+  const marketDataOrderbook = sportsOrderbookForMarketDataBranch(
+    marketDataState,
+    initialMarketSlug ?? undefined,
+    marketDataOutcome,
+  );
 
   return (
     <div className="w-full pb-4 lg:pb-16">
@@ -85,6 +99,7 @@ function SportsMatchDetailBody({
           showMatchCenter={false}
           analyticsSurface="prediction_detail"
           marketDataEnabled={marketDataCapability.enabled}
+          marketDataOrderbook={marketDataOrderbook}
         />
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type {
   MarketDataOutcomeQuote,
   MarketDataResourceState,
+  Orderbook,
 } from "@liberfi.io/react-predict";
 import type {
   SportsInlineMarket,
@@ -12,6 +13,48 @@ import type {
 } from "../sports/types";
 
 type QuoteByOutcome = Map<string, MarketDataOutcomeQuote>;
+
+function orderbookLevels(
+  levels: Array<{ price: string; size: string }> | undefined,
+): Orderbook["bids"] {
+  return (levels ?? []).flatMap((level) => {
+    const price = Number(level.price);
+    const size = Number(level.size);
+    return Number.isFinite(price) && Number.isFinite(size)
+      ? [{ price, size }]
+      : [];
+  });
+}
+
+export function sportsOrderbookForMarketDataBranch(
+  state: MarketDataResourceState | undefined,
+  marketSlug: string | undefined,
+  outcome: "yes" | "no" | undefined,
+): Orderbook | null {
+  if (!state || !marketSlug || !outcome) return null;
+  const live = state.liveBook;
+  if (live?.market_slug === marketSlug && live.outcome === outcome) {
+    if (!live.available) return null;
+    return {
+      market_id: marketSlug,
+      outcome,
+      bids: orderbookLevels(live.bids),
+      asks: orderbookLevels(live.asks),
+    };
+  }
+  const snapshot = state.orderbooks?.orderbooks.find(
+    (book) => book.outcome === outcome,
+  );
+  if (state.orderbooks?.market_slug !== marketSlug || !snapshot) {
+    return null;
+  }
+  return {
+    market_id: marketSlug,
+    outcome,
+    bids: orderbookLevels(snapshot.bids),
+    asks: orderbookLevels(snapshot.asks),
+  };
+}
 
 function quotesFromStates(states: MarketDataResourceState[]): QuoteByOutcome {
   return new Map(

@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
 import type {
+  Orderbook,
   PredictEvent,
   PredictMarket,
   ProviderSource,
@@ -215,6 +216,7 @@ export function WorldCupDetailPage({
   showMatchCenter = true,
   analyticsSurface = "world_cup_detail",
   marketDataEnabled = false,
+  marketDataOrderbook,
 }: {
   id: string;
   /** Deep-link market short code from the entry URL (`?market=`). */
@@ -233,6 +235,8 @@ export function WorldCupDetailPage({
   analyticsSurface?: "prediction_detail" | "world_cup_detail";
   /** Disables legacy orderbook consumers for the market-data-v1 branch. */
   marketDataEnabled?: boolean;
+  /** Provider-neutral book for the selected market-data-v1 outcome. */
+  marketDataOrderbook?: Orderbook | null;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -474,6 +478,12 @@ export function WorldCupDetailPage({
     [oddsFormat],
   );
   const selectedMarket = selection?.option.market;
+  const selectedMarketDataOrderbook =
+    marketDataOrderbook != null &&
+    marketDataOrderbook.market_id === selectedMarket?.slug &&
+    marketDataOrderbook.outcome === outcome
+      ? marketDataOrderbook
+      : null;
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)
@@ -738,6 +748,11 @@ export function WorldCupDetailPage({
                         initialViewMode="table"
                         oddsFormatter={oddsFormatter}
                         enabled={!marketDataEnabled}
+                        orderbook={
+                          marketDataEnabled
+                            ? selectedMarketDataOrderbook
+                            : undefined
+                        }
                         className="min-h-0 flex-1"
                       />
                     </div>
@@ -922,6 +937,9 @@ export function WorldCupDetailPage({
               initialViewMode="table"
               oddsFormatter={oddsFormatter}
               enabled={!marketDataEnabled}
+              orderbook={
+                marketDataEnabled ? selectedMarketDataOrderbook : undefined
+              }
               className="min-h-0 flex-1"
             />
           </div>
