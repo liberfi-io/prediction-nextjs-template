@@ -1,8 +1,33 @@
 import {
   isSportsNavigationEnabled,
+  resolveMarketDataFeatureCapability,
   resolveSportsFeatureFlags,
   resolveSportsNavigationEnabled,
 } from "./featureFlags";
+
+describe("resolveMarketDataFeatureCapability", () => {
+  it.each(["true", "TRUE", "True"])(
+    "enables only an exact case-insensitive true value: %s",
+    (value) => {
+      expect(
+        resolveMarketDataFeatureCapability({
+          NEXT_PUBLIC_MARKET_DATA_REALTIME_V1_ENABLED: value,
+        }),
+      ).toEqual({ enabled: true });
+    },
+  );
+
+  it.each([undefined, "", "1", "yes", " true", "true "])(
+    "fails closed for %p",
+    (value) => {
+      expect(
+        resolveMarketDataFeatureCapability({
+          NEXT_PUBLIC_MARKET_DATA_REALTIME_V1_ENABLED: value,
+        }),
+      ).toEqual({ enabled: false });
+    },
+  );
+});
 
 describe("resolveSportsFeatureFlags", () => {
   it("enables sports list and match detail pages by default", () => {

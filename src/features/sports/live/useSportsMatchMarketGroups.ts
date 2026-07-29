@@ -14,11 +14,14 @@ export function useSportsMatchMarketGroups(
   section: SportsSection,
   matchGroupSlug: string | undefined,
   initialGroups: SportsMarketGroup[],
+  options: { enabled?: boolean } = {},
 ): SportsMarketGroup[] {
+  const enabled = options.enabled ?? true;
   const [patches, setPatches] = useState<SportsMarketPatch[]>([]);
 
   useEffect(() => {
     setPatches([]);
+    if (!enabled) return;
     if (!matchGroupSlug) return;
 
     const channel = sportsMatchChannel(section, matchGroupSlug, "markets");
@@ -31,7 +34,7 @@ export function useSportsMatchMarketGroups(
         setPatches(data.markets);
       },
     });
-  }, [matchGroupSlug, section]);
+  }, [enabled, matchGroupSlug, section]);
 
   return useMemo(
     () => mergeSportsMarketPatches(initialGroups, patches),

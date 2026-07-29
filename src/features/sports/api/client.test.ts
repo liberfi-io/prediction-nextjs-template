@@ -1,4 +1,8 @@
-import { fetchSportsPage, fetchSportsTaxonomyCounts } from "./client";
+import {
+  fetchSportsPage,
+  fetchSportsPageWithMarketData,
+  fetchSportsTaxonomyCounts,
+} from "./client";
 
 describe("fetchSportsPage", () => {
   afterEach(() => {
@@ -71,6 +75,65 @@ describe("fetchSportsPage", () => {
         cursor: "previous",
       }),
     ).resolves.toMatchObject({ has_more: false });
+  });
+
+  it("loads the matching structure generation for a paginated market-data page", async () => {
+    const cursor = "opaque+/= cursor:value";
+    const structure = {
+      representation_schema_version: 1,
+      initial_quotes_contract_enabled: true,
+      items: [
+        {
+          resource_type: "match",
+          source: "polymarket",
+          resource_slug: "match",
+          title: "Match",
+          status: "open",
+          market_view: "full",
+          markets_included: true,
+          item_channel: "match.polymarket.match.markets",
+          markets: [],
+        },
+      ],
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [],
+          next_cursor: null,
+          has_more: false,
+          limit: 20,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ etag: 'W/"next-page"' }),
+        json: async () => structure,
+      });
+
+    const result = await fetchSportsPageWithMarketData({
+      section: "sports",
+      resource: "matches",
+      view: "live",
+      limit: 20,
+      cursor,
+      marketDataEnabled: true,
+    });
+
+    expect(result.marketDataResource).toMatchObject({
+      key: 'sports:matches:W/"next-page"',
+      structureETag: 'W/"next-page"',
+      structurePath:
+        "/api/v1/sports/matches?view=live&limit=20&cursor=opaque%2B%2F%3D+cursor%3Avalue",
+      structure,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const structureRequest = jest.mocked(global.fetch).mock.calls[1]!;
+    expect(new Headers(structureRequest[1]?.headers).get("accept")).toBe(
+      "application/vnd.liberfi.market-structure+json;v=1",
+    );
   });
 
   it("loads taxonomy counts for the selected live UTC range", async () => {

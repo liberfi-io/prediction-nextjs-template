@@ -1,3 +1,8 @@
+import type {
+  MarketDataInitialQuotes,
+  ProviderSource,
+} from "@liberfi.io/react-predict";
+
 export type SportsSection = "sports" | "esports";
 
 export type TaxonomyType = "sport" | "game" | "league" | "tournament";
@@ -61,12 +66,13 @@ export interface SportsMarketOutcome {
   last_trade_price?: number;
   orderbook?: {
     market_slug: string;
-    source: "polymarket";
+    source: ProviderSource;
     outcome: "yes" | "no";
   };
 }
 
 export interface SportsInlineMarket {
+  source?: ProviderSource;
   market_slug: string;
   market_type?: string;
   condition_id?: string;
@@ -95,6 +101,7 @@ export interface SportsMarketGroup {
 }
 
 export interface SportsMatchCard {
+  source?: ProviderSource;
   match_group_slug: string;
   section: SportsSection;
   sport_slug?: string;
@@ -108,6 +115,7 @@ export interface SportsMatchCard {
   volume?: number;
   live_state?: SportsLiveState;
   inline_markets?: SportsInlineMarket[];
+  initial_quotes?: MarketDataInitialQuotes;
 }
 
 export interface SportsMatchDetail extends SportsMatchCard {
@@ -130,6 +138,7 @@ export interface SportsPropEventCard {
   start_time?: string;
   parent_match_group_slug?: string;
   markets?: SportsInlineMarket[];
+  initial_quotes?: MarketDataInitialQuotes;
 }
 
 export interface SportsPageData {

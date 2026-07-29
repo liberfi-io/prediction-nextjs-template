@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast, useScreen } from "@liberfi.io/ui";
 import type {
+  Orderbook,
   PredictEvent,
   PredictMarket,
   ProviderSource,
@@ -214,6 +215,9 @@ export function WorldCupDetailPage({
   matchOverride,
   showMatchCenter = true,
   analyticsSurface = "world_cup_detail",
+  marketDataEnabled = false,
+  marketDataOrderbook,
+  onMarketDataSelectionChange,
 }: {
   id: string;
   /** Deep-link market short code from the entry URL (`?market=`). */
@@ -230,6 +234,17 @@ export function WorldCupDetailPage({
   showMatchCenter?: boolean;
   /** Analytics surface used by shared match-detail interactions. */
   analyticsSurface?: "prediction_detail" | "world_cup_detail";
+  /** Disables legacy orderbook consumers for the market-data-v1 branch. */
+  marketDataEnabled?: boolean;
+  /** Provider-neutral book for the selected market-data-v1 outcome. */
+  marketDataOrderbook?: Orderbook | null;
+  /** Switches the market-data-v1 Book resource when the user changes selection. */
+  onMarketDataSelectionChange?: (selection: {
+    source: ProviderSource;
+    marketSlug: string;
+    outcomeKey: string;
+    displayOutcome: "yes" | "no";
+  }) => void;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -471,6 +486,23 @@ export function WorldCupDetailPage({
     [oddsFormat],
   );
   const selectedMarket = selection?.option.market;
+  useEffect(() => {
+    if (!marketDataEnabled || !selectedMarket) return;
+    const outcomeKey = selectedMarket.outcomes[outcome === "yes" ? 0 : 1]?.key;
+    if (!outcomeKey) return;
+    onMarketDataSelectionChange?.({
+      source: selectedMarket.source,
+      marketSlug: selectedMarket.slug,
+      outcomeKey,
+      displayOutcome: outcome,
+    });
+  }, [marketDataEnabled, onMarketDataSelectionChange, outcome, selectedMarket]);
+  const selectedMarketDataOrderbook =
+    marketDataOrderbook != null &&
+    marketDataOrderbook.market_id === selectedMarket?.slug &&
+    marketDataOrderbook.outcome === outcome
+      ? marketDataOrderbook
+      : null;
   const selectedGroup = selection?.group;
   const activeCategory = selectedGroup
     ? categoryOfGroup(cats, selectedGroup)
@@ -501,7 +533,12 @@ export function WorldCupDetailPage({
       source: selectedMarket?.source ?? "polymarket",
       outcome: "yes",
     },
-    { enabled: Boolean(selectedMarket) && selectedMarket?.status === "open" },
+    {
+      enabled:
+        !marketDataEnabled &&
+        Boolean(selectedMarket) &&
+        selectedMarket?.status === "open",
+    },
   );
   const liveSelectedPrice = useMemo(() => {
     if (
@@ -515,7 +552,7 @@ export function WorldCupDetailPage({
     return ask != null && ask > 0 ? ask : null;
   }, [liveSelectedOrderbook, selectedMarket]);
   const orderbookPricesBySlug = useVisibleOrderbookPrices(
-    allOpenMarkets,
+    marketDataEnabled ? [] : allOpenMarkets,
     selectedMarket?.slug,
     liveSelectedPrice,
     chartPrioritySlugs,
@@ -653,6 +690,7 @@ export function WorldCupDetailPage({
           event={chartEvent}
           volume={event.volume ?? undefined}
           orderbookQuotes={chartOrderbookQuotes}
+          marketDataEnabled={marketDataEnabled}
         />
 
         {/* Tabbed lower content */}
@@ -728,6 +766,12 @@ export function WorldCupDetailPage({
                         }}
                         initialViewMode="table"
                         oddsFormatter={oddsFormatter}
+                        enabled={!marketDataEnabled}
+                        orderbook={
+                          marketDataEnabled
+                            ? selectedMarketDataOrderbook
+                            : undefined
+                        }
                         className="min-h-0 flex-1"
                       />
                     </div>
@@ -804,6 +848,7 @@ export function WorldCupDetailPage({
               outcome={outcome}
               onInsufficientBalance={handleInsufficientBalance}
               oddsFormatter={oddsFormatter}
+              legacyOrderbookEnabled={!marketDataEnabled}
             />
           </TradeModal>
         )}
@@ -835,6 +880,7 @@ export function WorldCupDetailPage({
               event={chartEvent}
               volume={event.volume ?? undefined}
               orderbookQuotes={chartOrderbookQuotes}
+              marketDataEnabled={marketDataEnabled}
             />
           </div>
 
@@ -897,6 +943,7 @@ export function WorldCupDetailPage({
               onOutcomeChange={setOutcome}
               onInsufficientBalance={handleInsufficientBalance}
               onSetupRequired={handleSetupRequired}
+              legacyOrderbookEnabled={!marketDataEnabled}
             />
           </div>
 
@@ -908,6 +955,10 @@ export function WorldCupDetailPage({
               onTradeAction={handleTradeAction}
               initialViewMode="table"
               oddsFormatter={oddsFormatter}
+              enabled={!marketDataEnabled}
+              orderbook={
+                marketDataEnabled ? selectedMarketDataOrderbook : undefined
+              }
               className="min-h-0 flex-1"
             />
           </div>

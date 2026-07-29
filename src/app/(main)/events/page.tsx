@@ -7,9 +7,13 @@ import {
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 import { PredictListPage } from "src/components/page/PredictListPage";
-import { ENABLE_KALSHI } from "src/libs/featureFlags";
+import {
+  ENABLE_KALSHI,
+  MARKET_DATA_FEATURE_CAPABILITY,
+} from "src/libs/featureFlags";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
+import { getEventsMarketDataHydration } from "src/features/market-data/server";
 
 export default async function Page() {
   const queryClient = createServerQueryClient();
@@ -25,15 +29,29 @@ export default async function Page() {
     ...(lang ? { lang } : {}),
     ...(ENABLE_KALSHI ? {} : { source: "polymarket" as const }),
   });
-
-  await Promise.race([
+  const marketDataHydrationPromise = MARKET_DATA_FEATURE_CAPABILITY.enabled
+    ? Promise.race([
+        getEventsMarketDataHydration({
+          enabled: true,
+          params,
+          requestHeaders,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("market data hydration timeout")),
+            3000,
+          ),
+        ),
+      ]).catch(() => undefined)
+    : Promise.resolve(undefined);
+  const legacyPrefetchPromise = Promise.race([
     queryClient.prefetchInfiniteQuery({
       queryKey: infiniteEventsQueryKey(params),
       queryFn: ({ pageParam }) =>
         fetchEventsPage(client, {
           ...params,
           ...(pageParam ? { cursor: pageParam } : {}),
-        }).then(filterTradableEventsPage),
+        }).then((page) => filterTradableEventsPage(page)),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage: {
         has_more?: boolean;
@@ -48,10 +66,23 @@ export default async function Page() {
       setTimeout(() => reject(new Error("prefetch timeout")), 3000),
     ),
   ]).catch(() => {});
+  const [marketDataHydration] = await Promise.all([
+    marketDataHydrationPromise,
+    legacyPrefetchPromise,
+  ]);
+  if (marketDataHydration) {
+    queryClient.setQueryData(infiniteEventsQueryKey(params), {
+      pages: [marketDataHydration.page],
+      pageParams: [undefined],
+    });
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictListPage />
+      <PredictListPage
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataHydration?.resource}
+      />
     </HydrationBoundary>
   );
 }

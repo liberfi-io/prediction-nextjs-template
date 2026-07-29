@@ -19,6 +19,28 @@ export const ENABLE_KALSHI = process.env.NEXT_PUBLIC_ENABLE_KALSHI === "true";
  */
 export const ENABLE_WORLD_CUP_MATCH_CENTER = false;
 
+export interface MarketDataFeatureCapability {
+  enabled: boolean;
+}
+
+/**
+ * Resolves the default-off market-data-v1 compatibility branch.
+ */
+export function resolveMarketDataFeatureCapability(
+  env: Record<string, string | undefined>,
+): MarketDataFeatureCapability {
+  return {
+    enabled:
+      env.NEXT_PUBLIC_MARKET_DATA_REALTIME_V1_ENABLED?.toLowerCase() === "true",
+  };
+}
+
+export const MARKET_DATA_FEATURE_CAPABILITY =
+  resolveMarketDataFeatureCapability({
+    NEXT_PUBLIC_MARKET_DATA_REALTIME_V1_ENABLED:
+      process.env.NEXT_PUBLIC_MARKET_DATA_REALTIME_V1_ENABLED,
+  });
+
 export interface SportsFeatureFlags {
   sports_enabled: boolean;
   esports_enabled: boolean;

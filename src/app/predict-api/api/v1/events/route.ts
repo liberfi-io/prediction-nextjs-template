@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type {
-  PredictEvent,
-  PredictPage,
-} from "@liberfi.io/react-predict";
+import type { PredictEvent, PredictPage } from "@liberfi.io/react-predict";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
+import {
+  filterMarketStructure,
+  marketStructureETag,
+  marketStructureValidator,
+  structureFromComposite,
+} from "src/features/market-data/structure";
+import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "src/features/market-data/constants";
 
 function buildPredictUrl(baseUrl: string, path: string, search: string) {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -11,6 +15,18 @@ function buildPredictUrl(baseUrl: string, path: string, search: string) {
   const url = new URL(normalizedPath, normalizedBase);
   url.search = search;
   return url;
+}
+
+function forwardingHeaders(request: NextRequest, accept: string) {
+  return {
+    accept,
+    ...(request.headers.get("accept-language")
+      ? { "accept-language": request.headers.get("accept-language")! }
+      : {}),
+    ...(request.headers.get("cookie")
+      ? { cookie: request.headers.get("cookie")! }
+      : {}),
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -27,18 +43,15 @@ export async function GET(request: NextRequest) {
     "/api/v1/events",
     request.nextUrl.search,
   );
+  const structureRequested =
+    request.headers.get("accept") === MARKET_STRUCTURE_MEDIA_TYPE_V1;
 
   const upstream = await fetch(upstreamUrl, {
     cache: "no-store",
-    headers: {
-      accept: "application/json",
-      ...(request.headers.get("accept-language")
-        ? { "accept-language": request.headers.get("accept-language")! }
-        : {}),
-      ...(request.headers.get("cookie")
-        ? { cookie: request.headers.get("cookie")! }
-        : {}),
-    },
+    headers: forwardingHeaders(
+      request,
+      structureRequested ? MARKET_STRUCTURE_MEDIA_TYPE_V1 : "application/json",
+    ),
   });
 
   if (!upstream.ok) {
@@ -51,8 +64,39 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  if (structureRequested) {
+    const structure = filterMarketStructure(await upstream.json());
+    const etag = marketStructureETag(
+      marketStructureValidator(structure, upstream.headers.get("etag")),
+    );
+    const headers = {
+      "cache-control": "no-store",
+      etag,
+      vary: "Accept",
+    };
+    if (request.headers.get("if-none-match") === etag) {
+      return new NextResponse(null, { status: 304, headers });
+    }
+    return NextResponse.json(structure, {
+      headers: {
+        ...headers,
+        "content-type": MARKET_STRUCTURE_MEDIA_TYPE_V1,
+      },
+    });
+  }
+
   const page = (await upstream.json()) as PredictPage<PredictEvent>;
   const withMarkets = request.nextUrl.searchParams.get("with_markets");
   const requireMarkets = withMarkets !== "false" && withMarkets !== "0";
-  return NextResponse.json(filterTradableEventsPage(page, { requireMarkets }));
+  const filtered = filterTradableEventsPage(page, { requireMarkets });
+  const structure = marketStructureValidator(
+    structureFromComposite(filtered, null),
+    upstream.headers.get("x-market-structure-etag"),
+  );
+  return NextResponse.json(filtered, {
+    headers: {
+      "cache-control": "private, no-store",
+      "x-market-structure-etag": marketStructureETag(structure),
+    },
+  });
 }

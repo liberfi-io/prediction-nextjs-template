@@ -36,6 +36,7 @@ import {
 import { useResolvedApiLang } from "src/i18n/ResolvedLocaleProvider";
 import {
   PredictClient,
+  MarketDataProvider,
   PredictWsClient,
   PredictProvider,
   PolymarketProvider,
@@ -45,6 +46,7 @@ import {
   polymarketSetupQueryKey,
 } from "@liberfi.io/react-predict";
 import type { PredictSearchResult } from "@liberfi.io/react-predict";
+import { createMarketDataCentrifugoTransportFactory } from "src/libs/marketDataCentrifugoClient";
 import {
   SearchEventsButton,
   PredictSearchModal,
@@ -94,6 +96,7 @@ import {
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
   ENABLE_KALSHI,
+  MARKET_DATA_FEATURE_CAPABILITY,
   SPORTS_FEATURE_FLAGS,
   SPORTS_NAVIGATION_ENABLED,
   isSportsNavigationEnabled,
@@ -328,10 +331,23 @@ function ServiceProviders({ children }: PropsWithChildren) {
     if (!wsUrl) return null;
     return new PredictWsClient({ wsUrl });
   }, []);
+  const marketDataTransportFactory = useMemo(() => {
+    const endpoint = process.env.NEXT_PUBLIC_CENTRIFUGO_WS_URL;
+    if (!MARKET_DATA_FEATURE_CAPABILITY.enabled || !endpoint) {
+      return undefined;
+    }
+    return createMarketDataCentrifugoTransportFactory({ endpoint });
+  }, []);
 
   return (
     <PredictProvider client={predictClient} wsClient={predictWsClient}>
-      <PolymarketProvider>{children}</PolymarketProvider>
+      <MarketDataProvider
+        capability={MARKET_DATA_FEATURE_CAPABILITY}
+        client={predictClient}
+        transportFactory={marketDataTransportFactory}
+      >
+        <PolymarketProvider>{children}</PolymarketProvider>
+      </MarketDataProvider>
     </PredictProvider>
   );
 }
@@ -447,12 +463,9 @@ function PageShell({ children }: PropsWithChildren) {
   const { onOpen: openPredictSearch, onClose: closePredictSearch } =
     useAsyncModal(PREDICT_SEARCH_MODAL_ID);
 
-  const predictSearchHref = useCallback(
-    (target: PredictSearchResult) => {
-      return target.detail_url;
-    },
-    [],
-  );
+  const predictSearchHref = useCallback((target: PredictSearchResult) => {
+    return target.detail_url;
+  }, []);
 
   const handlePredictHover = useCallback(
     (result: PredictSearchResult) => {

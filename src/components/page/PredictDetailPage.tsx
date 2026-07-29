@@ -1,19 +1,27 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn, toast } from "@liberfi.io/ui";
 import { Chain } from "@liberfi.io/types";
-import { EventDetailPage, usePredictWallet } from "@liberfi.io/ui-predict";
+import {
+  EventDetailPage,
+  usePredictWallet,
+  type EventMarketDataBookSelection,
+} from "@liberfi.io/ui-predict";
 import { useAsyncModal } from "@liberfi.io/ui-scaffold";
 import {
   eventQueryKey,
   similarEventsQueryKey,
+  useMarketDataResource,
   useSimilarEvents,
+  type MarketDataCapability,
+  type MarketDataResourceInput,
+  type PredictEvent,
+  type ProviderSource,
 } from "@liberfi.io/react-predict";
-import type { ProviderSource } from "@liberfi.io/react-predict";
 import { useConnectedWallet } from "@liberfi.io/wallet-connector";
 import {
   FUND_WALLET_MODAL_ID,
@@ -24,8 +32,23 @@ import { trackMatchDetailView } from "../../lib/analytics";
 import { useResolvedApiLang } from "../../i18n/ResolvedLocaleProvider";
 import { predictEventHref } from "./predict-source";
 import { EventActivitySection } from "./EventActivitySection";
+import {
+  eventOrderbooksFromMarketDataState,
+  mergeMarketDataEvent,
+  withEventMarketDataSelectedBook,
+} from "../../features/market-data/resource";
 
-export function PredictDetailPage({ id, source }: { id: string; source: ProviderSource }) {
+export function PredictDetailPage({
+  id,
+  source,
+  marketDataCapability,
+  marketDataResource,
+}: {
+  id: string;
+  source: ProviderSource;
+  marketDataCapability: MarketDataCapability;
+  marketDataResource?: MarketDataResourceInput;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -37,6 +60,44 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   const solanaWallet = useConnectedWallet(Chain.SOLANA);
   const evmWallet = useConnectedWallet(Chain.POLYGON);
   const { polymarketSetupVerified, kalshiKycVerified } = usePredictWallet();
+  const [bookSelectionState, setBookSelectionState] = useState<{
+    resourceKey: string;
+    selection:
+      | (EventMarketDataBookSelection & { source: ProviderSource })
+      | null;
+  }>();
+  const selectedBook =
+    bookSelectionState &&
+    bookSelectionState.resourceKey === marketDataResource?.key
+      ? bookSelectionState.selection
+      : undefined;
+  const activeMarketDataResource = useMemo(
+    () =>
+      marketDataResource && selectedBook !== undefined
+        ? withEventMarketDataSelectedBook(marketDataResource, selectedBook)
+        : marketDataResource,
+    [marketDataResource, selectedBook],
+  );
+  const marketDataState = useMarketDataResource(
+    activeMarketDataResource ?? `event:${source}:${id}:legacy`,
+  );
+  const event = queryClient.getQueryData<PredictEvent>(
+    eventQueryKey(id, source, lang),
+  );
+  const marketDataEvent =
+    marketDataCapability.enabled && event
+      ? mergeMarketDataEvent(event, marketDataState)
+      : undefined;
+  const marketDataOrderbooks = useMemo(
+    () =>
+      marketDataCapability.enabled
+        ? eventOrderbooksFromMarketDataState(marketDataState)
+        : undefined,
+    [marketDataCapability.enabled, marketDataState],
+  );
+  useEffect(() => {
+    if (marketDataState.structureInvalidated) router.refresh();
+  }, [marketDataState.structureInvalidated, router]);
 
   useEffect(() => {
     trackMatchDetailView({
@@ -110,9 +171,23 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
   const handleSetupRequired = useCallback(() => {
     void openSetupWallet();
   }, [openSetupWallet]);
+  const handleMarketDataBookSelectionChange = useCallback(
+    (selection: EventMarketDataBookSelection | null) => {
+      if (!marketDataResource) return;
+      setBookSelectionState({
+        resourceKey: marketDataResource.key,
+        selection: selection ? { ...selection, source } : null,
+      });
+    },
+    [marketDataResource, source],
+  );
 
   return (
-    <div className={cn("w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto")}>
+    <div
+      className={cn(
+        "w-full h-full lg:px-4 flex flex-col gap-2.5 overflow-y-auto",
+      )}
+    >
       <div className="p-2 lg:p-4 flex w-full max-w-[1550px] mx-auto">
         <EventDetailPage
           eventSlug={id}
@@ -126,6 +201,14 @@ export function PredictDetailPage({ id, source }: { id: string; source: Provider
           )}
           onInsufficientBalance={handleInsufficientBalance}
           onSetupRequired={handleSetupRequired}
+          marketDataCapability={marketDataCapability}
+          marketDataEvent={marketDataEvent}
+          marketDataOrderbooks={marketDataOrderbooks}
+          onMarketDataBookSelectionChange={
+            marketDataCapability.enabled
+              ? handleMarketDataBookSelectionChange
+              : undefined
+          }
         />
       </div>
     </div>

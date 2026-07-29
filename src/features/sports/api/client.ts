@@ -1,3 +1,8 @@
+import {
+  type MarketDataInitialQuotes,
+  type MarketDataResourceInput,
+  type MarketStructureResponse,
+} from "@liberfi.io/react-predict";
 import type {
   SportsPage,
   SportsSection,
@@ -10,9 +15,10 @@ import {
   normalizeSportsTaxonomyCounts,
   SPORTS_TAXONOMY_COUNTS_PATH,
 } from "./sportsTaxonomyCounts";
+import { MARKET_STRUCTURE_MEDIA_TYPE_V1 } from "../../market-data/constants";
+import { buildSportsMarketDataResource } from "../../market-data/resource";
 
-/** Loads a sports page with optional view, taxonomy, time-range, and cursor filters. */
-export async function fetchSportsPage<T>(input: {
+export interface SportsPageRequest {
   section: SportsSection;
   resource: "matches" | "props";
   view?: "live" | "upcoming" | "results";
@@ -21,28 +27,40 @@ export async function fetchSportsPage<T>(input: {
   limit: number;
   cursor?: string;
   lang?: string;
-}): Promise<SportsPage<T>> {
-  const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
-  const url = new URL(
-    `${baseUrl}/api/v1/${input.section}/${input.resource}`,
-    window.location.origin,
-  );
+  signal?: AbortSignal;
+}
+
+function sportsPagePath(input: SportsPageRequest): string {
+  const search = new URLSearchParams();
   if (input.taxonomy) {
-    url.searchParams.set("taxonomy_type", input.taxonomy.taxonomy_type);
-    url.searchParams.set("taxonomy_slug", input.taxonomy.taxonomy_slug);
+    search.set("taxonomy_type", input.taxonomy.taxonomy_type);
+    search.set("taxonomy_slug", input.taxonomy.taxonomy_slug);
   }
   if (input.view && input.resource === "matches") {
-    url.searchParams.set("view", input.view);
+    search.set("view", input.view);
   }
   if (input.timeRange) {
-    url.searchParams.set("start_time_gte", input.timeRange.start_time_gte);
-    url.searchParams.set("start_time_lt", input.timeRange.start_time_lt);
+    search.set("start_time_gte", input.timeRange.start_time_gte);
+    search.set("start_time_lt", input.timeRange.start_time_lt);
   }
-  url.searchParams.set("limit", String(input.limit));
-  if (input.cursor) url.searchParams.set("cursor", input.cursor);
-  if (input.lang) url.searchParams.set("lang", input.lang);
+  search.set("limit", String(input.limit));
+  if (input.cursor) search.set("cursor", input.cursor);
+  if (input.lang) search.set("lang", input.lang);
+  return `/api/v1/${input.section}/${input.resource}?${search.toString()}`;
+}
 
-  const response = await fetch(url);
+function sportsPageUrl(input: SportsPageRequest): URL {
+  const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
+  return new URL(`${baseUrl}${sportsPagePath(input)}`, window.location.origin);
+}
+
+/** Loads a sports page with optional view, taxonomy, time-range, and cursor filters. */
+export async function fetchSportsPage<T>(
+  input: SportsPageRequest,
+): Promise<SportsPage<T>> {
+  const response = await fetch(sportsPageUrl(input), {
+    signal: input.signal,
+  });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   const page = (await response.json()) as SportsPage<T>;
   return {
@@ -52,10 +70,61 @@ export async function fetchSportsPage<T>(input: {
   };
 }
 
+function pageInitialQuotes<T>(
+  page: SportsPage<T>,
+): MarketDataInitialQuotes | undefined {
+  const markets = page.items.flatMap((item) => {
+    const candidate = item as {
+      initial_quotes?: MarketDataInitialQuotes;
+    };
+    return candidate.initial_quotes?.markets ?? [];
+  });
+  return markets.length > 0 ? { schema_version: 1, markets } : undefined;
+}
+
+async function fetchSportsMarketDataResource<T>(
+  input: SportsPageRequest,
+  page: SportsPage<T>,
+): Promise<MarketDataResourceInput | undefined> {
+  const response = await fetch(sportsPageUrl(input), {
+    cache: "no-store",
+    headers: { Accept: MARKET_STRUCTURE_MEDIA_TYPE_V1 },
+    signal: input.signal,
+  });
+  if (!response.ok) return undefined;
+  const etag = response.headers.get("etag");
+  if (!etag) return undefined;
+  return buildSportsMarketDataResource({
+    section: input.section,
+    resource: input.resource,
+    structure: (await response.json()) as MarketStructureResponse,
+    structureETag: etag,
+    structurePath: sportsPagePath(input),
+    initialQuotes: pageInitialQuotes(page),
+  });
+}
+
+/** Loads a page and its exact market-data structure generation when enabled. */
+export async function fetchSportsPageWithMarketData<T>(
+  input: SportsPageRequest & { marketDataEnabled: boolean },
+): Promise<{
+  page: SportsPage<T>;
+  marketDataResource?: MarketDataResourceInput;
+}> {
+  const page = await fetchSportsPage<T>(input);
+  if (!input.marketDataEnabled || input.signal?.aborted) return { page };
+  const marketDataResource = await fetchSportsMarketDataResource(
+    input,
+    page,
+  ).catch(() => undefined);
+  return { page, marketDataResource };
+}
+
 /** Loads sports taxonomy match counts for a product view and optional time range. */
 export async function fetchSportsTaxonomyCounts(
   timeRange?: SportsLiveTimeRange,
   view: "live" | "upcoming" | "results" = "live",
+  signal?: AbortSignal,
 ): Promise<SportsTaxonomyMatchCount[]> {
   const baseUrl = process.env.NEXT_PUBLIC_PREDICT_URL ?? "/predict-api";
   const url = new URL(
@@ -65,7 +134,7 @@ export async function fetchSportsTaxonomyCounts(
   if (timeRange) appendSportsLiveTimeRange(url, timeRange);
   url.searchParams.set("view", view);
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return normalizeSportsTaxonomyCounts(await response.json());
 }

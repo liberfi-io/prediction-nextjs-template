@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "@liberfi.io/i18n";
 import { cn } from "@liberfi.io/ui";
-import {
-  pickBestAsk,
-  useRealtimeOrderbook,
-} from "@liberfi.io/react-predict";
+import { pickBestAsk, useRealtimeOrderbook } from "@liberfi.io/react-predict";
 import type {
   PredictEvent,
   PredictMarket,
@@ -32,7 +29,9 @@ export function formatBuyOddsPrice(
   price: number,
   format: Parameters<typeof convertPrice>[1],
 ): string {
-  return displayableBuyPrice(price) === null ? "-" : convertPrice(price, format);
+  return displayableBuyPrice(price) === null
+    ? "-"
+    : convertPrice(price, format);
 }
 
 function usesTotalSideLabels(market: PredictMarket): boolean {
@@ -136,12 +135,14 @@ export function TradePanel({
   onSetupRequired,
   onSuccess,
   initialPositionSide,
+  legacyOrderbookEnabled = true,
 }: {
   event: PredictEvent;
   market: PredictMarket;
   outcome: TradeOutcome;
   side: TradeSide;
   initialPositionSide?: string;
+  legacyOrderbookEnabled?: boolean;
   onSideChange: (side: TradeSide) => void;
   onOutcomeChange: (outcome: TradeOutcome) => void;
   onInsufficientBalance?: (source: ProviderSource) => void;
@@ -157,10 +158,11 @@ export function TradePanel({
       source: market.source ?? "polymarket",
       outcome,
     },
-    { enabled: market.status === "open" },
+    { enabled: legacyOrderbookEnabled && market.status === "open" },
   );
   const hasLiveOutcomeBook =
-    liveOrderbook?.market_id === market.slug && liveOrderbook?.outcome === outcome;
+    liveOrderbook?.market_id === market.slug &&
+    liveOrderbook?.outcome === outcome;
   const liveOutcomePrice = useMemo(() => {
     if (!hasLiveOutcomeBook) {
       return null;
@@ -184,7 +186,9 @@ export function TradePanel({
   );
   const oddsFormatter = useCallback(
     (price: number) =>
-      side === "buy" ? formatBuyOddsPrice(price, format) : convertPrice(price, format),
+      side === "buy"
+        ? formatBuyOddsPrice(price, format)
+        : convertPrice(price, format),
     [format, side],
   );
   const eventTitle = event.title_trans || event.title;
@@ -225,7 +229,9 @@ export function TradePanel({
           </span>
           <span className="line-clamp-1 text-base font-semibold leading-tight">
             <span className="text-foreground">{marketTitle} · </span>
-            <span className={cn(side === "buy" ? "text-bullish" : "text-bearish")}>
+            <span
+              className={cn(side === "buy" ? "text-bullish" : "text-bearish")}
+            >
               {actionLabel} {outcomeLabel}
             </span>
           </span>

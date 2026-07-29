@@ -28,8 +28,15 @@ import {
 import { detectLanguage } from "src/i18n/detectLanguage";
 import { mapToApiLang } from "src/i18n/locales";
 import { getPredictionLocaleContext } from "src/i18n/predictionLocaleContext";
-import { resolveSportsFeatureFlags } from "src/libs/featureFlags";
+import {
+  MARKET_DATA_FEATURE_CAPABILITY,
+  resolveSportsFeatureFlags,
+} from "src/libs/featureFlags";
 import { getServerPredictClient } from "src/libs/server/predictClient";
+import {
+  getEventMarketDataHydration,
+  getSportsMatchMarketDataHydration,
+} from "src/features/market-data/server";
 import { createServerQueryClient } from "src/libs/server/queryClient";
 
 interface PageProps {
@@ -229,11 +236,43 @@ export default async function Page({ params, searchParams }: PageProps) {
   }
 
   if (sportsRoute.kind === "sports_match") {
+    const match = sportsRoute.detail as SportsMatchDetail;
+    const selectedSportsBook =
+      market && (outcome === "yes" || outcome === "no")
+        ? [
+            ...(match.inline_markets ?? []),
+            ...(match.market_groups ?? []).flatMap(
+              (group) => group.markets ?? [],
+            ),
+          ]
+            .find((candidate) => candidate.market_slug === market)
+            ?.outcomes?.find((candidate) => candidate.outcome === outcome)
+            ?.orderbook
+        : undefined;
+    const marketDataHydration = await withTimeout(
+      getSportsMatchMarketDataHydration({
+        enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+        match,
+        lang: localeContext.lang,
+        requestHeaders: localeContext.requestHeaders,
+        selectedBook: selectedSportsBook
+          ? {
+              source: selectedSportsBook.source,
+              marketSlug: selectedSportsBook.market_slug,
+              outcomeKey: selectedSportsBook.outcome,
+              displayOutcome: outcome as "yes" | "no",
+            }
+          : undefined,
+      }),
+      PREFETCH_TIMEOUT_MS,
+    ).catch(() => undefined);
     return (
       <SportsMatchDetailPage
-        match={sportsRoute.detail as SportsMatchDetail}
+        match={marketDataHydration?.match ?? match}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataHydration?.resource}
       />
     );
   }
@@ -245,6 +284,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         section={sportsRoute.section}
         initialMarketSlug={market}
         initialOutcome={normalizeSportsOutcome(outcome)}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
       />
     );
   }
@@ -267,14 +307,44 @@ export default async function Page({ params, searchParams }: PageProps) {
         );
   if (!resolved) notFound();
 
+  const selectedEventMarket = market
+    ? resolved.event.markets?.find((candidate) => candidate.slug === market)
+    : undefined;
+  const selectedEventOutcome =
+    outcome === "yes"
+      ? selectedEventMarket?.outcomes[0]
+      : outcome === "no"
+        ? selectedEventMarket?.outcomes[1]
+        : undefined;
+  const marketDataHydration = await withTimeout(
+    getEventMarketDataHydration({
+      enabled: MARKET_DATA_FEATURE_CAPABILITY.enabled,
+      event: resolved.event,
+      requestHeaders: localeContext.requestHeaders,
+      selectedBook:
+        selectedEventMarket && selectedEventOutcome
+          ? {
+              source: selectedEventMarket.source,
+              marketSlug: selectedEventMarket.slug,
+              outcomeKey: selectedEventOutcome.key,
+            }
+          : undefined,
+    }),
+    PREFETCH_TIMEOUT_MS,
+  ).catch(() => undefined);
   queryClient.setQueryData(
     eventQueryKey(eventSlug, resolved.source, resolved.lang),
-    resolved.event,
+    marketDataHydration?.event ?? resolved.event,
   );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PredictDetailPage id={eventSlug} source={resolved.source} />
+      <PredictDetailPage
+        id={eventSlug}
+        source={resolved.source}
+        marketDataCapability={MARKET_DATA_FEATURE_CAPABILITY}
+        marketDataResource={marketDataHydration?.resource}
+      />
     </HydrationBoundary>
   );
 }
