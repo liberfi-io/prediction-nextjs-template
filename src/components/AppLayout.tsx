@@ -385,16 +385,11 @@ function PageShell({ children }: PropsWithChildren) {
     [t],
   );
 
-  // Mobile footer: hide matches / portfolio / referral and place worldcup
-  // in the middle. The full nav list stays intact for everything else.
+  // Mobile footer: hide matches / portfolio / referral / worldcup.
+  // The full nav list (including worldcup) stays intact for the desktop header.
   const footerNavItems: NavItem[] = useMemo(() => {
-    const hidden = new Set(["matches", "portfolio", "referral"]);
-    const visible = navItems.filter((item) => !hidden.has(item.key));
-    const worldcup = visible.find((item) => item.key === "worldcup");
-    if (!worldcup) return visible;
-    const rest = visible.filter((item) => item.key !== "worldcup");
-    const mid = Math.floor(rest.length / 2);
-    return [...rest.slice(0, mid), worldcup, ...rest.slice(mid)];
+    const hidden = new Set(["matches", "portfolio", "referral", "worldcup"]);
+    return navItems.filter((item) => !hidden.has(item.key));
   }, [navItems]);
 
   // Warm the nav destinations, but never at the expense of the first paint.
