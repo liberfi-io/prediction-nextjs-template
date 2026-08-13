@@ -25,9 +25,9 @@ import type { ParsedStartParam } from "src/features/telegram-miniapp/types";
 /**
  * Where a launch with no (or unparseable) deep link lands. The home route is a
  * pure redirector — it never renders a list itself — so both plain web visitors
- * and generic Telegram launches end up on the World Cup hub.
+ * and generic Mini App launches end up on the Sports hub.
  */
-const DEFAULT_HREF = "/world-cup";
+const DEFAULT_HREF = "/sports";
 
 // Hard ceiling for the `wd` matchId→slug lookup. The splash must never hang on
 // a stalled matches request — observed on iOS/macOS WebKit, where a request can

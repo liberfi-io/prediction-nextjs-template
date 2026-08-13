@@ -153,7 +153,7 @@ const NoPrefetchLink: LinkComponentType = (props) => (
 );
 
 const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-const LEADERBOARD_NAV_HREF = "/leaderboard?scope=worldcup_2026&interval=7d";
+const LEADERBOARD_NAV_HREF = "/leaderboard?interval=7d";
 const SPORTS_FLAGS = SPORTS_FEATURE_FLAGS;
 
 function navPathname(href: string): string {
@@ -513,10 +513,13 @@ function PageShell({ children }: PropsWithChildren) {
               <div className="shrink-0 flex items-center gap-1">
                 <Logo icon={<LogoIcon />} />
                 <div className="hidden sm:flex items-center gap-1 ml-2">
-                  {/* Hide "matches" (跨平台匹配) in the desktop header only;
-                        the route/module and mobile footer entry stay intact. */}
+                  {/* Hide ended or non-primary destinations in the desktop
+                        header only; routes and mobile footer entries stay intact. */}
                   {navItems
-                    .filter((item) => item.key !== "matches")
+                    .filter(
+                      (item) =>
+                        item.key !== "matches" && item.key !== "worldcup",
+                    )
                     .map((item) => {
                       const itemPathname = navPathname(item.href);
                       const active = activePathname.startsWith(itemPathname);
