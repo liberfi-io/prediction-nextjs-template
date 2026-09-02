@@ -80,7 +80,7 @@ export async function prefetchSportsPageData(input: {
     input.filters?.view === "proposals" ||
     (hasTaxonomyFilter && !matchView);
 
-  const [taxonomy, matches, props, matchTaxonomyCounts] = await Promise.all([
+  const [taxonomy, matchesResult, props, matchTaxonomyCounts] = await Promise.all([
     input.deadline
       .withRemainingTimeout(
         () => readTaxonomy?.call(client, params) ?? Promise.resolve(null),
@@ -92,7 +92,11 @@ export async function prefetchSportsPageData(input: {
           ? readSportsPage(input.section, "matches", matchParams)
           : Promise.resolve({ items: [] }),
       )
-      .catch(() => ({ items: [] })),
+      .then((value) => ({ value, degraded: false }))
+      .catch(() => ({
+        value: { items: [] },
+        degraded: input.section === "sports" && showMatches,
+      })),
     input.deadline
       .withRemainingTimeout(() =>
         showProps
@@ -109,12 +113,18 @@ export async function prefetchSportsPageData(input: {
       : Promise.resolve(undefined),
   ]);
 
-  const matchPage = normalizePage<SportsPageData["matches"][number]>(matches);
+  const matchPage = normalizePage<SportsPageData["matches"][number]>(
+    matchesResult.value,
+  );
   const propPage = normalizePage<SportsPageData["props"][number]>(props);
   return {
     taxonomy: taxonomy as SportsTaxonomyResponse | null,
     matches: matchPage.items,
     props: propPage.items,
+    ...(matchesResult.degraded ? { match_page_degraded: true } : {}),
+    ...(matchesResult.degraded && matchTimeRange
+      ? { match_request_time_range: matchTimeRange }
+      : {}),
     match_taxonomy_counts: normalizeTaxonomyCounts(matchTaxonomyCounts),
     match_pagination: paginationFromPage(matchPage),
     prop_pagination: paginationFromPage(propPage),

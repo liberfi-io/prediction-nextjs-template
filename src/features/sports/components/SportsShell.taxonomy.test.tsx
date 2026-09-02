@@ -1440,8 +1440,13 @@ describe("SportsShell taxonomy labels", () => {
     expect(
       container.querySelectorAll('[data-sports-navigation-icon="proposals"]'),
     ).toHaveLength(2);
-    expect(screen.getByText(/filters\.featured/i)).toBeDefined();
-    expect(screen.getAllByText("5")).toHaveLength(1);
+    const featuredGroup = screen
+      .getByText(/filters\.featured/i)
+      .closest("section");
+    expect(featuredGroup).not.toBeNull();
+    expect(within(featuredGroup as HTMLElement).getAllByText("5")).toHaveLength(
+      1,
+    );
     expect(screen.getAllByText("10")).toHaveLength(3);
     const mobileTaxonomyLink = container.querySelector(
       '[data-taxonomy-scroll-target="soccer"]',

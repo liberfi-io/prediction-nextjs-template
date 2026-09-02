@@ -2,6 +2,7 @@ import type {
   MarketDataInitialQuotes,
   ProviderSource,
 } from "@liberfi.io/react-predict";
+import type { SportsLiveTimeRange } from "./live/sportsLiveTimeRange";
 
 export type SportsSection = "sports" | "esports";
 
@@ -145,6 +146,8 @@ export interface SportsPageData {
   taxonomy: SportsTaxonomyResponse | null;
   matches: SportsMatchCard[];
   props: SportsPropEventCard[];
+  match_page_degraded?: boolean;
+  match_request_time_range?: SportsLiveTimeRange;
   match_taxonomy_counts?: SportsTaxonomyMatchCount[];
   match_pagination?: SportsPagination;
   prop_pagination?: SportsPagination;

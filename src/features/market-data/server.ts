@@ -13,6 +13,7 @@ import type {
   SportsMatchCard,
   SportsMatchDetail,
   SportsPage,
+  SportsPageData,
   SportsPageFilters,
   SportsPropEventCard,
   SportsSection,
@@ -161,6 +162,38 @@ export interface SportsMarketDataHydrationResult {
   pages: {
     matches?: SportsPage<SportsMatchCard>;
     props?: SportsPage<SportsPropEventCard>;
+  };
+}
+
+/** Merges authoritative market-data pages and clears superseded recovery state. */
+export function mergeSportsPageDataWithMarketDataHydration(
+  data: SportsPageData,
+  hydration: SportsMarketDataHydrationResult | undefined,
+): SportsPageData {
+  return {
+    ...data,
+    ...(hydration?.pages.matches
+      ? {
+          matches: hydration.pages.matches.items,
+          match_pagination: {
+            next_cursor: hydration.pages.matches.next_cursor,
+            has_more: hydration.pages.matches.has_more,
+            limit: hydration.pages.matches.limit,
+          },
+          match_page_degraded: undefined,
+          match_request_time_range: undefined,
+        }
+      : {}),
+    ...(hydration?.pages.props
+      ? {
+          props: hydration.pages.props.items,
+          prop_pagination: {
+            next_cursor: hydration.pages.props.next_cursor,
+            has_more: hydration.pages.props.has_more,
+            limit: hydration.pages.props.limit,
+          },
+        }
+      : {}),
   };
 }
 

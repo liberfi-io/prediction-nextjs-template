@@ -323,6 +323,13 @@ function SportsShellBody({
   const sportsListScrollRef = useRef<HTMLDivElement>(null);
   const liveRangeRequestIdRef = useRef(0);
   const liveTaxonomyCountsRequestIdRef = useRef(0);
+  const synchronizedSportsPageRef = useRef<{
+    matches: SportsPageData["matches"];
+    matchPagination: SportsPageData["match_pagination"];
+    matchTaxonomyCounts: SportsPageData["match_taxonomy_counts"];
+  } | null>(null);
+  const attemptedMatchPageRecoveryRef = useRef<SportsPageData | null>(null);
+  const mountedRef = useRef(false);
   const requestControllersRef = useRef(new Set<AbortController>());
   const startRequest = useCallback(() => {
     const controller = new AbortController();
@@ -332,13 +339,15 @@ function SportsShellBody({
   const finishRequest = useCallback((controller: AbortController) => {
     requestControllersRef.current.delete(controller);
   }, []);
-  useEffect(
-    () => () => {
-      requestControllersRef.current.forEach((controller) => controller.abort());
-      requestControllersRef.current.clear();
-    },
-    [],
-  );
+  useEffect(() => {
+    const requestControllers = requestControllersRef.current;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      requestControllers.forEach((controller) => controller.abort());
+      requestControllers.clear();
+    };
+  }, []);
   const getSportsListScrollElement = useCallback(
     () => sportsListScrollRef.current,
     [],
@@ -368,6 +377,8 @@ function SportsShellBody({
     "matches" | "props" | null
   >(null);
   const [liveRangeLoading, setLiveRangeLoading] = useState(false);
+  const [matchPageRecoveryRevision, setMatchPageRecoveryRevision] =
+    useState(0);
   const [liveTaxonomyOverride, setLiveTaxonomyOverride] =
     useState<SportsLiveTaxonomyOverride>({ kind: "route" });
   const [liveTaxonomyCounts, setLiveTaxonomyCounts] = useState<
@@ -552,6 +563,19 @@ function SportsShellBody({
   }, [selectedLiveFilterStart, visibleLiveFilterStart]);
 
   useEffect(() => {
+    const synchronizedPage = synchronizedSportsPageRef.current;
+    if (
+      synchronizedPage?.matches === data.matches &&
+      synchronizedPage.matchPagination === data.match_pagination &&
+      synchronizedPage.matchTaxonomyCounts === data.match_taxonomy_counts
+    ) {
+      return;
+    }
+    synchronizedSportsPageRef.current = {
+      matches: data.matches,
+      matchPagination: data.match_pagination,
+      matchTaxonomyCounts: data.match_taxonomy_counts,
+    };
     liveRangeRequestIdRef.current += 1;
     liveTaxonomyCountsRequestIdRef.current += 1;
     setLiveRangeLoading(false);
@@ -563,6 +587,91 @@ function SportsShellBody({
     });
     setLiveTaxonomyCounts(data.match_taxonomy_counts);
   }, [data.match_taxonomy_counts, data.matches, data.match_pagination]);
+  useEffect(() => {
+    if (
+      !data.match_page_degraded ||
+      attemptedMatchPageRecoveryRef.current === data
+    ) {
+      return;
+    }
+    attemptedMatchPageRecoveryRef.current = data;
+    const requestId = liveRangeRequestIdRef.current;
+    const controller = startRequest();
+    if (usesLiveMatchRange) {
+      setLiveRangeLoading(true);
+    } else {
+      setLoadingResource("matches");
+    }
+    const timeRange = data.match_request_time_range ??
+      (filters.start_time_gte && filters.start_time_lt
+        ? {
+            start_time_gte: filters.start_time_gte,
+            start_time_lt: filters.start_time_lt,
+          }
+        : usesLiveMatchRange
+          ? sportsLiveTimeRange(selectedLiveDate)
+          : undefined);
+
+    void fetchSportsPageWithMarketData<SportsMatchCardData>({
+      section,
+      resource: "matches",
+      view: matchRequestView,
+      taxonomy:
+        filters.taxonomy_type && filters.taxonomy_slug
+          ? {
+              taxonomy_type: filters.taxonomy_type,
+              taxonomy_slug: filters.taxonomy_slug,
+            }
+          : undefined,
+      timeRange,
+      limit: matches.limit,
+      lang,
+      marketDataEnabled: marketDataCapability.enabled,
+      signal: controller.signal,
+    })
+      .then(({ page, marketDataResource }) => {
+        if (liveRangeRequestIdRef.current !== requestId) return;
+        setMatches(page);
+        onMarketDataResource?.("matches", marketDataResource, "replace");
+      })
+      .catch(() => {
+        if (
+          !controller.signal.aborted ||
+          !mountedRef.current ||
+          liveRangeRequestIdRef.current !== requestId ||
+          attemptedMatchPageRecoveryRef.current !== data
+        ) {
+          return;
+        }
+        attemptedMatchPageRecoveryRef.current = null;
+        setMatchPageRecoveryRevision((revision) => revision + 1);
+      })
+      .finally(() => {
+        finishRequest(controller);
+        if (liveRangeRequestIdRef.current !== requestId) return;
+        setLiveRangeLoading(false);
+        setLoadingResource(null);
+      });
+
+    return () => controller.abort();
+  }, [
+    data,
+    filters.start_time_gte,
+    filters.start_time_lt,
+    filters.taxonomy_slug,
+    filters.taxonomy_type,
+    finishRequest,
+    lang,
+    marketDataCapability.enabled,
+    matchPageRecoveryRevision,
+    matchRequestView,
+    matches.limit,
+    onMarketDataResource,
+    section,
+    selectedLiveDate,
+    startRequest,
+    usesLiveMatchRange,
+  ]);
   useEffect(
     () =>
       setPropPage({
