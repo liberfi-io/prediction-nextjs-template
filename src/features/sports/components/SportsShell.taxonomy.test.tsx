@@ -600,17 +600,17 @@ describe("SportsShell taxonomy labels", () => {
     expect(screen.getByTestId("sports-page-header").className).toContain(
       "border-b",
     );
-    expect(screen.queryByText(/filters\.upcoming/i)).toBeNull();
+    expect(screen.queryByText(/^upcoming$/i)).toBeNull();
     const todayTab = screen.getByRole("button", {
-      name: /worldcup\.tab\.today/i,
+      name: /today/i,
     });
     const gamesTab = screen.getByRole("button", {
-      name: /worldcup\.tab\.games/i,
+      name: /games/i,
     });
     expect(todayTab.getAttribute("aria-current")).toBeNull();
     expect(gamesTab.getAttribute("aria-current")).toBe("page");
     expect(
-      screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
+      screen.getByRole("button", { name: /props/i }),
     ).toBeDefined();
   });
 
@@ -652,14 +652,14 @@ describe("SportsShell taxonomy labels", () => {
       );
 
       const todayTab = screen.getByRole("button", {
-        name: /worldcup\.tab\.today/i,
+        name: /today/i,
       });
       fireEvent.click(todayTab);
 
       expect(todayTab.getAttribute("aria-current")).toBe("page");
       expect(
         screen
-          .getByRole("button", { name: /worldcup\.tab\.games/i })
+          .getByRole("button", { name: /games/i })
           .getAttribute("aria-current"),
       ).toBeNull();
       expect(
@@ -714,7 +714,7 @@ describe("SportsShell taxonomy labels", () => {
       );
 
       fireEvent.click(
-        screen.getByRole("button", { name: /worldcup\.tab\.props/i }),
+        screen.getByRole("button", { name: /props/i }),
       );
 
       expect(
@@ -774,7 +774,7 @@ describe("SportsShell taxonomy labels", () => {
         "2026-07-24T00:00:00Z",
       );
       expect(
-        screen.queryByRole("button", { name: "extend.portfolio.loadMore" }),
+        screen.queryByRole("button", { name: "Load more" }),
       ).toBeNull();
     } finally {
       jest.useRealTimers();
@@ -812,7 +812,7 @@ describe("SportsShell taxonomy labels", () => {
     const toolbar = screen.getByTestId("sports-content-toolbar");
     const tabs = within(toolbar).getByRole("navigation");
     const oddsFormatButton = within(toolbar)
-      .getByText("extend.worldcup.odds")
+      .getByText("Odds")
       .closest("button");
 
     expect(toolbar.className).toContain("justify-between");
@@ -833,7 +833,7 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
-      "extend.sports.filters.proposals",
+      "Predictions",
     );
     expect(screen.getByTestId("sports-page-header").className).not.toContain(
       "border-b",
@@ -845,7 +845,7 @@ describe("SportsShell taxonomy labels", () => {
     const header = screen.getByTestId("sports-page-header");
     const toolbar = screen.getByTestId("sports-proposals-odds-toolbar");
     const oddsFormatButton = within(toolbar)
-      .getByText("extend.worldcup.odds")
+      .getByText("Odds")
       .closest("button");
 
     expect(header.contains(toolbar)).toBe(true);
@@ -866,14 +866,12 @@ describe("SportsShell taxonomy labels", () => {
     expect(groupHeading.className).toContain("pr-[17px]");
     expect(marketHeaders).toHaveLength(3);
     expect(
-      screen.getAllByText("extend.worldcup.marketCol.moneyline"),
+      screen.getAllByText("Moneyline"),
     ).toHaveLength(1);
     expect(
-      screen.getAllByText("extend.worldcup.marketCol.spread"),
+      screen.getAllByText("Spread"),
     ).toHaveLength(1);
-    expect(screen.getAllByText("extend.worldcup.marketCol.total")).toHaveLength(
-      1,
-    );
+    expect(screen.getAllByText("Total")).toHaveLength(1);
     marketHeaders.forEach((header) => {
       expect(header.className).toContain("w-[128px]");
     });
@@ -891,8 +889,8 @@ describe("SportsShell taxonomy labels", () => {
     expect(marketHeaders).toHaveLength(1);
     expect(marketHeaders[0].className).toContain("w-[400px]");
     expect(marketHeaders[0].className).toContain("text-right");
-    expect(screen.queryByText("extend.worldcup.marketCol.spread")).toBeNull();
-    expect(screen.queryByText("extend.worldcup.marketCol.total")).toBeNull();
+    expect(screen.queryByText("Spread")).toBeNull();
+    expect(screen.queryByText("Total")).toBeNull();
 
     rerender(
       <SportsMatchGroupHeading
@@ -902,8 +900,8 @@ describe("SportsShell taxonomy labels", () => {
     );
     marketHeaders = screen.getAllByTestId("sports-market-group-header");
     expect(marketHeaders).toHaveLength(2);
-    expect(screen.queryByText("extend.worldcup.marketCol.spread")).toBeNull();
-    expect(screen.getByText("extend.worldcup.marketCol.total")).toBeDefined();
+    expect(screen.queryByText("Spread")).toBeNull();
+    expect(screen.getByText("Total")).toBeDefined();
     marketHeaders.forEach((header) => {
       expect(header.className).toContain("w-[128px]");
     });
@@ -1180,7 +1178,7 @@ describe("SportsShell taxonomy labels", () => {
       );
 
       const propsTab = screen.getByRole("button", {
-        name: /worldcup\.tab\.props/i,
+        name: /props/i,
       });
       fireEvent.click(propsTab);
       act(() => renderNextTab?.(0));
@@ -1193,7 +1191,7 @@ describe("SportsShell taxonomy labels", () => {
       );
       expect(
         screen
-          .getByRole("button", { name: /worldcup\.tab\.games/i })
+          .getByRole("button", { name: /games/i })
           .getAttribute("aria-current"),
       ).toBe("page");
       expect(propsTab.getAttribute("aria-current")).toBeNull();
@@ -1311,13 +1309,13 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     const proposalsLink = screen.getAllByRole("link", {
-      name: /filters\.proposals/i,
+      name: /predictions/i,
     })[0];
     fireEvent.click(proposalsLink);
 
     expect(proposalsLink.classList.contains("bg-content1")).toBe(true);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
-      /filters\.proposals/i,
+      /predictions/i,
     );
     const list = container.querySelector("#sports-list-scroll");
     expect(list?.getAttribute("aria-busy")).toBe("true");
@@ -1416,10 +1414,10 @@ describe("SportsShell taxonomy labels", () => {
 
     expect(screen.getAllByRole("link", { name: /live/i })).toHaveLength(2);
     expect(
-      screen.getAllByRole("link", { name: /filters\.proposals/i }),
+      screen.getAllByRole("link", { name: /predictions/i }),
     ).toHaveLength(2);
     for (const link of screen.getAllByRole("link", {
-      name: /filters\.(live|proposals)/i,
+      name: /^(live|predictions)$/i,
     })) {
       expect(link.textContent).not.toMatch(/\d/);
     }
@@ -1441,7 +1439,7 @@ describe("SportsShell taxonomy labels", () => {
       container.querySelectorAll('[data-sports-navigation-icon="proposals"]'),
     ).toHaveLength(2);
     const featuredGroup = screen
-      .getByText(/filters\.featured/i)
+      .getByText(/^featured$/i)
       .closest("section");
     expect(featuredGroup).not.toBeNull();
     expect(within(featuredGroup as HTMLElement).getAllByText("5")).toHaveLength(
@@ -1579,23 +1577,23 @@ describe("SportsShell taxonomy labels", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /extend\.sports\.nav\.sports/i }),
+      screen.getByRole("button", { name: /^sports$/i }),
     );
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.dataset.placement).toBe("bottom");
     expect(dialog.dataset.size).toBe("lg");
     expect(
-      within(dialog).getByText(/extend\.sports\.filters\.allSportsEvents/i),
+      within(dialog).getByText(/^all sports events$/i),
     ).toBeDefined();
     expect(
-      within(dialog).queryByRole("link", { name: /filters\.live/i }),
+      within(dialog).queryByRole("link", { name: /^live$/i }),
     ).toBeNull();
     expect(
-      within(dialog).queryByRole("link", { name: /filters\.proposals/i }),
+      within(dialog).queryByRole("link", { name: /^predictions$/i }),
     ).toBeNull();
-    expect(within(dialog).getByText(/filters\.featured/i)).toBeDefined();
-    expect(within(dialog).getByText(/nav\.sports/i)).toBeDefined();
+    expect(within(dialog).getByText(/^featured$/i)).toBeDefined();
+    expect(within(dialog).getByText(/^sports$/i)).toBeDefined();
 
     fireEvent.click(within(dialog).getByRole("link", { name: /soccer/i }));
 
