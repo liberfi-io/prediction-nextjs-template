@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
 
   const upstream = await fetch(upstreamUrl, {
     cache: "no-store",
+    signal: request.signal,
     headers: forwardingHeaders(
       request,
       structureRequested ? MARKET_STRUCTURE_MEDIA_TYPE_V1 : "application/json",

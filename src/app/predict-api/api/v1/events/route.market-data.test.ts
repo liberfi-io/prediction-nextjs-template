@@ -137,6 +137,17 @@ describe("events BFF market-data structure validator", () => {
     );
   });
 
+  it("cancels the upstream request when the browser request is cancelled", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue(Response.json(composite));
+    const incoming = request();
+
+    await GET(incoming);
+
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(incoming.signal);
+  });
+
   it("fetches structure unconditionally and applies the browser validator last", async () => {
     const fetchMock = jest
       .spyOn(global, "fetch")
