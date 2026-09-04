@@ -4,6 +4,7 @@ import {
   getLocalSdkAliases,
   getLocalSdkWatchOptions,
 } from "./build-config/local-sdk-aliases.mjs";
+import { LEGACY_REDIRECTS } from "./build-config/legacy-redirects.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,6 +22,9 @@ const useLocalSdk = Object.keys(localSdkAliases).length > 0;
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  async redirects() {
+    return LEGACY_REDIRECTS;
+  },
   async rewrites() {
     return [
       {
