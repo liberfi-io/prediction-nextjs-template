@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 /**
  * Lightweight Polymarket Relay Client built on viem.
  * Handles Safe deployment, token approvals, and Safe transactions via the
@@ -62,12 +63,6 @@ const multisendAbi = [
 // Types
 // ---------------------------------------------------------------------------
 
-interface RelayerHeaders {
-  POLY_BUILDER_SIGNATURE: string;
-  POLY_BUILDER_TIMESTAMP: string;
-  POLY_BUILDER_API_KEY: string;
-  POLY_BUILDER_PASSPHRASE: string;
-}
 
 interface SafeTransaction {
   to: Hex;
@@ -82,7 +77,7 @@ interface RelayerSubmitResponse {
 }
 
 export interface PolymarketRelayConfig {
-  /** URL of the backend HMAC signing proxy, e.g. "/predict-api/api/v1/polymarket/sign" */
+  /** Legacy signing URL; the helper derives the bounded /relay endpoint, e.g. "/predict-api/api/v1/polymarket/sign" */
   signProxyUrl: string;
 }
 
@@ -104,28 +99,8 @@ export function deriveSafe(ownerAddress: Hex): Hex {
 }
 
 // ---------------------------------------------------------------------------
-// HMAC signing proxy
+// Authenticated relayer forwarding
 // ---------------------------------------------------------------------------
-
-async function getRelayerHeaders(
-  config: PolymarketRelayConfig,
-  method: string,
-  path: string,
-  body?: string,
-): Promise<RelayerHeaders> {
-  const resp = await fetch(config.signProxyUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ method, path, body: body ?? "" }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Signing proxy error ${resp.status}: ${text}`);
-  }
-
-  return resp.json();
-}
 
 async function relayerFetch(
   config: PolymarketRelayConfig,
@@ -133,23 +108,12 @@ async function relayerFetch(
   path: string,
   body?: string,
 ): Promise<Response> {
-  const headers = await getRelayerHeaders(config, method, path, body);
-  const url = RELAYER_URL + path;
-
-  const fetchHeaders: Record<string, string> = {
-    POLY_BUILDER_API_KEY: headers.POLY_BUILDER_API_KEY,
-    POLY_BUILDER_TIMESTAMP: headers.POLY_BUILDER_TIMESTAMP,
-    POLY_BUILDER_PASSPHRASE: headers.POLY_BUILDER_PASSPHRASE,
-    POLY_BUILDER_SIGNATURE: headers.POLY_BUILDER_SIGNATURE,
-  };
-  if (body) {
-    fetchHeaders["Content-Type"] = "application/json";
-  }
-
-  return fetch(url, {
-    method,
-    headers: fetchHeaders,
-    body: body ?? undefined,
+  // The server forwards only bounded, user-signed relay operations. Builder
+  // credentials are never returned to browser callers.
+  return fetch(config.signProxyUrl.replace(/\/sign$/, "/relay"), {
+    method: "POST",
+    headers: predictApiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ method, path, body: body ?? "" }),
   });
 }
 

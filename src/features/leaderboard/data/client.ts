@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 /**
  * Leaderboard BFF client + adapter (self-contained in the template).
  *
@@ -623,7 +624,7 @@ async function getJson<T>(baseUrl: string, path: string, lang?: string): Promise
   const url = `${baseUrl}/api/v1/prediction/${path}${suffix}`;
   const start = Date.now();
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { cache: "no-store", headers: predictApiHeaders() });
     const ms = Date.now() - start;
     if (!res.ok) {
       console.warn(

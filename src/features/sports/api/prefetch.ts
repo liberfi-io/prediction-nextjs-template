@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 import { getServerPredictClient } from "src/libs/server/predictClient";
 import type {
   SportsPageData,
@@ -40,7 +41,7 @@ export async function prefetchSportsPageData(input: {
   filters?: SportsPageFilters;
 }): Promise<SportsPageData> {
   const client = getServerPredictClient({
-    headers: input.requestHeaders,
+    headers: predictApiHeaders(input.requestHeaders),
   }) as RuntimeSportsClient;
   const apiFilters = { ...(input.filters ?? {}) };
   delete apiFilters.view;
@@ -128,7 +129,7 @@ async function readSportsTaxonomyCounts(
   const url = resolvePredictUrl(SPORTS_TAXONOMY_COUNTS_PATH);
   if (params) appendSportsLiveTimeRange(url, params);
   url.searchParams.set("view", view);
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url, { cache: "no-store", headers: predictApiHeaders() });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return response.json();
 }
@@ -158,7 +159,7 @@ async function readSportsPage(
       url.searchParams.set(key, String(value));
     }
   }
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url, { cache: "no-store", headers: predictApiHeaders() });
   if (!response.ok) throw new Error(`Sports API returned ${response.status}`);
   return response.json();
 }

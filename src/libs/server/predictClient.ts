@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 import {
   createPredictClient,
   type PredictClientOptions,
@@ -11,5 +12,8 @@ import {
  * `NEXT_PUBLIC_PREDICT_URL`.
  */
 export function getServerPredictClient(options?: PredictClientOptions) {
-  return createPredictClient(process.env.PREDICT_URL!, options);
+  return createPredictClient(process.env.PREDICT_URL!, {
+    ...options,
+    headers: () => predictApiHeaders(typeof options?.headers === "function" ? options.headers() : options?.headers),
+  });
 }

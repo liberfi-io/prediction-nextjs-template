@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 import type {
   ListEventsParams,
   MarketDataInitialQuotes,
@@ -84,10 +85,10 @@ export async function getEventsMarketDataHydration(input: {
   url.search = search;
   const response = await fetch(url, {
     cache: "no-store",
-    headers: {
+    headers: predictApiHeaders({
       ...Object.fromEntries(new Headers(input.requestHeaders)),
       Accept: "application/json",
-    },
+    }),
   });
   if (!response.ok) return undefined;
   const page = filterTradableEventsPage(
@@ -126,10 +127,10 @@ export async function getEventMarketDataHydration(input: {
     `?source=${encodeURIComponent(input.event.source)}`;
   const response = await fetch(buildPredictApiUrl(baseUrl, path), {
     cache: "no-store",
-    headers: {
+    headers: predictApiHeaders({
       ...Object.fromEntries(new Headers(input.requestHeaders)),
       Accept: "application/json",
-    },
+    }),
   });
   if (!response.ok) return undefined;
   const structureETag = response.headers.get("x-market-structure-etag");
@@ -219,10 +220,10 @@ export async function getSportsMarketDataHydration(input: {
         buildPredictApiUrl(process.env.PREDICT_URL!, path),
         {
           cache: "no-store",
-          headers: {
+          headers: predictApiHeaders({
             ...Object.fromEntries(new Headers(input.requestHeaders)),
             Accept: "application/json",
-          },
+          }),
         },
       );
       if (!response.ok) return undefined;
@@ -303,10 +304,10 @@ export async function getSportsMatchMarketDataHydration(input: {
     buildPredictApiUrl(process.env.PREDICT_URL, path),
     {
       cache: "no-store",
-      headers: {
+      headers: predictApiHeaders({
         ...Object.fromEntries(new Headers(input.requestHeaders)),
         Accept: "application/json",
-      },
+      }),
     },
   );
   if (!response.ok) return undefined;

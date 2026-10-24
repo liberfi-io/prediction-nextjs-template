@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 /**
  * World Cup BFF client + adapter (ADR-6: self-contained in the template).
  *
@@ -1204,6 +1205,7 @@ async function getWorldcupJson<T>(
   const suffix = lang && lang !== "en" ? `${sep}lang=${encodeURIComponent(lang)}` : "";
   const res = await fetch(`${baseUrl}/api/v1/worldcup/${path}${suffix}`, {
     cache: "no-store",
+    headers: predictApiHeaders(),
   });
   if (!res.ok) {
     throw new Error(`worldcup ${path} request failed: ${res.status}`);
@@ -1305,7 +1307,7 @@ export async function fetchWorldcupFeeds(
   const qs = params.toString();
   const res = await fetch(
     `${baseUrl}/api/v1/events/${encodeURIComponent(slug)}/feeds${qs ? `?${qs}` : ""}`,
-    { cache: "no-store" },
+    { cache: "no-store", headers: predictApiHeaders() },
   );
   if (!res.ok) {
     throw new Error(`worldcup feeds request failed: ${res.status}`);

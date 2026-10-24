@@ -1,5 +1,7 @@
 "use client";
 
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
+
 /**
  * AppLayout for the prediction standalone app.
  *
@@ -318,7 +320,7 @@ function ServiceProviders({ children }: PropsWithChildren) {
   const predictClient = useMemo(
     () =>
       new PredictClient(baseUrl + process.env.NEXT_PUBLIC_PREDICT_URL, {
-        headers: () => ({ "Accept-Language": apiLang }),
+        headers: () => predictApiHeaders({ "Accept-Language": apiLang }),
       }),
     [apiLang],
   );
@@ -329,7 +331,8 @@ function ServiceProviders({ children }: PropsWithChildren) {
   const predictWsClient = useMemo(() => {
     const wsUrl = process.env.NEXT_PUBLIC_PREDICT_WS_URL;
     if (!wsUrl) return null;
-    return new PredictWsClient({ wsUrl });
+    const config = { wsUrl, apiKey: () => process.env.NEXT_PUBLIC_PREDICT_API_KEY ?? "" };
+    return new PredictWsClient(config);
   }, []);
   const marketDataTransportFactory = useMemo(() => {
     const endpoint = process.env.NEXT_PUBLIC_CENTRIFUGO_WS_URL;

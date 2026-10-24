@@ -13,6 +13,8 @@ concurrency:
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  PREDICT_API_KEY: ${{ secrets.PREDICT_API_KEY }}
+  NEXT_PUBLIC_PREDICT_API_KEY: ${{ secrets.PREDICT_API_KEY }}
 
 jobs:
   deploy:
@@ -37,13 +39,19 @@ jobs:
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Configure Prediction API credentials
+        shell: bash
+        run: |
+          test -n "$PREDICT_API_KEY" || { echo "::error::PREDICT_API_KEY secret is required"; exit 1; }
+          printf '\nPREDICT_API_KEY=%s\nNEXT_PUBLIC_PREDICT_API_KEY=%s\n' "$PREDICT_API_KEY" "$NEXT_PUBLIC_PREDICT_API_KEY" >> .vercel/.env.production.local
+
       - name: Build
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy
         id: deploy
         run: |
-          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --env PREDICT_API_KEY="$PREDICT_API_KEY" --env NEXT_PUBLIC_PREDICT_API_KEY="$NEXT_PUBLIC_PREDICT_API_KEY" --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=${DEPLOY_URL}" >> "${GITHUB_OUTPUT}"
 
       - name: Notify Lark (Success)

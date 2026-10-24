@@ -1,3 +1,4 @@
+import { predictApiHeaders } from "src/libs/predictApiHeaders";
 import { NextResponse, type NextRequest } from "next/server";
 import type { PredictEvent, PredictPage } from "@liberfi.io/react-predict";
 import { filterTradableEventsPage } from "src/lib/filterPredictEvents";
@@ -18,7 +19,7 @@ function buildPredictUrl(baseUrl: string, path: string, search: string) {
 }
 
 function forwardingHeaders(request: NextRequest, accept: string) {
-  return {
+  return predictApiHeaders({
     accept,
     ...(request.headers.get("accept-language")
       ? { "accept-language": request.headers.get("accept-language")! }
@@ -26,7 +27,7 @@ function forwardingHeaders(request: NextRequest, accept: string) {
     ...(request.headers.get("cookie")
       ? { cookie: request.headers.get("cookie")! }
       : {}),
-  };
+  });
 }
 
 export async function GET(request: NextRequest) {
