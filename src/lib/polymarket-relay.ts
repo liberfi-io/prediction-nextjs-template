@@ -47,7 +47,6 @@ const SAFE_FACTORY_NAME = "Polymarket Contract Proxy Factory";
 
 const POLYGON_CHAIN_ID = 137;
 
-const RELAYER_URL = "https://relayer-v2.polymarket.com";
 
 const multisendAbi = [
   {
