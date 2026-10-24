@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { StrictMode } from "react";
 import { SportsShell } from "./SportsShell";
 import {
   formatSportsLiveDateRange,
@@ -24,6 +25,96 @@ jest.mock("../../worldcup/odds/OddsNumber", () => ({
 }));
 
 describe("SportsShell live filters", () => {
+  it("retries a degraded SSR match page on the client", async () => {
+    const originalFetch = global.fetch;
+    const recoveredResponse = {
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            match_group_slug: "recovered-match",
+            section: "sports",
+            title: "Recovered match",
+            start_time: "2026-07-23T12:00:00Z",
+            participants: [
+              {
+                name: "Recovered Home",
+                abbreviation: "RHM",
+                role: "home",
+              },
+              {
+                name: "Recovered Away",
+                abbreviation: "RAW",
+                role: "away",
+              },
+            ],
+          },
+        ],
+        has_more: false,
+        next_cursor: null,
+        limit: 20,
+      }),
+    };
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(
+        (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              reject(new DOMException("Aborted", "AbortError"));
+            });
+          }),
+      )
+      .mockResolvedValue(recoveredResponse);
+    global.fetch = fetchMock;
+
+    try {
+      const { container } = render(
+        <StrictMode>
+          <SportsShell
+            section="sports"
+            filters={{
+              view: "live",
+              start_time_gte: "2026-07-23T00:00:00Z",
+              start_time_lt: "2026-07-24T00:00:00Z",
+              live_range_start: "2026-07-23T00:00:00Z",
+            }}
+            lang="en"
+            data={{
+              matches: [],
+              props: [],
+              taxonomy: null,
+              match_page_degraded: true,
+              match_request_time_range: {
+                start_time_gte: "2026-07-23T01:00:00Z",
+                start_time_lt: "2026-07-24T01:00:00Z",
+              },
+            }}
+          />
+        </StrictMode>,
+      );
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      await waitFor(() =>
+        expect(screen.queryByText("Loading…")).toBeNull(),
+      );
+      expect(screen.queryByText("No matches available")).toBeNull();
+      expect(container.querySelector("[aria-busy='true']")).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const request = new URL(String(fetchMock.mock.calls[1]?.[0]));
+      expect(request.pathname).toBe("/predict-api/api/v1/sports/matches");
+      expect(request.searchParams.get("view")).toBe("live");
+      expect(request.searchParams.get("start_time_gte")).toBe(
+        "2026-07-23T01:00:00Z",
+      );
+      expect(request.searchParams.get("start_time_lt")).toBe(
+        "2026-07-24T01:00:00Z",
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("keeps date-level taxonomy selection out of the primary navigation", () => {
     const { container } = render(
       <SportsShell
@@ -310,7 +401,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         screen.getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
       const nextWeekSoccerHref = within(
@@ -327,7 +418,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         screen.getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
       const secondWeekSoccerHref = within(
@@ -517,7 +608,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         within(datePicker).getByRole("button", {
-          name: "extend.worldcup.tab.today",
+          name: "Today",
         }),
       );
       expect(
@@ -538,7 +629,7 @@ describe("SportsShell live filters", () => {
       expect(soccerLink.getAttribute("aria-current")).toBe("page");
       expect(
         within(taxonomySwitch)
-          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getByRole("link", { name: "All" })
           .getAttribute("aria-current"),
       ).toBeNull();
       act(() => jest.advanceTimersByTime(100));
@@ -561,7 +652,7 @@ describe("SportsShell live filters", () => {
       );
 
       const allLink = within(taxonomySwitch).getByRole("link", {
-        name: "extend.sports.filters.all",
+        name: "All",
       });
       fireEvent.click(allLink);
       expect(allLink.getAttribute("aria-current")).toBe("page");
@@ -625,13 +716,13 @@ describe("SportsShell live filters", () => {
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       fireEvent.click(
         screen.getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
       await waitFor(() =>
         expect(
-          screen.getByText("extend.sports.empty.matches"),
+          screen.getByText("No matches available"),
         ).toBeDefined(),
       );
 
@@ -656,7 +747,7 @@ describe("SportsShell live filters", () => {
       });
 
       expect(screen.queryByText("Stale old week match")).toBeNull();
-      expect(screen.getByText("extend.sports.empty.matches")).toBeDefined();
+      expect(screen.getByText("No matches available")).toBeDefined();
     } finally {
       jest.useRealTimers();
       global.fetch = originalFetch;
@@ -765,7 +856,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         screen.getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
 
@@ -866,7 +957,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         screen.getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
       await waitFor(() =>
@@ -1069,7 +1160,7 @@ describe("SportsShell live filters", () => {
       );
 
       const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading.textContent).toContain("extend.sports.filters.live");
+      expect(heading.textContent).toContain("Live");
       expect(heading.textContent).toContain("Jul 23");
       expect(heading.textContent).toContain("Jul 29");
       expect(heading.textContent).not.toContain("2026");
@@ -1089,13 +1180,13 @@ describe("SportsShell live filters", () => {
       expect(
         (
           within(datePicker).getByRole("button", {
-            name: "extend.sports.filters.previousWeek",
+            name: "Previous week",
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(true);
       expect(
         within(datePicker).getByRole("button", {
-          name: "extend.worldcup.tab.today",
+          name: "Today",
         }).className,
       ).toContain("cursor-pointer");
       expect(within(datePicker).getByText("Thu").className).toContain(
@@ -1136,7 +1227,7 @@ describe("SportsShell live filters", () => {
       );
       expect(
         within(resetTaxonomySwitch)
-          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getByRole("link", { name: "All" })
           .getAttribute("aria-current"),
       ).toBe("page");
       expect(
@@ -1153,7 +1244,7 @@ describe("SportsShell live filters", () => {
       ).toBe(true);
       fireEvent.click(
         within(datePicker).getByRole("button", {
-          name: "extend.sports.filters.nextWeek",
+          name: "Next week",
         }),
       );
       act(() => jest.advanceTimersByTime(100));
@@ -1191,7 +1282,7 @@ describe("SportsShell live filters", () => {
 
       fireEvent.click(
         within(datePicker).getByRole("button", {
-          name: "extend.sports.filters.previousWeek",
+          name: "Previous week",
         }),
       );
       act(() => jest.advanceTimersByTime(100));
@@ -1204,7 +1295,7 @@ describe("SportsShell live filters", () => {
       ).toBe("date");
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
       const previousWeekButton = within(datePicker).getByRole("button", {
-        name: "extend.sports.filters.previousWeek",
+        name: "Previous week",
       }) as HTMLButtonElement;
       expect(previousWeekButton.disabled).toBe(true);
       fireEvent.click(previousWeekButton);
@@ -1217,7 +1308,7 @@ describe("SportsShell live filters", () => {
       );
       fireEvent.click(
         within(datePicker).getByRole("button", {
-          name: "extend.worldcup.tab.today",
+          name: "Today",
         }),
       );
       act(() => jest.advanceTimersByTime(100));
@@ -1237,13 +1328,13 @@ describe("SportsShell live filters", () => {
         "/sports?view=live&start_time_gte=2026-07-23T00%3A00%3A00Z&start_time_lt=2026-07-24T00%3A00%3A00Z&live_range_start=2026-07-23T00%3A00%3A00Z&taxonomy_type=sport&taxonomy_slug=soccer",
       );
       expect(
-        within(taxonomySwitch).getByText("extend.worldcup.odds"),
+        within(taxonomySwitch).getByText("Odds"),
       ).toBeDefined();
       expect(soccerLink?.className).toContain("px-3");
       expect(soccerLink?.getAttribute("aria-current")).toBeNull();
       expect(
         within(taxonomySwitch)
-          .getByRole("link", { name: "extend.sports.filters.all" })
+          .getByRole("link", { name: "All" })
           .getAttribute("aria-current"),
       ).toBe("page");
       expect(
@@ -1268,7 +1359,7 @@ describe("SportsShell live filters", () => {
       expect(tennisLink).not.toBeNull();
       fireEvent.click(tennisLink!);
       expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(
-        "extend.sports.filters.live",
+        "Live",
       );
       expect(screen.getByTestId("sports-live-date-picker")).toBeDefined();
     } finally {

@@ -11,7 +11,10 @@ import {
   MARKET_DATA_FEATURE_CAPABILITY,
   resolveSportsFeatureFlags,
 } from "src/libs/featureFlags";
-import { getSportsMarketDataHydration } from "src/features/market-data/server";
+import {
+  getSportsMarketDataHydration,
+  mergeSportsPageDataWithMarketDataHydration,
+} from "src/features/market-data/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +28,7 @@ export default async function Page({
 
   const filters = resolveSportsPageFilters(await searchParams);
   const { lang, requestHeaders } = await getPredictionLocaleContext();
-  const deadline = createSportsSsrDeadline(3000);
+  const deadline = createSportsSsrDeadline(5000);
   const marketDataHydrationPromise = MARKET_DATA_FEATURE_CAPABILITY.enabled
     ? deadline
         .withRemainingTimeout(() =>
@@ -50,29 +53,10 @@ export default async function Page({
     marketDataHydrationPromise,
     dataPromise,
   ]);
-  const hydratedData = {
-    ...data,
-    ...(marketDataHydration?.pages.matches
-      ? {
-          matches: marketDataHydration.pages.matches.items,
-          match_pagination: {
-            next_cursor: marketDataHydration.pages.matches.next_cursor,
-            has_more: marketDataHydration.pages.matches.has_more,
-            limit: marketDataHydration.pages.matches.limit,
-          },
-        }
-      : {}),
-    ...(marketDataHydration?.pages.props
-      ? {
-          props: marketDataHydration.pages.props.items,
-          prop_pagination: {
-            next_cursor: marketDataHydration.pages.props.next_cursor,
-            has_more: marketDataHydration.pages.props.has_more,
-            limit: marketDataHydration.pages.props.limit,
-          },
-        }
-      : {}),
-  };
+  const hydratedData = mergeSportsPageDataWithMarketDataHydration(
+    data,
+    marketDataHydration,
+  );
 
   return (
     <SportsShell

@@ -6,9 +6,11 @@ export type LeaderboardScope = "all" | typeof WORLDCUP_SCOPE;
 export type LeaderboardView = "smart-money" | "live-feed";
 
 export const INTERVAL_OPTIONS: LeaderboardInterval[] = ["1d", "7d", "30d", "all"];
-export const SCOPES: LeaderboardScope[] = ["all", WORLDCUP_SCOPE];
 export const DEFAULT_INTERVAL: LeaderboardInterval = "all";
 export const DEFAULT_SCOPE: LeaderboardScope = "all";
+// World Cup remains parseable for legacy deep links but is no longer exposed
+// as a selectable leaderboard scope after the tournament ended.
+export const SCOPES: LeaderboardScope[] = [DEFAULT_SCOPE];
 
 const INTERVALS = new Set<LeaderboardInterval>(INTERVAL_OPTIONS);
 

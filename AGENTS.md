@@ -79,7 +79,7 @@
 - 单包 Next.js 15（App Router）应用，`output: "standalone"`，作为薄壳，把大部分 UI 与数据逻辑委托给 `@liberfi.io/*` SDK 包。
 - 技术栈：TypeScript 5.7、Jotai + TanStack React Query 5、HeroUI + Tailwind CSS 4 + Framer Motion、Privy（`@liberfi.io/wallet-connector-privy`）、viem + `@solana/web3.js`、i18next（`@liberfi.io/i18n` + 本地 `src/locales/`）。
 - 目录：`src/app/`（页面与 API 路由）、`src/components/`（`AppLayout` 与页面级客户端组件）、`src/libs/`（浏览器 `queryClient`、服务端 `predictClient`、Privy 鉴权）、`src/i18n/`、`src/locales/`、`src/styles/`（`globals.css` Tailwind 入口、`theme.css` CSS 变量）。
-- SSR 模式：列表/详情页统一使用「服务端 QueryClient prefetch → dehydrate → HydrationBoundary → 客户端同 key 查询」，并用 `Promise.race` 3s 超时避免阻塞首屏。
+- SSR 模式：列表/详情页统一使用「服务端 QueryClient prefetch → dehydrate → HydrationBoundary → 客户端同 key 查询」；体育列表使用 5 秒共享 deadline，其他页面仍使用 3 秒超时避免阻塞首屏。
 - SDK 集成：数据 hooks `@liberfi.io/react-predict`、服务端 prefetch `@liberfi.io/react-predict/server`、UI `@liberfi.io/ui-predict`、布局 `@liberfi.io/ui-scaffold`、类型 `@liberfi.io/types`。
 - API 路由：浏览器经 `NEXT_PUBLIC_PREDICT_URL`（默认 `/predict-api`）→ Next.js rewrite → `PREDICT_URL`；服务端 `getServerPredictClient()` 直接用 `PREDICT_URL`。
 - Singleton 保证：`next.config.mjs` 为 `jotai`、`@tanstack/react-query` 固定单实例解析，避免重复实例。
